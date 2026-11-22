@@ -420,6 +420,10 @@ pub(super) fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color),
 }
 
 fn edge_label(edge: &Transition, skin: &Skin, family: Family) -> Result<Block, Declined> {
+    // PlantUML draws no words on a hidden arrow.
+    if edge.dash == Dash::Hidden {
+        return Ok(Block::empty());
+    }
     match &edge.label {
         Some(text) => text.measure(skin.arrow_font, family),
         None => Ok(Block::empty()),
@@ -1119,6 +1123,9 @@ fn paint_labels(
             .collect()
     });
     for (slot, edge) in scene.edges.iter().enumerate() {
+        if hidden(edge) {
+            continue;
+        }
         canvas.part(&crate::svg::words_part(path, slot), |canvas| {
             let before = canvas.tie(lines.get(slot).copied());
             canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
@@ -1331,6 +1338,44 @@ mod tests {
     /// state or at the top: a fold glides it from where it was to where
     /// it is, rather than inside the picture of the state around it, where
     /// its old place and its new one showed both at once (REQ-063).
+    #[test]
+    fn a_hidden_arrow_is_nowhere_but_in_the_layout() {
+        let source = "@startuml\nstate Setup {\n  [*] --> Hardware\n  Hardware -[hidden]-> Software : quiet\n}\n[*] --> Setup\nSetup -[hidden,dashed]-> Running : secret\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        // Neither its words, nor a line the pane glides, lights or shapes,
+        // nor a step of a play.
+        assert!(!svg.contains("secret") && !svg.contains("quiet"), "{svg}");
+        let lines = |of: Vec<usize>| {
+            let mut of = of;
+            of.sort();
+            of
+        };
+        assert_eq!(
+            lines(map.wires.iter().filter_map(|w| w.line).collect()),
+            [2, 5]
+        );
+        assert_eq!(
+            lines(map.transitions.iter().map(|t| t.line).collect()),
+            [2, 5]
+        );
+        // Folded, the box counts no hidden arrow among its transitions.
+        let Ok(crate::Diagram::State(mut d)) = crate::parse(source) else {
+            panic!("a state diagram");
+        };
+        d.fold(&["Setup".to_owned()]);
+        let said = &d
+            .root
+            .nodes
+            .iter()
+            .find(|n| n.key == "Setup")
+            .unwrap()
+            .description;
+        assert!(
+            said.iter().any(|t| t.value == "2 states · 1 transition"),
+            "{said:?}"
+        );
+    }
+
     #[test]
     fn a_note_is_drawn_in_a_part_of_its_own() {
         let source = "@startuml\nstate Brewing {\n  state Grind\n  note right of Grind : fine\n  note left of Grind : dark\n}\nstate Idle\nnote left of Idle : coarse\n' parts (Omaspec)\n@enduml\n";

@@ -1,6 +1,6 @@
 //! Concurrent regions, and transitions between containers.
 
-use super::super::{Container, Crossing, Direction, Kind, Split};
+use super::super::{Container, Crossing, Dash, Direction, Kind, Split};
 use super::{
     Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat,
     layout_container,
@@ -280,7 +280,12 @@ pub(super) fn arrows(root: &Container) -> Vec<(Arrow, Key)> {
 
 fn collect(container: &Container, path: &mut Vec<usize>, out: &mut Vec<Arrow>) {
     let within = |end: &[usize]| [path.as_slice(), end].concat();
+    // A hidden one only places its states: no line to draw, glide, light
+    // or shape by hand.
     for (slot, edge) in container.edges.iter().enumerate() {
+        if edge.dash == Dash::Hidden {
+            continue;
+        }
         out.push(Arrow {
             path: path.clone(),
             slot,
@@ -291,6 +296,9 @@ fn collect(container: &Container, path: &mut Vec<usize>, out: &mut Vec<Arrow>) {
         });
     }
     for (index, crossing) in container.crossings.iter().enumerate() {
+        if crossing.arrow.dash == Dash::Hidden {
+            continue;
+        }
         out.push(Arrow {
             path: path.clone(),
             slot: container.edges.len() + index,

@@ -26,6 +26,7 @@ crates/omaspec-uml/tests/state/bundled.puml 7 0 0 0 0 0 12 680 0 20.3
 crates/omaspec-uml/tests/state/choice-back.puml 6 0 0 0 0 0 5 488 0 11.5
 crates/omaspec-uml/tests/state/crossings.puml 8 0 0 0 0 0 12 966 0 28.2
 crates/omaspec-uml/tests/state/held.puml 8 2 0 0 2 0 18 1216 6 11.3
+crates/omaspec-uml/tests/state/hidden-arrows.puml 3 0 0 0 0 0 2 118 0 32.9
 crates/omaspec-uml/tests/state/history.puml 8 0 0 0 0 0 12 1009 0 41.4
 crates/omaspec-uml/tests/state/legend-dark.puml 3 0 0 0 0 0 0 124 0 32.1
 crates/omaspec-uml/tests/state/nested.puml 23 0 0 0 0 0 23 4011 0 5.1
@@ -70,4 +71,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 12.9
 examples/platform.mmd 17 1 0 0 4 0 33 5250 6 43.9
 examples/player.puml 8 0 0 0 0 0 14 1022 0 15.4
 examples/shop.mmd 6 0 0 0 0 0 4 595 0 16.7
-total 603 8 0 2 21 0 557 103028 21 1353.8
+total 606 8 0 2 21 0 559 103146 21 1386.7

@@ -369,11 +369,19 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
     // the ring.
     let ink = skin.arrow.color;
     let mut spots = Vec::new();
-    if let Some(start) = root.nodes.iter().find(|n| n.kind == Kind::Start) {
-        canvas.ellipse(Layer::Front, start_at, (MARK, MARK), Some(ink), None);
-        spots.push(mark_spot(Shape::Start, start_at, start.line));
+    // One mark for every start, `[*]` and those with a name of their own,
+    // and one for every end; each has its spot there, so a play finds it.
+    let of = |kind: Kind| root.nodes.iter().filter(move |n| n.kind == kind);
+    for start in of(Kind::Start) {
+        spots.push(mark_spot(Shape::Start, start_at, start));
     }
-    if let Some(end) = root.nodes.iter().find(|n| n.kind == Kind::End) {
+    for end in of(Kind::End) {
+        spots.push(mark_spot(Shape::End, stop_at, end));
+    }
+    if of(Kind::Start).next().is_some() {
+        canvas.ellipse(Layer::Front, start_at, (MARK, MARK), Some(ink), None);
+    }
+    if of(Kind::End).next().is_some() {
         canvas.ellipse(
             Layer::Front,
             stop_at,
@@ -388,7 +396,6 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
             Some(ink),
             None,
         );
-        spots.push(mark_spot(Shape::End, stop_at, end.line));
     }
     for station in &stations {
         let state = &root.nodes[station.node];
@@ -528,12 +535,12 @@ fn free_place(
     at(0.5, false)
 }
 
-/// The start's or the end's spot on the map.
-fn mark_spot(shape: Shape, (x, y): (f32, f32), line: usize) -> Spot {
+/// The spot on the map of `node`, a start or an end, at its mark.
+fn mark_spot(shape: Shape, (x, y): (f32, f32), node: &super::Node) -> Spot {
     Spot {
-        name: String::new(),
+        name: node.key.clone(),
         shape,
-        line,
+        line: node.line,
         parent: None,
         rect: crate::graph::Rect {
             x: x - MARK,
@@ -645,9 +652,15 @@ fn reached(lifted: &[(usize, usize, &super::Transition)], from: usize, seen: &[b
 /// each end, and the transition.
 fn lifted_edges(diagram: &Diagram) -> Vec<(usize, usize, &super::Transition)> {
     let root = &diagram.root;
-    let mut out: Vec<(usize, usize, &super::Transition)> =
-        root.edges.iter().map(|t| (t.from, t.to, t)).collect();
-    for crossing in &root.crossings {
+    // A hidden arrow only places states in the layout; the ring has none.
+    let shown = |t: &super::Transition| t.dash != super::Dash::Hidden;
+    let mut out: Vec<(usize, usize, &super::Transition)> = root
+        .edges
+        .iter()
+        .filter(|t| shown(t))
+        .map(|t| (t.from, t.to, t))
+        .collect();
+    for crossing in root.crossings.iter().filter(|c| shown(&c.arrow)) {
         if let (Some(&from), Some(&to)) = (crossing.from.first(), crossing.to.first()) {
             out.push((from, to, &crossing.arrow));
         }
@@ -823,6 +836,25 @@ mod tests {
         assert!(map.tied.iter().any(|t| t.line == 2));
         // A state around others says how many it holds.
         assert!(svg.contains("1 state"));
+    }
+
+    /// A hidden arrow is no way on the ring, and a start with a name has
+    /// its spot at the start's mark as `[*]` has.
+    #[test]
+    fn the_ring_leaves_hidden_arrows_out_and_finds_each_start() {
+        let code = "@startuml\nstate s1 <<start>>\n[*] --> A\ns1 --> B\nA -[hidden]-> B : secret\nB --> [*]\n@enduml\n";
+        let (svg, map) = draw_orbit(&diagram(code)).unwrap();
+        assert!(!svg.contains("secret"));
+        let mut lines: Vec<usize> = map.transitions.iter().map(|t| t.line).collect();
+        lines.sort();
+        assert_eq!(lines, [2, 3, 5]);
+        let starts: Vec<(&str, usize)> = map
+            .states
+            .iter()
+            .filter(|s| s.shape == Shape::Start)
+            .map(|s| (s.name.as_str(), s.line))
+            .collect();
+        assert_eq!(starts, [("s1", 1), ("", 2)]);
     }
 
     /// The route of the transition on `line` in the orbit of `code`.

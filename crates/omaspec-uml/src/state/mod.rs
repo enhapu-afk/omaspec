@@ -96,7 +96,9 @@ impl Container {
     /// How many states and how many transitions it holds, at any depth.
     fn counts(&self) -> (usize, usize) {
         let mut states = 0;
-        let mut transitions = self.edges.len() + self.crossings.len();
+        let shown = |arrow: &Transition| arrow.dash != Dash::Hidden;
+        let mut transitions = self.edges.iter().filter(|e| shown(e)).count()
+            + self.crossings.iter().filter(|c| shown(&c.arrow)).count();
         for node in &self.nodes {
             if node.kind == Kind::State {
                 states += 1;

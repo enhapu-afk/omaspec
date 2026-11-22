@@ -163,6 +163,18 @@ is open and the reasoning around it.
       converted to Mermaid it is said to be left out. The golden test
       refuses two files of one name in two folders, which wrote one golden.
       The guide: 21 of 36.
+- [x] What the review of the named starts and hidden arrows found
+      (2026-11-22): a hidden arrow was still a line of the map, which the
+      pane glides, lights on a focus, shapes by hand and a build film
+      draws; its words were drawn; `-[hidden,dashed]->` was visible, as
+      the last word won; the orbit drew its head and words; a box folded
+      counted it; a hidden arrow across boxes made the conversion refuse.
+      It is now only in the layout: no arrow of the map (`nest::arrows`),
+      no words, no way on the ring, hidden whichever its place among the
+      words of its style. A start or an end with a name has its spot at
+      the orbit's mark, as `[*]` has, so a play finds it; declared again as
+      what it is, it stays that; converted to Mermaid, which has only
+      `[*]`, it refuses and says why.
 
 ## Phase 0: foundation and spikes
 

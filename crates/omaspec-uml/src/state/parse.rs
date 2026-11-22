@@ -791,8 +791,10 @@ fn marker_node(kind: Kind, line: usize) -> Node {
 }
 
 fn apply(node: &mut Node, decl: &Decl) -> Result<(), Declined> {
-    if let Some(kind) = decl.kind {
-        if node.composite || matches!(node.kind, Kind::Start | Kind::End) {
+    if let Some(kind) = decl.kind
+        && kind != node.kind
+    {
+        if node.composite {
             return Err(Declined::at(
                 decl.line,
                 "a state that contains states cannot change its kind",
@@ -1258,6 +1260,9 @@ fn arrow_style(inside: &str, line: usize) -> Result<(Option<String>, Dash, bool)
     let mut color = None;
     let mut dash = Dash::Solid;
     let mut bold = false;
+    // Hidden whatever else the arrow is written as, before or after it
+    // (`-[hidden,dashed]->`), as PlantUML hides it.
+    let mut hidden = false;
     for part in inside.split(',') {
         let part = part.trim();
         if part.is_empty() {
@@ -1268,7 +1273,7 @@ fn arrow_style(inside: &str, line: usize) -> Result<(Option<String>, Dash, bool)
             "dotted" => dash = Dash::Dotted,
             "bold" => bold = true,
             "solid" => {}
-            "hidden" => dash = Dash::Hidden,
+            "hidden" => hidden = true,
             _ => {
                 if color.is_some()
                     || part.contains('=')
@@ -1287,6 +1292,9 @@ fn arrow_style(inside: &str, line: usize) -> Result<(Option<String>, Dash, bool)
                 color = Some(part.to_owned());
             }
         }
+    }
+    if hidden {
+        dash = Dash::Hidden;
     }
     Ok((color, dash, bold))
 }
@@ -1736,9 +1744,15 @@ mod tests {
 
     #[test]
     fn a_hidden_arrow_is_a_transition_that_only_places() {
-        let d = diagram("@startuml\nA -[hidden]-> B\nA -[#red,dashed]-> C\n@enduml\n");
+        let d = diagram(
+            "@startuml\nA -[hidden]-> B\nA -[#red,dashed]-> C\nA -[hidden,dashed]-> D\nA -[dotted,hidden]-> E\n@enduml\n",
+        );
         let dashes: Vec<Dash> = d.root.edges.iter().map(|e| e.dash).collect();
-        assert_eq!(dashes, [Dash::Hidden, Dash::Dashed]);
+        // Hidden whatever else the arrow is written as, before or after.
+        assert_eq!(
+            dashes,
+            [Dash::Hidden, Dash::Dashed, Dash::Hidden, Dash::Hidden]
+        );
     }
 
     /// A start or an end with a name (`state s1 <<start>>`) is one of its
@@ -1750,6 +1764,17 @@ mod tests {
         );
         let kinds = |kind: Kind| d.root.nodes.iter().filter(|n| n.kind == kind).count();
         assert_eq!((kinds(Kind::Start), kinds(Kind::End)), (2, 2));
+        // Declared again as what it is, it stays that; as another kind, it
+        // says so.
+        let again =
+            diagram("@startuml\nstate s1 <<start>>\nstate s1 <<start>>\ns1 --> A\n@enduml\n");
+        assert_eq!(again.root.nodes[0].kind, Kind::Start);
+        let other = declined("@startuml\nstate s1 <<start>>\nstate s1 <<choice>>\n@enduml\n");
+        assert!(
+            other.reason.contains("already another kind"),
+            "{}",
+            other.reason
+        );
     }
 
     /// REQ-075: an arrow turned with a word or a start of one, before or

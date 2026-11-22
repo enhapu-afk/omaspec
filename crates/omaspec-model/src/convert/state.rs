@@ -187,6 +187,13 @@ impl ToMermaid {
         }
         for crossing in &c.crossings {
             let line = crossing.arrow.line;
+            if crossing.arrow.dash == Dash::Hidden {
+                self.notice(
+                    Some(line),
+                    "Mermaid has no hidden arrows; this one is left out",
+                );
+                continue;
+            }
             let from = self.end(walk(c, &crossing.from), line)?;
             let to = self.end(walk(c, &crossing.to), line)?;
             if from == "[*]" || to == "[*]" {
@@ -316,6 +323,13 @@ impl ToMermaid {
     /// A transition's end: `[*]` or the state's id.
     fn end(&mut self, node: &Node, line: usize) -> Result<String, Refused> {
         match node.kind {
+            Kind::Start | Kind::End if !node.key.is_empty() => Err(refused(
+                Some(node.line),
+                format!(
+                    "Mermaid has no start or end with a name of its own (`{}`), only [*]",
+                    node.key
+                ),
+            )),
             Kind::Start | Kind::End => Ok("[*]".into()),
             Kind::History | Kind::DeepHistory => Err(refused(
                 Some(line),
@@ -688,6 +702,26 @@ mod tests {
         let err = both(regions, Language::PlantUml, Language::Mermaid).unwrap_err();
         assert!(err.reason.contains("only inside a state"), "{err:?}");
         assert_eq!(err.line, Some(2), "{err:?}");
+    }
+
+    /// A hidden arrow, between two states of one box or across boxes, is
+    /// left out and told; a start with a name is refused, as Mermaid's
+    /// has none.
+    #[test]
+    fn hidden_arrows_are_left_out_and_named_starts_refused() {
+        let hidden = "@startuml\nstate Setup {\n  [*] --> Hardware\n  Hardware -[hidden]-> Software\n}\n[*] --> Setup\nSetup --> Running\nHardware -[hidden]-> Running\n@enduml\n";
+        let out = both(hidden, Language::PlantUml, Language::Mermaid).unwrap();
+        let told: Vec<Option<usize>> = out
+            .notices
+            .iter()
+            .filter(|n| n.message.contains("hidden"))
+            .map(|n| n.line)
+            .collect();
+        assert_eq!(told, [Some(3), Some(7)], "{out:?}");
+        let named = "@startuml\nstate s1 <<start>>\ns1 --> A\n@enduml\n";
+        let err = both(named, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert!(err.reason.contains("name of its own (`s1`)"), "{err:?}");
+        assert_eq!(err.line, Some(1), "{err:?}");
     }
 
     /// A line that describes no state is refused, not a fall (found by
