@@ -150,7 +150,7 @@ impl Layout<'_> {
         lane: usize,
     ) -> Result<Tile, Declined> {
         let font = self.skin.arrow_font;
-        let (dw, dh, test) = self.diamond(then.test.as_ref())?;
+        let (dw, dh, test, beside) = self.test(then.test.as_ref())?;
         let mut sides = [then, otherwise];
         if entry_lane(&otherwise.flow, lane) < entry_lane(&then.flow, lane) {
             sides.reverse();
@@ -179,6 +179,9 @@ impl Layout<'_> {
             text: test,
             lane,
         }];
+        // `conditionStyle diamond`: the test above, right of the line in.
+        let lift = beside.height + 2.0;
+        shapes.extend(self.beside(beside, xd, -lift, lane));
         let corners = (pt(xd - dw / 2.0, cy, lane), pt(xd + dw / 2.0, cy, lane));
         let [left_label, right_label] = labels;
         if !left_label.is_empty() {
@@ -227,7 +230,7 @@ impl Layout<'_> {
         lane: usize,
     ) -> Result<Tile, Declined> {
         let font = self.skin.arrow_font;
-        let (dw, dh, text) = self.diamond(Some(test))?;
+        let (dw, dh, text, beside) = self.test(Some(test))?;
         // Cases in swimlanes further left go further left.
         let mut cases: Vec<&Branch> = cases.iter().collect();
         cases.sort_by_key(|case| entry_lane(&case.flow, lane));
@@ -340,6 +343,8 @@ impl Layout<'_> {
             text,
             lane,
         }];
+        let lift = beside.height + 2.0;
+        shapes.extend(self.beside(beside, xd, -lift, lane));
         let corners = (pt(xd - dw / 2.0, cy, lane), pt(xd + dw / 2.0, cy, lane));
         let mut edges = Vec::new();
         let mut ways = Vec::new();

@@ -406,6 +406,14 @@ is open and the reasoning around it.
       words to their last bracket, as the engine does; a swimlane line
       that names the lane already in use no longer stops a note waiting
       for its action.
+- [x] `skinparam conditionStyle diamond` and `ArrowHeadColor` in activity
+      diagrams (2026-11-22): the test of an `if`, a `while` and a `switch`
+      stands above an empty diamond, right of the line into it, that of a
+      `repeat` right of its diamond, above the line from its right corner;
+      a row of `elseif`s keeps its hexagons, as PlantUML draws them. Words
+      on the arrow into such a test stand above it. `ArrowHeadColor none`
+      draws the lines without heads, a color colors the heads alone. The
+      guide: 56 of 62.
 
 ## Phase 0: foundation and spikes
 

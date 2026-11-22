@@ -4,7 +4,7 @@
 //! put it.
 
 use super::layout::{Layout, SDL_BRACE, SDL_LINE, SDL_POINT, room};
-use super::skin::Skin;
+use super::skin::{Condition, Skin};
 use super::tile::{Edge, Pt, Shape};
 use super::{ActionShape, Diagram};
 use crate::Declined;
@@ -300,12 +300,14 @@ impl Painter<'_> {
         if points.len() < 2 || edge.stroke.width <= 0.0 {
             return None;
         }
-        // The head sits on a straight end, not on the curve before it.
-        let arrive = if edge.head { HEAD_LENGTH } else { 0.0 };
+        // The head sits on a straight end, not on the curve before it;
+        // `ArrowHeadColor none` draws none.
+        let headed = edge.head && self.skin.heads;
+        let arrive = if headed { HEAD_LENGTH } else { 0.0 };
         canvas.curve_arriving(Layer::Lines, &points, self.skin.curve, arrive, edge.stroke);
         let curved = crate::curve::flatten_arriving(&points, self.skin.curve, arrive);
         let mut drawn = None;
-        if edge.head {
+        if headed {
             let tip = points[points.len() - 1];
             let from = points[points.len() - 2];
             let (len, ux, uy) = {
@@ -318,10 +320,11 @@ impl Painter<'_> {
             }
             let back = (tip.0 - ux * HEAD_LENGTH, tip.1 - uy * HEAD_LENGTH);
             let side = (-uy * HEAD_HALF, ux * HEAD_HALF);
+            let color = self.skin.head_color.unwrap_or(edge.stroke.color);
             let solid = Stroke {
                 dash: None,
                 width: edge.stroke.width.min(1.5),
-                ..edge.stroke
+                color,
             };
             let mut head = vec![
                 (back.0 + side.0, back.1 + side.1),
@@ -331,7 +334,7 @@ impl Painter<'_> {
             if !self.skin.strict {
                 head.push((tip.0 - ux * 6.0, tip.1 - uy * 6.0));
             }
-            canvas.polygon(Layer::Lines, &head, Some(edge.stroke.color), Some(solid));
+            canvas.polygon(Layer::Lines, &head, Some(color), Some(solid));
             drawn = Some(head);
         }
         Some((points, curved, drawn))
@@ -366,7 +369,7 @@ impl Painter<'_> {
                 let (x, y) = self.at(*lane, *x, *y);
                 let (w, h) = (*w, *h);
                 let cy = y + h / 2.0;
-                let points = if text.is_empty() || skin.test_in_diamond {
+                let points = if text.is_empty() || skin.condition == Condition::InsideDiamond {
                     vec![(x, cy), (x + w / 2.0, y), (x + w, cy), (x + w / 2.0, y + h)]
                 } else {
                     let p = 12.0;
@@ -644,6 +647,42 @@ mod tests {
         let bars = bars(&svg);
         assert_eq!(bars.len(), 2, "{svg}");
         assert_eq!((bars[0].0, bars[0].2), (bars[1].0, bars[1].2), "{svg}");
+    }
+
+    /// `ArrowHeadColor none` draws lines without heads; a color colors the
+    /// heads alone.
+    #[test]
+    fn arrow_heads_take_their_own_color_or_none() {
+        let source = "@startuml\nstart\n:Hello world;\n:Next;\nstop\n@enduml\n";
+        let heads = |svg: &str| svg.matches("<polygon").count();
+        let plain = crate::render_mapped(source, None).unwrap().0;
+        let none = source.replace("start\n", "skinparam ArrowHeadColor none\nstart\n");
+        let none = crate::render_mapped(&none, None).unwrap().0;
+        assert_eq!(heads(&plain), 3, "{plain}");
+        assert_eq!(heads(&none), 0, "{none}");
+        assert_eq!(
+            plain.matches("<polyline").count(),
+            none.matches("<polyline").count()
+        );
+        let red = source.replace("start\n", "skinparam ArrowHeadColor #FF0000\nstart\n");
+        let red = crate::render_mapped(&red, None).unwrap().0;
+        assert_eq!(heads(&red), 3);
+        assert_eq!(red.matches("fill=\"#FF0000\"").count(), 3, "{red}");
+    }
+
+    /// `conditionStyle diamond`: the test stands above an empty diamond,
+    /// right of the line into it, as PlantUML draws it.
+    #[test]
+    fn a_test_stands_beside_an_empty_diamond() {
+        let source = "@startuml\nskinparam conditionStyle diamond\nstart\nif (is it ready?) then (yes)\n:go;\nelse (no)\n:wait;\nendif\nstop\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let (test, go, wait) = (at(3), at(4), at(6));
+        let middle = (go.x + go.w / 2.0 + wait.x + wait.w / 2.0) / 2.0;
+        assert!(
+            test.x > middle && test.y + test.h + 24.0 < go.y,
+            "{test:?} {go:?} {wait:?}"
+        );
     }
 
     /// With a `backward`, a `while` goes back on the right through its

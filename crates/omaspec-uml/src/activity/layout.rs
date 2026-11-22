@@ -6,7 +6,7 @@
 //! were one swimlane, every point keeping the swimlane it belongs to;
 //! [`super::draw`] then moves each swimlane's part into its column.
 
-use super::skin::Skin;
+use super::skin::{Condition, Skin};
 use super::tile::{Edge, Pt, Shape, Tile, pt};
 use super::{ActionShape, Arrow, Backward, Flow, LineStyle, Node, Note, Step, Text};
 use crate::Declined;
@@ -184,17 +184,19 @@ impl Layout<'_> {
         match prev.exit {
             Some(out) => {
                 let turns = out.lane != next.entry.lane;
-                let room = if label.is_empty() {
-                    0.0
+                // Words on the arrow stand above what `next` has above its
+                // entry (a test beside its diamond).
+                let (room, above) = if label.is_empty() {
+                    (0.0, 0.0)
                 } else {
-                    label.height + 4.0
+                    (label.height + 4.0, (next.entry.y - next.bounds.1).max(0.0))
                 };
-                let need = GAP + room + if turns { CLEAR } else { 0.0 };
+                let need = GAP + room + above + if turns { CLEAR } else { 0.0 };
                 let dy = (bottom + CLEAR - top).max(out.y + need - next.entry.y);
                 next.translate(out.x - next.entry.x, dy);
                 let entry = pt(out.x, next.entry.y, next.entry.lane);
                 let mut points = vec![out];
-                let mut y = out.y + (entry.y - out.y - label.height) / 2.0;
+                let mut y = out.y + (entry.y - above - out.y - label.height) / 2.0;
                 if turns {
                     // A line to another swimlane turns across between the
                     // two tiles, below its label.
@@ -397,12 +399,26 @@ impl Layout<'_> {
 
     /// A test's diamond: its size and measured text; an empty diamond
     /// without a test.
+    /// The diamond of an `if`, a `while`, a `repeat` or a `switch`: its
+    /// width and height, the words in it and those beside it, which
+    /// `conditionStyle diamond` sets beside an empty diamond.
+    pub(super) fn test(&self, test: Option<&Text>) -> Result<(f32, f32, Block, Block), Declined> {
+        if self.skin.condition == Condition::Beside {
+            let text = self.measure_opt(test, self.skin.diamond.font)?;
+            return Ok((2.0 * HALF, 2.0 * HALF, Block::empty(), text));
+        }
+        let (w, h, text) = self.diamond(test)?;
+        Ok((w, h, text, Block::empty()))
+    }
+
+    /// A diamond with its test in it, as `conditionStyle` says; a row of
+    /// `elseif`s keeps the hexagons of `inside` for `diamond` too.
     pub(super) fn diamond(&self, test: Option<&Text>) -> Result<(f32, f32, Block), Declined> {
         let text = self.measure_opt(test, self.skin.diamond.font)?;
         if text.is_empty() || text.width == 0.0 {
             return Ok((2.0 * HALF, 2.0 * HALF, Block::empty()));
         }
-        if self.skin.test_in_diamond {
+        if self.skin.condition == Condition::InsideDiamond {
             // Any `t` keeps the corners of the text and its margin on the
             // diamond's sides, which is then `t` times as wide as high: the
             // text's own shape, twice its size each way, but at least
@@ -452,7 +468,7 @@ impl Layout<'_> {
         lane: usize,
     ) -> Result<Tile, Declined> {
         let font = self.skin.arrow_font;
-        let (dw, dh, text) = self.diamond(Some(test))?;
+        let (dw, dh, text, beside) = self.test(Some(test))?;
         let yes = self.measure_opt(yes, font)?;
         let out = self.measure_opt(out, font)?;
         let cy = dh / 2.0;
@@ -464,6 +480,9 @@ impl Layout<'_> {
             text,
             lane,
         }];
+        // `conditionStyle diamond`: the test above, right of the line in.
+        let lift = beside.height + 2.0;
+        shapes.extend(self.beside(beside, 0.0, -lift, lane));
         shapes.extend(self.beside(yes, -2.0, dh + 1.0, lane));
         let mut edges = Vec::new();
         let empty = body.empty;
@@ -606,7 +625,7 @@ impl Layout<'_> {
         let font = self.skin.arrow_font;
         let yes = self.measure_opt(yes, font)?;
         let out = self.measure_opt(out, font)?;
-        let (dw, dh, text) = self.diamond(test)?;
+        let (dw, dh, text, beside) = self.test(test)?;
         // What the ways back join: its half width, its height, and the
         // height they meet it at, on its sides.
         let (head, half, high) = match start {
@@ -683,6 +702,19 @@ impl Layout<'_> {
             lane,
         });
         let cy = test_top + dh / 2.0;
+        // `conditionStyle diamond`: the test right of the diamond, above
+        // the line from its right corner; a `yes` there goes below it.
+        let yes_y = if beside.is_empty() {
+            cy - yes.height - 1.0
+        } else {
+            shapes.push(Shape::Label {
+                at: (dw / 2.0 + 2.0, cy - beside.height - 1.0),
+                text: beside,
+                align: Align::Left,
+                lane,
+            });
+            cy + 1.0
+        };
         let plain = self.stroke(None)?;
         match back {
             None => {
@@ -733,7 +765,7 @@ impl Layout<'_> {
                 }
                 if !yes.is_empty() {
                     shapes.push(Shape::Label {
-                        at: (dw / 2.0 + 2.0, cy - yes.height - 1.0),
+                        at: (dw / 2.0 + 2.0, yes_y),
                         text: yes,
                         align: Align::Left,
                         lane,

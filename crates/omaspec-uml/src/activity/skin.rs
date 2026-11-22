@@ -20,6 +20,19 @@ pub struct Look {
     pub font: Font,
 }
 
+/// Where the test of an `if`, a `while`, a `repeat` or a `switch` stands,
+/// as `skinparam conditionStyle` says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Condition {
+    /// `inside`: between the pointed ends of a hexagon.
+    Inside,
+    /// `InsideDiamond`: in a diamond.
+    InsideDiamond,
+    /// `diamond`: beside an empty diamond; a row of `elseif`s keeps its
+    /// hexagons, as PlantUML draws it.
+    Beside,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Skin {
     pub font_name: String,
@@ -39,13 +52,16 @@ pub struct Skin {
     pub padding: f32,
     /// The diamonds of `if`, `while` and `repeat`, with their tests.
     pub diamond: Look,
-    /// `skinparam conditionStyle InsideDiamond`: a test in a diamond, not
-    /// between pointed ends.
-    pub test_in_diamond: bool,
+    /// `skinparam conditionStyle`: where a test stands.
+    pub condition: Condition,
     /// `skinparam ConditionEndStyle hline`: branches come together on a
     /// line, not in a diamond.
     pub merge_line: bool,
     pub arrow: Stroke,
+    /// `skinparam ArrowHeadColor none`: lines without heads.
+    pub heads: bool,
+    /// `skinparam ArrowHeadColor`: the heads' own color, else the line's.
+    pub head_color: Option<Color>,
     /// How far a line's corners curve; none with `linetype ortho`. Less
     /// than a state's, as an activity's runs are short.
     pub curve: f32,
@@ -92,7 +108,9 @@ impl Default for Skin {
                 font: Font::new(11.0, black),
                 ..shape
             },
-            test_in_diamond: false,
+            condition: Condition::Inside,
+            heads: true,
+            head_color: None,
             merge_line: false,
             arrow: Stroke::new(dark, 1.0),
             curve: CURVE,
@@ -238,6 +256,13 @@ impl Skin {
                 "roundcorner" | "activityroundcorner" => skin.round = p.corner()?,
                 "backgroundcolor" => skin.background = p.paint()?,
                 "arrowcolor" => skin.arrow.color = p.solid()?,
+                "arrowheadcolor" => {
+                    if value.eq_ignore_ascii_case("none") {
+                        skin.heads = false;
+                    } else {
+                        skin.head_color = Some(p.solid()?);
+                    }
+                }
                 "arrowthickness" => skin.arrow.width = p.number(0.1, 20.0)?,
                 "arrowstyle" => {
                     skin.arrow.dash = match value.to_ascii_lowercase().as_str() {
@@ -253,10 +278,11 @@ impl Skin {
                 "activitydiamondbordercolor" => skin.diamond.border = p.solid()?,
                 "activitydiamondborderthickness" => skin.diamond.thickness = p.number(0.0, 20.0)?,
                 "conditionstyle" => {
-                    skin.test_in_diamond = match value.to_ascii_lowercase().as_str() {
-                        "inside" => false,
+                    skin.condition = match value.to_ascii_lowercase().as_str() {
+                        "inside" => Condition::Inside,
                         // PlantUML's own name for it, besides the long one.
-                        "insidediamond" | "foo1" => true,
+                        "insidediamond" | "foo1" => Condition::InsideDiamond,
+                        "diamond" => Condition::Beside,
                         _ => return Err(p.unsupported()),
                     };
                 }
@@ -507,7 +533,6 @@ mod tests {
             ("SwimlaneWidth", "same"),
             ("ActivityBackgroundColor", "#red/blue"),
             ("wrapWidth", "100"),
-            ("conditionStyle", "diamond"),
             ("ConditionEndStyle", "dot"),
         ] {
             let err = skin(&[("roundCorner", "3"), (key, value)]).unwrap_err();
@@ -522,13 +547,13 @@ mod tests {
             ("ConditionEndStyle", "diamond"),
         ])
         .unwrap();
-        assert!(!s.test_in_diamond && !s.merge_line);
+        assert!(s.condition == Condition::Inside && !s.merge_line);
         for name in ["InsideDiamond", "foo1"] {
-            assert!(
-                skin(&[("conditionStyle", name)]).unwrap().test_in_diamond,
-                "{name}"
-            );
+            let condition = skin(&[("conditionStyle", name)]).unwrap().condition;
+            assert_eq!(condition, Condition::InsideDiamond, "{name}");
         }
+        let condition = skin(&[("conditionStyle", "diamond")]).unwrap().condition;
+        assert_eq!(condition, Condition::Beside);
         assert!(skin(&[("ConditionEndStyle", "hline")]).unwrap().merge_line);
     }
 }

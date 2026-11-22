@@ -1,0 +1,32 @@
+@startuml
+' `skinparam conditionStyle diamond`: each test beside an empty diamond,
+' above it for an `if`, a `while` and a `switch`, right of it for a
+' `repeat`; a row of `elseif`s keeps its hexagons, as PlantUML draws it.
+skinparam conditionStyle diamond
+start
+-> in;
+if (Is it ready?) then (yes)
+  :Go;
+else (no)
+  :Wait;
+endif
+while (More to do?) is (yes)
+  :Work;
+endwhile (no)
+repeat
+  :Try;
+  backward :Again;
+repeat while (Failed?) is (yes) not (no)
+switch (Which one?)
+case (a)
+  :A;
+case (b)
+  :B;
+endswitch
+if (a?) then (yes)
+  :A;
+elseif (b?) then (yes)
+  :B;
+endif
+stop
+@enduml

@@ -66,14 +66,14 @@ of element) and step 0 (a second `@startuml` line).
       (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
       `json` element among the states waits on step 7.
 
-### Step 3: the activity diagram (53 of 62; the legacy syntax 0 of 13)
+### Step 3: the activity diagram (56 of 62; the legacy syntax 0 of 13)
 
 - [ ] `label` and `goto`.
 - [ ] `package`, `rectangle` and `card` frames around actions (as
       `partition` and `group` are); the two examples with a floating note
       or a note before its action wait on Creole rules in a note (step 5).
-- [ ] `skinparam ArrowHeadColor none`,
-      `conditionStyle diamond`, `!pragma useVerticalIf on`.
+- [ ] `!pragma useVerticalIf on`: a row of `elseif`s stacked, each
+      branch to the right, as PlantUML draws it.
 - [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
       tree where it fits it and laid out on the graph engine where it does
       not; two examples in other chapters use it too.
