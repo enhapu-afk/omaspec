@@ -285,6 +285,27 @@ is open and the reasoning around it.
       drawn, which puts its second state beside its first, one with states
       inside too, as PlantUML does. In activity diagrams a note left of a
       `backward` action gets its room between the loop and that action.
+- [x] What the third review of the entry and exit points and of the
+      hidden activity arrows found (2026-11-22): where a point stands for
+      a line is a small square that keeps clear of every box that does not
+      hold the point, nearer and smaller where a neighbor leaves little
+      room, so a line no longer starts back over the point; the stretch
+      from a point to where it stood is in the way of every other line
+      (the router's corridors); a short step is smoothed out only where
+      the run then lies on no other line; words the line now runs through
+      move beside it; a point and a box facing each other across a gap
+      are joined straight. Where the states run left to right a point's
+      name stands under it, across the border, so two states close beside
+      each other keep their names and the words between them apart. A
+      hidden arrow turned across the flow holds its second state beside
+      its first again between two states without states inside (no port
+      taken, a note beside it kept), and is a line within the rank onto
+      one with states inside. In activity diagrams only a split loses its
+      line on top, a fork keeps its bar; a `while` at the end of a branch
+      whose last arrow is hidden has no way out either; the words of a
+      hidden arrow stay, as PlantUML draws them. Two points that the
+      layout put at one spot on a border, and an expansion's row that
+      reaches over an exit point beside it, are older and not yet mended.
 
 ### Step 3: the activity diagram
 
@@ -294,10 +315,10 @@ is open and the reasoning around it.
       `is (yes)` meet it on its sides. A note after a `backward` stands
       beside that action. The guide: 43 of 62 activity diagrams.
 - [x] Hidden arrows in activity diagrams (2026-11-22): `-[hidden]->` draws
-      no line, no head and no words, and is no line of the map; a `while`
-      before one goes on by no way out, and a split or a fork whose flows
-      all start with one has nothing joining them on top, as PlantUML
-      draws them. The guide: 45 of 62.
+      no line and no head, and is no line of the map; a `while` before one
+      goes on by no way out, and a split whose flows all start with one
+      has nothing joining them on top, as PlantUML draws them. The guide:
+      45 of 62.
 - [x] Connectors in activity diagrams (2026-11-22): `(A)`, and `#blue:(B)`
       in a color of its own, a circle with its name, which a flow leads to
       and goes on from, a place of the map, its name tied to where it

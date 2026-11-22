@@ -219,8 +219,14 @@ pub(super) fn link_crossings(
     let mut drawn = Drawn::default();
     drawn_in(scene, &mut drawn);
     let routed = across::link(&top, &links, &drawn);
-    let zipped = found.iter().zip(labels).zip(routed).zip(&links);
-    for ((((path, slot, crossing), label), linked), link) in zipped {
+    // Each line beside the others, which a short step smoothed out of one
+    // keeps off.
+    let lines: Vec<Vec<(f32, f32)>> = routed
+        .iter()
+        .map(|linked| linked.as_ref().map_or_else(Vec::new, |l| l.points.clone()))
+        .collect();
+    let zipped = found.iter().zip(labels).zip(routed).zip(&links).enumerate();
+    for (index, ((((path, slot, crossing), label), linked), link)) in zipped {
         let Some(mut linked) = linked else {
             return Err(Declined::at(
                 crossing.arrow.line,
@@ -231,8 +237,20 @@ pub(super) fn link_crossings(
         // two points that face each other across the gap between their
         // states are joined straight.
         let at = |end: &[usize]| super::points::rect_at(root, scene, end);
+        let boxes = super::points::all_rects(scene);
+        // A point and a box across a gap face each other too.
+        let rect_of = |end: &[usize]| scene_rect(scene, end);
         let facing = match (link.stand, at(&link.from), at(&link.to)) {
             ([Some(a), Some(b)], Some(ra), Some(rb)) => super::points::facing((ra, a), (rb, b)),
+            ([Some(a), None], Some(ra), None) => {
+                rect_of(&link.to).and_then(|other| super::points::faces_box(ra, a, other, &boxes))
+            }
+            ([None, Some(b)], None, Some(rb)) => rect_of(&link.from).and_then(|other| {
+                super::points::faces_box(rb, b, other, &boxes).map(|mut line| {
+                    line.reverse();
+                    line
+                })
+            }),
             _ => None,
         };
         match facing {
@@ -251,9 +269,30 @@ pub(super) fn link_crossings(
                     }
                 }
                 if met {
-                    super::points::straighten(&mut linked.points);
+                    let others: Vec<Vec<(f32, f32)>> = drawn
+                        .lines
+                        .iter()
+                        .chain(
+                            lines
+                                .iter()
+                                .enumerate()
+                                .filter(|(j, _)| *j != index)
+                                .map(|(_, l)| l),
+                        )
+                        .cloned()
+                        .collect();
+                    super::points::straighten(&mut linked.points, &others);
                 }
             }
+        }
+        // Words the line now runs through, where it was led on to a point,
+        // move beside its longest run.
+        if link.stand.iter().any(Option::is_some) {
+            linked.label_at = super::points::words_clear(
+                &linked.points,
+                linked.label_at,
+                (label.width, label.height),
+            );
         }
         let stroke = arrow_stroke(skin, &crossing.arrow)?;
         if let Some(here) = scene.scene_at(path)
@@ -268,6 +307,16 @@ pub(super) fn link_crossings(
         }
     }
     Ok(())
+}
+
+/// The box at `path` in `scene`.
+fn scene_rect(scene: &Scene, path: &[usize]) -> Option<crate::graph::Rect> {
+    let (last, holder) = path.split_last()?;
+    let mut laid = scene;
+    for &index in holder {
+        laid = &laid.nodes.get(index)?.children;
+    }
+    laid.nodes.get(*last).map(|node| node.rect)
 }
 
 /// Every crossing, with the path to the container that holds it and its

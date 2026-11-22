@@ -1194,21 +1194,22 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
 }
 
 /// Where the name of an entry or an exit point stands. On a top or bottom
-/// border: outside the state, left of the point, over an entry and under
-/// an exit, so the lines that meet it from outside keep off it (lines
-/// between boxes keep off it too, [`super::nest`]). On a left or right
-/// border, where states stand close beside each other and their lines
-/// and words run between them: inside the state, under the point's line
-/// (the words of the lines inside stand over theirs), right of an entry
-/// and left of an exit.
+/// border: outside the state, as PlantUML puts it, left of the point, over
+/// an entry and under an exit. On a left or right border, where states
+/// stand close beside each other along the flow: under the point, across
+/// the border, so it takes half its width between two states, and the
+/// lines that meet the point and their words, which stand over them, keep
+/// clear of it. Lines between boxes keep off it too ([`super::nest`]).
 fn point_name(node: &Placed) -> Rect {
     let (gap, title) = (2.0, &node.item.title);
     let rect = node.rect;
     let middle = rect.y + rect.h / 2.0;
     let entry = node.item.kind == Kind::Entry;
     let (x, y) = match (node.item.sideways, entry) {
-        (true, true) => (rect.x + rect.w + gap, middle + gap),
-        (true, false) => (rect.x - gap - title.width, middle + gap),
+        (true, _) => (
+            rect.x + rect.w / 2.0 - title.width / 2.0,
+            rect.y + rect.h + gap,
+        ),
         (false, true) => (rect.x - gap - title.width, middle - gap - title.height),
         (false, false) => (rect.x - gap - title.width, middle + gap),
     };
@@ -1810,6 +1811,40 @@ mod tests {
         assert!(
             points.iter().all(|p| (p.1 - points[0].1).abs() < 0.5),
             "{points:?}"
+        );
+    }
+
+    /// Where a neighbor stands just past a point, lines from the point
+    /// leave it outward and meet the neighbor straight across the gap.
+    #[test]
+    fn lines_from_a_crowded_point_leave_it_outward() {
+        let source = "@startuml\nleft to right direction\n[*] --> Idle\nstate S {\n  state many <<expansionOutput>>\n  [*] --> W\n  W --> many\n}\nIdle --> S\nmany --> T\nmany --> Idle : back\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let wire = |line: usize| {
+            map.wires
+                .iter()
+                .find(|w| w.line == Some(line))
+                .unwrap()
+                .points
+                .clone()
+        };
+        let to_t = wire(9);
+        assert!(
+            to_t.iter().all(|p| (p.1 - to_t[0].1).abs() < 0.5),
+            "{to_t:?}"
+        );
+        let back = wire(10);
+        assert!(back[1].0 >= back[0].0, "{back:?}");
+        // A hidden arrow between two states keeps its second beside the
+        // first, a note on the first or not.
+        let noted =
+            "@startuml\n[*] --> A\nA -right[hidden]-> B\nnote right of A : a note on A\n@enduml\n";
+        let (_, map) = crate::render_mapped(noted, None).unwrap();
+        let spot = |name: &str| map.states.iter().find(|s| s.name == name).unwrap().rect;
+        let (a, b) = (spot("A"), spot("B"));
+        assert!(
+            b.x > a.x + a.w && b.y < a.y + a.h && a.y < b.y + b.h,
+            "{a:?} {b:?}"
         );
     }
 

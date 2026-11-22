@@ -664,13 +664,15 @@ mod tests {
         assert!(note.x + note.w < back.x, "{note:?} {back:?}");
     }
 
-    /// A hidden arrow is no line of the picture or of the map, nor are its
-    /// words; a split whose flows all start hidden has no line on top.
+    /// A hidden arrow is no line of the picture or of the map; its words
+    /// stay, as PlantUML draws them. A split whose flows all start hidden
+    /// has no line on top; a fork keeps its bar. A `while` at the end of a
+    /// branch whose last arrow is hidden has no way out.
     #[test]
     fn a_hidden_arrow_draws_nothing() {
         let source = "@startuml\nsplit\n-[hidden]->\n:A;\nsplit again\n-[hidden]-> quiet;\n:B;\nend split\n:D;\n@enduml\n";
         let (svg, _) = crate::render_mapped(source, None).unwrap();
-        assert!(!svg.contains("quiet"), "{svg}");
+        assert!(svg.contains("quiet"), "{svg}");
         let plain = source.replace("-[hidden]->", "->");
         let (plain_svg, _) = crate::render_mapped(&plain, None).unwrap();
         // Lines, heads and the bar on top.
@@ -682,6 +684,25 @@ mod tests {
         };
         // Two lines, two heads and the line on top fewer.
         assert_eq!(drawn(&plain_svg) - drawn(&svg), 5, "{svg}");
+        // A fork: the bar stays.
+        let fork = source
+            .replace("split again", "fork again")
+            .replace("end split", "end fork")
+            .replacen("split", "fork", 1);
+        let plain_fork = fork.replace("-[hidden]->", "->");
+        let (fork_svg, plain_fork_svg) = (
+            crate::render_mapped(&fork, None).unwrap().0,
+            crate::render_mapped(&plain_fork, None).unwrap().0,
+        );
+        assert_eq!(drawn(&plain_fork_svg) - drawn(&fork_svg), 4, "{fork_svg}");
+        // A `while` at a branch's end, its last arrow hidden.
+        let ended = "@startuml\nif (ok?) then (yes)\n  while (more?)\n    :work;\n  endwhile\n  -[hidden]->\nelse (no)\n  :other;\nendif\n@enduml\n";
+        let shown = ended.replace("  -[hidden]->\n", "");
+        let (ended_svg, shown_svg) = (
+            crate::render_mapped(ended, None).unwrap().0,
+            crate::render_mapped(&shown, None).unwrap().0,
+        );
+        assert!(drawn(&ended_svg) < drawn(&shown_svg), "{ended_svg}");
     }
 
     use crate::render;

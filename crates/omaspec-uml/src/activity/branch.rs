@@ -366,8 +366,8 @@ impl Layout<'_> {
                 _ => (t.bounds.0, t.bounds.2, t.entry.lane),
             })
             .collect();
-        // Where every flow starts with a hidden arrow, nothing joins them
-        // at the top, as PlantUML draws it.
+        // Where every flow of a split starts with a hidden arrow, nothing
+        // joins them at the top, as PlantUML draws it; a fork keeps its bar.
         let hidden = |flow: &Flow| {
             flow.steps
                 .first()
@@ -375,7 +375,7 @@ impl Layout<'_> {
                 .is_some_and(|arrow| arrow.style == LineStyle::Hidden)
         };
         let mut shapes = Vec::new();
-        if !flows.iter().all(hidden) {
+        if kind != Parallel::Split || !flows.iter().all(hidden) {
             shapes.push(Shape::Bar {
                 y: 0.0,
                 height: bar,

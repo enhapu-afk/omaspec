@@ -54,37 +54,75 @@ pub(super) fn stance(
     let rect = laid.nodes.get(*last)?.rect;
     let band = state.map_or(0.0, |state| state.item.band());
     let out = !other.starts_with(holder);
-    let (dx, dy) = step(node.kind, container.direction, (rect.w, rect.h), band, out);
-    let stand = Rect {
-        x: rect.x + dx,
-        y: rect.y + dy,
-        ..rect
-    };
-    Some((stand, out))
+    // Off as far as room lets it, short of any box that does not hold the
+    // point (a neighbor just past the border, a state inside).
+    let mut boxes = Vec::new();
+    rects(scene, &mut boxes);
+    let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
+    let holds = |r: &Rect| r.x <= cx && cx <= r.x + r.w && r.y <= cy && cy <= r.y + r.h;
+    let clear = |stand: &Rect| !boxes.iter().any(|b| !holds(b) && overlap(b, stand));
+    // Nearer, and smaller, where a neighbor leaves little room.
+    let mut last = None;
+    for size in [super::POINT, 8.0, 4.0] {
+        let mut gap = OFF;
+        while gap >= 0.0 {
+            let stand = place(node.kind, container.direction, rect, band, out, gap, size);
+            if clear(&stand) {
+                return Some((stand, out));
+            }
+            last = Some(stand);
+            gap -= 2.0;
+        }
+    }
+    last.map(|stand| (stand, out))
 }
 
-/// How far a point of `kind`, `size` large, in a state whose states run
-/// `direction` and whose title band is `band` high, stands off its place
-/// on the border for a line that meets it from outside (`out`), or from
-/// inside: under the title band for an entry where the states run down.
-/// Far enough off that a line met beside it can turn onto it with room.
-fn step(kind: Kind, direction: Direction, (w, h): Point, band: f32, out: bool) -> Point {
-    let sign = if kind == Kind::Entry { -1.0 } else { 1.0 };
-    let outward = match direction {
-        Direction::Down => (0.0, sign * (h / 2.0 + OFF)),
-        Direction::Right => (sign * (w / 2.0 + OFF), 0.0),
+/// Where a point of `kind` at `rect`, in a state whose states run
+/// `direction` and whose title band is `band` high, stands for a line that
+/// meets it from outside (`out`) or from inside: a square `size` large,
+/// `gap` past the point's outer side, or its inner one (under the title
+/// band for an entry where the states run down).
+fn place(
+    kind: Kind,
+    direction: Direction,
+    rect: Rect,
+    band: f32,
+    out: bool,
+    gap: f32,
+    size: f32,
+) -> Rect {
+    let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
+    // Toward the top or left (`true`), or the bottom or right.
+    let before = (kind == Kind::Entry) == out;
+    let (x, y) = match (direction, before) {
+        (Direction::Down, true) => (cx - size / 2.0, rect.y - gap - size),
+        (Direction::Down, false) if kind == Kind::Entry => (cx - size / 2.0, cy + band + gap),
+        (Direction::Down, false) => (cx - size / 2.0, rect.y + rect.h + gap),
+        (Direction::Right, true) => (rect.x - gap - size, cy - size / 2.0),
+        (Direction::Right, false) => (rect.x + rect.w + gap, cy - size / 2.0),
     };
-    if out {
-        outward
-    } else if direction == Direction::Down && kind == Kind::Entry {
-        (0.0, band + h / 2.0 + OFF)
-    } else {
-        (-outward.0, -outward.1)
+    Rect {
+        x,
+        y,
+        w: size,
+        h: size,
     }
 }
 
-/// How far past a point's half size it stands off its place for a line.
+/// How far past a point it stands for a line at most.
 const OFF: f32 = 14.0;
+
+/// Every box of `scene` and of those inside it, into `out`.
+fn rects(scene: &Scene, out: &mut Vec<Rect>) {
+    for node in &scene.nodes {
+        out.push(node.rect);
+        rects(&node.children, out);
+    }
+}
+
+fn overlap(a: &Rect, b: &Rect) -> bool {
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+}
 
 /// The start (or the end) of the line `points`, laid to where its point
 /// stood for it (`stand`), led on to the point at `rect`: along the line's
@@ -110,9 +148,11 @@ pub(super) fn meet(points: &mut Vec<Point>, start: bool, stand: Rect, rect: Rect
         false => (if sx < cx { rect.x } else { rect.x + rect.w }, cy),
     };
     let (p, q) = (points[end], points[next]);
+    // The end run comes from where the point stood toward it, not back
+    // over it.
     let toward = match upright {
-        true => (p.0 - q.0).abs() < 0.5,
-        false => (p.1 - q.1).abs() < 0.5,
+        true => (p.0 - q.0).abs() < 0.5 && (q.1 - p.1) * (sy - cy) >= 0.0,
+        false => (p.1 - q.1).abs() < 0.5 && (q.0 - p.0) * (sx - cx) >= 0.0,
     };
     if toward {
         points[end] = match upright {
@@ -135,8 +175,29 @@ pub(super) fn meet(points: &mut Vec<Point>, start: bool, stand: Rect, rect: Rect
 /// The line `points` without a short step between two runs that lie side
 /// by side (a jog, which the line takes to meet a point where it stood
 /// for it): one of the two runs moves onto the other's line, where the
-/// run beyond it lets it, so no run turns slant and the ends stay.
-pub(super) fn straighten(points: &mut Vec<Point>) {
+/// run beyond it lets it, so no run turns slant and the ends stay, and
+/// where it then lies on none of the lines of `others`.
+pub(super) fn straighten(points: &mut Vec<Point>, others: &[Vec<Point>]) {
+    // Whether the run `a` to `b` would lie on another line.
+    let on_another = |a: Point, b: Point| {
+        others.iter().any(|line| {
+            line.windows(2).any(|run| {
+                let (c, d) = (run[0], run[1]);
+                let across =
+                    |u: f32, v: f32, s: f32, t: f32| u.min(v) < s.max(t) && s.min(t) < u.max(v);
+                if (a.0 - b.0).abs() < 0.5 && (c.0 - d.0).abs() < 0.5 && (a.0 - c.0).abs() < 1.0 {
+                    across(a.1, b.1, c.1, d.1)
+                } else if (a.1 - b.1).abs() < 0.5
+                    && (c.1 - d.1).abs() < 0.5
+                    && (a.1 - c.1).abs() < 1.0
+                {
+                    across(a.0, b.0, c.0, d.0)
+                } else {
+                    false
+                }
+            })
+        })
+    };
     const JOG: f32 = 8.0;
     let flat = |a: Point, b: Point| (a.1 - b.1).abs() < 0.5;
     let upright = |a: Point, b: Point| (a.0 - b.0).abs() < 0.5;
@@ -159,12 +220,12 @@ pub(super) fn straighten(points: &mut Vec<Point>) {
         // The run after the step moves back onto the one before it, where
         // the run after it lies along the step; else the run before moves
         // on, where the run before it does. Never an end.
-        if i + 3 < points.len() && along(d, points[i + 3]) {
-            points[i + 1] = (c.0 - step.0, c.1 - step.1);
-            points[i + 2] = (d.0 - step.0, d.1 - step.1);
-        } else if i >= 2 && along(points[i - 2], a) {
-            points[i - 1] = (a.0 + step.0, a.1 + step.1);
-            points[i] = (b.0 + step.0, b.1 + step.1);
+        let back = ((c.0 - step.0, c.1 - step.1), (d.0 - step.0, d.1 - step.1));
+        let on = ((a.0 + step.0, a.1 + step.1), (b.0 + step.0, b.1 + step.1));
+        if i + 3 < points.len() && along(d, points[i + 3]) && !on_another(back.0, back.1) {
+            (points[i + 1], points[i + 2]) = back;
+        } else if i >= 2 && along(points[i - 2], a) && !on_another(on.0, on.1) {
+            (points[i - 1], points[i]) = on;
         } else {
             i += 1;
             continue;
@@ -182,6 +243,101 @@ pub(super) fn straighten(points: &mut Vec<Point>) {
             }
         }
         i = 1;
+    }
+}
+
+/// The straight line from a point at `rect`, which stood at `stand` for
+/// the line, to the box `other` it faces across the gap toward where it
+/// stood, the box's side reaching across the point's line, and none of
+/// `boxes` in between; `None` for any other.
+pub(super) fn faces_box(
+    rect: Rect,
+    stand: Rect,
+    other: Rect,
+    boxes: &[Rect],
+) -> Option<Vec<Point>> {
+    let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
+    let (sx, sy) = (stand.x + stand.w / 2.0, stand.y + stand.h / 2.0);
+    let line = if (sy - cy).abs() < 0.5 {
+        if !(other.y < cy && cy < other.y + other.h) {
+            return None;
+        }
+        match sx > cx {
+            true if other.x >= rect.x + rect.w => [(rect.x + rect.w, cy), (other.x, cy)],
+            false if other.x + other.w <= rect.x => [(rect.x, cy), (other.x + other.w, cy)],
+            _ => return None,
+        }
+    } else if (sx - cx).abs() < 0.5 {
+        if !(other.x < cx && cx < other.x + other.w) {
+            return None;
+        }
+        match sy > cy {
+            true if other.y >= rect.y + rect.h => [(cx, rect.y + rect.h), (cx, other.y)],
+            false if other.y + other.h <= rect.y => [(cx, rect.y), (cx, other.y + other.h)],
+            _ => return None,
+        }
+    } else {
+        return None;
+    };
+    let [a, b] = line;
+    let run = Rect {
+        x: a.0.min(b.0),
+        y: a.1.min(b.1),
+        w: (a.0 - b.0).abs().max(0.1),
+        h: (a.1 - b.1).abs().max(0.1),
+    };
+    let between = boxes.iter().any(|r| {
+        *r != other
+            && *r != rect
+            && overlap(r, &run)
+            && !(r.x <= cx && cx <= r.x + r.w && r.y <= cy && cy <= r.y + r.h)
+    });
+    (!between).then(|| line.to_vec())
+}
+
+/// Every box of `scene` and of those inside it.
+pub(super) fn all_rects(scene: &Scene) -> Vec<Rect> {
+    let mut out = Vec::new();
+    rects(scene, &mut out);
+    out
+}
+
+/// Where words `size` large at `at` stand clear of the line `points`: where
+/// they are, if the line runs past them; else beside the line's longest
+/// run, right of an upright one and over a flat one.
+pub(super) fn words_clear(points: &[Point], at: Point, (w, h): Point) -> Point {
+    if w <= 0.0 || h <= 0.0 {
+        return at;
+    }
+    let words = Rect {
+        x: at.0,
+        y: at.1,
+        w,
+        h,
+    };
+    let through = points.windows(2).any(|run| {
+        let (a, b) = (run[0], run[1]);
+        let r = Rect {
+            x: a.0.min(b.0) - 0.5,
+            y: a.1.min(b.1) - 0.5,
+            w: (a.0 - b.0).abs() + 1.0,
+            h: (a.1 - b.1).abs() + 1.0,
+        };
+        overlap(&r, &words)
+    });
+    if !through {
+        return at;
+    }
+    let longest = points.windows(2).max_by(|r, s| {
+        let len = |p: &[Point]| (p[0].0 - p[1].0).abs() + (p[0].1 - p[1].1).abs();
+        len(r).total_cmp(&len(s))
+    });
+    match longest {
+        Some(run) if (run[0].0 - run[1].0).abs() < 0.5 => {
+            (run[0].0 + 4.0, (run[0].1 + run[1].1) / 2.0 - h / 2.0)
+        }
+        Some(run) => ((run[0].0 + run[1].0) / 2.0 - w / 2.0, run[0].1 - h - 2.0),
+        None => at,
     }
 }
 

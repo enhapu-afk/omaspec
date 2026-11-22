@@ -78,10 +78,9 @@ impl Layout<'_> {
         Ok(stroke)
     }
 
-    /// An arrow's words; a hidden arrow has none.
+    /// An arrow's words, a hidden arrow's too, as PlantUML draws them.
     pub(super) fn arrow_label(&self, arrow: Option<&Arrow>) -> Result<Block, Declined> {
-        let shown = arrow.filter(|a| a.style != LineStyle::Hidden);
-        self.measure_opt(shown.and_then(|a| a.label.as_ref()), self.skin.arrow_font)
+        self.measure_opt(arrow.and_then(|a| a.label.as_ref()), self.skin.arrow_font)
     }
 
     /// The room the labels on the arrows into `flows` take above them.
@@ -153,6 +152,22 @@ impl Layout<'_> {
             empty.empty = true;
             empty
         });
+        // A `while` that ends a branch whose last arrow is hidden goes on
+        // by no way out either.
+        let last = flow.steps.last().map(|step| &step.node);
+        if flow
+            .out
+            .as_ref()
+            .is_some_and(|a| a.style == LineStyle::Hidden)
+            && matches!(last, Some(Node::While { .. }))
+            && let Some(out) = tile.exit
+        {
+            for edge in &mut tile.edges {
+                if edge.points.last() == Some(&out) {
+                    edge.stroke.width = 0.0;
+                }
+            }
+        }
         tile.arrow_out = flow.out.clone().map(Box::new);
         Ok(tile)
     }

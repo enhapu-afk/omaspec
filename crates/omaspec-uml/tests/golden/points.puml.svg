@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="403" height="545" viewBox="0 0 403 545">
+<svg xmlns="http://www.w3.org/2000/svg" width="394" height="563" viewBox="0 0 394 563">
 <g transform="translate(22,10)">
 <g>
 <ellipse cx="214.29" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
@@ -25,12 +25,12 @@
 <g id="lines">
 <polyline points="214.29,22 214.29,44" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M219.1,86.3 L219.1,107.96 C219.1,121.4 230,132.3 243.44,132.3 L243.44,132.3 C256.88,132.3 267.77,143.19 267.77,156.63 L267.77,179.15 C267.77,186.39 273.64,192.26 280.89,192.26 L280.89,192.26 C288.13,192.26 294,198.14 294,205.38 L294,212.26" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M197.84,86.3 L197.84,161.34 C197.84,180.63 182.21,196.26 162.92,196.26 L138,196.26 C132.48,196.26 128,200.74 128,206.26 L128,206.26" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M187.84,75.53 L187.84,75.53 C185.72,75.53 184,77.25 184,79.37 L184,206.26" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M187.84,75.53 L176,75.53 C149.49,75.53 128,97.02 128,123.53 L128,206.26" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M197.84,86.3 L197.84,189.34 C197.84,193.17 194.74,196.26 190.92,196.26 L190.92,196.26 C187.1,196.26 184,199.36 184,203.18 L184,206.26" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M240.73,75.53 L240.73,75.53 C250.27,75.53 258,83.26 258,92.8 L258,206.26" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M87.57,504.82 L87.57,504.82 C87.57,515.87 78.61,524.82 67.57,524.82 L36,524.82 C9.49,524.82 -12,503.33 -12,476.82 L-12,90 C-12,63.49 9.49,42 36,42 L195.84,42 C196.94,42 197.84,42.9 197.84,44 L197.84,44" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M223.52,504.82 L223.52,504.82 C223.52,512.56 229.79,518.82 237.52,518.82 L310.94,518.82 C337.45,518.82 358.94,497.33 358.94,470.82 L358.94,118.15 C358.94,91.64 337.45,70.15 310.94,70.15 L250.73,70.15" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M310.94,504.82 L310.94,504.82 C310.94,512.56 317.21,518.82 324.94,518.82 L340.94,518.82 C357.51,518.82 370.94,505.39 370.94,488.82 L370.94,90 C370.94,63.49 349.45,42 322.94,42 L232.73,42 C231.63,42 230.73,42.9 230.73,44 L230.73,44" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M223.52,504.82 L223.52,504.82 C223.52,525.81 240.54,542.82 261.52,542.82 L310.94,542.82 C337.45,542.82 358.94,521.33 358.94,494.82 L358.94,118.15 C358.94,91.64 337.45,70.15 310.94,70.15 L250.73,70.15" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M310.94,504.82 L310.94,514.82 C310.94,517.03 310.94,517.03 310.94,514.82 L310.94,514.82 C310.94,512.61 312.73,510.82 314.94,510.82 L336.44,510.82 C350.52,510.82 361.94,499.41 361.94,485.32 L361.94,90 C361.94,63.49 340.45,42 313.94,42 L232.73,42 C231.63,42 230.73,42.9 230.73,44 L230.73,44" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M67,314.56 L67,314.56 C67,326.71 76.85,336.56 89,336.56 L132.69,336.56 C140.42,336.56 146.69,342.83 146.69,350.56 L146.69,350.92 C146.69,358.45 152.79,364.56 160.33,364.56 L171.97,364.56 C173.08,364.56 173.97,365.46 173.97,366.56 L173.97,366.56" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M128,228.26 L128,310.39 C128,319.32 135.24,326.56 144.17,326.56 L144.17,326.56 C153.09,326.56 160.33,333.8 160.33,342.73 L160.33,357.74 C160.33,361.51 163.38,364.56 167.15,364.56 L171.97,364.56 C173.08,364.56 173.97,365.46 173.97,366.56 L173.97,366.56" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M184,228.26 L184,321.55 C184,324.32 181.76,326.56 178.99,326.56 L178.99,326.56 C176.22,326.56 173.97,328.8 173.97,331.57 L173.97,366.56" fill="none" stroke="#181818" stroke-width="1"/>
@@ -95,13 +95,13 @@
 <tspan x="273.77" y="177.43" font-size="12" fill="#000000" textLength="25.44" lengthAdjust="spacing">start</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="200.84" y="182.09" font-size="12" fill="#000000" textLength="29.95" lengthAdjust="spacing">hurry</tspan>
+<tspan x="95.05" y="108.37" font-size="12" fill="#000000" textLength="29.95" lengthAdjust="spacing">hurry</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="155.22" y="140.05" font-size="12" fill="#000000" textLength="25.78" lengthAdjust="spacing">feed</tspan>
+<tspan x="169.06" y="150.01" font-size="12" fill="#000000" textLength="25.78" lengthAdjust="spacing">feed</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="223.91" y="129.99" font-size="12" fill="#000000" textLength="31.09" lengthAdjust="spacing">many</tspan>
+<tspan x="223.91" y="127.49" font-size="12" fill="#000000" textLength="31.09" lengthAdjust="spacing">many</tspan>
 </text>
 </g>
 </g>

@@ -154,6 +154,18 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
     let mut frames = Vec::new();
     leaves(top, &mut solids, &mut frames);
 
+    // Between an end and where it stands for its line, the line runs on
+    // to it once laid: no other line runs there, but one to the same end.
+    let corridors: Vec<(Rect, Rect)> = links
+        .iter()
+        .zip(&ends)
+        .filter_map(|(link, ends)| Some((link, (*ends)?)))
+        .flat_map(|(link, (from, to))| {
+            [(from.rect, link.stand[0]), (to.rect, link.stand[1])]
+                .into_iter()
+                .filter_map(|(end, stand)| Some((end, union(end, stand?))))
+        })
+        .collect();
     for index in order {
         let link = &links[index];
         let Some((from, to)) = ends[index] else {
@@ -180,6 +192,12 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         );
         obstacles(top, Some(from_in), Some(to_in), &mut around);
         around.obstacles.extend(drawn.notes.iter().copied());
+        around.obstacles.extend(
+            corridors
+                .iter()
+                .filter(|(end, _)| *end != from.rect && *end != to.rect)
+                .map(|(_, corridor)| *corridor),
+        );
         // A line between a state and a state inside it runs to the outer
         // one's title from inside, or from it: the title is its end, no
         // longer in its way (REQ-072).
