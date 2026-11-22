@@ -454,6 +454,21 @@ is open and the reasoning around it.
       middle at the top, a card with a line under it. A name in the middle
       gives way to the line into the frame, to its left where there is
       room, else to its right. The guide: 58 of 62.
+- [x] What the review of the stacked `elseif`s found (2026-11-22): the
+      words on the arrow out of a branch and out of the `else` are drawn,
+      those of an empty branch above its line; the branches keep clear of
+      the words beside the line down from one test to the next, and the
+      rail of every word beside a branch. The rail is a line of its own,
+      in pieces from each branch that ends on it to the next, so the map
+      follows each from its branch to the diamond where they meet, and a
+      hidden or a colored arrow out of a branch hides or colors its own
+      line, not the rail. A branch whose way out comes in from the right,
+      as a `while`'s does, goes on to the rail from there, not back over
+      itself. An arrow written with brackets is marked so as it is laid,
+      not told by its stroke, so `-[#181818]->` keeps its head under
+      `ArrowHeadColor none` too. The preprocessor hands on only
+      `useVerticalIf` on or off; without a value it is off, as in
+      PlantUML.
 
 ## Phase 0: foundation and spikes
 

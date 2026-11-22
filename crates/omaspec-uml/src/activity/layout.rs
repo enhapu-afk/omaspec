@@ -214,7 +214,7 @@ impl Layout<'_> {
                 }
                 points.push(entry);
                 prev.edges
-                    .push(Edge::new(points, true, self.stroke(arrow)?));
+                    .push(Edge::new(points, true, self.stroke(arrow)?).by(arrow));
                 prev.shapes.extend(self.beside(label, out.x, y, out.lane));
             }
             None => next.translate(prev.entry.x - next.entry.x, bottom + GAP - top),
@@ -479,7 +479,7 @@ impl Layout<'_> {
         let above = (tile.entry.y - tile.bounds.1).max(0.0);
         let y = tile.entry.y - above - label.height - 2.0;
         shapes.extend(self.beside(label, last.x, y, tile.entry.lane));
-        Ok(Some(Edge::new(points, true, self.stroke(arrow)?)))
+        Ok(Some(Edge::new(points, true, self.stroke(arrow)?).by(arrow)))
     }
 
     /// `while`: the diamond, the flow below it, the way back on the left
@@ -543,17 +543,20 @@ impl Layout<'_> {
             None => {
                 if let Some(exit) = goes_back {
                     let rail = body.bounds.0.min(-dw / 2.0) - RAIL;
-                    edges.push(Edge::new(
-                        vec![
-                            exit,
-                            pt(exit.x, back_y, lane),
-                            pt(rail, back_y, lane),
-                            pt(rail, cy, lane),
-                            pt(-dw / 2.0, cy, lane),
-                        ],
-                        true,
-                        back_stroke,
-                    ));
+                    edges.push(
+                        Edge::new(
+                            vec![
+                                exit,
+                                pt(exit.x, back_y, lane),
+                                pt(rail, back_y, lane),
+                                pt(rail, cy, lane),
+                                pt(-dw / 2.0, cy, lane),
+                            ],
+                            true,
+                            back_stroke,
+                        )
+                        .by(body.arrow_out.as_deref()),
+                    );
                 }
                 1.0
             }
@@ -581,16 +584,19 @@ impl Layout<'_> {
                 shapes.extend(self.beside(incoming, x, y + h + 2.0, lane));
                 shapes.extend(self.beside(outgoing, x, cy + 2.0, lane));
                 if let Some(exit) = goes_back {
-                    edges.push(Edge::new(
-                        vec![
-                            exit,
-                            pt(exit.x, back_y, lane),
-                            pt(x, back_y, lane),
-                            pt(x, y + h, lane),
-                        ],
-                        true,
-                        back_stroke,
-                    ));
+                    edges.push(
+                        Edge::new(
+                            vec![
+                                exit,
+                                pt(exit.x, back_y, lane),
+                                pt(x, back_y, lane),
+                                pt(x, y + h, lane),
+                            ],
+                            true,
+                            back_stroke,
+                        )
+                        .by(body.arrow_out.as_deref()),
+                    );
                 }
                 edges.push(Edge::new(
                     vec![pt(x, y, lane), pt(x, cy, lane), pt(dw / 2.0, cy, lane)],
@@ -729,11 +735,10 @@ impl Layout<'_> {
                 points.extend([pt(exit.x, mid, lane), pt(0.0, mid, lane)]);
             }
             points.push(pt(0.0, test_top, lane));
-            edges.push(Edge::new(
-                points,
-                true,
-                self.stroke(body.arrow_out.as_deref())?,
-            ));
+            edges.push(
+                Edge::new(points, true, self.stroke(body.arrow_out.as_deref())?)
+                    .by(body.arrow_out.as_deref()),
+            );
         }
         shapes.push(Shape::Diamond {
             rect: (-dw / 2.0, test_top, dw, dh),

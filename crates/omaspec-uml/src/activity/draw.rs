@@ -304,7 +304,7 @@ impl Painter<'_> {
         // The head sits on a straight end, not on the curve before it;
         // `ArrowHeadColor none` draws none, but on an arrow written in a
         // style of its own (`-[#red]->`, `-[dashed]->`), as PlantUML.
-        let headed = edge.head && (self.skin.heads || edge.stroke != self.skin.arrow);
+        let headed = edge.head && (self.skin.heads || edge.styled);
         let arrive = if headed { HEAD_LENGTH } else { 0.0 };
         canvas.curve_arriving(Layer::Lines, &points, self.skin.curve, arrive, edge.stroke);
         let curved = crate::curve::flatten_arriving(&points, self.skin.curve, arrive);
@@ -764,6 +764,85 @@ mod tests {
         assert!(crate::render_mapped(&wrong, None).is_err());
     }
 
+    /// Stacked, the words of every arrow are drawn and the rail keeps clear
+    /// of them, as the branches keep clear of the words beside the line
+    /// down; each line is followed to the diamond where they meet; a hidden
+    /// or a red arrow out of the first branch hides or colors its own line,
+    /// not the rail; a `while` that ends a branch goes on to the rail
+    /// without turning back.
+    #[test]
+    fn stacked_branches_keep_their_words_and_lines() {
+        let apart = |a: &crate::graph::Rect, b: &crate::graph::Rect| {
+            a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
+        };
+        let source = "@startuml\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  -> only words in a;\n(a very long incoming label here) elseif (b?) then (yes)\n  -> into B;\n  :B;\n  -> out of B;\nelseif (c?) then (yes)\n  while (more?)\n    :work;\n  endwhile\nelse\n  :C;\n  -> words after C;\nendif\nstop\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        for words in ["only words in a", "into B", "out of B", "words after C"] {
+            assert!(svg.contains(words), "{words}: {svg}");
+        }
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let (incoming, b) = (at(5), at(7));
+        assert!(apart(&incoming, &b), "{incoming:?} {b:?}");
+        let words: Vec<_> = [4, 6, 8, 15].map(at).into_iter().collect();
+        for wire in &map.wires {
+            assert!(!wire.key.to.is_empty(), "{:?}", wire.key);
+            for run in wire.path.windows(2) {
+                let (p, q) = (run[0], run[1]);
+                let r = crate::graph::Rect {
+                    x: p.0.min(q.0),
+                    y: p.1.min(q.1),
+                    w: (p.0 - q.0).abs(),
+                    h: (p.1 - q.1).abs(),
+                };
+                for w in &words {
+                    assert!(
+                        apart(&r, w) || r.w > 0.0 && r.h == 0.0,
+                        "{w:?} by {:?}",
+                        wire.path
+                    );
+                }
+            }
+            // No line turns back over itself: two runs the other way along
+            // the same stretch, close above each other.
+            let runs: Vec<_> = wire.path.windows(2).map(|r| (r[0], r[1])).collect();
+            for (i, a) in runs.iter().enumerate() {
+                for b in &runs[i + 1..] {
+                    let flat = |(p, q): &((f32, f32), (f32, f32))| {
+                        (p.1 - q.1).abs() < 0.5 && (p.0 - q.0).abs() > 0.5
+                    };
+                    if flat(a) && flat(b) && (a.1.0 - a.0.0).signum() != (b.1.0 - b.0.0).signum() {
+                        let (lo, hi) = (
+                            a.0.0.min(a.1.0).max(b.0.0.min(b.1.0)),
+                            a.0.0.max(a.1.0).min(b.0.0.max(b.1.0)),
+                        );
+                        assert!(
+                            hi - lo < 1.0 || (a.0.1 - b.0.1).abs() > 25.0,
+                            "{:?}",
+                            wire.path
+                        );
+                    }
+                }
+            }
+        }
+        // The first branch's arrow hidden or red: the rail stays plain.
+        let lines = |svg: &str| svg.matches("<polyline").count() + svg.matches("<path").count();
+        let plain = "@startuml\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  :A;\nelseif (b?) then (yes)\n  :B;\nelse\n  :C;\nendif\nstop\n@enduml\n";
+        let base = crate::render_mapped(plain, None).unwrap().0;
+        let hidden =
+            crate::render_mapped(&plain.replace("  :A;\n", "  :A;\n  -[hidden]->\n"), None)
+                .unwrap()
+                .0;
+        // The hidden line, and the piece of rail it alone would take.
+        assert_eq!(lines(&hidden) + 2, lines(&base), "{hidden}");
+        let red = crate::render_mapped(
+            &plain.replace("  :A;\n", "  :A;\n  -[#FF0000,dashed]->\n"),
+            None,
+        )
+        .unwrap()
+        .0;
+        assert_eq!(red.matches("stroke=\"#FF0000\"").count(), 1, "{red}");
+    }
+
     /// `ArrowHeadColor none` draws lines without heads, but on an arrow
     /// written in a style of its own, as PlantUML; a color of their own
     /// declines.
@@ -780,7 +859,7 @@ mod tests {
             plain.matches("<polyline").count(),
             svg.matches("<polyline").count()
         );
-        for own in ["-[#FF0000]->", "-[dashed]->", "-[bold]->"] {
+        for own in ["-[#FF0000]->", "-[dashed]->", "-[bold]->", "-[#181818]->"] {
             let marked = none.replace(":Next;", &format!("{own}\n:Next;"));
             let svg = crate::render_mapped(&marked, None).unwrap().0;
             assert_eq!(heads(&svg), 1, "{own}: {svg}");

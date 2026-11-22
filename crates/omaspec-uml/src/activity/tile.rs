@@ -197,15 +197,26 @@ pub struct Edge {
     /// at: when swimlanes move the other end past the diamond, the line
     /// takes the corner on that side.
     pub sides: [Option<(Pt, Pt)>; 2],
+    /// Drawn by an arrow written in a style of its own (`-[#red]->`,
+    /// `-[dashed]->`): it keeps its head under `ArrowHeadColor none`.
+    pub styled: bool,
 }
 
 impl Edge {
+    /// The edge, marked as drawn by `arrow`.
+    pub fn by(mut self, arrow: Option<&super::Arrow>) -> Edge {
+        self.styled =
+            arrow.is_some_and(|a| a.color.is_some() || a.style != super::LineStyle::Plain);
+        self
+    }
+
     pub fn new(points: Vec<Pt>, head: bool, stroke: Stroke) -> Edge {
         Edge {
             points,
             head,
             stroke,
             sides: [None, None],
+            styled: false,
         }
     }
 

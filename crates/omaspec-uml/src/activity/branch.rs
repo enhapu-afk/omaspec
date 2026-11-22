@@ -85,7 +85,7 @@ impl Layout<'_> {
                 let (points, arrow, label) = ends.pop().expect("one end");
                 let last = *points.last().expect("a line starts somewhere");
                 if points.len() > 1 {
-                    edges.push(Edge::new(points, false, self.stroke(arrow)?));
+                    edges.push(Edge::new(points, false, self.stroke(arrow)?).by(arrow));
                 }
                 shapes.extend(self.beside(label, last.x, last.y + 2.0, last.lane));
                 Ok(Some(last))
@@ -104,7 +104,7 @@ impl Layout<'_> {
                     shapes.extend(self.beside(label, last.x, last.y + 2.0, last.lane));
                     span = (span.0.min(last.x), span.1.max(last.x));
                     points.push(pt(last.x, y, last.lane));
-                    edges.push(Edge::new(points, false, self.stroke(arrow)?));
+                    edges.push(Edge::new(points, false, self.stroke(arrow)?).by(arrow));
                 }
                 shapes.push(Shape::Bar {
                     y,
@@ -144,13 +144,13 @@ impl Layout<'_> {
                             points.push(pt(x, jog, lane));
                         }
                         points.push(pt(x, top, lane));
-                        edges.push(Edge::new(points, true, self.stroke(arrow)?));
+                        edges.push(Edge::new(points, true, self.stroke(arrow)?).by(arrow));
                         continue;
                     }
                     let corner = if last.x < x { left } else { right };
                     points.push(pt(last.x, cy, last.lane));
                     points.push(corner);
-                    let mut edge = Edge::new(points, true, self.stroke(arrow)?);
+                    let mut edge = Edge::new(points, true, self.stroke(arrow)?).by(arrow);
                     edge.sides[1] = Some((left, right));
                     edges.push(edge);
                 }
@@ -708,11 +708,10 @@ impl Layout<'_> {
                 },
                 last.lane,
             ));
-            edges.push(Edge::new(
-                points,
-                bar > 0.0,
-                self.stroke(tile.arrow_out.as_deref())?,
-            ));
+            edges.push(
+                Edge::new(points, bar > 0.0, self.stroke(tile.arrow_out.as_deref())?)
+                    .by(tile.arrow_out.as_deref()),
+            );
         }
         if bar == 0.0 {
             spans.push((middle, middle, lane));

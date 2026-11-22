@@ -17,10 +17,13 @@
 <polygon points="119.37,374.71 123.37,384.71 127.37,374.71 123.37,378.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,374.71 10,480.68" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,470.68 10,480.68 14,470.68 10,474.68" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M123.37,107.97 L123.37,107.97 C123.37,113.49 127.85,117.97 133.37,117.97 L179.11,117.97 C187.95,117.97 195.11,125.13 195.11,133.97 L195.11,522.64 C195.11,531.48 187.95,538.64 179.11,538.64 L22,538.64" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="32,534.64 22,538.64 32,542.64 28,538.64" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M123.37,107.97 L123.37,107.97 C123.37,113.49 127.85,117.97 133.37,117.97 L195.11,117.97" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M49.32,149.97 L123.37,149.97 L195.11,149.97" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M123.37,320.71 L123.37,320.71 C123.37,326.23 127.85,330.71 133.37,330.71 L195.11,330.71" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="195.11,117.97 195.11,149.97" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="195.11,149.97 195.11,330.71" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M195.11,330.71 L195.11,522.64 C195.11,531.48 187.95,538.64 179.11,538.64 L22,538.64" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="32,534.64 22,538.64 32,542.64 28,538.64" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,514.64 10,526.64" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,516.64 10,526.64 14,516.64 10,520.64" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="123.37,266.74 123.37,286.74" fill="none" stroke="#181818" stroke-width="1"/>

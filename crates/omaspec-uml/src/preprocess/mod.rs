@@ -329,11 +329,23 @@ impl Machine<'_> {
                         .next()
                         .is_some_and(|name| name.eq_ignore_ascii_case("useverticalif")) =>
                 {
-                    let line = Line {
-                        blank_before: 0,
-                        ..line
-                    };
-                    out.write(line, frame.call, line.text)?;
+                    let words: Vec<&str> = rest.split_whitespace().collect();
+                    match words[..] {
+                        // Without a value, PlantUML leaves it off.
+                        [_] => {}
+                        [_, value]
+                            if ["true", "false", "on", "off"]
+                                .iter()
+                                .any(|v| value.eq_ignore_ascii_case(v)) =>
+                        {
+                            let line = Line {
+                                blank_before: 0,
+                                ..line
+                            };
+                            out.write(line, frame.call, line.text)?;
+                        }
+                        _ => return Err(fail(line.no, "`!pragma useVerticalIf` is on or off")),
+                    }
                 }
                 // Debug output, and the markers `!includesub` looks for.
                 "log" | "dump_memory" | "startsub" | "endsub" => {}
@@ -1669,6 +1681,18 @@ mod tests {
         }
     }
 
+    /// `!pragma useVerticalIf` is handed on to the diagram, which every
+    /// type takes; without a value it is off, as in PlantUML.
+    #[test]
+    fn the_vertical_if_pragma_is_handed_on() {
+        for value in [" on", " off", " TRUE", ""] {
+            for body in ["A -> B", "start\n:a;\nstop", "class A", "[*] --> A"] {
+                let source = format!("@startuml\n!pragma useVerticalIf{value}\n{body}\n@enduml");
+                assert!(crate::render(&source).is_ok(), "{value}: {body}");
+            }
+        }
+    }
+
     #[test]
     fn declines_what_it_cannot_do_and_names_the_line() {
         for (source, line, part) in [
@@ -1678,6 +1702,7 @@ mod tests {
             ("!theme cerulean", 0, "!theme"),
             ("!pragma layout smetana", 0, "!pragma"),
             ("!pragma teoz perhaps", 0, "!pragma"),
+            ("!pragma useVerticalIf on please", 0, "on or off"),
             ("!foreach $x in [1]", 0, "!foreach"),
             ("title %date()", 0, "%date"),
             ("!if $nope\n!endif", 0, "`$nope` is not defined"),
