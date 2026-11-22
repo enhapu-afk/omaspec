@@ -24,7 +24,7 @@ const DIAMOND_RATIO: f32 = 1.6;
 pub(super) const BRANCH_MIN: f32 = 30.0;
 pub(super) const BRANCH_MARGIN: f32 = 10.0;
 /// Between a loop and the line that leads back.
-const RAIL: f32 = 15.0;
+pub(super) const RAIL: f32 = 15.0;
 /// Between an action and its note.
 const NOTE_GAP: f32 = 15.0;
 
@@ -282,6 +282,12 @@ impl Layout<'_> {
                 branches,
                 otherwise,
             } if branches.len() == 1 => self.if_else(&branches[0], otherwise, lane)?,
+            Node::If {
+                branches,
+                otherwise,
+            } if self.skin.vertical_if && branches.len() > 1 => {
+                self.if_column(branches, otherwise, lane)?
+            }
             Node::If {
                 branches,
                 otherwise,

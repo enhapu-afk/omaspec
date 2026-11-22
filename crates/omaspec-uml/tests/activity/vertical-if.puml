@@ -1,0 +1,22 @@
+@startuml
+' `!pragma useVerticalIf on`: the tests of an `if` with `elseif`s one below
+' the other, each branch right of its test, the `else` below the last; the
+' branches come together on a rail on the right, as PlantUML draws them.
+!pragma useVerticalIf on
+start
+if (Paid?) then (yes)
+  :Ship it;
+(no) elseif (Promised?) then (yes)
+elseif (Asked twice?) then (yes)
+  -> remind;
+  :Send a reminder;
+  :Wait a week;
+elseif (Lost?) then (yes)
+  :Write it off;
+  stop
+else (nothing)
+  :Ask again;
+endif
+:Done;
+stop
+@enduml

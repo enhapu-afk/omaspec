@@ -28,7 +28,8 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
 /// pane keeps in sight as it scrolls past them ([`crate::map::Map::bands`],
 /// REQ-073).
 pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
-    let skin = Skin::from_params(&d.frame.skinparams)?;
+    let mut skin = Skin::from_params(&d.frame.skinparams)?;
+    skin.vertical_if = d.frame.vertical_if;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
@@ -652,6 +653,49 @@ mod tests {
         let bars = bars(&svg);
         assert_eq!(bars.len(), 2, "{svg}");
         assert_eq!((bars[0].0, bars[0].2), (bars[1].0, bars[1].2), "{svg}");
+    }
+
+    /// `!pragma useVerticalIf on` stacks the tests of an `if` with
+    /// `elseif`s, each below the branch before, each branch right of its
+    /// test, the `else` below the last, as PlantUML draws them.
+    #[test]
+    fn tests_stack_under_use_vertical_if() {
+        let source = "@startuml\n!pragma useVerticalIf on\nstart\nif (condition A) then (yes)\n  :Text 1;\nelseif (condition B) then (yes)\n  :Text 2;\n  stop\nelseif (condition C) then (yes)\n  :Text 3;\nelse (nothing)\n  :Text else;\nendif\nstop\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let tests = [at(3), at(5), at(8)];
+        let texts = [at(4), at(6), at(9)];
+        for i in 0..3 {
+            assert!(
+                texts[i].x > tests[i].x + tests[i].w,
+                "{:?} {:?}",
+                texts[i],
+                tests[i]
+            );
+            if i > 0 {
+                assert!(
+                    (tests[i].x + tests[i].w / 2.0 - tests[0].x - tests[0].w / 2.0).abs() < 0.5
+                );
+                assert!(
+                    tests[i].y > texts[i - 1].y + texts[i - 1].h,
+                    "{:?} {:?}",
+                    tests[i],
+                    texts[i - 1]
+                );
+            }
+        }
+        let other = at(11);
+        assert!(
+            other.y > texts[2].y + texts[2].h && other.x < texts[2].x,
+            "{other:?}"
+        );
+        // Off, it is the row it was.
+        let off = source.replace("useVerticalIf on", "useVerticalIf off");
+        let (_, map) = crate::render_mapped(&off, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        assert!((at(5).y - at(3).y).abs() < 0.5);
+        let wrong = source.replace("useVerticalIf on", "useVerticalIf maybe");
+        assert!(crate::render_mapped(&wrong, None).is_err());
     }
 
     /// `ArrowHeadColor none` draws lines without heads, but on an arrow

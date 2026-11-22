@@ -61,6 +61,8 @@ pub struct Skin {
     /// `skinparam ArrowHeadColor none`: lines without heads, but those
     /// written in a style of their own.
     pub heads: bool,
+    /// `!pragma useVerticalIf on` ([`crate::common::Frame::vertical_if`]).
+    pub vertical_if: bool,
     /// How far a line's corners curve; none with `linetype ortho`. Less
     /// than a state's, as an activity's runs are short.
     pub curve: f32,
@@ -109,6 +111,7 @@ impl Default for Skin {
             },
             condition: Condition::Inside,
             heads: true,
+            vertical_if: false,
             merge_line: false,
             arrow: Stroke::new(dark, 1.0),
             curve: CURVE,

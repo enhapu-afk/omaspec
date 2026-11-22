@@ -321,6 +321,20 @@ impl Machine<'_> {
                                 .iter()
                                 .any(|v| value.eq_ignore_ascii_case(v))
                     ) => {}
+                // How an activity diagram stacks its `elseif`s: handed on
+                // to the diagram's frame (`common::Frame::line`).
+                "pragma"
+                    if rest
+                        .split_whitespace()
+                        .next()
+                        .is_some_and(|name| name.eq_ignore_ascii_case("useverticalif")) =>
+                {
+                    let line = Line {
+                        blank_before: 0,
+                        ..line
+                    };
+                    out.write(line, frame.call, line.text)?;
+                }
                 // Debug output, and the markers `!includesub` looks for.
                 "log" | "dump_memory" | "startsub" | "endsub" => {}
                 "elseif" | "else" | "endif" | "endwhile" | "endfunction" | "endprocedure"

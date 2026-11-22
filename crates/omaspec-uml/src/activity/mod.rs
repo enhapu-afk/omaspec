@@ -7,6 +7,7 @@
 //! swimlane it was written in and its zero-based source line.
 
 mod branch;
+mod column;
 mod draw;
 mod layout;
 mod parse;

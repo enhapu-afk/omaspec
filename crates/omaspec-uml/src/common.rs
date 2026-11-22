@@ -184,6 +184,10 @@ pub struct Frame {
     /// The pane asked for the parts of the picture marked
     /// ([`crate::fold::parts`], docs/adr/0029).
     pub parts: bool,
+    /// `!pragma useVerticalIf on`: the `elseif`s of an activity diagram
+    /// stacked, not in a row; the other types take no notice of it, as
+    /// PlantUML does.
+    pub vertical_if: bool,
 }
 
 /// The places a style gives the frame's texts in its width.
@@ -316,6 +320,20 @@ impl Frame {
         }
         if let Some(rest) = keyword(text, "skinparam") {
             return self.skinparam(lines, at, rest).map(Some);
+        }
+        // The one pragma the preprocessor hands on (`preprocess`).
+        if let Some(rest) = text.strip_prefix('!').and_then(|t| keyword(t, "pragma")) {
+            let words: Vec<&str> = rest.split_whitespace().collect();
+            if let [name, value] = words[..]
+                && name.eq_ignore_ascii_case("useverticalif")
+            {
+                self.vertical_if = match value.to_ascii_lowercase().as_str() {
+                    "on" | "true" => true,
+                    "off" | "false" => false,
+                    _ => return Err(Declined::at(no, "`useVerticalIf` is on or off")),
+                };
+                return Ok(Some(at + 1));
+            }
         }
         for (word, end) in [
             ("title", "endtitle"),

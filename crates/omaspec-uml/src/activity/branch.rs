@@ -736,7 +736,7 @@ impl Layout<'_> {
 }
 
 /// The swimlanes `tile` draws in.
-fn lanes_of(tile: &Tile) -> Vec<usize> {
+pub(super) fn lanes_of(tile: &Tile) -> Vec<usize> {
     let mut lanes: Vec<usize> = tile.shapes.iter().filter_map(Shape::lane).collect();
     for shape in &tile.shapes {
         if let Shape::Bar { spans, .. } = shape {

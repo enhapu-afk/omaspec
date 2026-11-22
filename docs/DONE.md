@@ -440,6 +440,14 @@ is open and the reasoning around it.
       that turns to another lane takes no room for what stands above the
       step it leads to; a line that turns into the top of the diamond
       where branches meet has room for its head.
+- [x] `!pragma useVerticalIf on` (2026-11-22): the tests of an `if` with
+      `elseif`s one below the other, each below the branch before, each
+      branch right of its test, the `else` below the last; the branches
+      come together on one rail on the right into the diamond where they
+      meet, as PlantUML draws them. The preprocessor hands the pragma on
+      to the frame every diagram type reads; the others take no notice of
+      it, as PlantUML. A compromise: branches in swimlanes of their own
+      stay in a row. The guide: 57 of 62.
 
 ## Phase 0: foundation and spikes
 
