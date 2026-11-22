@@ -251,6 +251,22 @@ is open and the reasoning around it.
       the way of lines between boxes. Outside a state with states inside,
       or in a concurrent region, a point declines; converted to Mermaid,
       which has none, the diagram is refused. The guide: 29 of 36.
+- [x] What the review of the entry and exit points found (2026-11-22): a
+      state left through its exit point was remembered as the point, so
+      its history came back to leave again; it is remembered as it was on
+      the way to the point. Where a state's states run left to right, its
+      points stand on its left and right border, as PlantUML puts them. A
+      line between boxes at a point is laid with the point just inside
+      its state (under its title) when it stays inside, and just outside
+      when it crosses the border, then follows the point back onto it; an
+      end run across that step slides along instead of growing a hook. A
+      note beside a point keeps its room, tied to the point by a dashed
+      line; a state's own notes over and under it keep off its points'
+      names, and a loop on a point moves with it. A hidden arrow turned
+      across the flow onto a state with states inside ranks its states
+      again, as no hold beside such a state can be kept. Lines inside a
+      state are still routed past its border at times, by the router
+      between boxes.
 
 ### Step 3: the activity diagram
 

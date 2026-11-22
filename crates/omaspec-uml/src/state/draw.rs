@@ -87,9 +87,16 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         family,
     )?;
     let mut scene = layout_container(&diagram.root, &skin, family)?;
+    // Points on their borders; the lines inside their states laid with
+    // them there, then those across a border with them outside it.
     points::onto_borders(&diagram.root, &mut scene);
-    link_crossings(&diagram.root, &mut scene, &skin, family)?;
-    points::onto_border_lines(&diagram.root, &mut scene);
+    let root = &diagram.root;
+    link_crossings(root, &mut scene, &skin, family, &|path, c| {
+        !points::across(root, path, c)
+    })?;
+    points::step_out(root, &mut scene);
+    link_crossings(root, &mut scene, &skin, family, &|_, _| true)?;
+    points::step_in(root, &mut scene);
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     link_notes(&diagram.root, &mut scene, &skin, family)?;
@@ -254,6 +261,12 @@ struct Item {
     /// How far a nested state's title stands right of its middle, off the
     /// lines from its entry points ([`points::onto_borders`]).
     title_shift: f32,
+    /// An entry or an exit point of a state whose states run left to
+    /// right: on its left or right border, not on the top or bottom one.
+    sideways: bool,
+    /// How far a point stands off its place while lines are laid to it
+    /// from outside ([`points::step_out`]).
+    aside: (f32, f32),
 }
 
 /// How large an entry or an exit point is, or a cell of an expansion's
@@ -348,6 +361,8 @@ fn measure_node(
                 receives: false,
                 point: None,
                 title_shift: 0.0,
+                sideways: false,
+                aside: (0.0, 0.0),
             },
         });
     }
@@ -435,6 +450,8 @@ fn measure_node(
             receives: node.receives(),
             point: node.point(),
             title_shift: 0.0,
+            sideways: direction == Direction::Right,
+            aside: (0.0, 0.0),
         },
     })
 }
@@ -1194,13 +1211,23 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
 /// off it too, [`super::nest`]).
 fn point_name(node: &Placed) -> Rect {
     let (gap, title) = (2.0, &node.item.title);
-    let middle = node.rect.y + node.rect.h / 2.0;
-    let y = match node.item.kind {
-        Kind::Entry => middle - gap - title.height,
-        _ => middle + gap,
+    // Where it ends, though it stands off its place for now.
+    let (dx, dy) = node.item.aside;
+    let (x, y) = (node.rect.x - dx, node.rect.y - dy);
+    let middle = y + node.rect.h / 2.0;
+    let entry = node.item.kind == Kind::Entry;
+    let y = if entry {
+        middle - gap - title.height
+    } else {
+        middle + gap
+    };
+    // On a right border the name of an exit stands right of it, outside.
+    let x = match node.item.sideways && !entry {
+        true => x + node.rect.w + gap,
+        false => x - gap - title.width,
     };
     Rect {
-        x: node.rect.x - gap - title.width,
+        x,
         y,
         w: title.width,
         h: title.height,
@@ -1724,6 +1751,51 @@ mod tests {
             y >= out.y + out.h / 2.0 && x > out.x && x < out.x + out.w,
             "{:?}",
             wire(10).points
+        );
+    }
+
+    /// Where the states run left to right, an entry point stands on the
+    /// left border and an exit point on the right one, as PlantUML puts
+    /// them; a note beside a point keeps its room, tied to it, and a loop
+    /// on a point moves with it as a whole.
+    #[test]
+    fn points_follow_the_flow_and_take_their_notes_and_loops_along() {
+        let source = "@startuml\nleft to right direction\n[*] --> Idle\nstate Busy {\n  state side <<entryPoint>>\n  state done <<exitPoint>>\n  [*] --> Usual\n  side --> Special\n  Usual --> Special\n  Special --> done : finish\n}\nIdle --> side : urgent\nIdle --> Busy : normal\ndone --> Idle\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let spot = |name: &str| map.states.iter().find(|s| s.name == name).unwrap().rect;
+        let busy = spot("Busy");
+        let middle = |r: crate::graph::Rect| (r.x + r.w / 2.0, r.y + r.h / 2.0);
+        assert!(
+            (middle(spot("side")).0 - busy.x).abs() < 0.5,
+            "{:?}",
+            spot("side")
+        );
+        assert!((middle(spot("done")).0 - (busy.x + busy.w)).abs() < 0.5);
+        let noted = "@startuml\n[*] --> Idle\nstate Busy {\n  state side <<entryPoint>>\n  note right of side : the urgent way\n  [*] --> Usual\n  side --> Special\n  side --> side : again\n}\nIdle --> side : urgent\n@enduml\n";
+        let (root, mut scene) = laid(noted);
+        points::onto_borders(&root, &mut scene);
+        let inside = &scene.nodes[2].children;
+        assert!(inside.notes[0].tether.is_some(), "{:?}", inside.notes[0]);
+        // The loop's ends and its middle all moved up to the border.
+        let point = inside.nodes[0].rect;
+        let looped = &inside.edges[2].points;
+        let top = point.y - point.h - 1.0;
+        assert!(looped.iter().all(|p| p.1 < point.y + 60.0), "{looped:?}");
+        assert!(looped.iter().any(|p| p.1 < top + 30.0), "{looped:?}");
+    }
+
+    /// A hidden arrow turned across the flow onto a state with states inside
+    /// ranks its states, as a hold beside such a state cannot be kept.
+    #[test]
+    fn a_hidden_arrow_onto_a_state_with_states_ranks_them() {
+        let source = "@startuml\n[*] --> A\nA -right[hidden]-> B\nstate B {\n  [*] --> X\n}\nA --> C\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let spot = |name: &str| map.states.iter().find(|s| s.name == name).unwrap().rect;
+        assert!(
+            spot("B").y > spot("A").y + spot("A").h,
+            "{:?} {:?}",
+            spot("A"),
+            spot("B")
         );
     }
 
@@ -2441,7 +2513,14 @@ mod tests {
         let skin = Skin::default();
         let canvas = Canvas::new(&skin.font_name, false);
         let mut scene = layout_container(&diagram.root, &skin, canvas.family()).unwrap();
-        link_crossings(&diagram.root, &mut scene, &skin, canvas.family()).unwrap();
+        link_crossings(
+            &diagram.root,
+            &mut scene,
+            &skin,
+            canvas.family(),
+            &|_, _| true,
+        )
+        .unwrap();
         (diagram.root, scene)
     }
 

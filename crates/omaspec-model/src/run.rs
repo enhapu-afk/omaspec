@@ -327,6 +327,13 @@ impl Run {
             .filter(|&a| a == outer || m.ancestors(a).any(|p| p == outer))
             .collect();
         self.remember(m, outer, &left);
+        // On the way to an exit point the state around it is as good as
+        // left: what is left inside it now is where its history goes back.
+        if m.states[to].kind == Kind::Exit
+            && let Some(state) = m.states[to].parent
+        {
+            self.remember(m, state, &left);
+        }
         self.active.retain(|a| !left.contains(a));
         if m.states[from].kind != Kind::Start && !left.contains(&from) {
             self.active.retain(|&a| a != from);
@@ -444,6 +451,14 @@ impl Run {
     /// leaves: `outer` and every state between it and `left`, the
     /// innermost states left.
     fn remember(&mut self, m: &Machine, outer: usize, left: &[usize]) {
+        // A point is no place to come back to: a state left through its
+        // exit point is remembered as it was on the way there (`step`).
+        let left: Vec<usize> = left
+            .iter()
+            .copied()
+            .filter(|&s| !matches!(m.states[s].kind, Kind::Entry | Kind::Exit))
+            .collect();
+        let left = left.as_slice();
         let mut composites: Vec<usize> = Vec::new();
         for &s in left {
             for a in std::iter::once(s).chain(m.ancestors(s)) {
@@ -702,6 +717,22 @@ mod tests {
         assert_eq!(names(&m, run.active()), ["Idle"]);
         take(&mut run, &m, "normal");
         assert_eq!(names(&m, run.active()), ["Usual"]);
+    }
+
+    /// A state left through its exit point is remembered as it was on
+    /// the way there, not as the point.
+    #[test]
+    fn a_history_goes_back_to_where_an_exit_point_was_reached_from() {
+        let m = machine(
+            "[*] --> Idle\nstate Busy {\n  state done <<exitPoint>>\n  [*] --> Usual\n  Usual --> Special : escalate\n  Special --> done : finish\n}\nIdle --> Busy : start\ndone --> Idle\nIdle --> Busy[H] : resume",
+        );
+        let (mut run, _) = Run::start(&m).unwrap();
+        for event in ["start", "escalate", "finish"] {
+            take(&mut run, &m, event);
+        }
+        assert_eq!(names(&m, run.active()), ["Idle"]);
+        take(&mut run, &m, "resume");
+        assert_eq!(names(&m, run.active()), ["Special"]);
     }
 
     #[test]

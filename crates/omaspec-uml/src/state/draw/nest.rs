@@ -89,6 +89,8 @@ pub(super) fn layout_regions(
                 receives: false,
                 point: None,
                 title_shift: 0.0,
+                sideways: false,
+                aside: (0.0, 0.0),
             },
         });
     }
@@ -176,13 +178,16 @@ pub(super) fn link_crossings(
     scene: &mut Scene,
     skin: &Skin,
     family: Family,
+    wanted: &dyn Fn(&[usize], &Crossing) -> bool,
 ) -> Result<(), Declined> {
     let mut found = Vec::new();
     gather(root, &mut Vec::new(), &mut found);
     // The transitions laid out with the containers around them are drawn
     // already; a hidden one only ranked the boxes, and is not routed.
+    // Those `wanted` leaves out wait for a later pass.
     found.retain(|(path, slot, crossing)| {
         crossing.arrow.dash != Dash::Hidden
+            && wanted(path, crossing)
             && scene
                 .scene_at(path)
                 .and_then(|scene| scene.edges.get(*slot))
