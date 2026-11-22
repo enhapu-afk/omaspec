@@ -228,6 +228,7 @@ impl Layout<'_> {
                 out,
             } => self.while_loop(test, yes.as_ref(), body, out.as_ref(), lane)?,
             Node::Repeat {
+                start,
                 body,
                 backward,
                 test,
@@ -235,12 +236,38 @@ impl Layout<'_> {
                 out,
             } => {
                 let labels = [test.as_ref(), yes.as_ref(), out.as_ref()];
-                self.repeat(body, backward.as_ref(), labels, lane)?
+                self.repeat(start.as_ref(), body, backward.as_deref(), labels, lane)?
             }
             Node::Parallel { kind, flows } => self.parallel(*kind, flows, lane)?,
             Node::Group { title, color, flow } => {
                 self.group(title, color.as_deref(), flow, lane)?
             }
+        })
+    }
+
+    /// `note` beside the box `rect`, its middle level with the box's.
+    fn note_beside(
+        &self,
+        note: &Note,
+        (x, y, w, h): (f32, f32, f32, f32),
+        lane: usize,
+    ) -> Result<Shape, Declined> {
+        let skin = self.skin;
+        let body = self.measure(&note.text, skin.note.font)?;
+        let (nw, nh) = (body.width + 22.0, body.height + 10.0);
+        let fill = match &note.color {
+            Some(c) => color::parse(c).map_err(|e| Declined::at(note.text.line, e))?,
+            None => skin.note.fill,
+        };
+        let nx = match note.right {
+            true => x + w + NOTE_GAP,
+            false => x - NOTE_GAP - nw,
+        };
+        Ok(Shape::Note {
+            rect: (nx, y + (h - nh) / 2.0, nw, nh),
+            text: body,
+            fill,
+            lane,
         })
     }
 
@@ -429,8 +456,12 @@ impl Layout<'_> {
     /// `repeat`: a diamond the way back comes into, the flow, the test.
     /// The way back runs on the left, or on the right through the
     /// `backward` action, where PlantUML puts it.
+    /// A loop: where it starts, a mark the ways back join (or the action
+    /// it starts with, `start`), its body, its test, and the way back on
+    /// the left, or on the right through its `backward` action.
     fn repeat(
         &self,
+        start: Option<&Text>,
         body: &Flow,
         backward: Option<&Backward>,
         [test, yes, out]: [Option<&Text>; 3],
@@ -440,6 +471,32 @@ impl Layout<'_> {
         let yes = self.measure_opt(yes, font)?;
         let out = self.measure_opt(out, font)?;
         let (dw, dh, text) = self.diamond(test)?;
+        // What the ways back join: its half width, its height, and the
+        // height they meet it at, on its sides.
+        let (head, half, high) = match start {
+            Some(start) => {
+                let pad = self.skin.padding;
+                let block = self.measure(start, self.skin.activity.font)?;
+                let (w, h) = (block.width + 2.0 * pad, block.height + 2.0 * pad);
+                let shape = Shape::Box {
+                    rect: (-w / 2.0, 0.0, w, h),
+                    text: block,
+                    fill: self.skin.activity.fill,
+                    shape: ActionShape::Plain,
+                    lane,
+                };
+                (shape, w / 2.0, h)
+            }
+            None => {
+                let shape = Shape::Diamond {
+                    rect: (-HALF, 0.0, 2.0 * HALF, 2.0 * HALF),
+                    text: Block::empty(),
+                    lane,
+                };
+                (shape, HALF, 2.0 * HALF)
+            }
+        };
+        let meet = high / 2.0;
         let back = match backward {
             Some(b) => Some((
                 self.measure(&b.text, self.skin.activity.font)?,
@@ -448,13 +505,10 @@ impl Layout<'_> {
             )),
             None => None,
         };
-        let mut shapes = vec![Shape::Diamond {
-            rect: (-HALF, 0.0, 2.0 * HALF, 2.0 * HALF),
-            text: Block::empty(),
-            lane,
-        }];
+        let back_note = backward.and_then(|b| b.note.as_ref());
+        let mut shapes = vec![head];
         let mut edges = Vec::new();
-        let top = 2.0 * HALF + GAP + self.labels_above(&[body])?;
+        let top = high + GAP + self.labels_above(&[body])?;
         let mut body = self.flow(body, lane)?;
         body.translate(-body.entry.x, top - body.bounds.1);
         let empty = body.empty;
@@ -463,13 +517,13 @@ impl Layout<'_> {
             // Room on the right for the action and the lines to it.
             let height = text.height + 2.0 * self.skin.padding;
             let room = height + 2.0 * GAP + incoming.height + outgoing.height;
-            test_top = test_top.max(HALF + room - dh / 2.0);
+            test_top = test_top.max(meet + room - dh / 2.0);
         }
-        let start = vec![pt(0.0, 2.0 * HALF, lane)];
+        let start = vec![pt(0.0, high, lane)];
         match self.branch_line(&mut shapes, start, &body)? {
             Some(edge) => edges.push(edge),
             None => edges.push(Edge::new(
-                vec![pt(0.0, 2.0 * HALF, lane), pt(0.0, test_top, lane)],
+                vec![pt(0.0, high, lane), pt(0.0, test_top, lane)],
                 true,
                 self.stroke(None)?,
             )),
@@ -496,7 +550,7 @@ impl Layout<'_> {
         let plain = self.stroke(None)?;
         match back {
             None => {
-                let rail = body.bounds.0.min(-dw / 2.0 - yes.width - 8.0).min(-HALF) - RAIL;
+                let rail = body.bounds.0.min(-dw / 2.0 - yes.width - 8.0).min(-half) - RAIL;
                 if !yes.is_empty() {
                     shapes.push(Shape::Label {
                         at: (-dw / 2.0 - 2.0, cy - yes.height - 1.0),
@@ -509,8 +563,8 @@ impl Layout<'_> {
                     vec![
                         pt(-dw / 2.0, cy, lane),
                         pt(rail, cy, lane),
-                        pt(rail, HALF, lane),
-                        pt(-HALF, HALF, lane),
+                        pt(rail, meet, lane),
+                        pt(-half, meet, lane),
                     ],
                     true,
                     plain,
@@ -520,9 +574,9 @@ impl Layout<'_> {
                 let pad = self.skin.padding;
                 let (w, h) = (text.width + 2.0 * pad, text.height + 2.0 * pad);
                 let right = if empty { 0.0 } else { body.bounds.2 };
-                let right = right.max(dw / 2.0 + yes.width + 8.0).max(HALF);
+                let right = right.max(dw / 2.0 + yes.width + 8.0).max(half);
                 let x = right + RAIL + w / 2.0;
-                let y = (HALF + cy) / 2.0 - h / 2.0;
+                let y = (meet + cy) / 2.0 - h / 2.0;
                 shapes.push(Shape::Box {
                     rect: (x - w / 2.0, y, w, h),
                     text,
@@ -530,6 +584,9 @@ impl Layout<'_> {
                     shape: ActionShape::Plain,
                     lane,
                 });
+                if let Some(note) = back_note {
+                    shapes.push(self.note_beside(note, (x - w / 2.0, y, w, h), lane)?);
+                }
                 if !yes.is_empty() {
                     shapes.push(Shape::Label {
                         at: (dw / 2.0 + 2.0, cy - yes.height - 1.0),
@@ -539,14 +596,14 @@ impl Layout<'_> {
                     });
                 }
                 shapes.extend(self.beside(incoming, x, y + h + 2.0, lane));
-                shapes.extend(self.beside(outgoing, x, HALF + 2.0, lane));
+                shapes.extend(self.beside(outgoing, x, meet + 2.0, lane));
                 edges.push(Edge::new(
                     vec![pt(dw / 2.0, cy, lane), pt(x, cy, lane), pt(x, y + h, lane)],
                     true,
                     plain,
                 ));
                 edges.push(Edge::new(
-                    vec![pt(x, y, lane), pt(x, HALF, lane), pt(HALF, HALF, lane)],
+                    vec![pt(x, y, lane), pt(x, meet, lane), pt(half, meet, lane)],
                     true,
                     plain,
                 ));

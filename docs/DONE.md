@@ -252,6 +252,14 @@ is open and the reasoning around it.
       or in a concurrent region, a point declines; converted to Mermaid,
       which has none, the diagram is refused. The guide: 29 of 36.
 
+### Step 3: the activity diagram
+
+- [x] A loop that starts with an action (2026-11-22): `repeat :text;`, on
+      its line or on more, puts the action where the loop starts, in place
+      of the mark the ways back join; the way back and the rail of
+      `is (yes)` meet it on its sides. A note after a `backward` stands
+      beside that action. The guide: 43 of 62 activity diagrams.
+
 ## Phase 0: foundation and spikes
 
 - [x] Workspace, MIT license, `AGENTS.md`, CI (fmt, clippy, test, cargo-deny)

@@ -192,8 +192,9 @@ enum Opened {
         body: Flow,
     },
     Repeat {
+        start: Option<Text>,
         body: Flow,
-        backward: Option<Backward>,
+        backward: Option<Box<Backward>>,
     },
     Parallel {
         split: bool,
@@ -247,10 +248,11 @@ impl Parser {
             ..
         }) = self.blocks.last()
             && two_words(text, "repeat", "while").is_none()
+            && keyword(text, "note").is_none()
         {
             return Err(Declined::at(
                 no,
-                "anything but `repeat while` after `backward` is not supported yet",
+                "anything but a note or `repeat while` after `backward` is not supported yet",
             ));
         }
         if text.starts_with('|') && !text.starts_with("||") {
@@ -266,6 +268,7 @@ impl Parser {
             "repeat" => {
                 self.open(
                     Opened::Repeat {
+                        start: None,
                         body: Flow::default(),
                         backward: None,
                     },
@@ -341,11 +344,8 @@ impl Parser {
         {
             return self.backward(text, no).map(|()| at + 1);
         }
-        if keyword(text, "repeat").is_some() {
-            return Err(Declined::at(
-                no,
-                "`repeat` with an action is not supported yet",
-            ));
+        if let Some(rest) = keyword(text, "repeat") {
+            return self.repeat_action(lines, at, rest);
         }
         if let Some(rest) =
             two_words(text, "end", "while").or_else(|| two_words(text, "while", "end"))
@@ -604,6 +604,37 @@ impl Parser {
         Ok(next)
     }
 
+    /// `repeat :text;`, on its line or on more: a loop that starts with
+    /// an action.
+    fn repeat_action(&mut self, lines: &[Line], at: usize, rest: &str) -> Result<usize, Declined> {
+        let no = lines[at].no;
+        let Some(rest) = rest.strip_prefix(':') else {
+            return Err(Declined::at(
+                no,
+                format!("`repeat {}` is not supported yet", snippet(rest)),
+            ));
+        };
+        let (value, end, next) = match action_end(rest) {
+            Some((text, end)) => (text.to_owned(), end, at + 1),
+            None => until_action_end(lines, at, rest)?,
+        };
+        if end != ActionEnd::Plain {
+            return Err(Declined::at(
+                no,
+                "a shape or a color on the action of a `repeat` is not supported yet",
+            ));
+        }
+        self.open(
+            Opened::Repeat {
+                start: Some(text_at(&value, no)),
+                body: Flow::default(),
+                backward: None,
+            },
+            no,
+        )?;
+        Ok(next)
+    }
+
     /// `->`, `-[#red,dashed]->`, with a label up to `;`.
     fn arrow(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
         let Line { no, text, .. } = lines[at];
@@ -692,6 +723,22 @@ impl Parser {
             text: text_at(&value, no),
             color,
         };
+        // After a `backward`, the note is its action's.
+        if let Some(Open {
+            what:
+                Opened::Repeat {
+                    backward: Some(backward),
+                    ..
+                },
+            ..
+        }) = self.blocks.last_mut()
+        {
+            if backward.note.is_some() {
+                return Err(Declined::at(no, "a `backward` takes one note"));
+            }
+            backward.note = Some(note);
+            return Ok(next);
+        }
         match self.flow().steps.last_mut() {
             Some(Step {
                 node: Node::Action {
@@ -886,7 +933,12 @@ impl Parser {
         let at = |t: &str| text_at(t, no);
         self.close(
             |what| match what {
-                Opened::Repeat { body, backward } => Node::Repeat {
+                Opened::Repeat {
+                    start,
+                    body,
+                    backward,
+                } => Node::Repeat {
+                    start,
                     body,
                     backward,
                     test: test.map(at),
@@ -931,11 +983,12 @@ impl Parser {
             ..
         }) = self.blocks.last_mut()
         {
-            *backward = Some(Backward {
+            *backward = Some(Box::new(Backward {
                 text: text_at(label, no),
                 incoming: incoming.and_then(at),
                 outgoing: outgoing.and_then(at),
-            });
+                note: None,
+            }));
         }
         Ok(())
     }
@@ -1152,13 +1205,17 @@ mod tests {
                         out.as_ref().map_or("", |t| t.value.as_str())
                     ),
                     Node::Repeat {
+                        start,
                         body,
                         backward,
                         test,
                         yes,
                         out,
                     } => format!(
-                        "repeat[{}{}:{}?{}:{}]",
+                        "repeat[{}{}{}:{}?{}:{}]",
+                        start
+                            .as_ref()
+                            .map_or(String::new(), |t| format!("({}) ", t.value)),
                         outline(body),
                         backward
                             .as_ref()
@@ -1324,6 +1381,38 @@ mod tests {
         assert!(note.right);
     }
 
+    /// A loop that starts with an action, on its line or on more, and a
+    /// note after its `backward`.
+    #[test]
+    fn a_repeat_starts_with_an_action() {
+        let d = diagram(
+            "repeat :Enter data;\n:Submit;\nbackward :Warning;\nnote right: check it\nrepeat while (Valid?) is (No) not (Yes)\nrepeat :first\nline;\nrepeat while",
+        );
+        assert_eq!(
+            outline(&d.flow),
+            "repeat[(Enter data) A(Submit)@0 back(Warning):Valid??No:Yes]@0 repeat[(first\nline) :?:]@0"
+        );
+        let Node::Repeat {
+            backward: Some(b), ..
+        } = &d.flow.steps[0].node
+        else {
+            panic!()
+        };
+        let note = b.note.as_ref().unwrap();
+        assert!(note.right && note.text.value == "check it");
+        for (source, part) in [
+            ("repeat :a; <<input>>\nrepeat while", "a shape or a color"),
+            ("repeat x\nrepeat while", "`repeat x` is not supported yet"),
+            (
+                "repeat\nbackward :b;\nnote right: n\nnote left: m\nrepeat while",
+                "one note",
+            ),
+        ] {
+            let err = declined(source);
+            assert!(err.reason.contains(part), "{source}: {}", err.reason);
+        }
+    }
+
     #[test]
     fn backward_in_repeat() {
         let d = diagram(
@@ -1452,7 +1541,6 @@ mod tests {
             ("(*) --> \"x\"", 0, "old activity syntax"),
             ("start\n-[hidden]->\nstop", 1, "`hidden`"),
             ("fork\nend fork {and}", 1, "label on `end fork`"),
-            ("repeat :x;\nrepeat while", 0, "`repeat` with an action"),
             ("start\nfoo bar", 1, "foo bar"),
             (deep.as_str(), 100, "nested"),
         ] {

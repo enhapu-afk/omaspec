@@ -1,0 +1,16 @@
+@startuml
+' A loop that starts with an action (`repeat :text;`): the way back leads
+' to it, as to the mark a plain `repeat` starts with; a note after its
+' `backward` stands beside the action on the way back.
+start
+repeat :Enter data;
+  :Submit;
+  backward :Warning;
+  note right: Shown in red
+repeat while (Valid?) is (No) not (Yes)
+->saved;
+repeat :Read a line;
+  :Parse it;
+repeat while (More lines?) is (yes)
+stop
+@enduml

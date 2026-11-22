@@ -92,8 +92,11 @@ pub enum Node {
     },
     /// `repeat` … `repeat while (test) is (yes) not (no)`.
     Repeat {
+        /// `repeat :text;`: an action where the loop starts, which the
+        /// way back leads to, in place of the mark where it joins.
+        start: Option<Text>,
         body: Flow,
-        backward: Option<Backward>,
+        backward: Option<Box<Backward>>,
         test: Option<Text>,
         yes: Option<Text>,
         out: Option<Text>,
@@ -119,6 +122,8 @@ pub struct Backward {
     pub text: Text,
     pub incoming: Option<Text>,
     pub outgoing: Option<Text>,
+    /// `note right: …` after it.
+    pub note: Option<Note>,
 }
 
 /// One way through an `if`.
