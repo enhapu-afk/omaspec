@@ -118,16 +118,11 @@ impl Layout<'_> {
                     next.arrow_in = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
                     next
                 }
-                // `kill`, `detach`: the flow ends at the step before it, with
-                // no arrow on, as PlantUML draws it.
-                Some(mut prev) if matches!(step.node, Node::Detach) => {
-                    prev.exit = None;
-                    prev
-                }
                 Some(mut prev) => {
                     let arrow = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
                     // A `while` goes on by its own way out, which a hidden
-                    // arrow after it hides too, as PlantUML draws it.
+                    // arrow after it hides too, as PlantUML draws it: the
+                    // one before `detach` in an endless loop as well.
                     let hidden = arrow.as_ref().is_some_and(|a| a.style == LineStyle::Hidden);
                     if hidden
                         && matches!(before, Some(Node::While { .. }))
@@ -139,7 +134,14 @@ impl Layout<'_> {
                             }
                         }
                     }
-                    self.join(prev, next, arrow.as_deref())?
+                    // `kill`, `detach`: the flow ends at the step before it,
+                    // with no arrow on, as PlantUML draws it.
+                    if matches!(step.node, Node::Detach) {
+                        prev.exit = None;
+                        prev
+                    } else {
+                        self.join(prev, next, arrow.as_deref())?
+                    }
                 }
             });
             before = Some(&step.node);
@@ -489,10 +491,9 @@ impl Layout<'_> {
         Ok(Some(Edge::new(points, true, self.stroke(arrow)?).by(arrow)))
     }
 
-    /// `while`: the diamond, the flow below it, the way back on the left
-    /// and the way out on the right; with a `backward` action, the way back
-    /// runs on the right through it and the way out on the left, as
-    /// PlantUML draws it.
+    /// `while`: the diamond, the flow below it, the way back on the right,
+    /// through its `backward` action if it has one, and the way out on the
+    /// left, as PlantUML draws it.
     fn while_loop(
         &self,
         test: &Text,
@@ -546,10 +547,13 @@ impl Layout<'_> {
         let back_stroke = self.stroke(body.arrow_out.as_deref())?;
         let plain = self.stroke(None)?;
         // The side the way out takes: right, or left with a `backward`.
-        let side = match backward {
+        // The way back runs on the right, the way out on the left, as
+        // PlantUML draws them.
+        match backward {
             None => {
                 if let Some(exit) = goes_back {
-                    let rail = body.bounds.0.min(-dw / 2.0) - RAIL;
+                    let right = if empty { 0.0 } else { body.bounds.2 };
+                    let rail = right.max(dw / 2.0).max(reach + 4.0) + RAIL;
                     edges.push(
                         Edge::new(
                             vec![
@@ -557,7 +561,7 @@ impl Layout<'_> {
                                 pt(exit.x, back_y, lane),
                                 pt(rail, back_y, lane),
                                 pt(rail, cy, lane),
-                                pt(-dw / 2.0, cy, lane),
+                                pt(dw / 2.0, cy, lane),
                             ],
                             true,
                             back_stroke,
@@ -565,7 +569,6 @@ impl Layout<'_> {
                         .by(body.arrow_out.as_deref()),
                     );
                 }
-                1.0
             }
             Some(back) => {
                 let pad = self.skin.padding;
@@ -610,26 +613,18 @@ impl Layout<'_> {
                     true,
                     plain,
                 ));
-                -1.0
             }
-        };
-        let corner = side * dw / 2.0;
+        }
+        let corner = -dw / 2.0;
         if !out.is_empty() {
-            let (x, align) = match side > 0.0 {
-                true => (corner + 2.0, Align::Left),
-                false => (corner - 2.0, Align::Right),
-            };
             shapes.push(Shape::Label {
-                at: (x, cy - out.height - 1.0),
+                at: (corner - 2.0, cy - out.height - 1.0),
                 text: out.clone(),
-                align,
+                align: Align::Right,
                 lane,
             });
         }
-        let rail = match side > 0.0 {
-            true => body.bounds.2.max(dw / 2.0 + out.width + 8.0) + RAIL,
-            false => body.bounds.0.min(-dw / 2.0 - out.width - 8.0) - RAIL,
-        };
+        let rail = body.bounds.0.min(corner - out.width - 8.0) - RAIL;
         let exit_y = back_y + RAIL;
         edges.push(Edge::new(
             vec![
@@ -653,7 +648,8 @@ impl Layout<'_> {
 
     /// A loop: where it starts, a mark the ways back join (or the action
     /// it starts with, `start`), its body, its test, and the way back on
-    /// the left, or on the right through its `backward` action.
+    /// the right, through its `backward` action if it has one, as PlantUML
+    /// draws it.
     fn repeat(
         &self,
         start: Option<&Text>,
@@ -769,21 +765,26 @@ impl Layout<'_> {
         let plain = self.stroke(None)?;
         match back {
             None => {
-                let rail = body.bounds.0.min(-dw / 2.0 - yes.width - 8.0).min(-half) - RAIL;
+                let right = if empty { 0.0 } else { body.bounds.2 };
+                let rail = right
+                    .max(dw / 2.0 + yes.width + 8.0)
+                    .max(dw / 2.0 + beside_w + 8.0)
+                    .max(half)
+                    + RAIL;
                 if !yes.is_empty() {
                     shapes.push(Shape::Label {
-                        at: (-dw / 2.0 - 2.0, cy - yes.height - 1.0),
+                        at: (dw / 2.0 + 2.0, cy - yes.height - 1.0),
                         text: yes,
-                        align: Align::Right,
+                        align: Align::Left,
                         lane,
                     });
                 }
                 edges.push(Edge::new(
                     vec![
-                        pt(-dw / 2.0, cy, lane),
+                        pt(dw / 2.0, cy, lane),
                         pt(rail, cy, lane),
                         pt(rail, meet, lane),
-                        pt(-half, meet, lane),
+                        pt(half, meet, lane),
                     ],
                     true,
                     plain,

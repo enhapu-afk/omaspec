@@ -143,10 +143,7 @@ impl Layout<'_> {
                 if let Some(edge) = self.branch_line(&mut shapes, start, tile)? {
                     edges.push(edge);
                 }
-                if let Some(exit) = tile.exit {
-                    // A way out that comes in from the right (a `while`'s)
-                    // goes on from there, not back over itself.
-                    let from = from_right(&mut tile.edges, exit).unwrap_or(exit);
+                if let Some(from) = tile.exit {
                     let turn = tile.bounds.3 + GAP / 2.0 + words.height;
                     if !words.is_empty() {
                         words_right = words_right.max(from.x + 6.0 + words.width);
@@ -288,19 +285,4 @@ impl Layout<'_> {
         tile.absorb(rest);
         Ok(tile)
     }
-}
-
-/// Where the line that ends at `exit` comes in from the right along it, as
-/// a `while`'s way out does: that line ends where it turns to come in, and
-/// the point it ends at now.
-fn from_right(edges: &mut [Edge], exit: Pt) -> Option<Pt> {
-    let edge = edges
-        .iter_mut()
-        .find(|edge| edge.points.last() == Some(&exit) && edge.points.len() >= 3)?;
-    let before = edge.points[edge.points.len() - 2];
-    let flat = before.lane == exit.lane && (before.y - exit.y).abs() < 0.5;
-    (flat && before.x > exit.x + 0.5).then(|| {
-        edge.points.pop();
-        before
-    })
 }

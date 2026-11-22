@@ -487,6 +487,11 @@ is open and the reasoning around it.
       outline knows `package`, `rectangle` and `card`; a stereotype on one
       says which; the parts of a glide name frames by their kind. The
       test of the stacked lines reads the map's lines, which it did not.
+- [x] Loops as PlantUML draws them (2026-11-22): a `while` and a `repeat`
+      go back on the right, a `while` leaves on the left, with a
+      `backward` action or without, as the guide and PlantUML 1.2026.8
+      draw them; they were the other way round. A `while` that a hidden
+      arrow and `detach` leave, an endless loop, has no way out drawn.
 
 ## Phase 0: foundation and spikes
 

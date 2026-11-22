@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="355" height="417" viewBox="0 0 355 417">
-<g transform="translate(83.32,10)">
+<svg xmlns="http://www.w3.org/2000/svg" width="313" height="417" viewBox="0 0 313 417">
+<g transform="translate(41.92,10)">
 <g id="lines">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,30 10,40 14,30 10,34" fill="#181818" stroke="#181818" stroke-width="1"/>
@@ -17,8 +17,8 @@
 <polygon points="6,266.51 10,276.51 14,266.51 10,270.51" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,310.48 10,330.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,320.48 10,330.48 14,320.48 10,324.48" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M-31.92,342.48 L-57.32,342.48 C-66.16,342.48 -73.32,335.32 -73.32,326.48 L-73.32,255.53 C-73.32,246.69 -66.16,239.53 -57.32,239.53 L-31.1,239.53" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="-41.1,243.53 -31.1,239.53 -41.1,235.53 -37.1,239.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M51.92,342.48 L77.32,342.48 C86.16,342.48 93.32,335.32 93.32,326.48 L93.32,255.53 C93.32,246.69 86.16,239.53 77.32,239.53 L51.1,239.53" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="61.1,235.53 51.1,239.53 61.1,243.53 57.1,239.53" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,354.48 10,374.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,364.48 10,374.48 14,364.48 10,368.48" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
@@ -63,7 +63,7 @@
 <tspan x="-19.92" y="346.29" font-size="11" fill="#000000" textLength="59.84" lengthAdjust="spacing">More lines?</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="-52.32" y="338.88" font-size="11" fill="#000000" textLength="18.4" lengthAdjust="spacing">yes</tspan>
+<tspan x="53.92" y="338.88" font-size="11" fill="#000000" textLength="18.4" lengthAdjust="spacing">yes</tspan>
 </text>
 <rect x="-21.23" y="276.51" width="62.46" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">

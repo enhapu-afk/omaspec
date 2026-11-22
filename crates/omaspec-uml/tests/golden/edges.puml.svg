@@ -23,15 +23,15 @@
 <polyline points="-73.91,236.77 -73.91,346.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,336.54 -73.91,346.54 -69.91,336.54 -73.91,340.54" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="-73.91,370.54 -73.91,390.54" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M-73.91,390.54 L-73.91,390.54 C-73.91,396.07 -78.39,400.54 -83.91,400.54 L-118.67,400.54 C-127.51,400.54 -134.67,393.38 -134.67,384.54 L-134.67,363.54 C-134.67,360.78 -132.43,358.54 -129.67,358.54 L-119.67,358.54" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="-129.67,362.54 -119.67,358.54 -129.67,354.54 -125.67,358.54" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M-28.15,358.54 L5.09,358.54 C13.93,358.54 21.09,365.71 21.09,374.54 L21.09,399.54 C21.09,408.38 13.93,415.54 5.09,415.54 L-73.91,415.54" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M-73.91,390.54 L-73.91,390.54 C-73.91,396.07 -69.44,400.54 -63.91,400.54 L-29.15,400.54 C-20.32,400.54 -13.15,393.38 -13.15,384.54 L-13.15,363.54 C-13.15,360.78 -15.39,358.54 -18.15,358.54 L-28.15,358.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="-18.15,354.54 -28.15,358.54 -18.15,362.54 -22.15,358.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M-119.67,358.54 L-152.92,358.54 C-161.76,358.54 -168.92,365.71 -168.92,374.54 L-168.92,399.54 C-168.92,408.38 -161.76,415.54 -152.92,415.54 L-73.91,415.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="-73.91,415.54 -73.91,435.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,425.54 -73.91,435.54 -69.91,425.54 -73.91,429.54" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="-73.91,459.54 -73.91,479.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,469.54 -73.91,479.54 -69.91,469.54 -73.91,473.54" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M-85.91,491.54 L-92.91,491.54 C-101.75,491.54 -108.91,484.38 -108.91,475.54 L-108.91,460.54 C-108.91,453.36 -103.09,447.54 -95.91,447.54 L-85.91,447.54" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="-95.91,451.54 -85.91,447.54 -95.91,443.54 -91.91,447.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M-61.91,491.54 L-54.91,491.54 C-46.08,491.54 -38.91,484.38 -38.91,475.54 L-38.91,460.54 C-38.91,453.36 -44.73,447.54 -51.91,447.54 L-61.91,447.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="-51.91,443.54 -61.91,447.54 -51.91,451.54 -55.91,447.54" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="-73.91,503.54 -73.91,523.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,513.54 -73.91,523.54 -69.91,513.54 -73.91,517.54" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="-73.91,557.51 -73.91,577.51" fill="none" stroke="#181818" stroke-width="1"/>
@@ -99,7 +99,7 @@
 <tspan x="-107.67" y="362.35" font-size="11" fill="#000000" textLength="67.52" lengthAdjust="spacing">empty body?</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="-26.15" y="354.95" font-size="11" fill="#000000" textLength="26.25" lengthAdjust="spacing">done</tspan>
+<tspan x="-147.92" y="354.95" font-size="11" fill="#000000" textLength="26.25" lengthAdjust="spacing">done</tspan>
 </text>
 <polygon points="-85.91,447.54 -73.91,435.54 -61.91,447.54 -73.91,459.54" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <polygon points="-85.91,491.54 -73.91,479.54 -61.91,491.54 -73.91,503.54" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
