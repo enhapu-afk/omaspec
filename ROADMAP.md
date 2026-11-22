@@ -57,11 +57,11 @@ of element) and step 0 (a second `@startuml` line).
       PlantUML (`#A80036`), in the lifeline's color here; in the themes'
       colors it wants a color of their own.
 
-### Step 2: the state diagram (17 of 36)
+### Step 2: the state diagram (20 of 36)
 
-- [ ] Pseudo states by stereotype: `<<start>>`, `<<end>>`, `<<entryPoint>>`,
-      `<<exitPoint>>`, `<<inputPin>>`, `<<outputPin>>`, `<<expansionInput>>`,
-      `<<expansionOutput>>`, `<<sdlreceive>>`.
+- [ ] Pseudo states by stereotype: `<<entryPoint>>`, `<<exitPoint>>`,
+      `<<inputPin>>`, `<<outputPin>>`, `<<expansionInput>>`,
+      `<<expansionOutput>>` on their state's border, `<<sdlreceive>>`.
 - [ ] Notes: a floating note (`note "…" as N1`), a note on a link
       (`note on link`).
 - [ ] Hidden lines (`-[hidden]->`).

@@ -150,6 +150,13 @@ is open and the reasoning around it.
       neither a message from `Participant` as a declaration nor a group's
       colors in its label.
 
+### Step 2: the state diagram
+
+- [x] A start or an end with a name (2026-11-22): `state s1 <<start>>`
+      and `state e1 <<end>>` are a start and an end of their own, beside
+      the container's `[*]`, which is now only the one without a name.
+      The guide: 20 of 36 state diagrams (from 17).
+
 ## Phase 0: foundation and spikes
 
 - [x] Workspace, MIT license, `AGENTS.md`, CI (fmt, clippy, test, cargo-deny)

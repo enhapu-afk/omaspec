@@ -591,7 +591,12 @@ impl Parser {
     /// empty path), made there at its first mention.
     fn marker(&mut self, mut path: Vec<usize>, kind: Kind, line: usize) -> Vec<usize> {
         let nodes = &mut self.container_mut(&path).nodes;
-        match nodes.iter().position(|node| node.kind == kind) {
+        // `[*]` is the container's one start or end without a name; one
+        // with a name (`state s1 <<start>>`) is a node of its own.
+        match nodes
+            .iter()
+            .position(|node| node.kind == kind && node.key.is_empty())
+        {
             Some(index) => path.push(index),
             None => {
                 path.push(nodes.len());
@@ -1019,9 +1024,12 @@ fn kind_of(stereo: &str, line: usize) -> Result<Option<Kind>, Declined> {
         "join" => Kind::Join,
         "history" => Kind::History,
         "history*" | "deephistory" => Kind::DeepHistory,
+        // A start or an end with a name of its own (`state s1 <<start>>`).
+        "start" => Kind::Start,
+        "end" => Kind::End,
         // PlantUML draws these as shapes of their own.
-        "start" | "end" | "entrypoint" | "exitpoint" | "inputpin" | "outputpin"
-        | "expansioninput" | "expansionoutput" | "sdlreceive" => {
+        "entrypoint" | "exitpoint" | "inputpin" | "outputpin" | "expansioninput"
+        | "expansionoutput" | "sdlreceive" => {
             return Err(Declined::at(
                 line,
                 format!("the stereotype `<<{stereo}>>` is not supported yet"),
@@ -1715,7 +1723,6 @@ mod tests {
         assert_eq!(node(&init.children, "X").stereotype, None);
         // PlantUML draws these as shapes of their own, not drawn here yet.
         for (source, part) in [
-            ("state S <<start>>", "`<<start>>` is not supported yet"),
             (
                 "state E <<entryPoint>>",
                 "`<<entryPoint>>` is not supported yet",
@@ -1727,6 +1734,17 @@ mod tests {
             let err = declined(&format!("@startuml\n{source}\n@enduml\n"));
             assert!(err.reason.contains(part), "{source}: {}", err.reason);
         }
+    }
+
+    /// A start or an end with a name (`state s1 <<start>>`) is one of its
+    /// own, beside the container's `[*]`.
+    #[test]
+    fn a_named_start_stands_beside_the_one_without_a_name() {
+        let d = diagram(
+            "@startuml\nstate s1 <<start>>\nstate e1 <<end>>\n[*] --> A\ns1 --> A\nA --> e1\nA --> [*]\n@enduml\n",
+        );
+        let kinds = |kind: Kind| d.root.nodes.iter().filter(|n| n.kind == kind).count();
+        assert_eq!((kinds(Kind::Start), kinds(Kind::End)), (2, 2));
     }
 
     /// REQ-075: an arrow turned with a word or a start of one, before or
