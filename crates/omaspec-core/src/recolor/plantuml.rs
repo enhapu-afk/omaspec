@@ -148,13 +148,62 @@ fn declared<'a>(line: &'a str, words: &[&str], brackets: bool) -> Option<Decl<'a
 
 /// What follows the names of a declaration.
 struct Tail {
-    /// Its fill, `#color`.
-    fill: Option<Range<usize>>,
+    /// Its fill.
+    fill: Option<Fill>,
     /// Where a fill goes when it has none: after the stereotypes and the
     /// link, before the border's `##color`.
     insert: usize,
     /// Where what this reads ends.
     end: usize,
+}
+
+/// Where a box's fill is written.
+enum Fill {
+    /// `#pink`: the whole word.
+    Word(Range<usize>),
+    /// The fill of a style in one word (`#pink;line:red`, or
+    /// `#line:red;back:pink`): its color, without its `#` or `back:`, and
+    /// the part to cut, with a `;`, to take it away.
+    Part {
+        color: Range<usize>,
+        part: Range<usize>,
+    },
+    /// A style in one word without a fill (`#line.dotted;text:blue`):
+    /// where one goes, after its `#`.
+    Room(usize),
+}
+
+/// The fill of the `#` word at `from` in `line`, `token` long.
+fn fill_of(line: &str, from: usize, token: usize) -> Fill {
+    let word = &line[from..from + token];
+    let styled = word.contains(';')
+        || ["#line.", "#line:", "#text:", "#back:"]
+            .iter()
+            .any(|start| word.starts_with(start));
+    if !styled {
+        return Fill::Word(from..from + token);
+    }
+    let end = from + token;
+    let mut at = from + 1;
+    for (index, part) in word[1..].split(';').enumerate() {
+        let (start, stop) = (at, at + part.len());
+        at = stop + 1;
+        let color = if index == 0 && !part.is_empty() && !part.contains([':', '.']) {
+            start..stop
+        } else if part.starts_with("back:") {
+            start + "back:".len()..stop
+        } else {
+            continue;
+        };
+        // With the `;` after it, or before it at the end.
+        let part = if stop < end {
+            start..stop + 1
+        } else {
+            start - 1..stop
+        };
+        return Fill::Part { color, part };
+    }
+    Fill::Room(from + 1)
 }
 
 fn tail(line: &str, head: usize) -> Tail {
@@ -203,7 +252,7 @@ fn tail(line: &str, head: usize) -> Tail {
         } else if text.starts_with('#') && token > 1 {
             colored = true;
             if fill.is_none() {
-                fill = Some(from..from + token);
+                fill = Some(fill_of(line, from, token));
             }
             at = from + token;
         } else {
@@ -221,25 +270,42 @@ fn tail(line: &str, head: usize) -> Tail {
 /// without a fill; `None` when it has none to take away.
 fn filled(line: &str, head: usize, color: Option<&str>) -> Option<String> {
     let tail = tail(line, head);
+    let bare = |color: &str| color.trim_start_matches('#').to_owned();
     Some(match (tail.fill, color) {
-        (Some(at), Some(color)) => format!("{}{color}{}", &line[..at.start], &line[at.end..]),
-        (Some(at), None) => format!("{}{}", line[..at.start].trim_end(), &line[at.end..]),
+        (Some(Fill::Word(at)), Some(color)) => {
+            format!("{}{color}{}", &line[..at.start], &line[at.end..])
+        }
+        (Some(Fill::Word(at)), None) => {
+            format!("{}{}", line[..at.start].trim_end(), &line[at.end..])
+        }
+        // The rest of the style stays as written.
+        (Some(Fill::Part { color: at, .. }), Some(color)) => {
+            format!("{}{}{}", &line[..at.start], bare(color), &line[at.end..])
+        }
+        (Some(Fill::Part { part, .. }), None) => {
+            format!("{}{}", &line[..part.start], &line[part.end..])
+        }
+        (Some(Fill::Room(at)), Some(color)) => {
+            format!("{}{};{}", &line[..at], bare(color), &line[at..])
+        }
         (None, Some(color)) => {
             format!("{} {color}{}", &line[..tail.insert], &line[tail.insert..])
         }
-        (None, None) => return None,
+        (Some(Fill::Room(_)) | None, None) => return None,
     })
 }
 
 /// The line that declares the box of key `wanted`, as its range in `code`
-/// and where its names end.
+/// and where its names end. A state's last: PlantUML takes its look from
+/// the last `state` line that declares it, which takes away what the ones
+/// before said.
 fn declaration(
     code: &str,
     words: &[&str],
     brackets: bool,
     wanted: &str,
 ) -> Option<(Range<usize>, usize)> {
-    line_ranges(code).into_iter().find_map(|range| {
+    let mut found = line_ranges(code).into_iter().filter_map(|range| {
         let (line, _) = split_newline(&code[range.clone()]);
         let decl = declared(line, words, brackets)?;
         if !decl.names.iter().any(|name| key(name) == wanted) {
@@ -248,7 +314,12 @@ fn declaration(
         // `[Order] --> [Billing]` names two boxes and declares none.
         let rest = line[tail(line, decl.head).end..].trim();
         (!decl.bare || rest.is_empty() || rest == "{").then_some((range, decl.head))
-    })
+    });
+    if words == STATE {
+        found.next_back()
+    } else {
+        found.next()
+    }
 }
 
 /// The color on the declaration of `name`, if a line declares it.

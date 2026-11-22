@@ -294,6 +294,55 @@ mod tests {
         );
     }
 
+    /// A style in one word keeps all but its fill; one without a fill gets
+    /// one in front, and has none to take away. A state's color goes onto
+    /// its last declaration, whose look PlantUML draws.
+    #[test]
+    fn a_state_s_style_in_one_word_keeps_its_border_and_text() {
+        let line = |decl: &str| format!("@startuml\n{decl}\n[*] --> S\n@enduml\n");
+        let put = |decl: &str, color| applied(&line(decl), Language::PlantUml, "S", color);
+        assert_eq!(
+            put(
+                "state S #pink;line:red;line.bold;text:red : gave up",
+                Some("#f7768e")
+            ),
+            line("state S #f7768e;line:red;line.bold;text:red : gave up")
+        );
+        assert_eq!(
+            put("state S #pink;line:red;line.bold;text:red : gave up", None),
+            line("state S #line:red;line.bold;text:red : gave up")
+        );
+        assert_eq!(
+            put(
+                "state S #line.dotted;line:blue;text:blue : held",
+                Some("#f7768e")
+            ),
+            line("state S #f7768e;line.dotted;line:blue;text:blue : held")
+        );
+        assert!(
+            edit(
+                &line("state S #line.dotted;line:blue"),
+                Language::PlantUml,
+                &named("S"),
+                None
+            )
+            .is_err()
+        );
+        assert_eq!(
+            put("state S #line:red;back:pink", Some("#f7768e")),
+            line("state S #line:red;back:f7768e")
+        );
+        assert_eq!(
+            put("state S #line:red;back:pink", None),
+            line("state S #line:red")
+        );
+        let twice = "@startuml\nstate S #pink\nstate S {\n  state In\n}\n@enduml\n";
+        assert_eq!(
+            applied(twice, Language::PlantUml, "S", Some("#f7768e")),
+            "@startuml\nstate S #pink\nstate S #f7768e {\n  state In\n}\n@enduml\n"
+        );
+    }
+
     #[test]
     fn a_class_takes_the_color_on_its_keyword_line() {
         let code =

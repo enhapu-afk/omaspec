@@ -902,16 +902,26 @@ fn name_font(skin: &Skin) -> Font {
     skin.state.font.bold()
 }
 
-/// The font of a state's name, in the color of its own text
-/// (`#…;text:red`) where it has one; its description keeps the skin's.
+/// The font of a state's name, in the color of its own text where it has
+/// one ([`name_color`]); its description keeps the skin's.
 fn title_font(skin: &Skin, node: &Node) -> Result<Font, Declined> {
     let mut font = name_font(skin);
-    if let Some(value) = &node.text_color
-        && let Some(color) = color::parse(value).map_err(|err| Declined::at(node.line, err))?
-    {
+    if let Some(color) = name_color(node)? {
         font.color = color;
     }
     Ok(font)
+}
+
+/// The color a state's own text gives its name (`#…;text:red`). PlantUML
+/// gives it to a state without a body only, not to the title of one with
+/// states inside.
+pub(super) fn name_color(node: &Node) -> Result<Option<Color>, Declined> {
+    match &node.text_color {
+        Some(value) if !node.composite => {
+            color::parse(value).map_err(|err| Declined::at(node.line, err))
+        }
+        _ => Ok(None),
+    }
 }
 
 fn desc_font(skin: &Skin) -> Font {
@@ -1487,6 +1497,22 @@ mod tests {
             note.y > label.y && note.y + note.h <= label.y + label.h + 0.5,
             "{note:?} in {label:?}"
         );
+    }
+
+    /// `text:` colors the name of a state without a body, not the title of
+    /// one with states inside, as PlantUML draws them.
+    #[test]
+    fn its_own_text_colors_a_leaf_s_name() {
+        let source = "@startuml\nstate Comp #pink;text:blue {\n  state Leaf #pink;text:red : said\n}\n@enduml\n";
+        let (svg, _) = crate::render_mapped(source, None).unwrap();
+        let fill_of = |word: &str| {
+            let at = svg.find(&format!(">{word}</tspan>")).unwrap();
+            let start = svg[..at].rfind("<tspan").unwrap();
+            svg[start..at].split("fill=\"").nth(1).unwrap()[..7].to_owned()
+        };
+        assert_eq!(fill_of("Leaf"), "#FF0000");
+        assert_eq!(fill_of("said"), "#000000");
+        assert_eq!(fill_of("Comp"), "#000000");
     }
 
     #[test]

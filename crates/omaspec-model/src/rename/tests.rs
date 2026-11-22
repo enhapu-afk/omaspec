@@ -326,3 +326,18 @@ fn a_renamed_state_keeps_its_lines_and_its_place_by_hand() {
         "{after}"
     );
 }
+
+/// A note of its own is no state, but a state may not take its name.
+#[test]
+fn a_state_is_not_renamed_onto_a_note_s_name() {
+    let noted = "@startuml\n[*] --> A\nA --> B : go\nnote \"aside\" as N1\n@enduml\n";
+    let files = vec![File {
+        path: "noted.puml",
+        text: noted,
+        kind: FileKind::Diagram(Language::PlantUml),
+    }];
+    let specs = specs(&files);
+    let err = rename("A", "N1", None, Some(Thing::State), &files, &specs).unwrap_err();
+    assert_eq!(err, "noted.puml has a note N1 already");
+    assert!(rename("A", "N2", None, Some(Thing::State), &files, &specs).is_ok());
+}

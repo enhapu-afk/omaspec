@@ -153,6 +153,9 @@ pub fn rename(
             {
                 return Err(format!("{} has a state {new} already", pieces[x].file));
             }
+            if note_named(&pieces[x], &n) {
+                return Err(format!("{} has a note {new} already", pieces[x].file));
+            }
             state(&pieces[x], &k, new, &mut plan);
         }
         Thing::Event => {
@@ -172,6 +175,20 @@ pub fn rename(
         .sort_by(|a, b| (&a.file, a.line, a.range.start).cmp(&(&b.file, b.line, b.range.start)));
     plan.edits.dedup();
     Ok(plan)
+}
+
+/// Whether the state diagram of `piece` has a note of its own called
+/// `wanted` (as [`key`] gives it): no state of the machine, but a name a
+/// state may not take.
+fn note_named(piece: &Piece, wanted: &str) -> bool {
+    use omaspec_uml::state::{Container, Kind};
+    fn any(container: &Container, wanted: &str) -> bool {
+        container.nodes.iter().any(|node| {
+            (node.kind == Kind::Note && key(&node.key) == wanted) || any(&node.children, wanted)
+        })
+    }
+    piece.language == omaspec_core::Language::PlantUml
+        && matches!(omaspec_uml::parse(&piece.code), Ok(omaspec_uml::Diagram::State(d)) if any(&d.root, wanted))
 }
 
 /// What a name at a place of a file is, for a rename there.

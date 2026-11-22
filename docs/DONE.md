@@ -183,8 +183,8 @@ is open and the reasoning around it.
       colon of the description is no longer one of the style's words. The
       class diagrams read the same words from the same place now
       (`color::Inline`). The guide: 22 of 36.
-- [x] A note of its own in state diagrams (2026-11-22): `note "…" as N1`,
-      without an alias too, and `note as N1` with its words up to
+- [x] A note of its own in state diagrams (2026-11-22): `note "…" as N1`
+      and `note as N1` with its words up to
       `end note`, at the top or inside a state: a node of its own kind
       (`Kind::Note`), laid out among the states and drawn as a note, its
       words tied to their line. It is no state of the machine, the orbit
@@ -205,6 +205,20 @@ is open and the reasoning around it.
       decline and say so; converted to Mermaid it is left out and told.
       Hidden arrows now reach the layout as its hidden lines, which rank
       the boxes and are not routed. The guide: 24 of 36.
+- [x] What the review of the state styles and the notes of their own
+      found (2026-11-22): the editor's color action took a style in one
+      word for the fill and wrote over all of it; now it changes, adds or
+      takes away the fill alone (`#pink;…`, `back:`), and colors a state's
+      last declaration. PlantUML takes a state's look from its last
+      `state` line as a whole (`state A #pink`, then `state A {`: no
+      pink), and so does Omaspec now, where it merged. A note of its own
+      needs its name, as PlantUML wants (`lint` and `fmt` read one
+      without as an open block, and its made-up name could meet a
+      state's); `A.N1` as a state declines as `N1` does; the conversion to
+      Mermaid gives a note no id and counts a box with only notes as
+      empty; a rename onto a note's name is refused. `text:` colors the
+      name of a state without a body only, as PlantUML does, and the
+      orbit draws it too.
 
 ## Phase 0: foundation and spikes
 

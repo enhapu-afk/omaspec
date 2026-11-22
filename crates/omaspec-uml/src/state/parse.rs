@@ -97,9 +97,6 @@ struct Parser {
     /// The states open around the line being read, by the names they were
     /// opened with, each with its region.
     place: Vec<(String, usize)>,
-    /// Notes of their own without an alias so far, which each get a name
-    /// no state can have (it holds a space).
-    free_notes: usize,
 }
 
 struct Decl {
@@ -111,9 +108,8 @@ struct Decl {
     stereotype: Option<String>,
     fill: Option<String>,
     line_color: Option<String>,
-    /// The border's dash and weight, where the declaration says them.
-    border_dash: Option<Dash>,
-    border_bold: Option<bool>,
+    border_dash: Dash,
+    border_bold: bool,
     text_color: Option<String>,
     description: Option<String>,
     open: bool,
@@ -305,6 +301,7 @@ impl Parser {
             }
             None if !decl.labeled && decl.key.contains('.') => {
                 let path = self.dotted(&decl.key, decl.line)?;
+                self.not_a_note(&path, decl.line)?;
                 let last = decl.key.rsplit('.').next().unwrap_or_default().to_owned();
                 decl.label.clone_from(&last);
                 decl.key = last;
@@ -531,8 +528,14 @@ impl Parser {
             }
             let after = quoted[end + 1..].trim();
             let alias = match keyword(after, "as") {
-                Some(alias) => Some(alias.trim()),
-                None if after.is_empty() => None,
+                Some(alias) => alias.trim(),
+                // PlantUML takes none without one.
+                None if after.is_empty() => {
+                    return Err(Declined::at(
+                        no,
+                        "a note of its own needs a name: `note \"…\" as N1`",
+                    ));
+                }
                 None => {
                     return Err(Declined::at(
                         no,
@@ -559,26 +562,17 @@ impl Parser {
                 line,
                 col: None,
             };
-            (label, Some(alias.trim()), next)
+            (label, alias.trim(), next)
         } else {
             return Ok(None);
         };
-        let key = match alias {
-            Some(alias) if alias.is_empty() || alias.contains(char::is_whitespace) => {
-                return Err(Declined::at(no, "a note's `as` needs one name"));
-            }
-            Some(alias) => {
-                if self.find(alias).is_some() {
-                    return Err(Declined::at(no, format!("`{alias}` is declared already")));
-                }
-                alias.to_owned()
-            }
-            None => {
-                self.free_notes += 1;
-                format!("note {}", self.free_notes)
-            }
-        };
-        let mut node = plain_node(&key, "", no);
+        if alias.is_empty() || alias.contains(char::is_whitespace) || alias.contains('"') {
+            return Err(Declined::at(no, "a note's `as` needs one name"));
+        }
+        if self.find(alias).is_some() {
+            return Err(Declined::at(no, format!("`{alias}` is declared already")));
+        }
+        let mut node = plain_node(alias, "", no);
         node.kind = Kind::Note;
         node.label = label;
         self.push(node);
@@ -796,7 +790,9 @@ impl Parser {
             return self.history(owner, kind, line);
         }
         if self.find(name).is_none() && name.contains('.') {
-            return self.dotted(name, line);
+            let path = self.dotted(name, line)?;
+            self.not_a_note(&path, line)?;
+            return Ok(path);
         }
         if self.find(name).is_none() {
             self.implicit.insert(name.to_owned());
@@ -999,21 +995,13 @@ fn apply(node: &mut Node, decl: &Decl) -> Result<(), Declined> {
     if decl.labeled {
         node.label = text_at(&decl.label, decl.line);
     }
-    if let Some(fill) = &decl.fill {
-        node.fill = Some(fill.clone());
-    }
-    if let Some(color) = &decl.line_color {
-        node.line_color = Some(color.clone());
-    }
-    if let Some(dash) = decl.border_dash {
-        node.border_dash = dash;
-    }
-    if let Some(bold) = decl.border_bold {
-        node.border_bold = bold;
-    }
-    if let Some(color) = &decl.text_color {
-        node.text_color = Some(color.clone());
-    }
+    // Each `state` line says the whole look, as PlantUML reads it: one
+    // without colors takes them away (`state A #pink`, then `state A {`).
+    node.fill.clone_from(&decl.fill);
+    node.line_color.clone_from(&decl.line_color);
+    node.border_dash = decl.border_dash;
+    node.border_bold = decl.border_bold;
+    node.text_color.clone_from(&decl.text_color);
     if let Some(text) = &decl.description {
         node.description.push(text_at(text, decl.line));
     }
@@ -1060,8 +1048,8 @@ fn declaration(text: &str, line: usize) -> Result<Decl, Declined> {
         stereotype: None,
         fill: None,
         line_color: None,
-        border_dash: None,
-        border_bold: None,
+        border_dash: Dash::Solid,
+        border_bold: false,
         text_color: None,
         description,
         open,
@@ -1249,12 +1237,12 @@ fn take_color(raw: &str, line: usize, decl: &mut Decl) -> Result<(), Declined> {
             decl.text_color = style.text;
         }
         match style.dash {
-            Some(InlineDash::Dashed) => decl.border_dash = Some(Dash::Dashed),
-            Some(InlineDash::Dotted) => decl.border_dash = Some(Dash::Dotted),
+            Some(InlineDash::Dashed) => decl.border_dash = Dash::Dashed,
+            Some(InlineDash::Dotted) => decl.border_dash = Dash::Dotted,
             None => {}
         }
         if style.bold {
-            decl.border_bold = Some(true);
+            decl.border_bold = true;
         }
         return Ok(());
     }
@@ -1275,13 +1263,13 @@ fn take_color(raw: &str, line: usize, decl: &mut Decl) -> Result<(), Declined> {
         if color.is_empty() && style.is_empty() {
             return Err(Declined::at(line, "a border color is missing"));
         }
-        decl.border_dash = Some(Dash::Solid);
-        decl.border_bold = Some(false);
+        decl.border_dash = Dash::Solid;
+        decl.border_bold = false;
         match style.to_ascii_lowercase().as_str() {
             "" | "solid" => {}
-            "dashed" => decl.border_dash = Some(Dash::Dashed),
-            "dotted" => decl.border_dash = Some(Dash::Dotted),
-            "bold" => decl.border_bold = Some(true),
+            "dashed" => decl.border_dash = Dash::Dashed,
+            "dotted" => decl.border_dash = Dash::Dotted,
+            "bold" => decl.border_bold = true,
             _ => {
                 return Err(Declined::at(
                     line,
@@ -2011,7 +1999,7 @@ mod tests {
     #[test]
     fn a_note_of_its_own_is_no_state() {
         let d = diagram(
-            "@startuml\nstate foo\nnote \"on its own\" as N1\nstate Busy {\n  note as N2\n    inside\n  end note\n}\nnote \"no name\"\n@enduml\n",
+            "@startuml\nstate foo\nnote \"on its own\" as N1\nstate Busy {\n  note as N2\n    inside\n  end note\n}\n@enduml\n",
         );
         let n1 = node(&d.root, "N1");
         assert_eq!(
@@ -2025,18 +2013,23 @@ mod tests {
             (n2.kind, n2.label.value.as_str(), n2.label.line),
             (Kind::Note, "inside", 5)
         );
-        assert!(
-            d.root
-                .nodes
-                .iter()
-                .any(|n| n.kind == Kind::Note && n.label.value == "no name")
-        );
         for (source, part) in [
             ("note \"a\" as N1\nN1 --> A", "`N1` is a note"),
             ("note \"a\" as N1\nA --> N1", "`N1` is a note"),
             ("note \"a\" as N1\nstate N1 #red", "`N1` is a note"),
             ("note \"a\" as N1\nN1 : words", "`N1` is a note"),
             ("note \"a\" as N1\nnote right of N1 : b", "`N1` is a note"),
+            // By its owner's name too.
+            (
+                "state A {\n  note \"a\" as N1\n}\nA.N1 --> B",
+                "`N1` is a note",
+            ),
+            (
+                "state A {\n  note \"a\" as N1\n}\nstate A.N1 #red",
+                "`N1` is a note",
+            ),
+            // PlantUML takes no note of its own without a name.
+            ("note \"a\"", "needs a name"),
             ("state A\nnote \"a\" as A", "declared already"),
             ("note \"a\" as", "one name"),
             ("note \"\" as N1", "needs text"),
@@ -2114,6 +2107,22 @@ mod tests {
         assert!(s4.border_bold && s4.line_color.is_none());
         // A colon after a plain color starts the description.
         assert_eq!(node(&d.root, "s5").description[0].value, "said");
+        // Each `state` line says the whole look, as PlantUML reads it.
+        let again = diagram(
+            "@startuml\nstate A #pink\nstate A {\n  state I\n}\nstate B #line.bold\nstate B #palegreen\nstate C ##[dotted]blue\nstate C #line:red\n@enduml\n",
+        );
+        let a = node(&again.root, "A");
+        assert_eq!(a.fill, None);
+        let b = node(&again.root, "B");
+        assert_eq!(
+            (b.fill.as_deref(), b.border_bold),
+            (Some("#palegreen"), false)
+        );
+        let c = node(&again.root, "C");
+        assert_eq!(
+            (c.line_color.as_deref(), c.border_dash),
+            (Some("red"), Dash::Solid)
+        );
         let err = declined("@startuml\nstate s #pink;line.wavy\n@enduml\n");
         assert!(err.reason.contains("`line.wavy`"), "{}", err.reason);
     }

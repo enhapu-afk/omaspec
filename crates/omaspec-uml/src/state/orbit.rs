@@ -102,7 +102,13 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
         .iter()
         .map(|&node| {
             let state = &root.nodes[node];
-            let name = words(&state.label.value, skin.state.font);
+            // In the color of its own text, as the diagram draws it; that
+            // was read as a color already.
+            let mut font = skin.state.font;
+            if let Ok(Some(color)) = super::draw::name_color(state) {
+                font.color = color;
+            }
+            let name = words(&state.label.value, font);
             let inside = states_in(&state.children);
             let holds = (state.composite && inside > 0).then(|| {
                 words(
@@ -836,6 +842,21 @@ mod tests {
         assert!(map.tied.iter().any(|t| t.line == 2));
         // A state around others says how many it holds.
         assert!(svg.contains("1 state"));
+    }
+
+    /// A state's name in its own text's color, as on its fill in the
+    /// diagram.
+    #[test]
+    fn a_station_s_name_takes_its_own_text_color() {
+        let code = "@startuml\n[*] --> Dark\nstate Dark #black;text:white\n@enduml\n";
+        let (svg, _) = draw_orbit(&diagram(code)).unwrap();
+        let at = svg.find(">Dark</tspan>").unwrap();
+        let start = svg[..at].rfind("<tspan").unwrap();
+        assert!(
+            svg[start..at].contains("fill=\"#FFFFFF\""),
+            "{}",
+            &svg[start..at]
+        );
     }
 
     /// A hidden arrow is no way on the ring, and a start with a name has

@@ -132,10 +132,12 @@ impl ToMermaid {
         });
     }
 
-    /// Gives every named state an id Mermaid takes.
+    /// Gives every named state an id Mermaid takes; a note of its own,
+    /// which is left out, takes none.
     fn name_all(&mut self, container: &Container, taken: &mut HashSet<String>) {
         for node in &container.nodes {
-            if !node.key.is_empty() && !self.ids.contains_key(&node.key) {
+            if !node.key.is_empty() && node.kind != Kind::Note && !self.ids.contains_key(&node.key)
+            {
                 let id = match is_plain(&node.key) && !taken.contains(&node.key) {
                     true => node.key.clone(),
                     false => plain_id(&node.key, taken),
@@ -305,7 +307,8 @@ impl ToMermaid {
             false => id.clone(),
         };
         if node.composite {
-            if depth > 1 && node.children.nodes.is_empty() {
+            // Empty as Mermaid gets it: the notes of their own are left out.
+            if depth > 1 && node.children.nodes.iter().all(|n| n.kind == Kind::Note) {
                 return Err(refused(
                     Some(node.line),
                     "Mermaid draws an empty state inside another one at the top",
@@ -747,9 +750,19 @@ mod tests {
                 .any(|n| n.line == Some(3) && n.message.contains("note on a transition")),
             "{out:?}"
         );
-        let noted = "@startuml\n[*] --> A\nnote \"on its own\" as N1\n@enduml\n";
+        let noted = "@startuml\n[*] --> note_1\nnote \"on its own\" as N1\n@enduml\n";
         let out = both(noted, Language::PlantUml, Language::Mermaid).unwrap();
         assert!(!out.code.contains("N1"), "{}", out.code);
+        // It takes no id, so none is moved aside for it.
+        assert!(out.code.contains("[*] --> note_1\n"), "{}", out.code);
+        assert!(
+            !out.notices.iter().any(|n| n.message.contains("is called")),
+            "{out:?}"
+        );
+        // A box holding only notes is empty in Mermaid.
+        let only = "@startuml\n[*] --> Outer\nstate Outer {\n  state Busy {\n    note \"x\" as N2\n  }\n}\n@enduml\n";
+        let err = both(only, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert!(err.reason.contains("empty state"), "{err:?}");
         assert!(
             out.notices
                 .iter()
