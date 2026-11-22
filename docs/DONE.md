@@ -105,6 +105,16 @@ is open and the reasoning around it.
       named twice, one no message names before, or one before something
       that is no message declines; converted to Mermaid, a duration is
       said to be left out. The guide: 69 of 79.
+- [x] A box inside a box (2026-11-22): `box` within an open `box` nests,
+      as Teoz draws it; a participant named inside stands in it and in
+      every box around it. The inner box keeps the outer one's padding
+      clear where they end at the same column and starts under the outer
+      one's title, each depth with a band of its own, on every page.
+      Converted to Mermaid, whose boxes do not nest, its participants go
+      into the box around it, and that is said. With it, a participant
+      named like a keyword sends messages (`Participant -> Bob`), and
+      `skinparam sequenceParticipant underline` underlines every head's
+      name. The guide: 71 of 79; the rest waits on Creole and font names.
 
 ## Phase 0: foundation and spikes
 

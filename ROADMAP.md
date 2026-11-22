@@ -56,9 +56,15 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       (`:Actor:`, `Entity01 }|..|| Entity02`, `-class`) is typed by the
       lines after it.
 
-### Step 1: the sequence diagram (69 of 79)
+### Step 1: the sequence diagram (71 of 79)
 
-- [ ] A box inside a box.
+What the chapter declines still waits on step 5 (Creole's `<font color>`,
+rules and headings, wavy underlines, `<U+0025>`; a font name for one kind
+of element) and step 0 (a second `@startuml` line).
+
+- [ ] Drawn but different: the cross of a destroyed participant is red in
+      PlantUML (`#A80036`), in the lifeline's color here; in the themes'
+      colors it wants a color of their own.
 
 ### Step 2: the state diagram (17 of 36)
 

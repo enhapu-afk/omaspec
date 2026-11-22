@@ -423,6 +423,16 @@ impl Writer {
         // A created participant is declared on the `create` line. Listing
         // it here too makes Mermaid reject the repeated id.
         let created = created_participants(d);
+        // Mermaid's boxes do not nest: each participant goes into the
+        // outermost box around it.
+        if to == Language::Mermaid
+            && let Some(inner) = d.boxes.iter().find(|b| b.depth > 0)
+        {
+            self.notice(
+                Some(inner.line),
+                "Mermaid has no box inside a box; its participants go into the box around it",
+            );
+        }
         let mut in_box: Option<usize> = None;
         for (i, p) in d.participants.iter().enumerate() {
             if to == Language::Mermaid && created.contains(&i) {

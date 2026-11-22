@@ -363,6 +363,8 @@ struct BoxPlace {
     last: usize,
     title: Block,
     look: Look,
+    /// How many boxes stand around it.
+    depth: usize,
 }
 
 /// An activation bar.
@@ -584,9 +586,19 @@ impl<'a> Drawer<'a> {
             if let Some(fill) = paint_at(p.color.as_ref(), p.line)? {
                 look.fill = fill;
             }
+            // `skinparam sequenceParticipant underline`: each line of it.
+            let value = if skin.participant_underline {
+                p.label
+                    .split('\n')
+                    .map(|line| format!("<u>{line}</u>"))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            } else {
+                p.label.clone()
+            };
             let label = measure(
                 &Text {
-                    value: p.label.clone(),
+                    value,
                     line: p.line,
                     col: None,
                 },
@@ -839,6 +851,7 @@ impl<'a> Drawer<'a> {
                 last,
                 title,
                 look,
+                depth: b.depth,
             });
         }
 
@@ -1389,14 +1402,7 @@ impl<'a> Drawer<'a> {
         let mut top = self.annotations.top();
         let content_top = top;
         let boxes_top = top;
-        if !self.boxes.is_empty() {
-            let title = self
-                .boxes
-                .iter()
-                .map(|b| b.title.height)
-                .fold(0.0, f32::max);
-            top += title + if title > 0.0 { 8.0 } else { 5.0 };
-        }
+        top += self.box_bands().last().copied().unwrap_or(0.0);
         let heads = self
             .cols
             .iter()
@@ -1507,10 +1513,26 @@ impl<'a> Drawer<'a> {
             page_top = p.top;
         }
         pages.push((page_top, bottom));
+        let bands = self.box_bands();
         for b in &self.boxes {
-            let left = self.x[b.first] - self.cols[b.first].half() - self.pad_left[b.first];
-            let right = self.x[b.last] + self.cols[b.last].half() + self.pad_right[b.last];
+            // Inside another, it keeps the padding of those around it that
+            // end at the same column clear, and starts under their titles.
+            let around = |edge: fn(&BoxPlace) -> usize, column: usize| {
+                self.boxes
+                    .iter()
+                    .filter(|o| o.depth < b.depth && edge(o) == column)
+                    .count() as f32
+                    * skin.box_padding
+            };
+            let left = self.x[b.first]
+                - self.cols[b.first].half()
+                - (self.pad_left[b.first] - around(|o| o.first, b.first));
+            let right = self.x[b.last]
+                + self.cols[b.last].half()
+                + (self.pad_right[b.last] - around(|o| o.last, b.last));
+            let offset = bands.get(b.depth).copied().unwrap_or(0.0);
             for (page, &(top, under)) in pages.iter().enumerate() {
+                let top = top + offset;
                 let rect = (left, top, right - left, under + 5.0 - top);
                 canvas.rect(
                     Layer::Background,
@@ -1804,6 +1826,28 @@ impl<'a> Drawer<'a> {
         k + 1
     }
 
+    /// From the top of a page's boxes down: where the boxes of each depth
+    /// start, under the titles of those around them, and last where the
+    /// heads start. Empty without boxes.
+    fn box_bands(&self) -> Vec<f32> {
+        if self.boxes.is_empty() {
+            return Vec::new();
+        }
+        let deepest = self.boxes.iter().map(|b| b.depth).max().unwrap_or(0);
+        let mut bands = vec![0.0];
+        for depth in 0..=deepest {
+            let title = self
+                .boxes
+                .iter()
+                .filter(|b| b.depth == depth)
+                .map(|b| b.title.height)
+                .fold(0.0, f32::max);
+            let below = bands.last().copied().unwrap_or(0.0);
+            bands.push(below + title + if title > 0.0 { 8.0 } else { 5.0 });
+        }
+        bands
+    }
+
     /// Teoz's `{start} <-> {end} : words`: an arrow up and down from the
     /// height of one anchored message to the other's, at the middle of the
     /// first, its words beside it. It takes no room of its own.
@@ -1880,14 +1924,7 @@ impl<'a> Drawer<'a> {
             top += title.height + 8.0;
         }
         let boxes_top = top;
-        if !self.boxes.is_empty() {
-            let title = self
-                .boxes
-                .iter()
-                .map(|b| b.title.height)
-                .fold(0.0, f32::max);
-            top += title + if title > 0.0 { 8.0 } else { 5.0 };
-        }
+        top += self.box_bands().last().copied().unwrap_or(0.0);
         let heads = live
             .iter()
             .map(|&c| self.cols[c].height)

@@ -185,6 +185,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
                         color,
                         line,
                         participants,
+                        depth: 0,
                     });
                 }
                 Some(Open::Rect) => diagram.items.push(Item::RectEnd { line }),

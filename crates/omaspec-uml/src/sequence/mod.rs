@@ -84,8 +84,11 @@ pub struct ParticipantBox {
     pub title: Option<Text>,
     pub color: Option<String>,
     pub line: usize,
-    /// Indexes into [`Diagram::participants`].
+    /// Indexes into [`Diagram::participants`]: those of the boxes inside
+    /// it too.
     pub participants: Vec<usize>,
+    /// How many boxes stand around it (Teoz's box inside a box).
+    pub depth: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]

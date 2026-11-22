@@ -75,7 +75,7 @@ struct Parser {
     /// Open groups: kind and line.
     groups: Vec<(GroupKind, usize)>,
     /// The open `box`, as an index into the diagram's boxes.
-    open_box: Option<usize>,
+    open_boxes: Vec<usize>,
     autonumber: Autonumber,
     /// `autoactivate on`: a message opens a bar on its receiver, a reply
     /// closes its sender's.
@@ -117,7 +117,7 @@ impl Default for Parser {
             frame: Frame::styled(super::skin::STYLE),
             used: Vec::new(),
             groups: Vec::new(),
-            open_box: None,
+            open_boxes: Vec::new(),
             autonumber: Autonumber::default(),
             autoactivate: false,
             activations: Vec::new(),
@@ -218,7 +218,7 @@ impl Parser {
                 return Ok(at + 1);
             }
             "endbox" => {
-                if self.open_box.take().is_none() {
+                if self.open_boxes.pop().is_none() {
                     return Err(Declined::refused(no, "`end box` without a `box`"));
                 }
                 return Ok(at + 1);
@@ -478,7 +478,7 @@ impl Parser {
         while let Some((_, line)) = self.groups.pop() {
             self.diagram.items.push(Item::GroupEnd { line });
         }
-        self.open_box = None;
+        self.open_boxes.clear();
         if let Some((participant, line)) = self.pending_create {
             let code = &self.diagram.participants[participant].code;
             return Err(Declined::at(
@@ -538,8 +538,9 @@ impl Parser {
         self.used.push(false);
         let index = self.diagram.participants.len() - 1;
         self.order.push(index);
-        // Named first inside a box, it stands in the box, as in PlantUML.
-        if let Some(open) = self.open_box {
+        // Named first inside a box, it stands in the box, as in PlantUML,
+        // and in those around it.
+        for &open in &self.open_boxes {
             self.diagram.boxes[open].participants.push(index);
         }
         index
@@ -640,7 +641,7 @@ impl Parser {
                 for (at, b) in self.diagram.boxes.iter_mut().enumerate() {
                     let held = b.participants.contains(&index);
                     b.participants.retain(|&i| i != index);
-                    if held && b.participants.is_empty() && Some(at) != self.open_box {
+                    if held && b.participants.is_empty() && !self.open_boxes.contains(&at) {
                         emptied = Some(b.line);
                     }
                 }
@@ -673,7 +674,7 @@ impl Parser {
                 self.diagram.participants.len() - 1
             }
         };
-        if let Some(open) = self.open_box {
+        for &open in &self.open_boxes {
             let members = &mut self.diagram.boxes[open].participants;
             if !members.contains(&index) {
                 members.push(index);
@@ -1298,9 +1299,6 @@ impl Parser {
     }
 
     fn open_box(&mut self, rest: &str, no: usize) -> Result<(), Declined> {
-        if self.open_box.is_some() {
-            return Err(Declined::at(no, "a box inside a box is not supported"));
-        }
         let rest = rest.trim();
         let (title, rest) = if let Some(quoted) = rest.strip_prefix('"') {
             let end = quoted
@@ -1322,8 +1320,9 @@ impl Parser {
             color,
             line: no,
             participants: Vec::new(),
+            depth: self.open_boxes.len(),
         });
-        self.open_box = Some(self.diagram.boxes.len() - 1);
+        self.open_boxes.push(self.diagram.boxes.len() - 1);
         Ok(())
     }
 
@@ -1394,6 +1393,8 @@ fn shape_keyword(text: &str) -> Option<(Shape, &str)> {
     SHAPES
         .iter()
         .find_map(|&(word, shape)| keyword(text, word).map(|rest| (shape, rest)))
+        // `Participant -> Bob` is a message from a participant so named.
+        .filter(|(_, rest)| !rest.starts_with(['-', '<']))
 }
 
 /// `diagram` with its participants in `order`, every index following.
@@ -2389,7 +2390,6 @@ mod tests {
         );
         // Names as PlantUML takes them.
         for (source, part) in [
-            ("participant ->Api", "`->Api` is no participant name"),
             ("actor Us[x]er", "`Us[x]er` is no participant name"),
             ("participant \"W\" as W-1", "`W-1` is no participant name"),
             ("actor V <<>>", "a stereotype needs a text"),
@@ -2577,6 +2577,43 @@ mod tests {
         let d = diagram("participant P [\n  first\n  second\n]\nparticipant Q\nP -> Q");
         assert_eq!(codes(&d), ["P", "Q"]);
         assert_eq!(d.participants[0].label, "first\nsecond");
+    }
+
+    #[test]
+    fn a_participant_named_as_a_keyword_sends_messages() {
+        let d =
+            diagram("participant Participant\nparticipant Bob\nParticipant -> Bob\nActor <- Bob");
+        assert_eq!(codes(&d), ["Participant", "Bob", "Actor"]);
+        assert_eq!(messages(&d).len(), 2);
+        let d = diagram("participant ->Api");
+        assert_eq!(codes(&d), ["participant", "Api"]);
+    }
+
+    #[test]
+    fn a_box_inside_a_box_holds_its_participants_in_both() {
+        let d = diagram(concat!(
+            "box \"Service\" #LightBlue\nparticipant Bob\nbox \"Team\"\nparticipant Alice\n",
+            "participant John\nend box\nend box\nparticipant Other\nBob -> Alice\n",
+        ));
+        let boxes: Vec<(usize, Vec<&str>)> = d
+            .boxes
+            .iter()
+            .map(|b| {
+                let codes = b
+                    .participants
+                    .iter()
+                    .map(|&p| d.participants[p].code.as_str())
+                    .collect();
+                (b.depth, codes)
+            })
+            .collect();
+        assert_eq!(
+            boxes,
+            [
+                (0, vec!["Bob", "Alice", "John"]),
+                (1, vec!["Alice", "John"])
+            ]
+        );
     }
 
     #[test]
@@ -2887,7 +2924,6 @@ mod tests {
             ("@startuml\nparticipant A [\nx\n@enduml", 1, "no `]`"),
             ("@startuml\nA -> B foo\n@enduml", 1, "foo"),
             ("@startuml\nhide stereotype\n@enduml", 1, "hide stereotype"),
-            ("@startuml\nbox A\nbox B\n@enduml", 2, "inside a box"),
             (
                 "@startuml\nautonumber\nautonumber inc AB\n@enduml",
                 2,

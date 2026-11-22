@@ -86,6 +86,9 @@ pub struct Skin {
     pub stereotype_below: bool,
     /// `skinparam lifelineStrategy solid`: the lifelines are solid.
     pub lifeline_solid: bool,
+    /// `skinparam sequenceParticipant underline`: the heads' names are
+    /// underlined.
+    pub participant_underline: bool,
 }
 
 const DARK: Color = Color::hex(0x181818);
@@ -165,6 +168,7 @@ impl Default for Skin {
             guillemet: true,
             stereotype_below: false,
             lifeline_solid: false,
+            participant_underline: false,
         }
     }
 }
@@ -246,6 +250,12 @@ impl Skin {
                         "bottom" => true,
                         _ => return Err(p.unsupported()),
                     };
+                }
+                "participant" => {
+                    if !p.value.trim().eq_ignore_ascii_case("underline") {
+                        return Err(p.unsupported());
+                    }
+                    skin.participant_underline = true;
                 }
                 "lifelinestrategy" => {
                     skin.lifeline_solid = match p.value.trim().to_ascii_lowercase().as_str() {
