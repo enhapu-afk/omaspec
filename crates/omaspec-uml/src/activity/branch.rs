@@ -344,6 +344,7 @@ impl Layout<'_> {
         &self,
         kind: Parallel,
         flows: &[Flow],
+        label: Option<&super::Text>,
         lane: usize,
     ) -> Result<Tile, Declined> {
         let bar = if kind == Parallel::Split { 0.0 } else { BAR };
@@ -396,6 +397,25 @@ impl Layout<'_> {
         } else {
             self.bar_below(&mut shapes, &mut edges, &ways, bar, middle, lane)?
         };
+        // `end fork {and}`: its words right of the bar that joins the flows.
+        if let Some(label) = label
+            && let Some((right, y)) = shapes.iter().rev().find_map(|shape| match shape {
+                Shape::Bar { y, spans, .. } => {
+                    let right = spans.iter().map(|s| s.1).fold(f32::NEG_INFINITY, f32::max);
+                    Some((right, *y))
+                }
+                _ => None,
+            })
+        {
+            let text = self.measure(label, self.skin.arrow_font)?;
+            let at = (right + 4.0, y + bar / 2.0 - text.height / 2.0);
+            shapes.push(Shape::Label {
+                at,
+                text,
+                align: crate::svg::Align::Left,
+                lane,
+            });
+        }
         let mut tile = Tile::new(shapes, edges, pt(middle, 0.0, lane), exit);
         for t in tiles {
             tile.absorb(t);

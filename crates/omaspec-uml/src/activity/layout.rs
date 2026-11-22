@@ -297,7 +297,9 @@ impl Layout<'_> {
                 let labels = [test.as_ref(), yes.as_ref(), out.as_ref()];
                 self.repeat(start.as_ref(), body, backward.as_deref(), labels, lane)?
             }
-            Node::Parallel { kind, flows } => self.parallel(*kind, flows, lane)?,
+            Node::Parallel { kind, flows, label } => {
+                self.parallel(*kind, flows, label.as_ref(), lane)?
+            }
             Node::Group { title, color, flow } => {
                 self.group(title, color.as_deref(), flow, lane)?
             }

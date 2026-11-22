@@ -111,6 +111,8 @@ pub enum Node {
     Parallel {
         kind: Parallel,
         flows: Vec<Flow>,
+        /// `end fork {and}`: words beside the bar that joins the flows.
+        label: Option<Text>,
     },
     /// `partition name {` … `}` and `group name` … `end group`: a frame
     /// with its name in a tab.

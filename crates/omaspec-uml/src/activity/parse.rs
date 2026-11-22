@@ -374,11 +374,28 @@ impl Parser {
                 return self.start_group(rest, partition, no).map(|()| at + 1);
             }
         }
-        if words.starts_with("endfork") || words.starts_with("forkend") {
-            return Err(Declined::at(
-                no,
-                "a label on `end fork` is not supported yet",
-            ));
+        if let Some(rest) =
+            two_words(text, "end", "fork").or_else(|| two_words(text, "fork", "end"))
+        {
+            let rest = rest.trim();
+            if !(rest.starts_with('{') && rest.ends_with('}')) {
+                return Err(Declined::at(
+                    no,
+                    format!(
+                        "`end fork {}` is not supported yet; `end fork {{and}}` is",
+                        snippet(rest)
+                    ),
+                ));
+            }
+            let col = lines[at].at + crate::source::offset_in(text, rest);
+            let label = Text {
+                value: rest.to_owned(),
+                line: no,
+                col: Some(col),
+            };
+            return self
+                .end_parallel_with(Parallel::Fork, Some(label), no)
+                .map(|()| at + 1);
         }
         if let Some(found) = NOT_YET.iter().find(|w| {
             starts_with_ci(text, w)
@@ -1100,6 +1117,16 @@ impl Parser {
     }
 
     fn end_parallel(&mut self, kind: Parallel, no: usize) -> Result<(), Declined> {
+        self.end_parallel_with(kind, None, no)
+    }
+
+    /// The end of a fork or a split, with the words beside its bar.
+    fn end_parallel_with(
+        &mut self,
+        kind: Parallel,
+        label: Option<Text>,
+        no: usize,
+    ) -> Result<(), Declined> {
         self.innermost(
             if kind == Parallel::Split {
                 "split"
@@ -1116,7 +1143,7 @@ impl Parser {
                     mut flows, current, ..
                 } => {
                     flows.push(current);
-                    Node::Parallel { kind, flows }
+                    Node::Parallel { kind, flows, label }
                 }
                 _ => unreachable!("checked by innermost"),
             },
@@ -1126,7 +1153,6 @@ impl Parser {
     }
 }
 
-/// `(A)`: a connector's name.
 /// The name of a connector, `(A)` or `(A);`: one letter or digit, as
 /// PlantUML takes it; `Err` with the name for one of more, which PlantUML
 /// does not take; `None` for any other line.
@@ -1267,9 +1293,10 @@ mod tests {
                     Node::Group { title, flow, .. } => {
                         format!("group[{}:{}]", title.value, outline(flow))
                     }
-                    Node::Parallel { kind, flows } => format!(
-                        "{kind:?}[{}]",
-                        flows.iter().map(outline).collect::<Vec<_>>().join("|")
+                    Node::Parallel { kind, flows, label } => format!(
+                        "{kind:?}[{}]{}",
+                        flows.iter().map(outline).collect::<Vec<_>>().join("|"),
+                        label.as_ref().map_or(String::new(), |l| l.value.clone())
                     ),
                 };
                 format!("{arrow}{node}@{}", s.lane)
@@ -1427,6 +1454,20 @@ mod tests {
             panic!()
         };
         assert!(note.right);
+    }
+
+    #[test]
+    fn end_fork_takes_its_words() {
+        let d = diagram("fork\n:a;\nfork again\n:b;\nend fork {or}");
+        assert_eq!(outline(&d.flow), "Fork[A(a)@0|A(b)@0]{or}@0");
+        let Node::Parallel {
+            label: Some(label), ..
+        } = &d.flow.steps[0].node
+        else {
+            panic!()
+        };
+        // They stand after `end fork`.
+        assert_eq!((label.line, label.col), (4, Some(9)));
     }
 
     #[test]
@@ -1599,7 +1640,7 @@ mod tests {
             ("repeat\nbackward :x\nrepeat while", 1, "several lines"),
             ("repeat\nbackward x;\nrepeat while", 1, "`backward :text;`"),
             ("(*) --> \"x\"", 0, "old activity syntax"),
-            ("fork\nend fork {and}", 1, "label on `end fork`"),
+            ("fork\nend fork or", 1, "`end fork {and}` is"),
             ("start\nfoo bar", 1, "foo bar"),
             (deep.as_str(), 100, "nested"),
         ] {

@@ -1,0 +1,17 @@
+@startuml
+' Words beside the bar that joins a fork's flows (`end fork {or}`), as
+' PlantUML writes them.
+start
+fork
+  :Ask the bank;
+fork again
+  :Ask the card;
+end fork {or}
+:Charge;
+fork
+  :Ship;
+fork again
+  :Invoice;
+end fork {and}
+stop
+@enduml

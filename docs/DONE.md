@@ -338,6 +338,9 @@ is open and the reasoning around it.
       and goes on from, a place of the map, its name tied to where it
       stands on its line. A flow that ends at `kill` or `detach` has no
       arrow on into nothing, as PlantUML draws it. The guide: 49 of 62.
+- [x] Words on `end fork` (2026-11-22): `end fork {or}`, `end fork {and}`,
+      right of the bar that joins the flows, in the arrows' words, tied to
+      where they stand on their line. The guide: 51 of 62.
 
 ## Phase 0: foundation and spikes
 
