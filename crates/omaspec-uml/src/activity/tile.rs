@@ -73,7 +73,10 @@ pub enum Shape {
     Frame {
         rect: (f32, f32, f32, f32),
         title: Block,
+        /// How far right of the frame's left side its name starts.
+        title_at: f32,
         fill: Paint,
+        kind: super::FrameKind,
         lane: usize,
     },
     /// A label: its anchor, aligned by `align`, with its top at the anchor.

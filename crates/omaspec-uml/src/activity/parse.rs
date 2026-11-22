@@ -8,8 +8,8 @@ use super::words::{
     test_and_label, two_words, until_action_end, until_semicolon, while_tail, word,
 };
 use super::{
-    ActionShape, Arrow, Backward, Branch, Diagram, Flow, Lane, LineStyle, Node, Note, Parallel,
-    Step, Text,
+    ActionShape, Arrow, Backward, Branch, Diagram, Flow, FrameKind, Lane, LineStyle, Node, Note,
+    Parallel, Step, Text,
 };
 use crate::Declined;
 use crate::common::{Frame, block, keyword, snippet, text_at};
@@ -133,10 +133,7 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
 const MAX_DEPTH: usize = 100;
 
 /// Keywords of PlantUML that Omaspec does not draw yet.
-const NOT_YET: [&str; 16] = [
-    "package",
-    "rectangle",
-    "card",
+const NOT_YET: [&str; 13] = [
     "break",
     "goto",
     "label",
@@ -210,8 +207,9 @@ enum Opened {
         current: Flow,
     },
     Group {
-        /// `partition` rather than `group`.
-        partition: bool,
+        /// `partition`, `group`, `package`, `rectangle` or `card`.
+        keyword: &'static str,
+        kind: FrameKind,
         title: Text,
         color: Option<String>,
         flow: Flow,
@@ -227,10 +225,7 @@ impl Open {
             Opened::Repeat { .. } => "repeat",
             Opened::Parallel { split: true, .. } => "split",
             Opened::Parallel { split: false, .. } => "fork",
-            Opened::Group {
-                partition: true, ..
-            } => "partition",
-            Opened::Group { .. } => "group",
+            Opened::Group { keyword, .. } => keyword,
         }
     }
 
@@ -428,9 +423,15 @@ impl Parser {
                 .ok_or_else(|| Declined::refused(no, "a `case` is written `case (words)`"))?;
             return self.case(words, no).map(|()| at + 1);
         }
-        for (keyword, partition) in [("partition", true), ("group", false)] {
+        for (keyword, kind) in [
+            ("partition", FrameKind::Tab),
+            ("group", FrameKind::Tab),
+            ("package", FrameKind::Package),
+            ("rectangle", FrameKind::Rectangle),
+            ("card", FrameKind::Card),
+        ] {
             if let Some(rest) = word(text, keyword) {
-                return self.start_group(rest, partition, no).map(|()| at + 1);
+                return self.start_group(rest, (keyword, kind), no).map(|()| at + 1);
             }
         }
         if let Some(rest) =
@@ -1247,7 +1248,12 @@ impl Parser {
 
     /// `partition #color "name" #color {`, `group name`: the name, quoted
     /// or not, a color before or after it, the `{` optional.
-    fn start_group(&mut self, rest: &str, partition: bool, no: usize) -> Result<(), Declined> {
+    fn start_group(
+        &mut self,
+        rest: &str,
+        (keyword, kind): (&'static str, FrameKind),
+        no: usize,
+    ) -> Result<(), Declined> {
         let mut rest = rest.trim();
         if let Some(open) = rest.strip_suffix('{') {
             rest = open.trim_end();
@@ -1275,7 +1281,8 @@ impl Parser {
             .unwrap_or(rest);
         self.open(
             Opened::Group {
-                partition,
+                keyword,
+                kind,
                 title: text_at(name, no),
                 color,
                 flow: Flow::default(),
@@ -1289,11 +1296,9 @@ impl Parser {
     fn end_group(&mut self, no: usize) -> Result<(), Declined> {
         let keyword = match self.blocks.last() {
             Some(Open {
-                what: Opened::Group {
-                    partition: true, ..
-                },
+                what: Opened::Group { keyword, .. },
                 ..
-            }) => "partition",
+            }) => *keyword,
             _ => "group",
         };
         self.innermost(keyword, no)?;
@@ -1302,8 +1307,17 @@ impl Parser {
         self.close(
             |what| match what {
                 Opened::Group {
-                    title, color, flow, ..
-                } => Node::Group { title, color, flow },
+                    title,
+                    color,
+                    flow,
+                    kind,
+                    ..
+                } => Node::Group {
+                    title,
+                    color,
+                    flow,
+                    kind,
+                },
                 _ => unreachable!("checked by innermost"),
             },
             open,
@@ -1697,6 +1711,32 @@ mod tests {
         assert!(note.right);
     }
 
+    /// `package`, `rectangle` and `card` are frames as `partition` is, each
+    /// drawn as PlantUML draws it, closed by `}`.
+    #[test]
+    fn frames_of_every_kind() {
+        let d = diagram(
+            "package P {\n:a;\n}\nrectangle R {\n:b;\n}\ncard C {\n:c;\n}\npartition Q {\n:d;\n}",
+        );
+        let kinds: Vec<FrameKind> = d
+            .flow
+            .steps
+            .iter()
+            .map(|step| match &step.node {
+                Node::Group { kind, .. } => *kind,
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        use FrameKind::*;
+        assert_eq!(kinds, [Package, Rectangle, Card, Tab]);
+        let err = declined("package P {\n:a;\nend fork");
+        assert!(
+            err.reason.contains("`package` needs its `}`"),
+            "{}",
+            err.reason
+        );
+    }
+
     /// A `while` takes a `backward` action on its way back; a note after
     /// it is the body's last action's, as PlantUML puts it; anything else
     /// but `endwhile` after it declines.
@@ -1921,9 +1961,9 @@ mod tests {
             .steps
             .iter()
             .map(|s| match &s.node {
-                Node::Group { title, color, flow } => {
-                    (title.value.clone(), color.clone(), flow.steps.len())
-                }
+                Node::Group {
+                    title, color, flow, ..
+                } => (title.value.clone(), color.clone(), flow.steps.len()),
                 other => panic!("{other:?}"),
             })
             .collect();
@@ -1993,7 +2033,6 @@ mod tests {
             ("start\nnote right: x", 1, "follow an action"),
             (":x; <<trigger>>", 0, "`<<trigger>>`"),
             (":x\ny", 0, "`;`"),
-            ("start\npackage P {\n}", 1, "`package`"),
             ("start\n}", 1, "no `group` is open"),
             ("partition P {\nif (x)\n}", 2, "`if` needs its `endif`"),
             ("|A|\npartition P {\n|B|\n}", 2, "inside `partition`"),

@@ -123,13 +123,27 @@ pub enum Node {
         /// `end fork {and}`: words beside the bar that joins the flows.
         label: Option<Text>,
     },
-    /// `partition name {` … `}` and `group name` … `end group`: a frame
-    /// with its name in a tab.
+    /// `partition name {` … `}`, `group name` … `end group`, and
+    /// `package`, `rectangle` and `card`: a frame with its name.
     Group {
         title: Text,
         color: Option<String>,
         flow: Flow,
+        kind: FrameKind,
     },
+}
+
+/// How the frame of a group is drawn, as PlantUML draws each.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrameKind {
+    /// `partition`, `group`: the name in a tab at the top left.
+    Tab,
+    /// `package`: a folder, the name in its tab above the frame.
+    Package,
+    /// `rectangle`: the name in the middle at the top.
+    Rectangle,
+    /// `card`: the name in the middle at the top, a line under it.
+    Card,
 }
 
 /// `(label) backward :text; (label)`: an action on the way back of a

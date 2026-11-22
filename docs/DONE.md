@@ -448,6 +448,12 @@ is open and the reasoning around it.
       to the frame every diagram type reads; the others take no notice of
       it, as PlantUML. A compromise: branches in swimlanes of their own
       stay in a row. The guide: 57 of 62.
+- [x] `package`, `rectangle` and `card` around actions (2026-11-22), as
+      PlantUML draws them: a package as a folder, its name in the tab
+      above the frame; a rectangle and a card with their name in the
+      middle at the top, a card with a line under it. A name in the middle
+      gives way to the line into the frame, to its left where there is
+      room, else to its right. The guide: 58 of 62.
 
 ## Phase 0: foundation and spikes
 

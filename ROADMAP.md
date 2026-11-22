@@ -66,12 +66,12 @@ of element) and step 0 (a second `@startuml` line).
       (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
       `json` element among the states waits on step 7.
 
-### Step 3: the activity diagram (57 of 62; the legacy syntax 0 of 13)
+### Step 3: the activity diagram (58 of 62; the legacy syntax 0 of 13)
 
 - [ ] `label` and `goto`.
-- [ ] `package`, `rectangle` and `card` frames around actions (as
-      `partition` and `group` are); the two examples with a floating note
-      or a note before its action wait on Creole rules in a note (step 5).
+- [ ] The two examples with a floating note or a note before its action
+      wait on Creole rules in a note (step 5); one on a font name in the
+      `<style>` of `activityDiagram`.
 - [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
       tree where it fits it and laid out on the graph engine where it does
       not; two examples in other chapters use it too.

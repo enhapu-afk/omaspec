@@ -1,0 +1,22 @@
+@startuml
+' Every kind of frame around actions: `group` and `partition` with their
+' name in a tab, `package` as a folder, `rectangle` and `card` with their
+' name in the middle at the top, as PlantUML draws them.
+start
+group Checks
+  :Check the stock;
+end group
+partition Payment {
+  :Charge the card;
+}
+package Packing {
+  :Pack the parcel;
+}
+rectangle "Shipping by post" {
+  :Print the label;
+}
+card Records {
+  :File the order;
+}
+stop
+@enduml

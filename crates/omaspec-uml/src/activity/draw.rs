@@ -3,10 +3,10 @@
 //! writes the SVG. Without swimlanes everything stays where the layout
 //! put it.
 
-use super::layout::{Layout, SDL_BRACE, SDL_LINE, SDL_POINT, room};
+use super::layout::{Layout, PACKAGE_SLANT, SDL_BRACE, SDL_LINE, SDL_POINT, room};
 use super::skin::{Condition, Skin};
 use super::tile::{Edge, Pt, Shape};
-use super::{ActionShape, Diagram};
+use super::{ActionShape, Diagram, FrameKind};
 use crate::Declined;
 use crate::annotations::Annotations;
 use crate::svg::{Align, Canvas, Layer, Stroke, n};
@@ -495,13 +495,60 @@ impl Painter<'_> {
             Shape::Frame {
                 rect: (x, y, w, h),
                 title,
+                title_at,
                 fill,
+                kind,
                 lane,
             } => {
                 let (x, y) = self.at(*lane, *x, *y);
+                let (w, h) = (*w, *h);
                 let look = &skin.partition;
                 let stroke = Stroke::new(look.border, look.thickness);
-                canvas.rect(Layer::Background, (x, y, *w, *h), 0.0, *fill, Some(stroke));
+                match kind {
+                    FrameKind::Tab => {}
+                    FrameKind::Package => {
+                        // A folder: the tab above the frame, slanting down.
+                        let (tab_w, tab_h) = (title.width + 8.0, title.height + 6.0);
+                        let corner = x + tab_w + PACKAGE_SLANT;
+                        let outline = [
+                            (x, y),
+                            (x + tab_w, y),
+                            (corner, y + tab_h),
+                            (x + w, y + tab_h),
+                            (x + w, y + h),
+                            (x, y + h),
+                        ];
+                        canvas.polygon(Layer::Background, &outline, *fill, Some(stroke));
+                        canvas.line(
+                            Layer::Background,
+                            (x, y + tab_h),
+                            (corner, y + tab_h),
+                            stroke,
+                        );
+                        canvas.text(
+                            Layer::Background,
+                            title,
+                            (x + title_at, y + 3.0),
+                            Align::Left,
+                        );
+                        return;
+                    }
+                    FrameKind::Rectangle | FrameKind::Card => {
+                        canvas.rect(Layer::Background, (x, y, w, h), 0.0, *fill, Some(stroke));
+                        if *kind == FrameKind::Card {
+                            let band = y + title.height + 6.0;
+                            canvas.line(Layer::Background, (x, band), (x + w, band), stroke);
+                        }
+                        canvas.text(
+                            Layer::Background,
+                            title,
+                            (x + title_at, y + 3.0),
+                            Align::Left,
+                        );
+                        return;
+                    }
+                }
+                canvas.rect(Layer::Background, (x, y, w, h), 0.0, *fill, Some(stroke));
                 let (tab_w, tab_h, corner) = if title.width == 0.0 {
                     (w / 3.0, 12.0, 7.0)
                 } else {
@@ -653,6 +700,25 @@ mod tests {
         let bars = bars(&svg);
         assert_eq!(bars.len(), 2, "{svg}");
         assert_eq!((bars[0].0, bars[0].2), (bars[1].0, bars[1].2), "{svg}");
+    }
+
+    /// The name of a `rectangle` or a `card` stands in the middle at the
+    /// top, but gives way to the line into its flow.
+    #[test]
+    fn a_frames_name_gives_way_to_the_line_in() {
+        for kind in ["rectangle", "card"] {
+            let source = format!(
+                "@startuml\nstart\n{kind} \"A rather long name\" {{\n:A;\n}}\nstop\n@enduml\n"
+            );
+            let (_, map) = crate::render_mapped(&source, None).unwrap();
+            let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+            let (name, action) = (at(2), at(3));
+            let line = action.x + action.w / 2.0;
+            assert!(
+                name.x + name.w + 4.0 <= line || name.x >= line + 4.0,
+                "{kind}: {name:?} {line}"
+            );
+        }
     }
 
     /// `!pragma useVerticalIf on` stacks the tests of an `if` with

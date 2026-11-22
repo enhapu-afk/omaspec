@@ -8,7 +8,7 @@
 
 use super::skin::{Condition, Skin};
 use super::tile::{Edge, Pt, Shape, Tile, pt};
-use super::{ActionShape, Arrow, Backward, Flow, LineStyle, Node, Note, Step, Text};
+use super::{ActionShape, Arrow, Backward, Flow, FrameKind, LineStyle, Node, Note, Step, Text};
 use crate::Declined;
 use crate::color;
 use crate::svg::{Align, Stroke};
@@ -25,6 +25,8 @@ pub(super) const BRANCH_MIN: f32 = 30.0;
 pub(super) const BRANCH_MARGIN: f32 = 10.0;
 /// Between a loop and the line that leads back.
 pub(super) const RAIL: f32 = 15.0;
+/// How far a package's tab slants down to the frame, as PlantUML draws it.
+pub(super) const PACKAGE_SLANT: f32 = 7.0;
 /// Between an action and its note.
 const NOTE_GAP: f32 = 15.0;
 
@@ -320,9 +322,12 @@ impl Layout<'_> {
             Node::Parallel { kind, flows, label } => {
                 self.parallel(*kind, flows, label.as_ref(), lane)?
             }
-            Node::Group { title, color, flow } => {
-                self.group(title, color.as_deref(), flow, lane)?
-            }
+            Node::Group {
+                title,
+                color,
+                flow,
+                kind,
+            } => self.group(title, color.as_deref(), flow, *kind, lane)?,
         })
     }
 
@@ -841,6 +846,7 @@ impl Layout<'_> {
         title: &Text,
         color: Option<&str>,
         flow: &Flow,
+        kind: FrameKind,
         lane: usize,
     ) -> Result<Tile, Declined> {
         let look = &self.skin.partition;
@@ -850,19 +856,43 @@ impl Layout<'_> {
             None => look.fill,
         };
         let mut inner = self.flow(flow, lane)?;
-        let head = (name.height + 20.0).max(25.0);
+        // A name in the middle, or a package's tab above the frame, takes
+        // more room at the top than a tab in the corner.
+        let more = if kind == FrameKind::Tab { 0.0 } else { 8.0 };
+        let head = (name.height + 20.0).max(25.0) + more;
         let mut width = (inner.width() + 2.0 * BRANCH_MARGIN).max(name.width + 20.0);
         inner.place((width - inner.width()) / 2.0, head);
         // The line into the flow passes right of the tab, not through it.
-        let tab = if name.width > 0.0 {
-            name.width + 10.0
-        } else {
-            0.0
+        let tab = match (name.width > 0.0, kind) {
+            (false, _) => 0.0,
+            (true, FrameKind::Tab) => name.width + 10.0,
+            (true, FrameKind::Package) => name.width + 8.0 + PACKAGE_SLANT,
+            (true, FrameKind::Rectangle | FrameKind::Card) => 0.0,
         };
         let short = tab + 8.0 - inner.entry.x;
         if tab > 0.0 && short > 0.0 {
             inner.translate(short, 0.0);
             width += short;
+        }
+        // A name in the middle gives way to the line into the flow: to its
+        // left where there is room, else to its right.
+        let mut title_at = match kind {
+            FrameKind::Tab => 3.0,
+            FrameKind::Package => 4.0,
+            FrameKind::Rectangle | FrameKind::Card => (width - name.width) / 2.0,
+        };
+        let line = inner.entry.x;
+        if matches!(kind, FrameKind::Rectangle | FrameKind::Card)
+            && name.width > 0.0
+            && line > title_at - 4.0
+            && line < title_at + name.width + 4.0
+        {
+            title_at = if line - 6.0 - name.width >= 4.0 {
+                line - 6.0 - name.width
+            } else {
+                width = width.max(line + 6.0 + name.width + 4.0);
+                line + 6.0
+            };
         }
         let height = inner.bounds.3 + 20.0;
         let mut edges = Vec::new();
@@ -882,7 +912,9 @@ impl Layout<'_> {
             vec![Shape::Frame {
                 rect: (0.0, 0.0, width, height),
                 title: name,
+                title_at,
                 fill,
+                kind,
                 lane,
             }],
             edges,
