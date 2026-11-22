@@ -21,6 +21,23 @@ fn element_lines(code: &str) -> Vec<(usize, &str)> {
     }
 }
 
+/// The row the action that starts on row `no` ends on, its first line
+/// after the `:` being `rest`: the lines after it as the engine reads them,
+/// a note or a legend in its words too, up to one that ends it.
+fn action_last(code: &str, no: usize, rest: &str) -> Option<usize> {
+    if action_end(rest).is_some() {
+        return Some(no);
+    }
+    let lines: Vec<(usize, &str)> = match omaspec_uml::body_lines(code) {
+        Some(lines) => lines.into_iter().map(|line| (line.no, line.text)).collect(),
+        None => code.lines().map(str::trim).enumerate().collect(),
+    };
+    lines
+        .into_iter()
+        .find(|&(n, text)| n > no && action_end(text).is_some())
+        .map(|(n, _)| n)
+}
+
 /// The range of line `no` in `code`, its text and its line break.
 fn line_at(code: &str, no: usize) -> Result<(Range<usize>, &str, &str), String> {
     let range = line_ranges(code)
@@ -229,18 +246,10 @@ pub(super) fn activity_at(code: &str, row: usize) -> Option<Target> {
             index += 1;
             continue;
         }
-        let mut last = index;
         let started = action_start(text);
+        let end = started.and_then(|(_, rest)| action_last(code, no, rest));
         if let Some((_, rest)) = started
-            && action_end(rest).is_none()
-        {
-            last = lines[index + 1..]
-                .iter()
-                .position(|(_, text)| action_end(text).is_some())
-                .map_or(index, |more| index + 1 + more);
-        }
-        if let Some((_, rest)) = started
-            && (no..=lines[last].0).contains(&row)
+            && (no..=end.unwrap_or(no)).contains(&row)
         {
             let label = action_end(rest).map_or(rest, |(text, _)| text);
             return Some(Target::Line {
@@ -248,7 +257,12 @@ pub(super) fn activity_at(code: &str, row: usize) -> Option<Target> {
                 label: short(label),
             });
         }
-        index = last + 1;
+        // On past the action's lines.
+        let end = end.unwrap_or(no);
+        index += 1;
+        while index < lines.len() && lines[index].0 <= end {
+            index += 1;
+        }
     }
     None
 }
@@ -289,7 +303,7 @@ pub(super) fn activity(
 /// PlantUML 1.2026 wants it (`:text; <<#red>>`): a color written before it
 /// (`#red:text;`, which PlantUML 1.2026 refuses) and one in brackets go, a
 /// shape in brackets (`<<input>>`) stays. An action that ends in an SDL
-/// mark (`|`) keeps its color before it, the only place one is read there.
+/// mark (`|`) takes none: PlantUML 1.2026 reads none there.
 fn action_color(
     code: &str,
     (no, first): (usize, Range<usize>),
@@ -297,15 +311,7 @@ fn action_color(
     color: Option<&str>,
     (indent, old, rest): (&str, Option<&str>, &str),
 ) -> Result<Edit, String> {
-    let last = if action_end(rest).is_some() {
-        no
-    } else {
-        element_lines(code)
-            .into_iter()
-            .find(|&(n, text)| n > no && action_end(text).is_some())
-            .map(|(n, _)| n)
-            .ok_or("the action has no end")?
-    };
+    let last = action_last(code, no, rest).ok_or("the action has no end")?;
     let (last_range, last_line, newline) = line_at(code, last)?;
     let (_, first_line, first_newline) = line_at(code, no)?;
     let unprefixed = format!("{indent}:{rest}");
@@ -314,14 +320,28 @@ fn action_color(
     } else {
         last_line
     };
-    let Some(ended) = colored_end(ending, color) else {
-        let new = match (old, color) {
-            (_, Some(color)) => Some(format!("{indent}{color}:{rest}")),
-            (Some(_), None) => Some(unprefixed),
-            (None, None) => None,
-        };
-        return changed(label, first, first_line, new, first_newline);
+    // A block comment at the end stays there, after the color.
+    let (ending, comment) = match ending.trim_end().strip_suffix("'/") {
+        Some(_) => match ending.rfind("/'") {
+            Some(at) => (
+                ending[..at].trim_end(),
+                format!(" {}", ending[at..].trim_end()),
+            ),
+            None => (ending, String::new()),
+        },
+        None => (ending, String::new()),
     };
+    let Some(ended) = colored_end(ending, color) else {
+        // An action that ends in an SDL mark takes no color PlantUML 1.2026
+        // reads, before it or after it; a color written before it may go.
+        return match (old, color) {
+            (Some(_), None) => changed(label, first, first_line, Some(unprefixed), first_newline),
+            _ => Err(format!(
+                "{label} ends in an SDL mark, where PlantUML 1.2026 reads no color"
+            )),
+        };
+    };
+    let ended = format!("{ended}{comment}");
     let new = if last == no {
         ended
     } else {
@@ -330,7 +350,7 @@ fn action_color(
     };
     let range = first.start..last_range.end;
     let before = &code[first.start..last_range.end - newline.len()];
-    match (new == before, color) {
+    match (new.trim_end() == before.trim_end(), color) {
         (true, None) => Err(format!("{label} has no color of its own")),
         (true, Some(_)) => Err(format!("{label} has that color already")),
         (false, _) => Ok((range, format!("{new}{newline}"))),

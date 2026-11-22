@@ -188,6 +188,9 @@ pub struct Frame {
     /// stacked, not in a row; the other types take no notice of it, as
     /// PlantUML does.
     pub vertical_if: bool,
+    /// The font names `<style>` gives the whole diagram, from one block to
+    /// the next.
+    pub fonts: style::Fonts,
 }
 
 /// The places a style gives the frame's texts in its width.
@@ -286,15 +289,41 @@ impl Frame {
     /// Takes `lines[at]` (and the lines its block holds) if it is one of
     /// the shared lines; the index of the next line, `None` if it is not.
     pub fn line(&mut self, lines: &[Line], at: usize) -> Result<Option<usize>, Declined> {
+        let next = self.read(lines, at)?;
+        // One font draws everything here: a diagram whose `<style>` gives
+        // its parts another font than its title declines where it has one.
+        if next.is_some()
+            && self.fonts.apart()
+            && [&self.title, &self.header, &self.footer, &self.caption]
+                .iter()
+                .any(|text| text.is_some())
+        {
+            return Err(Declined::at(
+                lines[at].no,
+                "a font name for the diagram's parts but not for its title is not supported yet",
+            ));
+        }
+        Ok(next)
+    }
+
+    fn read(&mut self, lines: &[Line], at: usize) -> Result<Option<usize>, Declined> {
         let Line { no, text, .. } = lines[at];
         if style::opens(text) {
             let Some(elements) = self.styled else {
                 return Err(Declined::at(no, "`<style>` is not supported yet"));
             };
             let (declarations, next) = style::block(lines, at)?;
-            for param in style::skinparams(&declarations, elements)? {
+            for param in style::skinparams(&declarations, elements, &mut self.fonts)? {
                 // The frame's own: where its texts stand.
                 let place = match normalize_key(&param.key).as_str() {
+                    // The font of the diagram's parts: here that of all.
+                    "diagramfontname" => {
+                        self.skinparams.push(Skinparam {
+                            key: "defaultFontName".to_owned(),
+                            ..param
+                        });
+                        continue;
+                    }
                     "titlehorizontalalignment" => &mut self.aligned.title,
                     "headerhorizontalalignment" => &mut self.aligned.header,
                     "footerhorizontalalignment" => &mut self.aligned.footer,

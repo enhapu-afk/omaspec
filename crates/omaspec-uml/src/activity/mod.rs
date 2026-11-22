@@ -136,8 +136,10 @@ pub enum Node {
 /// How the frame of a group is drawn, as PlantUML draws each.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FrameKind {
-    /// `partition`, `group`: the name in a tab at the top left.
-    Tab,
+    /// `partition`: the name in a tab at the top left.
+    Partition,
+    /// `group`: as a partition, in the look of the other frames.
+    Group,
     /// `package`: a folder, the name in its tab above the frame.
     Package,
     /// `rectangle`: the name in the middle at the top.

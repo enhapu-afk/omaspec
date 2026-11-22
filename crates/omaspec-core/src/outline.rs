@@ -431,8 +431,11 @@ fn activity_line(b: &mut Builder, row: usize, l: &str) {
         if b.first(format!("lane:{}", c[1].trim().to_lowercase())) {
             b.add_at(row, "lane", label(&c[1]), 0);
         }
-    } else if let Some(c) =
-        re!(r"(?i)^(partition|package|rectangle|card)\s+(.+?)\s*\{?\s*$").captures(l)
+    } else if let Some(c) = re!(r"(?i)^(partition)\s+(.+?)\s*\{?\s*$")
+        .captures(l)
+        // A package, a rectangle and a card open with their bracket; a
+        // line of an action may start with the word.
+        .or_else(|| re!(r"(?i)^(package|rectangle|card)\s+(.+?)\s*\{\s*$").captures(l))
     {
         b.add(row, &c[1].to_lowercase(), label(&c[2]));
         b.open(row);
@@ -832,7 +835,11 @@ mod tests {
                 e(5, 0, "else", "no")
             ]
         );
-        // A package, a rectangle and a card are frames as a partition is.
+        // A package, a rectangle and a card are frames as a partition is;
+        // an action's line that starts with the word is none.
+        let words =
+            "@startuml\n:Pick the\npackage up from the door;\nif (x?) then\n:b;\nendif\n@enduml";
+        assert_eq!(tags(words, Language::PlantUml), [e(3, 0, "if", "x?")]);
         let code = "@startuml\npartition Outer {\npackage P {\n:a;\n}\nif (x?) then\n:b;\nendif\n}\n@enduml";
         assert_eq!(
             tags(code, Language::PlantUml),

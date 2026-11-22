@@ -431,17 +431,73 @@ pub fn block(lines: &[Line], at: usize) -> Result<(Vec<Declaration>, usize), Dec
     Ok((sheet(&body)?, at + end + 2))
 }
 
+/// The font names a diagram's `<style>` blocks give the whole of it: on
+/// `root`, which reaches its title too, and on its own element
+/// (`activityDiagram`), which reaches its parts and its legend only.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Fonts {
+    pub root: Option<String>,
+    pub diagram: Option<String>,
+}
+
+impl Fonts {
+    /// The name the parts of the diagram are drawn in, where one is given.
+    fn parts(&self) -> Option<&str> {
+        self.diagram.as_deref().or(self.root.as_deref())
+    }
+
+    /// Whether the title, header, footer and caption are to be drawn in
+    /// another font than the parts: one font draws all of them here.
+    pub fn apart(&self) -> bool {
+        match (&self.root, &self.diagram) {
+            (_, None) => false,
+            (Some(root), Some(diagram)) => !root.eq_ignore_ascii_case(diagram),
+            (None, Some(_)) => true,
+        }
+    }
+}
+
 /// The skinparams `declarations` stand for in a diagram whose elements
-/// are `elements`, in their order.
+/// are `elements`, in their order; `fonts` keeps the font names given to
+/// the whole diagram from one block to the next.
 pub fn skinparams(
     declarations: &[Declaration],
     elements: &[Element],
+    fonts: &mut Fonts,
 ) -> Result<Vec<Skinparam>, Declined> {
     let mut out = Vec::new();
     // The diagram's own element (`activityDiagram`), which reaches all of
-    // it as `root` does; and the font name given there or to `root`.
-    let diagram = elements.first().and_then(|e| e.names.get(1)).copied();
-    let mut family: Option<String> = None;
+    // it but its title, as `root` does all; none where one list of
+    // elements serves several types (`classDiagram` for a component
+    // diagram too).
+    let diagram = elements
+        .first()
+        .and_then(|e| {
+            e.names
+                .iter()
+                .find(|n| n.ends_with("Diagram") && **n != "classDiagram")
+        })
+        .copied();
+    let whole = |d: &Declaration| {
+        d.only.is_empty()
+            && !d.names.is_empty()
+            && d.names
+                .iter()
+                .all(|n| n == "root" || diagram.is_some_and(|own| n.eq_ignore_ascii_case(own)))
+    };
+    let on_root = |d: &Declaration| d.only.is_empty() && d.names.iter().all(|n| n == "root");
+    // The names for the whole diagram first, so a part may repeat one that
+    // comes after it.
+    for d in declarations
+        .iter()
+        .filter(|d| d.prop == Prop::FontName && whole(d))
+    {
+        let name = d.written.value.trim_matches('"').to_owned();
+        match on_root(d) {
+            true => fonts.root = Some(name),
+            false => fonts.diagram = Some(name),
+        }
+    }
     for d in declarations {
         let reached: Vec<&Element> = DOCUMENT
             .iter()
@@ -478,11 +534,6 @@ pub fn skinparams(
         // `root` reaches everything; for these PlantUML's own skinparams
         // say the same.
         let root = d.names.iter().all(|n| n == "root") && !varied;
-        let whole = !varied
-            && !d.names.is_empty()
-            && d.names
-                .iter()
-                .all(|n| n == "root" || diagram.is_some_and(|own| n.eq_ignore_ascii_case(own)));
         match d.prop {
             Prop::Shadowing if no_shadow(value) => continue,
             Prop::Shadowing if root => {
@@ -495,15 +546,23 @@ pub fn skinparams(
                     d.written
                 )));
             }
-            Prop::FontName if whole => {
-                family = Some(value.trim_matches('"').to_owned());
-                out.push(param("defaultFontName", value));
+            // On `root`, the font of everything, unless the diagram's own
+            // element gives its parts another; on the diagram's element,
+            // that of its parts (the frame says where the title differs).
+            Prop::FontName if on_root(d) => {
+                if fonts.diagram.is_none() {
+                    out.push(param("defaultFontName", value));
+                }
+                continue;
+            }
+            Prop::FontName if whole(d) => {
+                out.push(param("diagramFontName", value));
                 continue;
             }
             // The same name again on a part of the diagram changes nothing.
             Prop::FontName
-                if family
-                    .as_deref()
+                if fonts
+                    .parts()
                     .is_some_and(|f| f.eq_ignore_ascii_case(value.trim_matches('"'))) =>
             {
                 continue;
@@ -1268,7 +1327,7 @@ mod tests {
         let source = format!("@startuml\n<style>\n{sheet}\n</style>\n@enduml");
         let (_, lines) = body(&source).unwrap();
         let (decls, _) = block(&lines, 0)?;
-        Ok(skinparams(&decls, ELEMENTS)?
+        Ok(skinparams(&decls, ELEMENTS, &mut Fonts::default())?
             .into_iter()
             .map(|p| (p.key, p.value))
             .collect())
@@ -1323,8 +1382,45 @@ mod tests {
         assert_eq!(
             params("sequenceDiagram {\n  FontName Courier\n  participant { FontName courier }\n}")
                 .unwrap(),
-            own(&[("defaultFontName", "Courier")])
+            own(&[("diagramFontName", "Courier")])
         );
+        // A part may repeat it before it; `root` beside it gives no font of
+        // its own to the parts.
+        assert_eq!(
+            params("participant { FontName Courier }\nsequenceDiagram { FontName Courier }")
+                .unwrap(),
+            own(&[("diagramFontName", "Courier")])
+        );
+        assert_eq!(
+            params("root { FontName Times }\nsequenceDiagram { FontName Courier }").unwrap(),
+            own(&[("diagramFontName", "Courier")])
+        );
+        // Drawn: the diagram's font for its parts declines beside a title
+        // in another, in either order; a JSON diagram's own element is
+        // `jsonDiagram`; `classDiagram` is no component diagram's.
+        let draws = |source: &str| crate::render(source).is_ok();
+        let style = "<style>\nsequenceDiagram { FontName Courier }\n</style>";
+        assert!(draws(&format!("@startuml\n{style}\nA -> B\n@enduml")));
+        assert!(!draws(&format!(
+            "@startuml\n{style}\ntitle T\nA -> B\n@enduml"
+        )));
+        assert!(!draws(&format!(
+            "@startuml\ntitle T\n{style}\nA -> B\n@enduml"
+        )));
+        let same =
+            "<style>\nroot { FontName Courier }\nsequenceDiagram { FontName Courier }\n</style>";
+        assert!(draws(&format!(
+            "@startuml\n{same}\ntitle T\nA -> B\n@enduml"
+        )));
+        assert!(draws(
+            "@startjson\n<style>\njsonDiagram { FontName Courier }\n</style>\n{\"a\": 1}\n@endjson"
+        ));
+        assert!(!draws(
+            "@startjson\n<style>\nnode { FontName Courier }\n</style>\n{\"a\": 1}\n@endjson"
+        ));
+        assert!(!draws(
+            "@startuml\n<style>\nclassDiagram { FontName Courier }\n</style>\n[A] --> [B]\n@enduml"
+        ));
         let err = params("sequenceDiagram { FontName Arial }\nparticipant { FontName Courier }")
             .unwrap_err();
         assert_eq!(err.line, Some(3));

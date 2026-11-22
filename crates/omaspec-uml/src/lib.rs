@@ -281,6 +281,14 @@ pub fn uml_type(source: &str) -> Option<UmlType> {
     })
 }
 
+/// Every line of the first diagram in `source` its reader reads, each
+/// with its line in `source`: without comments and blank lines, with what
+/// [`element_lines`] leaves out. An action's text runs on through them.
+/// `None` if the body cannot be read.
+pub fn body_lines(source: &str) -> Option<Vec<Line<'_>>> {
+    source::body(source).ok().map(|(_, lines)| lines)
+}
+
 /// The lines of the first diagram in `source` that may hold its
 /// elements, as written, each with its line in `source`: without comments,
 /// blank lines, multi-line notes, legends, titles and styles, and without

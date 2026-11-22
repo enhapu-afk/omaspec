@@ -106,7 +106,8 @@ impl Found {
             Shape::Note { text, .. } => ("note", words(text), false),
             Shape::Frame { title, kind, .. } => {
                 let kind = match kind {
-                    super::FrameKind::Tab => "partition",
+                    super::FrameKind::Partition => "partition",
+                    super::FrameKind::Group => "group",
                     super::FrameKind::Package => "package",
                     super::FrameKind::Rectangle => "rectangle",
                     super::FrameKind::Card => "card",

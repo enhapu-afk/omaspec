@@ -185,6 +185,16 @@ impl Layout<'_> {
     ) -> Result<Tile, Declined> {
         let label = self.arrow_label(arrow)?;
         let (top, bottom) = (next.bounds.1, prev.bounds.3);
+        // To a lane on one side, the line leaves from that side where it
+        // can ([`Tile::turn_toward`]).
+        if let Some(out) = prev.exit
+            && out.lane != next.entry.lane
+        {
+            prev.turn_toward(match next.entry.lane < out.lane {
+                true => f32::NEG_INFINITY,
+                false => f32::INFINITY,
+            });
+        }
         match prev.exit {
             Some(out) => {
                 let turns = out.lane != next.entry.lane;
@@ -862,7 +872,7 @@ impl Layout<'_> {
         kind: FrameKind,
         lane: usize,
     ) -> Result<Tile, Declined> {
-        let look = &self.skin.partition;
+        let (look, _) = self.skin.frame_of(kind);
         let name = self.measure(title, look.font)?;
         let fill = match color {
             Some(c) => color::parse(c).map_err(|e| Declined::at(title.line, e))?,
@@ -871,14 +881,15 @@ impl Layout<'_> {
         let mut inner = self.flow(flow, lane)?;
         // A name in the middle, or a package's tab above the frame, takes
         // more room at the top than a tab in the corner.
-        let more = if kind == FrameKind::Tab { 0.0 } else { 8.0 };
+        let tab = matches!(kind, FrameKind::Partition | FrameKind::Group);
+        let more = if tab { 0.0 } else { 8.0 };
         let head = (name.height + 20.0).max(25.0) + more;
         let mut width = (inner.width() + 2.0 * BRANCH_MARGIN).max(name.width + 20.0);
         inner.place((width - inner.width()) / 2.0, head);
         // The line into the flow passes right of the tab, not through it.
         let tab = match (name.width > 0.0, kind) {
             (false, _) => 0.0,
-            (true, FrameKind::Tab) => name.width + 10.0,
+            (true, FrameKind::Partition | FrameKind::Group) => name.width + 10.0,
             (true, FrameKind::Package) => name.width + 8.0 + PACKAGE_SLANT,
             (true, FrameKind::Rectangle | FrameKind::Card) => 0.0,
         };
@@ -890,7 +901,7 @@ impl Layout<'_> {
         // A name in the middle gives way to the line into the flow: to its
         // left where there is room, else to its right.
         let mut title_at = match kind {
-            FrameKind::Tab => 3.0,
+            FrameKind::Partition | FrameKind::Group => 3.0,
             FrameKind::Package => 4.0,
             FrameKind::Rectangle | FrameKind::Card => (width - name.width) / 2.0,
         };

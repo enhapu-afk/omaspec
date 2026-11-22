@@ -606,10 +606,27 @@ mod tests {
             at_caret(&old.replace("Serve", "Se^rve"), p, Some("#f7768e")),
             code.replace(":Serve;", ":Serve; <<input>> <<#f7768e>>")
         );
+        // An action that ends in an SDL mark takes none, as PlantUML 1.2026
+        // reads none there; a block comment at the end stays after it;
+        // spaces at the end are no color to take away; an action's words
+        // run on through a note's words.
         let sdl = code.replace(":Serve;", ":Serve|");
+        let (sdl, target) = aimed(&sdl.replace("Serve", "Se^rve"), p);
+        let err = edit(&sdl, p, &target.unwrap(), Some("#f7768e")).unwrap_err();
+        assert!(err.contains("SDL"), "{err}");
+        let commented = code.replace(":Serve;", ":Serve; /' later '/");
         assert_eq!(
-            at_caret(&sdl.replace("Serve", "Se^rve"), p, Some("#f7768e")),
-            code.replace(":Serve;", "#f7768e:Serve|")
+            at_caret(&commented.replace("Serve", "Se^rve"), p, Some("#f7768e")),
+            code.replace(":Serve;", ":Serve; <<#f7768e>> /' later '/")
+        );
+        let spaced = code.replace(":Serve;", ":Serve;   ");
+        let (spaced, target) = aimed(&spaced.replace("Serve", "Se^rve"), p);
+        let err = edit(&spaced, p, &target.unwrap(), None).unwrap_err();
+        assert!(err.contains("no color of its own"), "{err}");
+        let noted = "@startuml\n:Read the\nnote right\nof it;\n:next;\nnote right\nn\nend note\n:other;\n@enduml\n";
+        assert_eq!(
+            at_caret(&noted.replace("Read", "Re^ad"), p, Some("#f7768e")),
+            noted.replace("of it;", "of it; <<#f7768e>>")
         );
         // A lane takes it where it is named first.
         let lane = at_caret(&code.replace("|\n:Serve", "^|\n:Serve"), p, Some("#f7768e"));

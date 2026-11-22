@@ -502,10 +502,10 @@ impl Painter<'_> {
             } => {
                 let (x, y) = self.at(*lane, *x, *y);
                 let (w, h) = (*w, *h);
-                let look = &skin.partition;
+                let (look, round) = skin.frame_of(*kind);
                 let stroke = Stroke::new(look.border, look.thickness);
                 match kind {
-                    FrameKind::Tab => {}
+                    FrameKind::Partition | FrameKind::Group => {}
                     FrameKind::Package => {
                         // A folder: the tab above the frame, slanting down.
                         let (tab_w, tab_h) = (title.width + 8.0, title.height + 6.0);
@@ -534,7 +534,6 @@ impl Painter<'_> {
                         return;
                     }
                     FrameKind::Rectangle | FrameKind::Card => {
-                        let round = skin.partition_round;
                         canvas.rect(Layer::Background, (x, y, w, h), round, *fill, Some(stroke));
                         if *kind == FrameKind::Card {
                             let band = y + title.height + 6.0;
@@ -549,7 +548,6 @@ impl Painter<'_> {
                         return;
                     }
                 }
-                let round = skin.partition_round;
                 canvas.rect(Layer::Background, (x, y, w, h), round, *fill, Some(stroke));
                 let (tab_w, tab_h, corner) = if title.width == 0.0 {
                     (w / 3.0, 12.0, 7.0)
@@ -718,6 +716,23 @@ mod tests {
             frame.contains("stroke=\"#FF0000\"") && frame.contains("rx=\"5\""),
             "{frame}"
         );
+        // `partition` reaches partitions alone, `composite` every frame;
+        // what no frame draws declines.
+        let frames = |style: &str| {
+            let source = format!(
+                "@startuml\n<style>\n{style}\n</style>\nstart\npartition P {{\n:a;\n}}\ngroup G\n:b;\nend group\nrectangle R {{\n:c;\n}}\nstop\n@enduml\n"
+            );
+            crate::render(&source).map(|svg| svg.matches("fill=\"#FFDAB9\"").count())
+        };
+        assert_eq!(
+            frames("partition { BackgroundColor PeachPuff }").unwrap(),
+            1
+        );
+        assert_eq!(
+            frames("composite { BackgroundColor PeachPuff }").unwrap(),
+            3
+        );
+        assert!(frames("composite { LineStyle 7-7 }").is_err());
     }
 
     /// The name of a `rectangle` or a `card` stands in the middle at the
@@ -995,6 +1010,39 @@ mod tests {
             test.x > middle && test.y + test.h + 24.0 < go.y,
             "{test:?} {go:?} {wait:?}"
         );
+    }
+
+    /// A `while`'s way out goes on from its rail where the line goes on to
+    /// that side (into the diamond where branches meet, to a lane on the
+    /// left), not back over itself.
+    #[test]
+    fn a_whiles_way_out_turns_no_hairpin() {
+        for source in [
+            "@startuml\n' parts (Omaspec)\nstart\nif (x?) then (yes)\n  :left branch long action text here;\nelse (no)\n  while (more?) is (yes)\n    :work;\n  endwhile (done)\nendif\nstop\n@enduml\n",
+            "@startuml\n' parts (Omaspec)\n|Lane A|\nstart\n:a long action in lane A;\n|Lane B|\nwhile (more work to do?) is (yes)\n  :work;\nendwhile (no more)\n|Lane A|\nstop\n@enduml\n",
+        ] {
+            let (_, map) = crate::render_mapped(source, None).unwrap();
+            assert!(!map.wires.is_empty());
+            for wire in &map.wires {
+                let runs: Vec<_> = wire.path.windows(2).map(|r| (r[0], r[1])).collect();
+                let flat = |(p, q): &((f32, f32), (f32, f32))| {
+                    (p.1 - q.1).abs() < 0.5 && (p.0 - q.0).abs() > 0.5
+                };
+                for (i, a) in runs.iter().enumerate() {
+                    for b in &runs[i + 1..] {
+                        if flat(a)
+                            && flat(b)
+                            && (a.1.0 - a.0.0).signum() != (b.1.0 - b.0.0).signum()
+                        {
+                            let lo = a.0.0.min(a.1.0).max(b.0.0.min(b.1.0));
+                            let hi = a.0.0.max(a.1.0).min(b.0.0.max(b.1.0));
+                            let close = (a.0.1 - b.0.1).abs() < 25.0;
+                            assert!(hi - lo < 1.0 || !close, "{source}: {:?}", wire.path);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// With a `backward`, a `while` goes back on the right through its

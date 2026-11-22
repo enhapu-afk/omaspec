@@ -220,6 +220,9 @@ impl Layout<'_> {
         }
         let mut edges = Vec::new();
         let mut ways = Vec::new();
+        for tile in &mut tiles {
+            tile.turn_toward(xd);
+        }
         for (tile, corner) in tiles.iter().zip([corners.0, corners.1]) {
             let start = vec![corner, pt(tile.entry.x, cy, tile.entry.lane)];
             if let Some(mut edge) = self.branch_line(&mut shapes, start.clone(), tile)? {
@@ -399,6 +402,9 @@ impl Layout<'_> {
         let corners = (pt(xd - dw / 2.0, cy, lane), pt(xd + dw / 2.0, cy, lane));
         let mut edges = Vec::new();
         let mut ways = Vec::new();
+        for tile in &mut tiles {
+            tile.turn_toward(xd);
+        }
         for ((tile, label), side) in tiles.iter().zip(labels).zip(sides) {
             let at = tile.entry;
             let (start, side) = if side == Side::Foot {
@@ -544,12 +550,11 @@ impl Layout<'_> {
             ways.push((i, start));
         }
         ways.sort_by_key(|(i, _)| *i);
-        let ways: Vec<(&Tile, Vec<Pt>)> = ways.into_iter().map(|(i, s)| (&tiles[i], s)).collect();
         let xs: Vec<f32> = ways
             .iter()
-            .filter_map(|(t, start)| match t.empty {
+            .filter_map(|(i, start)| match tiles[*i].empty {
                 true => start.last().map(|p| p.x),
-                false => t.exit.map(|p| p.x),
+                false => tiles[*i].exit.map(|p| p.x),
             })
             .collect();
         let lo = xs.iter().copied().fold(f32::INFINITY, f32::min);
@@ -559,6 +564,10 @@ impl Layout<'_> {
         } else {
             tiles[0].entry.x
         };
+        for (i, _) in &ways {
+            tiles[*i].turn_toward(middle);
+        }
+        let ways: Vec<(&Tile, Vec<Pt>)> = ways.into_iter().map(|(i, s)| (&tiles[i], s)).collect();
         let exit = self.merge(&mut shapes, &mut edges, &ways, middle, lane)?;
         let entry = pt(tiles[0].entry.x, cy - sizes[0].1 / 2.0, lane);
         let mut tile = Tile::new(shapes, edges, entry, exit);
@@ -579,7 +588,7 @@ impl Layout<'_> {
         // Flows in swimlanes further left go further left, so no lines cross.
         let mut refs: Vec<&Flow> = flows.iter().collect();
         refs.sort_by_key(|f| entry_lane(f, lane));
-        let tiles = self.columns(&refs, lane, bar + GAP + self.labels_above(&refs)?)?;
+        let mut tiles = self.columns(&refs, lane, bar + GAP + self.labels_above(&refs)?)?;
         let first = &tiles[0];
         let last = &tiles[tiles.len() - 1];
         let (left, right) = if kind == Parallel::Split {
@@ -613,6 +622,11 @@ impl Layout<'_> {
         }
         let mut edges = Vec::new();
         let mut ways = Vec::new();
+        if kind == Parallel::Merge {
+            for tile in &mut tiles {
+                tile.turn_toward(middle);
+            }
+        }
         for tile in &tiles {
             let start = vec![pt(tile.entry.x, bar, tile.entry.lane)];
             if let Some(edge) = self.branch_line(&mut shapes, start.clone(), tile)? {

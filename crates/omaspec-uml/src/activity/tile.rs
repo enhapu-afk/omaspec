@@ -304,6 +304,33 @@ impl Tile {
     }
 
     /// Moves it so its left edge is at `x` and its top at `y`.
+    /// Where the line out of the tile comes in along its bottom from the
+    /// side of `x` (a `while`'s way out from its rail): that line ends
+    /// where it turns to come in, and the tile goes out from there, so a
+    /// line on toward `x` does not run back over it.
+    pub fn turn_toward(&mut self, x: f32) {
+        let Some(exit) = self.exit else {
+            return;
+        };
+        let side = x - exit.x;
+        if side.abs() < 0.5 {
+            return;
+        }
+        let Some(edge) = self
+            .edges
+            .iter_mut()
+            .find(|edge| edge.points.last() == Some(&exit) && edge.points.len() >= 3)
+        else {
+            return;
+        };
+        let before = edge.points[edge.points.len() - 2];
+        let flat = before.lane == exit.lane && (before.y - exit.y).abs() < 0.5;
+        if flat && (before.x - exit.x) * side > 0.0 {
+            edge.points.pop();
+            self.exit = Some(before);
+        }
+    }
+
     pub fn place(&mut self, x: f32, y: f32) {
         self.translate(x - self.bounds.0, y - self.bounds.1);
     }

@@ -507,6 +507,24 @@ is open and the reasoning around it.
       examples), and the lines go on to the diamond drawn. The caret's
       light finds a shape with no words by its name in the map, a
       choice's declaration and every line that names it.
+- [x] What the review of the font names, the loops and the color action
+      found (2026-11-22): `FontName` on the diagram's own element reaches
+      its parts, not its title, header, footer or caption, as in PlantUML;
+      one font draws everything here, so a diagram with one of those in
+      another font declines. The diagram's own element is found by its
+      name (`jsonDiagram` too); where one list of elements serves several
+      types (`classDiagram`), only `root` counts. A part may repeat the
+      diagram's font before it, and across `<style>` blocks. `partition`
+      reaches partitions alone and `composite` every frame of an activity
+      diagram, each with a look of its own, and `composite { LineStyle }`
+      declines again. A `while`'s way out goes on from its rail where the
+      line goes on to that side, into the diamond where branches meet or
+      to a lane on the left, not back over itself. The color action finds
+      an action's end through every line the engine reads (a `note` in its
+      words too), keeps a block comment at its end, takes trailing spaces
+      for no color, and colors no action that ends in an SDL mark, where
+      PlantUML 1.2026 reads none. The outline opens a `package`, a
+      `rectangle` or a `card` at its bracket only.
 
 ## Phase 0: foundation and spikes
 

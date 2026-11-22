@@ -424,8 +424,8 @@ impl Parser {
             return self.case(words, no).map(|()| at + 1);
         }
         for (keyword, kind) in [
-            ("partition", FrameKind::Tab),
-            ("group", FrameKind::Tab),
+            ("partition", FrameKind::Partition),
+            ("group", FrameKind::Group),
             ("package", FrameKind::Package),
             ("rectangle", FrameKind::Rectangle),
             ("card", FrameKind::Card),
@@ -1756,7 +1756,7 @@ mod tests {
             })
             .collect();
         use FrameKind::*;
-        assert_eq!(kinds, [Package, Rectangle, Card, Tab]);
+        assert_eq!(kinds, [Package, Rectangle, Card, Partition]);
         let err = declined("package P {\n:a;\nend fork");
         assert!(
             err.reason.contains("`package` needs its `}`"),

@@ -80,6 +80,10 @@ pub struct Skin {
     pub partition: Look,
     /// How round the corners of that frame are, as `round` is an action's.
     pub partition_round: f32,
+    /// The other frames: of a group, a package, a rectangle and a card,
+    /// which `<style>` reaches as `composite`, with partitions.
+    pub frame: Look,
+    pub frame_round: f32,
     pub title_font: Font,
     pub header_font: Font,
     pub footer_font: Font,
@@ -137,6 +141,13 @@ impl Default for Skin {
                 font: Font::new(14.0, black),
             },
             partition_round: 0.0,
+            frame: Look {
+                fill: None,
+                border: black,
+                thickness: 1.5,
+                font: Font::new(14.0, black),
+            },
+            frame_round: 0.0,
             title_font: Font::new(14.0, black).bold(),
             header_font: Font::new(10.0, gray),
             footer_font: Font::new(10.0, gray),
@@ -206,13 +217,14 @@ const NO_EFFECT: [&str; 5] = [
 ];
 
 /// Elements with a font, by their skinparam name.
-const FONTS: [&str; 11] = [
+const FONTS: [&str; 12] = [
     "activitydiamond",
     "activity",
     "arrow",
     "swimlanetitle",
     "note",
     "partition",
+    "composite",
     "title",
     "header",
     "footer",
@@ -221,6 +233,14 @@ const FONTS: [&str; 11] = [
 ];
 
 impl Skin {
+    /// The look of a frame of `kind`, and how round its corners are.
+    pub fn frame_of(&self, kind: super::FrameKind) -> (&Look, f32) {
+        match kind {
+            super::FrameKind::Partition => (&self.partition, self.partition_round),
+            _ => (&self.frame, self.frame_round),
+        }
+    }
+
     pub fn from_params(params: &[Skinparam]) -> Result<Skin, Declined> {
         let mut skin = Skin::default();
         // Font settings for every element, applied after the rest so an
@@ -305,6 +325,10 @@ impl Skin {
                 "partitionbordercolor" => skin.partition.border = p.solid()?,
                 "partitionborderthickness" => skin.partition.thickness = p.number(0.0, 20.0)?,
                 "partitionroundcorner" => skin.partition_round = p.corner()?,
+                "compositebackgroundcolor" => skin.frame.fill = p.paint()?,
+                "compositebordercolor" => skin.frame.border = p.solid()?,
+                "compositeborderthickness" => skin.frame.thickness = p.number(0.0, 20.0)?,
+                "compositeroundcorner" => skin.frame_round = p.corner()?,
                 _ => {
                     let Some((element, property)) = split_font(&key) else {
                         return Err(p.unsupported());
@@ -427,7 +451,21 @@ pub const STYLE: &[Element] = &[
         ],
     ),
     Element::new(&["element", "activityDiagram", "note"], "Note", LOOK),
-    // Partitions and groups, which PlantUML's styles name `partition`.
+    // Every frame (`composite`), and partitions alone (`partition`), as
+    // PlantUML's styles name them.
+    Element::new(
+        &["element", "activityDiagram", "composite"],
+        "Composite",
+        &[
+            Prop::BackGroundColor,
+            Prop::LineColor,
+            Prop::LineThickness,
+            Prop::FontColor,
+            Prop::FontSize,
+            Prop::FontStyle,
+            Prop::RoundCorner,
+        ],
+    ),
     Element::new(
         &["element", "activityDiagram", "composite", "partition"],
         "Partition",
@@ -468,6 +506,7 @@ fn font_of<'a>(skin: &'a mut Skin, element: &str) -> &'a mut Font {
         "swimlanetitle" => &mut skin.lane_font,
         "note" => &mut skin.note.font,
         "partition" => &mut skin.partition.font,
+        "composite" => &mut skin.frame.font,
         "title" => &mut skin.title_font,
         "header" => &mut skin.header_font,
         "footer" => &mut skin.footer_font,
