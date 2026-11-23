@@ -1511,6 +1511,12 @@ is open and the reasoning around it.
       label it reaches mmdr as a letter of the private use area and is
       put back in the words mmdr read (`layered::reading::read`); a
       statement about parts keeps its quotes.
+- [x] Lint says a flowchart's spacing is not carried out (REQ-110,
+      2026-11-23): `flowchart.nodeSpacing` and `rankSpacing` reach mmdr's
+      layout alone, which draws a flowchart only where Omaspec's drawer
+      declines it, and lint counted them as carried out; a picture with
+      150 was as large as one without. Now each is a warning on its line,
+      so `lint --strict` fails, as with `padding` and `elk`.
 
 ## Next
 

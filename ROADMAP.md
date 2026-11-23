@@ -383,9 +383,6 @@ what is plainly missing, then the larger pieces.
 Reproduced on `main` (9f7a72a), in the order they are taken: first what
 is lost without a word, then what misleads, then what is missing.
 
-- [ ] REQ-110: `nodeSpacing` and `rankSpacing` (in `init` or the front
-      matter) change nothing in a flowchart, and `lint --strict` says
-      nothing of it, as it does of `padding` and `elk`.
 - [ ] REQ-109: `play --help` says `--look` without `--ink` sets the
       play's colors; the command line refuses it.
 - [ ] REQ-113: a state reached only by a hidden arrow is said to be
@@ -400,6 +397,9 @@ is lost without a word, then what misleads, then what is missing.
       notes, of a state machine with its transitions.
 - [ ] REQ-104: `render --fold NAME`, and in `export`: a container folded
       in the picture, as the editor folds it.
+- [ ] REQ-110, the rest: `nodeSpacing` and `rankSpacing` carried out by
+      the graph engine, whose gaps are its own (`CROSS_GAP`, the ranks'
+      gaps); lint says they are not since 2026-11-23.
 - [ ] REQ-111: `padding` and `elk` carried out in Mermaid flowcharts.
 - [ ] REQ-103: `@startchart` drawn natively; the Java PlantUML hangs or
       crashes on it (plantuml/plantuml#3030, #3031).

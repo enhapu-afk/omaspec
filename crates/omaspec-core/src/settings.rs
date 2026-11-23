@@ -407,7 +407,9 @@ const THEMES: [&str; 7] = [
 
 /// Whether Omaspec carries the setting at `path` out, or it changes no
 /// picture. The drawers' own list is `apply_init` in `omaspec-render`:
-/// a setting added there is added here.
+/// a setting added there is added here. `flowchart.nodeSpacing` and
+/// `rankSpacing` reach mmdr's layout alone, which draws a flowchart only
+/// where Omaspec's own drawer declines it, so they are not (REQ-110).
 fn heeded(path: &[String]) -> bool {
     let path: Vec<&str> = path.iter().map(String::as_str).collect();
     match path.as_slice() {
@@ -421,7 +423,7 @@ fn heeded(path: &[String]) -> bool {
                     .and_then(|n| n.parse::<u8>().ok())
                     .is_some_and(|n| (1..=12).contains(&n))
         }
-        ["flowchart", "nodeSpacing" | "rankSpacing" | "curve"] => true,
+        ["flowchart", "curve"] => true,
         ["sequence", "mirrorActors"] => true,
         ["gitGraph", name] => omaspec_uml::gitgraph::SETTINGS.contains(name),
         _ => false,
@@ -649,6 +651,17 @@ mod tests {
         assert!(found[0].message.starts_with("`neon` is no theme") && found[0].line == 2);
         assert!(found[1].message.starts_with("`layout`") && found[1].line == 4);
         assert!(unheeded("flowchart TD\n  A --> B\n").is_empty());
+        // A flowchart's spacing reaches mmdr's layout alone, which Omaspec's
+        // drawer does not take (REQ-110); its curve it takes.
+        let spaced = "%%{init: {\"flowchart\": {\"nodeSpacing\": 150, \"rankSpacing\": 150, \"curve\": \"basis\"}}}%%\nflowchart TD\n  A --> B\n";
+        let said: Vec<String> = unheeded(spaced).into_iter().map(|f| f.message).collect();
+        assert_eq!(
+            said,
+            [
+                "`flowchart.nodeSpacing` is not carried out: Omaspec draws the diagram without this setting",
+                "`flowchart.rankSpacing` is not carried out: Omaspec draws the diagram without this setting",
+            ]
+        );
         // One nested without end is left to the drawer, which refuses it.
         let deep = format!(
             "%%{{init: {}1{}}}%%\nflowchart TD\n",
