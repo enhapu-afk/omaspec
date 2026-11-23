@@ -38,8 +38,12 @@ pub struct Scenario {
 
 #[derive(Debug, Clone)]
 pub struct Message {
-    /// From the sender to the tip of its head.
+    /// From the sender to the tip of its head; none for a note of its own,
+    /// which is a step too.
     pub points: Vec<(f32, f32)>,
+    /// The boxes lit with it, `[x, y, w, h]`: a note beside a message, or
+    /// the note that is the step.
+    pub also: Vec<[f32; 4]>,
     /// The band of the diagram it takes up.
     pub top: f32,
     pub bottom: f32,
@@ -189,6 +193,7 @@ fn data(l: &Lockstep) -> Value {
             "paper": l.scenario.paper.to_string(),
             "messages": l.scenario.messages.iter().map(|m| json!({
                 "points": points(&m.points),
+                "also": m.also.iter().map(|&[x, y, w, h]| [round(x), round(y), round(w), round(h)]).collect::<Vec<_>>(),
                 "top": round(m.top),
                 "bottom": round(m.bottom),
                 "start": round(m.start),
@@ -250,6 +255,7 @@ mod tests {
                 paper: Color::WHITE,
                 messages: vec![Message {
                     points: vec![(0.0, 5.0), (30.0, 5.0)],
+                    also: Vec::new(),
                     top: 0.0,
                     bottom: 10.0,
                     start: 0.5,

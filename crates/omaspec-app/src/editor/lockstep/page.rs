@@ -95,7 +95,9 @@ pub(super) fn write(
     let mut played = vec![0usize; step.players.len()];
     let mut messages = Vec::new();
     let mut t = START;
-    for message in &scenario.map.messages {
+    // Each step of the scenario, a note of its own too, on which no
+    // machine moves (REQ-106).
+    for message in &scenario.map.steps() {
         // A group sends players back, or on, before the message: a
         // player's steps one after another, as the panes take them.
         let mut moved = false;
@@ -118,6 +120,7 @@ pub(super) fn write(
         let arrive = start + travel_millis(&message.points) as f32 / 1000.0;
         messages.push(page::Message {
             points: message.points.clone(),
+            also: message.also.clone(),
             top: message.top,
             bottom: message.bottom,
             start,
@@ -211,7 +214,12 @@ pub(super) fn write(
         args.file.display(),
         args.output.display(),
         written.len().div_ceil(1024),
-        lockstep.scenario.messages.len(),
+        lockstep
+            .scenario
+            .messages
+            .iter()
+            .filter(|m| m.points.len() > 1)
+            .count(),
         match not_taken {
             0 => "every one taken".to_owned(),
             n => format!("{n} not taken"),

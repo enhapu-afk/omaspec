@@ -126,7 +126,8 @@
     veil.setAttribute("y", edge);
     veil.setAttribute("height", Math.max(0, box.y + box.height - edge));
     sent.forEach((m, i) => {
-      if (i !== current) {
+      // A note has no arrow for a light: its band alone lights it.
+      if (i !== current || m.points.length < 2) {
         // Only the message sent last is lit; those before it rest as drawn.
         m.path.setAttribute("opacity", 0);
         m.glow.setAttribute("opacity", 0);
@@ -140,7 +141,9 @@
     });
     if (current >= 0) {
       const m = sent[current];
-      const xs = m.points.map((p) => p[0]);
+      // Across its arrow and the boxes lit with it: a note beside it, or
+      // the note that is the step.
+      const xs = m.points.map((p) => p[0]).concat((m.also || []).flatMap(([x, , w]) => [x, x + w]));
       band.setAttribute("x", Math.min(...xs) - 12);
       band.setAttribute("width", Math.max(...xs) - Math.min(...xs) + 24);
       band.setAttribute("y", m.top - 2);

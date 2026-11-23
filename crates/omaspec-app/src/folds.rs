@@ -43,7 +43,7 @@ impl Folded {
 /// written `\,` or inside double quotes round a name, as `--events` takes
 /// them; each trimmed and once. An empty name is an error.
 pub(crate) fn names(values: &[String]) -> anyhow::Result<Vec<String>> {
-    let split = crate::editor::moving::split_names(values, "--fold")?;
+    let split = crate::editor::moving::split_names(values, "--fold", "container")?;
     let mut out: Vec<String> = Vec::new();
     for name in split {
         if !out.contains(&name) {
@@ -98,10 +98,49 @@ pub(crate) fn render(
     if folds.is_empty() {
         return Ok((whole, Folded::default()));
     }
+    let found = of(text, &whole, folds);
+    let already = omaspec_uml::fold::read(text);
+    let more: Vec<String> = found
+        .held
+        .iter()
+        .filter(|name| !already.contains(name))
+        .cloned()
+        .collect();
+    if more.is_empty() {
+        return Ok((whole, found));
+    }
+    let text = folded(text, &more, language);
+    let mut drawn = crate::look::render(maps, renderer, &text, language, path, place, skin)?;
+    // It was drawn twice: both take their time.
+    drawn.elapsed += whole.elapsed;
+    Ok((drawn, found))
+}
+
+/// What `text`, drawn as it is, holds of `folds`, without the picture
+/// folded: for names to be checked before anything is written.
+pub(crate) fn held(
+    maps: &mut Maps,
+    renderer: &mut Renderer,
+    text: &str,
+    language: Language,
+    path: Option<&Path>,
+    place: Option<&Place>,
+    folds: &[String],
+) -> Result<Folded, RenderError> {
+    let whole = crate::look::render(maps, renderer, text, language, path, place, None)?;
+    Ok(of(text, &whole, folds))
+}
+
+/// What `text`, drawn as `whole`, holds of `folds`.
+fn of(text: &str, whole: &Rendered, folds: &[String]) -> Folded {
     let java = whole.engine == omaspec_render::Engine::JavaPlantUml;
     // A container the file folds itself (a fold line in it, as docs/adr/0024
-    // lets one write) is drawn folded already: held, and offered.
-    let already = omaspec_uml::fold::read(text);
+    // lets one write) is drawn folded already: held, and offered, where the
+    // picture has its box; Java's has none, nor a line left from a name.
+    let already: Vec<String> = omaspec_uml::fold::read(text)
+        .into_iter()
+        .filter(|name| !java && whole.map.places.iter().any(|place| &place.name == name))
+        .collect();
     let mut offered = containers(&whole.map);
     for name in &already {
         if !offered.contains(name) {
@@ -114,33 +153,11 @@ pub(crate) fn render(
             held.push(name.clone());
         }
     }
-    let more: Vec<String> = held
-        .iter()
-        .filter(|name| !already.contains(name))
-        .cloned()
-        .collect();
-    if more.is_empty() {
-        return Ok((
-            whole,
-            Folded {
-                held,
-                offered,
-                java,
-            },
-        ));
+    Folded {
+        held,
+        offered,
+        java,
     }
-    let text = folded(text, &more, language);
-    let mut drawn = crate::look::render(maps, renderer, &text, language, path, place, skin)?;
-    // It was drawn twice: both take their time.
-    drawn.elapsed += whole.elapsed;
-    Ok((
-        drawn,
-        Folded {
-            held,
-            offered,
-            java,
-        },
-    ))
 }
 
 /// `names` as a list to read: one with a comma in it in double quotes.

@@ -47,7 +47,7 @@ pub struct Travel {
 pub const MACHINE_STEPS: usize = 8;
 
 /// The messages or commits a scenario's or a git graph's play takes
-/// without `--steps`. Each keeps some two seconds of frames until the
+/// without `--steps`, its notes of their own besides. Each keeps some two seconds of frames until the
 /// picture is written, 5 MB of them for a large sequence diagram in full
 /// color: fifty keep a film within a few hundred MB. One that stops here
 /// says so.
@@ -647,8 +647,17 @@ impl Stage {
         self.step(moving);
         let mut taken = Vec::new();
         let mut walked = Vec::new();
-        // Where a scenario stood when the play stopped, of all its steps.
+        // Where a scenario stood when the play stopped, of all its steps;
+        // its notes of their own are steps too, and the default counts
+        // its messages (REQ-106).
         let mut scenario = None;
+        let notes = {
+            let paper = &self.app.doc().paper;
+            paper
+                .step_lines()
+                .len()
+                .saturating_sub(paper.message_lines().len())
+        };
         for step in 0.. {
             let offer = self.app.doc().paper.offer();
             let Some(paper::Offer::Machine { options, ended, .. }) = offer else {
@@ -667,7 +676,7 @@ impl Stage {
                 };
                 let limit = match (args.steps, at) {
                     (Some(steps), _) => steps,
-                    (None, Some(_)) => SCENARIO_STEPS,
+                    (None, Some(_)) => SCENARIO_STEPS + notes,
                     (None, None) => args.machine_steps(),
                 };
                 if step >= limit {
@@ -707,12 +716,9 @@ impl Stage {
             self.send(Message::Command(Command::PlayAsk(Ask::Restart)));
             self.step(moving);
         }
-        // A scenario's notes of their own are steps too (REQ-106).
-        let paper = &self.app.doc().paper;
-        let notes = paper.step_lines().len() > paper.message_lines().len();
         Ok(match scenario {
             Some((at, of, commits)) if at < of => {
-                stopped(at, of, commits, notes, args.steps.is_some())
+                stopped(at, of, commits, notes > 0, args.steps.is_some())
             }
             _ if taken.is_empty() => "played".to_owned(),
             _ => taken.join(", "),
@@ -1044,13 +1050,18 @@ fn rehearse(args: &Moving) -> Result<()> {
 /// more than once. An empty event, or a quote not closed, is an error, not
 /// a play of the first events offered.
 pub fn events(values: &[String]) -> Result<Vec<String>> {
-    split_names(values, "--events")
+    split_names(values, "--events", "event")
 }
 
-/// The names the values of `option` give, as [`events`] takes them: apart
-/// at each comma but for `\,` or one in double quotes, trimmed; an empty
-/// one, or a quote not closed, is an error.
-pub fn split_names(values: &[String], option: &str) -> Result<Vec<String>> {
+/// The names of `noun`s the values of `option` give, as [`events`] takes
+/// them: apart at each comma but for `\,` or one in double quotes,
+/// trimmed; an empty one, or a quote not closed, is an error.
+pub fn split_names(values: &[String], option: &str, noun: &str) -> Result<Vec<String>> {
+    let a = if noun.starts_with(['a', 'e', 'i', 'o', 'u']) {
+        "an"
+    } else {
+        "a"
+    };
     let mut events = Vec::new();
     for value in values {
         let mut event = String::new();
@@ -1086,14 +1097,14 @@ pub fn split_names(values: &[String], option: &str) -> Result<Vec<String>> {
         }
         anyhow::ensure!(
             !quoted,
-            r"{option} {value}: a double quote is not closed; a name with a comma in it is written in double quotes or with \,"
+            r"{option} {value}: a double quote is not closed; {a} {noun} with a comma in its name is written in double quotes or with \,"
         );
         events.push(event);
     }
     let events: Vec<String> = events.iter().map(|event| event.trim().to_owned()).collect();
     anyhow::ensure!(
         events.iter().all(|event| !event.is_empty()),
-        "{option} names an empty one: {}",
+        "{option} names an empty {noun}: {}",
         values.join(" ")
     );
     Ok(events)

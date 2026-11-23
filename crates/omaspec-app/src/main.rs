@@ -462,9 +462,10 @@ enum Command {
         /// it: `--events 'start,"hello, world"'`.
         #[arg(long)]
         events: Vec<String>,
-        /// How many steps at most. Without it a state machine takes 8, or
-        /// as many as `--events` names; a scenario every message and a git
-        /// graph every commit, up to 50, and says where it stopped.
+        /// How many steps at most, a scenario's notes of their own counted.
+        /// Without it a state machine takes 8, or as many as `--events`
+        /// names; a scenario every message and note and a git graph every
+        /// commit, up to 50 messages or commits, and says where it stopped.
         #[arg(long)]
         steps: Option<usize>,
         /// The picture's width in pixels; its height follows the diagram.
@@ -642,9 +643,10 @@ enum Command {
         /// name with a comma in it in double quotes or with `\,`. The
         /// picture shows the box and what it holds in numbers, its lines
         /// ending on it; the image keeps the file's source, and the names,
-        /// so `--check` draws it so again. A name no diagram holds is an
-        /// error that lists the containers there are, and nothing is
-        /// written.
+        /// so `--check` draws it so again (it needs the source kept beside
+        /// the diagram). A name no diagram holds is an error that lists the
+        /// containers there are, and nothing is written; where a diagram
+        /// does not draw, that is said instead.
         #[arg(long, value_name = "NAME", conflicts_with = "check")]
         fold: Vec<String>,
         /// Print a JSON report on stdout instead of status lines.
@@ -684,7 +686,9 @@ enum Command {
         look: Option<crate::look::Look>,
         /// Fold these containers to their box in every diagram that holds
         /// them, as `render --fold` does; the map is drawn whole. A name
-        /// no diagram holds stops the export before anything is written.
+        /// no diagram holds stops the export before anything is written;
+        /// where a diagram does not draw, that is said instead, and the
+        /// rest is exported.
         #[arg(long, value_name = "NAME")]
         fold: Vec<String>,
         /// Print a JSON report on stdout instead of status lines.

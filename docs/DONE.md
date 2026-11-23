@@ -1612,6 +1612,26 @@ is open and the reasoning around it.
       window, in a film and on a presentation's page. Lockstep steps on a
       note without a machine moving, and still counts messages. A play
       stopped short says steps where a scenario has notes of their own.
+- [x] What the review of the notes as steps and the last fold fixes
+      found (2026-11-23): a note's line was not given back to the file
+      under a look or the Omarchy colors, as the editor draws by default,
+      so the machines beside a scenario and in a lockstep film moved on
+      its step too early; it is now, with the messages'. The presenter's
+      view shows the speaker's notes of the next step, a note's too, and
+      says steps where there are notes. A play's steps go by the lines
+      they are written on, not by height: messages side by side (`&`)
+      kept their order no more where a note stood among them. A note
+      beside what stands before it (`/`) reaches as far down, so the veil
+      does not climb back. The default of 50 counts messages, the notes
+      besides. A lockstep's page in vectors steps on notes too. Of the
+      folds: several diagrams are checked for the names before anything
+      is drawn to be written, each holding only what it needs, not every
+      picture at once; a name none holds is said in each diagram's report,
+      not a report of its own; a fold line left in a file folds nothing
+      where no box is folded, nor where the Java PlantUML drew; a folded
+      picture beside its diagram needs the source kept (`--no-source` is
+      refused), so `--check` can draw it so again; the map's refusal comes
+      before anything is drawn; `--events` names an empty event again.
 
 ## Next
 

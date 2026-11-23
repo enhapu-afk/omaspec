@@ -1145,6 +1145,11 @@ fn render_folds_the_containers_named_and_keeps_the_file_s_source() {
         .to_owned();
     assert!(said.contains("they have Brewing, Core"), "{said}");
     assert_eq!(fs::read(&svg).unwrap(), before, "nothing written");
+    // Beside its diagram, a folded picture keeps its folds with the
+    // source; without one it could not be held again.
+    let out = omaspec(&["render", coffee, "--fold", "Brewing", "--no-source"]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("--no-source"));
     // Text and a presentation are the whole behavior.
     for output in ["coffee.txt", "coffee.html"] {
         let out = omaspec(&[

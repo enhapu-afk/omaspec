@@ -381,12 +381,13 @@ pub struct Step {
 
 impl Map {
     /// The steps of a play, in order: the messages, and the notes of
-    /// their own between them, by where each starts (a git graph's
-    /// commits alone).
+    /// their own between them, by the lines they are written on, as the
+    /// drawer takes them (a git graph's commits alone). Not by height:
+    /// messages side by side (`&`) stand at heights of their own.
     pub fn steps(&self) -> Vec<Step> {
         let mut steps: Vec<Step> = self.messages.iter().chain(&self.notes).cloned().collect();
         if !self.notes.is_empty() {
-            steps.sort_by(|a, b| a.top.total_cmp(&b.top).then(a.line.cmp(&b.line)));
+            steps.sort_by_key(|step| step.line);
         }
         steps
     }

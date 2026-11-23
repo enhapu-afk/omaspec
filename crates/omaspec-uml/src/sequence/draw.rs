@@ -2615,12 +2615,24 @@ impl<'a> Drawer<'a> {
             &text,
             fill,
         );
-        // A step of a play of its own, lit as a message is (REQ-106).
+        // A step of a play of its own, lit as a message is (REQ-106). One
+        // beside what stands before it (`/`) reaches at least as far down,
+        // so the veil does not climb back over it.
+        let before = self
+            .steps
+            .iter()
+            .chain(&self.note_steps)
+            .map(|step| step.bottom)
+            .fold(0.0, f32::max);
         self.note_steps.push(Step {
             line: note.line,
             points: Vec::new(),
             top,
-            bottom: y + height + 3.0,
+            bottom: if note.together {
+                (y + height + 3.0).max(before)
+            } else {
+                y + height + 3.0
+            },
             also: vec![[x, y, width, height]],
         });
         if let Some((column, right)) = beside {
@@ -3331,6 +3343,23 @@ mod tests {
         // In order down the page: one, the note, two.
         let lines: Vec<usize> = map.steps().iter().map(|s| s.line).collect();
         assert_eq!(lines, [1, 3, 4]);
+        // Messages side by side keep the order written, the first of them
+        // lower where the second's words are taller; a note beside what
+        // stands before it (`/`) reaches as far down, so the veil does not
+        // climb back over the message.
+        let source = "@startuml\nA -> B : x\n& C -> D : two\\nlines\nnote over A : n\nB -> A : back\n/ note over C : beside\n@enduml\n";
+        let Ok(crate::Diagram::Sequence(d)) = crate::parse(source) else {
+            panic!("a sequence");
+        };
+        let (_, map) = draw_mapped(&d).unwrap();
+        let steps = map.steps();
+        let lines: Vec<usize> = steps.iter().map(|s| s.line).collect();
+        assert_eq!(lines, [1, 2, 3, 4, 5]);
+        assert!(
+            steps[4].bottom >= steps[3].bottom,
+            "{:?}",
+            (steps[3].bottom, steps[4].bottom)
+        );
     }
 
     /// A box with a fill is a ground of the map, where it is drawn and in

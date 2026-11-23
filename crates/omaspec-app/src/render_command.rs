@@ -133,6 +133,26 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         args.folds.is_empty() || format != Format::Html,
         "--fold folds a picture; a presentation plays the whole machine"
     );
+    // A project's map is drawn whole; among diagrams, it is left so.
+    anyhow::ensure!(
+        args.folds.is_empty()
+            || pieces.len() > 1
+            || pieces.iter().all(|piece| {
+                piece
+                    .input
+                    .path
+                    .as_deref()
+                    .and_then(crate::look::map_root)
+                    .is_none()
+            }),
+        "--fold folds a diagram's containers; a project's map is drawn whole"
+    );
+    // A picture beside its diagram keeps its folds with the source it
+    // stores, so `--check` draws it so again.
+    anyhow::ensure!(
+        args.folds.is_empty() || args.source || args.output.is_some() || args.copy,
+        "--fold keeps the folds of a picture beside its diagram with the source it stores, which --no-source leaves out; give -o, or keep the source"
+    );
     anyhow::ensure!(
         args.look != Some(crate::look::Look::Auto) || format == Format::Svg,
         "--look auto makes an SVG, which a viewer turns dark with its own scheme; for {} take light or dark",
@@ -181,12 +201,51 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             eprintln!("{}: error: {message}", input.name());
         }
     }
-    // The containers of `--fold` some diagram held, and every one they have.
-    let (mut held, mut offered): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
-    // With `--fold`, every picture is drawn before one is written: a name
-    // no diagram holds writes none.
-    let mut drawn: Vec<(&crate::document::Piece, Option<PathBuf>, Exported)> = Vec::new();
-    let mut drew_all = true;
+    // Of several diagrams, each name to fold is held by one at least, or
+    // none is written: what they hold is seen before anything is drawn to
+    // be written. One that does not draw may hold it; it is said below,
+    // as without `--fold`.
+    if !args.folds.is_empty() && pieces.len() > 1 {
+        let (mut held, mut offered): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
+        let mut drew_all = true;
+        for piece in &pieces {
+            let path = piece.input.path.as_deref();
+            if path.and_then(crate::look::map_root).is_some() {
+                continue;
+            }
+            let place = path.and_then(|path| omaspec_render::Place::of(path, None));
+            match crate::folds::held(
+                &mut maps,
+                &mut renderer,
+                &piece.code,
+                piece.language,
+                path,
+                place.as_ref(),
+                args.folds,
+            ) {
+                Ok(folded) => folded.gather(&mut held, &mut offered),
+                Err(_) => drew_all = false,
+            }
+        }
+        if drew_all && let Some(name) = crate::folds::first_unheld(args.folds, &held) {
+            let message = crate::folds::held_by_none(name, &offered);
+            if args.json {
+                for piece in &pieces {
+                    reports.push(Report {
+                        file: piece.input.name(),
+                        message: Some(message.clone()),
+                        ..Report::default()
+                    });
+                }
+                let mut out = stdout();
+                serde_json::to_writer_pretty(&mut out, &reports)?;
+                writeln!(out)?;
+            } else {
+                eprintln!("error: {message}");
+            }
+            return Ok(ExitCode::FAILURE);
+        }
+    }
     for piece in &pieces {
         let input = piece.input;
         // Where the picture goes: a file, else the clipboard or standard
@@ -197,17 +256,6 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             (Some(_), _) | (None, None) => None,
             (None, Some(_)) => piece.image_path(format.extension()),
         };
-        // A project's map is drawn whole; among diagrams, it is left so.
-        anyhow::ensure!(
-            args.folds.is_empty()
-                || pieces.len() > 1
-                || input
-                    .path
-                    .as_deref()
-                    .and_then(crate::look::map_root)
-                    .is_none(),
-            "--fold folds a diagram's containers; a project's map is drawn whole"
-        );
         let exported = match export_piece(
             piece,
             &mut maps,
@@ -229,7 +277,6 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             Ok(exported) => exported,
             Err(err) => {
                 failed = true;
-                drew_all = false;
                 let (line, engine, message) = failure(&err);
                 let line = line.map(|l| piece.line(l - 1) + 1);
                 if args.json {
@@ -254,33 +301,6 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         {
             anyhow::bail!(crate::folds::not_held_in(name, &exported.folded));
         }
-        exported.folded.gather(&mut held, &mut offered);
-        if args.folds.is_empty() {
-            emit(args, format, piece, dest, exported, &mut reports)?;
-        } else {
-            drawn.push((piece, dest, exported));
-        }
-    }
-    // Of several diagrams, each name is held by one at least, or none is
-    // written; where one did not draw, it may hold it, and that is said.
-    if pieces.len() > 1
-        && drew_all
-        && let Some(name) = crate::folds::first_unheld(args.folds, &held)
-    {
-        failed = true;
-        drawn.clear();
-        let message = crate::folds::held_by_none(name, &offered);
-        if args.json {
-            reports.push(Report {
-                file: "--fold".to_owned(),
-                message: Some(message),
-                ..Report::default()
-            });
-        } else {
-            eprintln!("error: {message}");
-        }
-    }
-    for (piece, dest, exported) in drawn {
         emit(args, format, piece, dest, exported, &mut reports)?;
     }
     if args.json {

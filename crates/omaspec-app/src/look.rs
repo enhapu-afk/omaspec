@@ -524,6 +524,7 @@ impl LineShift {
             .map(|spot| &mut spot.line)
             .chain(map.transitions.iter_mut().map(|route| &mut route.line))
             .chain(map.messages.iter_mut().map(|step| &mut step.line))
+            .chain(map.notes.iter_mut().map(|step| &mut step.line))
             .chain(map.cells.iter_mut().map(|cell| &mut cell.line))
             .chain(map.misses.iter_mut().map(|(line, _)| line))
             .chain(map.tied.iter_mut().map(|tied| &mut tied.line))
@@ -604,6 +605,19 @@ mod tests {
         };
         assert_eq!(line(None), Some(7));
         assert_eq!(line(Some(Look::Light)), Some(7));
+        // A scenario's steps, its notes of their own too (REQ-106).
+        let scenario = "@startuml\nA -> B : one\nnote over A, B: between\nB -> A : two\n@enduml\n";
+        let mut steps = |look| -> Vec<usize> {
+            draw(scenario, look)
+                .unwrap()
+                .map
+                .steps()
+                .iter()
+                .map(|step| step.line)
+                .collect()
+        };
+        assert_eq!(steps(None), [1, 2, 3]);
+        assert_eq!(steps(Some(Look::Light)), [1, 2, 3]);
     }
 
     #[test]

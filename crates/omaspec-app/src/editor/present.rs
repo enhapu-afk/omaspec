@@ -179,13 +179,17 @@ fn comment(line: &str) -> Option<String> {
 }
 
 /// Where the play is, in a few words: a scenario's message of all (a git
-/// graph's commit), a
-/// machine's states and its options with the digit that takes each, a
-/// trace's line.
-fn where_at(offer: &paper::Offer) -> String {
+/// graph's commit; a step where it has `notes` of their own, which are
+/// steps too), a machine's states and its options with the digit that
+/// takes each, a trace's line.
+fn where_at(offer: &paper::Offer, notes: bool) -> String {
     match offer {
         paper::Offer::Scenario { at, of, commits } => {
-            let noun = if *commits { "commit" } else { "message" };
+            let noun = match (commits, notes) {
+                (true, _) => "commit",
+                (false, true) => "step",
+                (false, false) => "message",
+            };
             format!("{noun} {at} of {of}")
         }
         paper::Offer::Machine {
@@ -353,13 +357,17 @@ impl App {
         let source = doc.text();
         let notes = notes(&source, presenting.line);
         let (state, color) = match doc.paper.offer() {
-            Some(offer) => (where_at(&offer), p.accent),
+            Some(offer) => {
+                let notes = doc.paper.step_lines().len() > doc.paper.message_lines().len();
+                (where_at(&offer, notes), p.accent)
+            }
             None => doc.paper.state(p),
         };
-        // A scenario's next message, and its notes, to see what comes.
+        // A scenario's next step, and its speaker's notes, to see what
+        // comes: a message or a note of its own.
         let next = match doc.paper.offer() {
             Some(paper::Offer::Scenario { at, of, .. }) if at < of => {
-                doc.paper.message_lines().get(at).copied()
+                doc.paper.step_lines().get(at).copied()
             }
             _ => None,
         };

@@ -178,7 +178,8 @@ fn pairs<S: serde::Serializer>(pairs: &[(String, String)], s: S) -> Result<S::Ok
 /// not draw is reported and left out; two diagrams that would be one SVG
 /// (`a.puml` and `a.mmd`), one that would be the map's `index.svg`, or a
 /// name to fold that no diagram holds stop the export before anything is
-/// written.
+/// written; where a diagram does not draw, it may hold the name, and is
+/// said instead.
 pub fn export(
     root: &Path,
     out: Option<&Path>,
