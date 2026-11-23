@@ -126,12 +126,18 @@ impl Machine {
     /// The state machine `code` describes, if it is a state diagram the
     /// readers fully understand.
     pub fn read(code: &str, lang: Language) -> Option<Machine> {
+        Self::read_placed(code, lang).map(|(machine, _)| machine)
+    }
+
+    /// [`Machine::read`], and the hidden arrows that only place two of its
+    /// states, by index (PlantUML's `-[hidden]->`; Mermaid has none).
+    fn read_placed(code: &str, lang: Language) -> Option<(Machine, Vec<(usize, usize)>)> {
         if classify(code, lang).kind != DiagramKind::State {
             return None;
         }
         match lang {
-            Language::PlantUml => plantuml::read(code),
-            Language::Mermaid => mermaid::read(code),
+            Language::PlantUml => plantuml::read_placed(code),
+            Language::Mermaid => mermaid::read(code).map(|machine| (machine, Vec::new())),
         }
     }
 
@@ -285,9 +291,9 @@ pub fn check(code: &str, lang: Language) -> Vec<Finding> {
 /// [`check`], and whether the machine was read: where it was not, the
 /// findings say why.
 fn checked(code: &str, lang: Language) -> (Vec<Finding>, bool) {
-    match Machine::read(code, lang) {
-        Some(m) => {
-            let mut found = check::machine(&m);
+    match Machine::read_placed(code, lang) {
+        Some((m, hidden)) => {
+            let mut found = check::placed(&m, &hidden);
             // A line a fix puts in stands as deep as the line before it.
             let lines: Vec<&str> = code.split('\n').collect();
             for fix in found.iter_mut().filter_map(|f| f.fix.as_mut()) {

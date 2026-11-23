@@ -7,16 +7,19 @@ use omaspec_uml::state::{Container, Dash, Kind as NodeKind, Transition as Arrow}
 
 use crate::{Kind, Machine, State, Transition, Trigger};
 
-/// The machine of a PlantUML state diagram; `None` if the engine declines
-/// the diagram or it is no state diagram.
-pub fn read(code: &str) -> Option<Machine> {
+/// The machine of a PlantUML state diagram, and the hidden arrows between
+/// its states, `from` and `to` by index: they only place the states and
+/// are no transitions, but the checks name them where a state is met by
+/// one alone (REQ-113). `None` if the engine declines the diagram or it
+/// is no state diagram.
+pub fn read_placed(code: &str) -> Option<(Machine, Vec<(usize, usize)>)> {
     let Ok(Diagram::State(diagram)) = omaspec_uml::parse(code) else {
         return None;
     };
     let mut reader = Reader::default();
     reader.container(&diagram.root, &[], None, 0);
     reader.links(&diagram.root, &[]);
-    Some(reader.machine)
+    Some((reader.machine, reader.hidden))
 }
 
 #[derive(Default)]
@@ -24,6 +27,8 @@ struct Reader {
     machine: Machine,
     /// Each node's state, by its path from the diagram down.
     states: HashMap<Vec<usize>, usize>,
+    /// The hidden arrows, by the states they place.
+    hidden: Vec<(usize, usize)>,
 }
 
 impl Reader {
@@ -75,17 +80,14 @@ impl Reader {
     /// Adds the transitions of `container` at `path` and of every
     /// container inside it.
     fn links(&mut self, container: &Container, path: &[usize]) {
-        // A hidden arrow only places the states; it is no transition.
-        for edge in container.edges.iter().filter(|e| e.dash != Dash::Hidden) {
+        // A hidden arrow only places the states; it is no transition, and
+        // [`Self::link`] keeps it aside.
+        for edge in &container.edges {
             let from = [path, &[edge.from]].concat();
             let to = [path, &[edge.to]].concat();
             self.link(&from, &to, edge);
         }
-        for crossing in container
-            .crossings
-            .iter()
-            .filter(|c| c.arrow.dash != Dash::Hidden)
-        {
+        for crossing in &container.crossings {
             let from = [path, &crossing.from].concat();
             let to = [path, &crossing.to].concat();
             self.link(&from, &to, &crossing.arrow);
@@ -99,6 +101,10 @@ impl Reader {
         let (Some(&from), Some(&to)) = (self.states.get(from), self.states.get(to)) else {
             return;
         };
+        if arrow.dash == Dash::Hidden {
+            self.hidden.push((from, to));
+            return;
+        }
         self.machine.transitions.push(Transition {
             from,
             to,
@@ -114,6 +120,10 @@ impl Reader {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn read(code: &str) -> Option<Machine> {
+        read_placed(code).map(|(machine, _)| machine)
+    }
 
     /// A note of its own and a hidden arrow are no part of the machine.
     #[test]
@@ -132,6 +142,9 @@ mod tests {
             "{names:?}"
         );
         assert_eq!(m.transitions.len(), 2, "{:?}", m.transitions);
+        let (_, hidden) =
+            read_placed("@startuml\n[*] --> Idle\nIdle -[hidden]-> Later\n@enduml\n").unwrap();
+        assert_eq!(hidden.len(), 1);
     }
 
     #[test]

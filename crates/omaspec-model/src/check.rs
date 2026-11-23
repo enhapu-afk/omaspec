@@ -21,10 +21,18 @@ use crate::{Kind, Machine};
 
 /// The findings for `m`, in line order.
 pub fn machine(m: &Machine) -> Vec<Finding> {
+    placed(m, &[])
+}
+
+/// [`machine`], with the arrows that only place two of its states
+/// (`-[hidden]->`, by index): no transitions, but a state that one alone
+/// reaches or leaves is said to be so, where the arrow drawn would seem
+/// to say otherwise (REQ-113).
+pub(crate) fn placed(m: &Machine, hidden: &[(usize, usize)]) -> Vec<Finding> {
     let mut out = Vec::new();
     let reached = reachable(m);
     match &reached {
-        Some(reached) => unreachable(m, reached, &mut out),
+        Some(reached) => unreachable(m, reached, hidden, &mut out),
         None => {
             if let Some(first) = m.states.iter().find(|s| s.kind == Kind::State) {
                 out.push(finding(
@@ -37,7 +45,7 @@ pub fn machine(m: &Machine) -> Vec<Finding> {
             }
         }
     }
-    dead_ends(m, reached.as_deref(), &mut out);
+    dead_ends(m, reached.as_deref(), hidden, &mut out);
     ambiguous(m, &mut out);
     entered_without_start(m, &mut out);
     // By line, an error before a warning on the same line.
@@ -133,22 +141,34 @@ fn named(m: &Machine, state: usize) -> bool {
 }
 
 /// States no path reaches; inside one of them only that one is reported.
-fn unreachable(m: &Machine, reached: &[bool], out: &mut Vec<Finding>) {
+/// One a hidden arrow leads to is said to be placed by it alone.
+fn unreachable(m: &Machine, reached: &[bool], hidden: &[(usize, usize)], out: &mut Vec<Finding>) {
     for (i, s) in m.states.iter().enumerate() {
         if named(m, i) && !reached[i] && m.ancestors(i).all(|a| reached[a]) {
+            let placed = if hidden.iter().any(|&(_, to)| to == i) {
+                ": the hidden arrow into it only places it, and is no transition"
+            } else {
+                ""
+            };
             out.push(finding(
                 "unreachable-state",
                 s.line,
                 Severity::Warning,
-                format!("State {} cannot be reached from the start.", s.name),
+                format!("State {} cannot be reached from the start{placed}.", s.name),
             ));
         }
     }
 }
 
 /// States nothing leaves, neither they nor a state around them. A state
-/// that cannot be reached is reported for that alone.
-fn dead_ends(m: &Machine, reached: Option<&[bool]>, out: &mut Vec<Finding>) {
+/// that cannot be reached is reported for that alone; one a hidden arrow
+/// leaves is said to be left by that alone.
+fn dead_ends(
+    m: &Machine,
+    reached: Option<&[bool]>,
+    hidden: &[(usize, usize)],
+    out: &mut Vec<Finding>,
+) {
     let mut leaves = vec![false; m.states.len()];
     for t in &m.transitions {
         leaves[t.from] = true;
@@ -162,13 +182,18 @@ fn dead_ends(m: &Machine, reached: Option<&[bool]>, out: &mut Vec<Finding>) {
         {
             continue;
         }
+        let but = if hidden.iter().any(|&(from, _)| from == i) {
+            " but a hidden arrow, which only places the states"
+        } else {
+            ""
+        };
         let found = match s.kind {
             Kind::State if word(&s.name) => finding(
                 "dead-end",
                 s.line,
                 Severity::Warning,
                 format!(
-                    "Nothing leaves {0}. If the machine ends there, add {0} --> [*].",
+                    "Nothing leaves {0}{but}. If the machine ends there, add {0} --> [*].",
                     s.name
                 ),
             )
@@ -182,7 +207,7 @@ fn dead_ends(m: &Machine, reached: Option<&[bool]>, out: &mut Vec<Finding>) {
                 s.line,
                 Severity::Warning,
                 format!(
-                    "Nothing leaves {0}. If the machine ends there, add {0} --> [*].",
+                    "Nothing leaves {0}{but}. If the machine ends there, add {0} --> [*].",
                     s.name
                 ),
             ),
@@ -190,7 +215,7 @@ fn dead_ends(m: &Machine, reached: Option<&[bool]>, out: &mut Vec<Finding>) {
                 "dead-end",
                 s.line,
                 Severity::Warning,
-                format!("Nothing leaves {}.", s.name),
+                format!("Nothing leaves {}{but}.", s.name),
             ),
         };
         out.push(found);
@@ -343,6 +368,26 @@ mod tests {
 
     fn mmd(body: &str) -> Vec<(usize, Severity, String)> {
         check(&format!("stateDiagram-v2\n{body}\n"), Language::Mermaid)
+    }
+
+    /// REQ-113: a hidden arrow is no transition, so a state only it leads
+    /// to cannot be reached, and one only it leaves is left by nothing;
+    /// the warnings say the arrow drawn is why.
+    #[test]
+    fn a_hidden_arrow_is_named_where_it_alone_meets_a_state() {
+        let found = puml("[*] --> A\nA -[hidden]-> B\nB --> C : next\nC --> [*]");
+        let said: Vec<&str> = found.iter().map(|(_, _, m)| m.as_str()).collect();
+        assert_eq!(
+            said,
+            [
+                "Nothing leaves A but a hidden arrow, which only places the states. If the machine ends there, add A --> [*].",
+                "State B cannot be reached from the start: the hidden arrow into it only places it, and is no transition.",
+                "State C cannot be reached from the start.",
+            ]
+        );
+        // Beside a transition, a hidden arrow changes no word.
+        let found = puml("[*] --> A\nA -[hidden]-> B\nA --> B : go\nB --> [*]");
+        assert!(found.is_empty(), "{found:?}");
     }
 
     /// REQ-076: one state alone at the top is where the machine begins, so

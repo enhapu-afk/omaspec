@@ -1534,6 +1534,14 @@ is open and the reasoning around it.
       edge mmdr cannot read is found on its line with a `'` in it, as mmdr
       quotes its masked copy. The spacing's warning says that mmdr takes
       it where it lays a flowchart out.
+- [x] A hidden arrow is named where it alone meets a state (REQ-113,
+      2026-11-23): a hidden arrow is no transition, as decided on
+      2026-11-22, so a state only it leads to cannot be reached and one
+      only it leaves is left by nothing; the warnings said so without
+      the arrow drawn there, which seemed to say otherwise. The PlantUML
+      reader keeps the hidden arrows beside the machine
+      (`plantuml::read_placed`), and the checks say "the hidden arrow
+      into it only places it" and "nothing leaves A but a hidden arrow".
 
 ## Next
 

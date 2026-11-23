@@ -385,9 +385,6 @@ is lost without a word, then what misleads, then what is missing.
 
 - [ ] REQ-109: `play --help` says `--look` without `--ink` sets the
       play's colors; the command line refuses it.
-- [ ] REQ-113: a state reached only by a hidden arrow is said to be
-      unreachable, as decided (a hidden arrow is no transition); the
-      warning should say that only a hidden arrow leads there.
 - [ ] REQ-114: `play --steps 1 --events go` is said to end on the end
       state instead of B. Not reproduced in four machines (PlantUML,
       Mermaid, `[*]` and a state as the end); needs the tester's file.
