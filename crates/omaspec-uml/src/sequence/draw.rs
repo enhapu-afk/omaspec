@@ -98,6 +98,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let (mut drawer, mut canvas) = laid(d, &skin)?;
     let map = Map {
         messages: std::mem::take(&mut drawer.steps),
+        notes: std::mem::take(&mut drawer.note_steps),
         grounds: std::mem::take(&mut drawer.grounds),
         heads: if drawer.band.is_some() {
             std::mem::take(&mut drawer.heads)
@@ -463,6 +464,9 @@ struct Drawer<'a> {
     beside: Vec<bool>,
     /// Each message's arrow and band, for the map.
     steps: Vec<Step>,
+    /// Each note of its own, a step of a play without an arrow, for the
+    /// map's [`Map::notes`].
+    note_steps: Vec<Step>,
     /// The boxes with a fill, for the map.
     grounds: Vec<crate::map::Ground>,
     /// The participants' heads at the top, and the boxes' titles over
@@ -923,6 +927,7 @@ impl<'a> Drawer<'a> {
             level: None,
             beside,
             steps: Vec::new(),
+            note_steps: Vec::new(),
             grounds: Vec::new(),
             band: None,
             heads: Vec::new(),
@@ -2330,6 +2335,8 @@ impl<'a> Drawer<'a> {
             after = after.max(head_top + self.cols[c].height + 3.0);
         }
 
+        // The note beside it, lit with it.
+        let mut also = Vec::new();
         if let Some(note) = note
             && let Some(Measured::Note {
                 text: note_text,
@@ -2368,6 +2375,7 @@ impl<'a> Drawer<'a> {
                 note_text,
                 *fill,
             );
+            also.push([nx, ny, width, height]);
             self.touch(nx, nx + width);
             after = after.max(ny + height + 3.0);
         }
@@ -2378,6 +2386,7 @@ impl<'a> Drawer<'a> {
             points,
             top: band_top,
             bottom: after,
+            also,
         });
     }
 
@@ -2596,6 +2605,7 @@ impl<'a> Drawer<'a> {
             // Beside a message, drawn with it.
             NotePlace::Message(_) => return,
         };
+        let top = self.y;
         let y = self.y + 7.0;
         draw_note(
             canvas,
@@ -2605,6 +2615,14 @@ impl<'a> Drawer<'a> {
             &text,
             fill,
         );
+        // A step of a play of its own, lit as a message is (REQ-106).
+        self.note_steps.push(Step {
+            line: note.line,
+            points: Vec::new(),
+            top,
+            bottom: y + height + 3.0,
+            also: vec![[x, y, width, height]],
+        });
         if let Some((column, right)) = beside {
             self.drawn.notes.push(room::Note {
                 column,
@@ -3290,6 +3308,30 @@ fn participants_of(item: &Item) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A note of its own is a step of a play between the messages, its box
+    /// lit with it; a note beside a message is lit with the message
+    /// (REQ-106).
+    #[test]
+    fn notes_are_steps_and_lit_with_their_message() {
+        let source = "@startuml\nA -> B : one\nnote right: beside\nnote over A, B: between\nB -> A : two\n@enduml\n";
+        let Ok(crate::Diagram::Sequence(d)) = crate::parse(source) else {
+            panic!("a sequence");
+        };
+        let (_, map) = draw_mapped(&d).unwrap();
+        assert_eq!(map.messages.len(), 2);
+        assert_eq!(map.messages[0].also.len(), 1, "the note beside it");
+        assert!(map.messages[1].also.is_empty());
+        assert_eq!(map.notes.len(), 1);
+        let note = &map.notes[0];
+        assert!(note.points.is_empty() && note.also.len() == 1);
+        assert_eq!(note.line, 3);
+        let [_, y, _, h] = note.also[0];
+        assert!(note.top <= y && y + h <= note.bottom);
+        // In order down the page: one, the note, two.
+        let lines: Vec<usize> = map.steps().iter().map(|s| s.line).collect();
+        assert_eq!(lines, [1, 3, 4]);
+    }
 
     /// A box with a fill is a ground of the map, where it is drawn and in
     /// its color, the messages between its participants on it; a box

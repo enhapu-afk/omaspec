@@ -717,6 +717,7 @@ fn steps(diagram: &Diagram, plan: &Plan) -> Vec<crate::map::Step> {
                 points,
                 top: a.min(b),
                 bottom: a.max(b),
+                also: Vec::new(),
             }
         })
         .collect()

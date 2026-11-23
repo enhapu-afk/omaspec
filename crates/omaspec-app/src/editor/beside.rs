@@ -267,7 +267,8 @@ impl App {
                 let Some(Offer::Scenario { at, .. }) = scenario.offer() else {
                     return;
                 };
-                let lines = scenario.message_lines();
+                // Its steps, a note's too, on which no machine moves.
+                let lines = scenario.step_lines();
                 let Some(&line) = at.checked_sub(1).and_then(|i| lines.get(i)) else {
                     return;
                 };

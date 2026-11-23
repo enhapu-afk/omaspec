@@ -27,11 +27,20 @@ impl Paper {
         self.requested
     }
 
-    /// The source lines of the scenario's messages on screen, in the
-    /// order its play takes them; none for another diagram.
+    /// The source lines of the scenario's messages on screen, in order;
+    /// none for another diagram.
     pub fn message_lines(&self) -> Vec<usize> {
         self.diagram.as_ref().map_or_else(Vec::new, |d| {
             d.drawn.map.messages.iter().map(|m| m.line).collect()
+        })
+    }
+
+    /// The source lines of the scenario's steps on screen, its messages and
+    /// its notes of their own (REQ-106), in the order its play takes them;
+    /// none for another diagram.
+    pub fn step_lines(&self) -> Vec<usize> {
+        self.diagram.as_ref().map_or_else(Vec::new, |d| {
+            d.drawn.map.steps().iter().map(|m| m.line).collect()
         })
     }
 

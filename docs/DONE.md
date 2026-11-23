@@ -1601,6 +1601,17 @@ is open and the reasoning around it.
       Java PlantUML drew says it folds nothing. A container the file folds
       itself counts as held. The time is both drawings'. The MCP server
       reports the names it folded.
+- [x] A scenario's notes in its play (REQ-106, 2026-11-23): a note was
+      never a step and never lit, at the last stop neither. A note of its
+      own (`note over A, B`, `note left of A`) is a step of the play now,
+      between the messages where it stands: the veil lifts to it and its
+      box is lit, with no light to run along an arrow. A note beside a
+      message (`note right` after it) is lit with the message. The drawer
+      keeps them in the map (`Map::notes`, a step's `also`), and
+      `Map::steps` gives a play the messages and notes in order, in the
+      window, in a film and on a presentation's page. Lockstep steps on a
+      note without a machine moving, and still counts messages. A play
+      stopped short says steps where a scenario has notes of their own.
 
 ## Next
 

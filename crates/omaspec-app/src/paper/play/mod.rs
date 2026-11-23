@@ -104,15 +104,17 @@ impl Play {
         // A git graph's veil keeps clear of what stands before its commits
         // across the way they run: its title.
         let clear = clear_of(&map.messages, map.run);
+        // The messages, and the notes of their own between them (REQ-106).
+        let steps = map.steps();
         Ok(Play::Scenario(ScenarioPlay {
-            steps: map.messages.clone(),
+            from_y: scenario::target(&steps, 0, map.run),
+            steps,
             run: map.run,
             clear,
             commits: omaspec_core::classify(source, language).name == "Git graph",
             grounds: map.grounds.clone(),
             at: 0,
             moved: now,
-            from_y: scenario::target(&map.messages, 0, map.run),
             begun: now,
             jump: None,
             onward: true,
@@ -227,8 +229,9 @@ impl Play {
         match self {
             Play::Machine(play) => play.placed = play.machine.place(map),
             Play::Scenario(play) => {
-                if map.messages.len() == play.steps.len() {
-                    play.steps = map.messages.clone();
+                let steps = map.steps();
+                if steps.len() == play.steps.len() {
+                    play.steps = steps;
                 }
                 play.grounds = map.grounds.clone();
             }

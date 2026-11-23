@@ -386,8 +386,6 @@ is lost without a word, then what misleads, then what is missing.
 - [ ] REQ-114: `play --steps 1 --events go` is said to end on the end
       state instead of B. Not reproduced in four machines (PlantUML,
       Mermaid, `[*]` and a state as the end); needs the tester's file.
-- [ ] REQ-106: a scenario's notes as steps of a play, lit as its
-      messages are.
 - [ ] REQ-107: `inspect` of a sequence diagram with its messages and
       notes, of a state machine with its transitions.
 - [ ] REQ-110, the rest: `nodeSpacing` and `rankSpacing` carried out by

@@ -83,34 +83,44 @@ type Spot4 = (f32, f32, f32, f32);
 /// full light and not in the fade, and the message above stays out.
 pub(super) const SPOT_PAD: (f32, f32, f32) = (44.0, 2.0, 14.0);
 
+/// How far `step` reaches across the way the steps run: its points and
+/// the boxes lit with it (a note beside a message, or the note that is
+/// the step), from the least to the most.
+fn across_of(step: &Step, run: Run) -> (f32, f32) {
+    let right = run == Run::Right;
+    step.points
+        .iter()
+        .map(|p| if right { p.1 } else { p.0 })
+        .chain(step.also.iter().flat_map(
+            |&[x, y, w, h]| {
+                if right { [y, y + h] } else { [x, x + w] }
+            },
+        ))
+        .fold((f32::INFINITY, f32::NEG_INFINITY), |(l, r), v| {
+            (l.min(v), r.max(v))
+        })
+}
+
 /// The highlight of `step`: its row, from a little before the leftmost of
-/// its points to a little past the rightmost; run to the right, its
-/// column, from a little above the highest to a little below the lowest.
+/// its points and of the boxes lit with it to a little past the rightmost;
+/// run to the right, its column, from a little above the highest to a
+/// little below the lowest.
 pub(super) fn spot_of(step: &Step, run: Run) -> Spot4 {
     let (across, above, below) = SPOT_PAD;
-    let span = |of: fn(&(f32, f32)) -> f32| {
-        step.points
-            .iter()
-            .map(of)
-            .fold((f32::INFINITY, f32::NEG_INFINITY), |(l, r), v| {
-                (l.min(v), r.max(v))
-            })
-    };
+    let (low, high) = across_of(step, run);
     if run == Run::Right {
-        let (high, low) = span(|p| p.1);
         (
-            high - across,
-            low + across,
+            low - across,
+            high + across,
             step.top - above,
             step.bottom + below,
         )
     } else {
-        let (left, right) = span(|p| p.0);
         (
             step.top - above,
             step.bottom + below,
-            left - across,
-            right + across,
+            low - across,
+            high + across,
         )
     }
 }
@@ -142,12 +152,14 @@ impl ScenarioPlay {
                 .fold((f32::MAX, f32::MIN), |(l, r), v| (l.min(v), r.max(v)))
         };
         // Along the way the steps run, as far as the light comes from:
-        // a merge's from what it took in, far back.
+        // a merge's from what it took in, far back; across, its points and
+        // the boxes lit with it.
         let along = |(low, high): (f32, f32)| (step.top.min(low), step.bottom.max(high));
+        let across = across_of(step, self.run);
         let ((left, right), (top, bottom)) = if self.run == Run::Right {
-            (along(span(|p| p.0)), span(|p| p.1))
+            (along(span(|p| p.0)), across)
         } else {
-            (span(|p| p.0), along(span(|p| p.1)))
+            (across, along(span(|p| p.1)))
         };
         (left <= right && top <= bottom).then(|| {
             iced::Rectangle::new(
@@ -462,7 +474,8 @@ impl ScenarioPlay {
         left: &Leaving,
         presence: f32,
     ) {
-        let Some(step) = self.steps.get(left.index) else {
+        // A note has no arrow for a light: its band alone lights it.
+        let Some(step) = self.steps.get(left.index).filter(|s| s.points.len() > 1) else {
             return;
         };
         let screen: Vec<Point> = step.points.iter().map(|&p| view.point(p)).collect();
@@ -491,6 +504,10 @@ impl ScenarioPlay {
         now: Instant,
     ) {
         let step = &self.steps[index];
+        // A note has no arrow for a light: its band alone lights it.
+        if step.points.len() < 2 {
+            return;
+        }
         let screen: Vec<Point> = step.points.iter().map(|&p| view.point(p)).collect();
         let since = now.saturating_duration_since(self.moved);
         let took = travel_time(&step.points);

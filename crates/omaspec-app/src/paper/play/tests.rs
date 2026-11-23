@@ -383,6 +383,28 @@ fn a_trace_plays_line_by_line() {
     assert_eq!(err.as_deref(), Some("run.jsonl has no line of Ghost"));
 }
 
+/// A note of its own is a step of the play, without a light along an
+/// arrow (REQ-106); the counter counts it.
+#[test]
+fn a_scenario_s_note_is_a_step_of_its_own() {
+    let source = "@startuml\nA -> B : one\nnote over A, B: between\nB -> A : two\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    assert_eq!(
+        play.offer(),
+        Offer::Scenario {
+            at: 0,
+            of: 3,
+            commits: false
+        }
+    );
+    play.ask(Ask::Next, t0);
+    play.ask(Ask::Next, t0);
+    // On the note: its line is where the play stands.
+    assert_eq!(play.take_jump(t0), Some(2));
+}
+
 #[test]
 fn a_scenario_unfolds_message_by_message() {
     let source = "@startuml\nA -> B : one\nB -> A : two\n@enduml\n";

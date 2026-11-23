@@ -276,7 +276,10 @@ impl Stage {
             }
         }
         self.settle();
-        let lines = self.message_lines();
+        // Each step of the scenario's play, a note's too, on which no
+        // machine moves.
+        let lines = self.step_lines();
+        let messages = self.message_lines().len();
         // How far each player has come along its way.
         let mut played = vec![0usize; step.players.len()];
         for &line in &lines {
@@ -300,9 +303,9 @@ impl Stage {
         self.run(END, |_| false);
         let wrong = wrong.len();
         Ok(match wrong {
-            0 => format!("{} messages, every one taken", lines.len()),
-            1 => format!("{} messages, 1 not taken", lines.len()),
-            n => format!("{} messages, {n} not taken", lines.len()),
+            0 => format!("{messages} messages, every one taken"),
+            1 => format!("{messages} messages, 1 not taken"),
+            n => format!("{messages} messages, {n} not taken"),
         })
     }
 
@@ -328,10 +331,15 @@ impl Stage {
         moved
     }
 
-    /// The source lines of the scenario's messages, in the order its
-    /// play takes them.
+    /// The source lines of the scenario's messages, in order.
     fn message_lines(&self) -> Vec<usize> {
         doc(&self.app, self.scenario).map_or_else(Vec::new, |d| d.paper.message_lines())
+    }
+
+    /// The source lines of the scenario's steps, its messages and its
+    /// notes, in the order its play takes them.
+    fn step_lines(&self) -> Vec<usize> {
+        doc(&self.app, self.scenario).map_or_else(Vec::new, |d| d.paper.step_lines())
     }
 
     /// Runs `f` on the pane of tab `key`.

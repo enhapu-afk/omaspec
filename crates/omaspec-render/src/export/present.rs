@@ -118,14 +118,16 @@ fn round(value: f32) -> f64 {
     (f64::from(value) * 100.0).round() / 100.0
 }
 
-/// A scenario: each message where it is, and the boxes under them.
+/// A scenario: each step where it is, a message's or a note's of its own
+/// (REQ-106), with the boxes lit with it, and the boxes under them.
 fn scenario_data(map: &Map) -> Value {
     let steps: Vec<Value> = map
-        .messages
+        .steps()
         .iter()
         .map(|step| {
             json!({
                 "points": step.points.iter().copied().map(point).collect::<Vec<_>>(),
+                "also": step.also.iter().map(|&[x, y, w, h]| [round(x), round(y), round(w), round(h)]).collect::<Vec<_>>(),
                 "top": round(step.top),
                 "bottom": round(step.bottom),
                 "took": play::travel_millis(&step.points),
@@ -336,6 +338,19 @@ mod tests {
         let data = play_of(&page);
         assert_eq!(data["kind"], "scenario");
         assert_eq!(data["steps"].as_array().unwrap().len(), 2);
+    }
+
+    /// A note of its own is a step of the page's play too, its box lit
+    /// with it and no arrow to run along (REQ-106).
+    #[test]
+    fn a_note_is_a_step_of_the_page() {
+        let source = "@startuml\nA -> B : one\nnote over A, B: between\nB -> A : two\n@enduml\n";
+        let (_, map) = rendered(source, Language::PlantUml);
+        let data = scenario_data(&map);
+        let steps = data["steps"].as_array().unwrap();
+        assert_eq!(steps.len(), 3);
+        assert!(steps[1]["points"].as_array().unwrap().is_empty());
+        assert_eq!(steps[1]["also"].as_array().unwrap().len(), 1);
     }
 
     /// The play's data stays JSON whatever its names say: a `<!--` or a

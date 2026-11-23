@@ -13,6 +13,10 @@ pub struct Map {
     pub states: Vec<Spot>,
     pub transitions: Vec<Route>,
     pub messages: Vec<Step>,
+    /// A sequence diagram's notes of their own (`note over A`), each a
+    /// step of a play between the messages, without an arrow (REQ-106):
+    /// [`Self::steps`] has both in order.
+    pub notes: Vec<Step>,
     /// Which way the steps of [`Self::messages`] follow one another.
     pub run: Run,
     pub wires: Vec<Wire>,
@@ -358,17 +362,34 @@ pub enum Run {
     Up,
 }
 
-/// A message's arrow, and the band of the diagram it takes up.
+/// A message's arrow, and the band of the diagram it takes up; or a
+/// note of its own, without an arrow.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Step {
-    /// Zero-based line of the message, or of the commit.
+    /// Zero-based line of the message, of the commit or of the note.
     pub line: usize,
-    /// From the sender to the tip of the head.
+    /// From the sender to the tip of the head; none for a note.
     pub points: Vec<(f32, f32)>,
     /// Where the step starts and ends along the way the steps run
     /// ([`Map::run`]): its y down or up the page, its x to the right.
     pub top: f32,
     pub bottom: f32,
+    /// The boxes lit with it besides its arrow, `[x, y, w, h]`: a note
+    /// beside a message, or the note that is the step.
+    pub also: Vec<[f32; 4]>,
+}
+
+impl Map {
+    /// The steps of a play, in order: the messages, and the notes of
+    /// their own between them, by where each starts (a git graph's
+    /// commits alone).
+    pub fn steps(&self) -> Vec<Step> {
+        let mut steps: Vec<Step> = self.messages.iter().chain(&self.notes).cloned().collect();
+        if !self.notes.is_empty() {
+            steps.sort_by(|a, b| a.top.total_cmp(&b.top).then(a.line.cmp(&b.line)));
+        }
+        steps
+    }
 }
 
 /// How a drawing's units become the finished picture's: moved past the
@@ -460,9 +481,18 @@ impl Map {
             band.rect = fit.rect(band.rect);
             band.over = fit.rect(band.over);
         }
-        for step in &mut self.messages {
+        for step in self.messages.iter_mut().chain(&mut self.notes) {
             for point in &mut step.points {
                 *point = fit.point(*point);
+            }
+            for [x, y, w, h] in &mut step.also {
+                let moved = fit.rect(Rect {
+                    x: *x,
+                    y: *y,
+                    w: *w,
+                    h: *h,
+                });
+                (*x, *y, *w, *h) = (moved.x, moved.y, moved.w, moved.h);
             }
             // Along the way the steps run: across the page, from left to
             // right; else down it.
@@ -515,7 +545,7 @@ impl Map {
         for route in &mut self.transitions {
             route.line = route.line.saturating_add(lines);
         }
-        for step in &mut self.messages {
+        for step in self.messages.iter_mut().chain(&mut self.notes) {
             step.line = step.line.saturating_add(lines);
         }
         for cell in &mut self.cells {

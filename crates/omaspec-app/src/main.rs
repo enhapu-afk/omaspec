@@ -447,7 +447,8 @@ enum Command {
     /// `--build`, `--ink`, `--themes` and `--traffic` draw without a GPU,
     /// and so does every page (`.html`). The events are taken by name
     /// (`--events open,close`), else the first the machine offers at each
-    /// state, for `--steps` steps; a scenario plays its messages in order,
+    /// state, for `--steps` steps; a scenario plays its messages and its
+    /// notes of their own in order,
     /// a git graph its commits, the veil going back as its time runs.
     /// For a presentation or a pull request.
     Play {

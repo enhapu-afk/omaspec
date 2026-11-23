@@ -333,7 +333,10 @@ if (typeof document !== "undefined") {
         }
         const step = play.lit();
         if (step) {
-          const xs = step.points.map((p) => p[0]);
+          // Across its arrow and the boxes lit with it: a note beside it,
+          // or the note that is the step.
+          const xs = step.points.map((p) => p[0])
+            .concat((step.also || []).flatMap(([x, , w]) => [x, x + w]));
           make("rect", {
             x: Math.min(...xs) - 18,
             y: step.top - 6,
@@ -344,7 +347,8 @@ if (typeof document !== "undefined") {
             "fill-opacity": 0.09,
             filter: "url(#omaspec-soft)",
           }, layer);
-          light(step.points, 0, step.took);
+          // A note has no arrow for a light: its band alone lights it.
+          if (step.points.length > 1) light(step.points, 0, step.took);
         }
         say(
           span("at", `${play.at} / ${play.count}`),

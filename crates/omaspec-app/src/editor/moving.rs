@@ -707,8 +707,13 @@ impl Stage {
             self.send(Message::Command(Command::PlayAsk(Ask::Restart)));
             self.step(moving);
         }
+        // A scenario's notes of their own are steps too (REQ-106).
+        let paper = &self.app.doc().paper;
+        let notes = paper.step_lines().len() > paper.message_lines().len();
         Ok(match scenario {
-            Some((at, of, commits)) if at < of => stopped(at, of, commits, args.steps.is_some()),
+            Some((at, of, commits)) if at < of => {
+                stopped(at, of, commits, notes, args.steps.is_some())
+            }
             _ if taken.is_empty() => "played".to_owned(),
             _ => taken.join(", "),
         })
@@ -947,15 +952,18 @@ fn choose(
 }
 
 /// What a scenario's play says that stopped at `at` of its `of` messages
-/// or commits, short of its end, so it is not taken for the whole; one
+/// or commits, or steps where it has `notes` of their own besides its
+/// messages, short of its end, so it is not taken for the whole; one
 /// that stopped at [`SCENARIO_STEPS`], not `asked` to, says how to play
 /// them all.
-fn stopped(at: usize, of: usize, commits: bool, asked: bool) -> String {
-    let what = match (commits, of) {
-        (true, 1) => "commit",
-        (true, _) => "commits",
-        (false, 1) => "message",
-        (false, _) => "messages",
+fn stopped(at: usize, of: usize, commits: bool, notes: bool, asked: bool) -> String {
+    let what = match (commits, notes, of) {
+        (true, _, 1) => "commit",
+        (true, _, _) => "commits",
+        (false, true, 1) => "step",
+        (false, true, _) => "steps",
+        (false, false, 1) => "message",
+        (false, false, _) => "messages",
     };
     let all = if asked {
         String::new()
@@ -1383,11 +1391,12 @@ mod tests {
         let (short, fewer) = record(Some(3));
         assert!(short.ends_with(", played 3 of 10 messages)"), "{short}");
         assert!(fewer < frames, "{fewer} of {frames}");
-        assert_eq!(stopped(0, 1, false, true), "played 0 of 1 message");
+        assert_eq!(stopped(0, 1, false, false, true), "played 0 of 1 message");
         assert_eq!(
-            stopped(50, 300, true, false),
+            stopped(50, 300, true, false, false),
             "played 50 of 300 commits; --steps 300 plays them all"
         );
+        assert_eq!(stopped(2, 5, false, true, true), "played 2 of 5 steps");
         let (past, more) = record(Some(30));
         assert!(past.ends_with(", played)"), "{past}");
         assert_eq!(more, frames, "steps past the end held again");

@@ -688,7 +688,8 @@ transition's route to the next state, regions start side by side, a choice (or a
 with several ways out) waits for you to pick one, a history goes back to where its
 state was left, and an entry or exit point on a state's border passes the transition on
 along its way, into the state or out of it. A scenario unfolds message by message (Space), a light running along each
-arrow; a git graph commit by commit, the veil going back the way its time runs (to the right,
+arrow, a note beside a message lit with it; a note of its own (`note over A, B`) is a
+step of its own, lit where it stands; a git graph commit by commit, the veil going back the way its time runs (to the right,
 down or up), the light running along the line each commit came by, a merge's from what it
 took in. Each step lights its line in the source; ← goes back, Home starts again, Esc stops.
 Where the scenario's participants have state machines in its project, they open beside
