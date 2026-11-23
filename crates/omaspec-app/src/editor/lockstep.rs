@@ -454,7 +454,7 @@ mod tests {
             text: None,
             output,
             events: Vec::new(),
-            steps: 100,
+            steps: Some(100),
             width: Some(400),
             fps: Some(4),
             folds: Vec::new(),

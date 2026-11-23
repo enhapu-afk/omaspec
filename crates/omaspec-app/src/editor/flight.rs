@@ -259,7 +259,7 @@ mod tests {
             text: None,
             output: work.join(output),
             events: Vec::new(),
-            steps: 100,
+            steps: Some(100),
             width: None,
             fps: None,
             folds: Vec::new(),

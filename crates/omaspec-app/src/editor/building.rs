@@ -531,7 +531,7 @@ mod tests {
             text: None,
             output: work.join(name),
             events: Vec::new(),
-            steps: 0,
+            steps: Some(0),
             width: Some(700),
             fps: Some(5),
             folds: Vec::new(),

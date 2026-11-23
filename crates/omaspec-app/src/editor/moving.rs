@@ -10,7 +10,8 @@
 //! recording's own clock ([`crate::clock`]): each frame a tick after the
 //! one before, however long drawing it took. The events are taken by name (`--events open,close`;
 //! with its guard, `"start [tank empty]"`, where two share a name),
-//! else the first the machine offers at each state, for `--steps` steps.
+//! else the first the machine offers at each state, for `--steps` steps
+//! (8 without it); a scenario plays every message, a git graph every commit.
 //! With `--fold Brewing` no play runs: the container folds to its box,
 //! the diagram glides to its new layout, and it unfolds again. With
 //! `--dive Orders` on a project's file the map zooms into that tile, the
@@ -40,6 +41,10 @@ pub struct Travel {
     pub to: Option<String>,
 }
 
+/// The steps a state machine's play takes without `--steps`: a machine
+/// may go round for ever, a scenario ends.
+pub const MACHINE_STEPS: usize = 8;
+
 /// What the command line asks for.
 #[derive(Debug, Clone)]
 pub struct Moving {
@@ -49,8 +54,9 @@ pub struct Moving {
     pub output: PathBuf,
     /// The events to take, in order; empty takes the first offered.
     pub events: Vec<String>,
-    /// How many steps at most.
-    pub steps: usize,
+    /// How many steps at most; `None` takes [`MACHINE_STEPS`] in a state
+    /// machine and every message or commit of a scenario or a git graph.
+    pub steps: Option<usize>,
     /// The picture's width in pixels, the height following the diagram;
     /// `None` takes twice the diagram's size, up to [`WIDEST`].
     pub width: Option<u32>,
@@ -630,10 +636,28 @@ impl Stage {
         self.step(moving);
         let mut taken = Vec::new();
         let mut walked = Vec::new();
-        for step in 0..args.steps {
-            let Some(paper::Offer::Machine { options, ended, .. }) = self.app.doc().paper.offer()
-            else {
-                // A scenario: its next message.
+        // Where a scenario stood when the play stopped, of all its steps.
+        let mut scenario = None;
+        for step in 0.. {
+            let offer = self.app.doc().paper.offer();
+            let Some(paper::Offer::Machine { options, ended, .. }) = offer else {
+                // A scenario or a git graph: its next message or commit,
+                // every one of them without `--steps`, none past its end.
+                if let Some(paper::Offer::Scenario { at, of, commits }) = offer {
+                    scenario = Some((at, of, commits));
+                    if at >= of {
+                        break;
+                    }
+                }
+                if step
+                    >= args.steps.unwrap_or(if scenario.is_some() {
+                        usize::MAX
+                    } else {
+                        MACHINE_STEPS
+                    })
+                {
+                    break;
+                }
                 self.send(Message::Command(Command::PlayAsk(Ask::Next)));
                 if !self.app.doc().paper.playing() {
                     break;
@@ -641,7 +665,7 @@ impl Stage {
                 self.step(moving);
                 continue;
             };
-            if ended || options.is_empty() {
+            if step >= args.steps.unwrap_or(MACHINE_STEPS) || ended || options.is_empty() {
                 break;
             }
             let Some(choice) = choose(&options, &args.events, step, &walked)? else {
@@ -661,10 +685,14 @@ impl Stage {
             self.send(Message::Command(Command::PlayAsk(Ask::Restart)));
             self.step(moving);
         }
-        Ok(if taken.is_empty() {
-            "played".to_owned()
-        } else {
-            taken.join(", ")
+        Ok(match scenario {
+            // Stopped short by `--steps`: said, so it is not taken for the whole.
+            Some((at, of, commits)) if at < of => {
+                let what = if commits { "commits" } else { "messages" };
+                format!("played {at} of {of} {what}")
+            }
+            _ if taken.is_empty() => "played".to_owned(),
+            _ => taken.join(", "),
         })
     }
 
@@ -917,7 +945,7 @@ fn rehearse(args: &Moving) -> Result<()> {
     };
     let mut walked = Vec::new();
     let mut before: Vec<(String, String)> = Vec::new();
-    for step in 0..args.steps {
+    for step in 0..args.steps.unwrap_or(MACHINE_STEPS) {
         let ways = run.options(&machine);
         if run.ended(&machine) || ways.is_empty() {
             break;
@@ -1216,7 +1244,7 @@ mod tests {
                 text: None,
                 output: output.clone(),
                 events: vec!["open".into()],
-                steps: 1,
+                steps: Some(1),
                 width: Some(200),
                 fps: Some(5),
                 folds: Vec::new(),
@@ -1258,6 +1286,65 @@ mod tests {
         let _ = std::fs::remove_dir_all(&work);
     }
 
+    /// A scenario plays every message without `--steps` (REQ-108): it
+    /// stopped at the eighth of thirteen, silently. One stopped short by
+    /// `--steps` says so, and steps past its end add nothing.
+    #[test]
+    fn a_scenario_plays_every_message_and_says_where_it_stopped() {
+        let work = std::env::temp_dir().join(format!("omaspec-scenario-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&work);
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("ping.puml");
+        let messages: String = (1..=10).map(|n| format!("A -> B : m{n}\n")).collect();
+        std::fs::write(&file, format!("@startuml\n{messages}@enduml\n")).unwrap();
+        let record = |steps: Option<usize>| {
+            let told = play(&Moving {
+                file: file.clone(),
+                text: None,
+                output: work.join("ping.gif"),
+                events: Vec::new(),
+                steps,
+                width: Some(200),
+                fps: Some(4),
+                folds: Vec::new(),
+                dives: Vec::new(),
+                builds: false,
+                lockstep: false,
+                history: false,
+                travel: None,
+                traffic: Vec::new(),
+                themes: None,
+                ink: false,
+                look: None,
+                timing: Default::default(),
+                whole: false,
+                theme: Some("built-in".into()),
+                file_colors: false,
+                root: None,
+                forced: None,
+                renderer: Some("tiny-skia"),
+                quality: super::super::gifs::Quality::default(),
+            })
+            .unwrap();
+            let frames: usize = told
+                .split('(')
+                .nth(1)
+                .and_then(|rest| rest.split(' ').next())
+                .and_then(|count| count.parse().ok())
+                .unwrap();
+            (told, frames)
+        };
+        let (whole, frames) = record(None);
+        assert!(whole.ends_with(", played)"), "{whole}");
+        let (short, fewer) = record(Some(3));
+        assert!(short.contains("played 3 of 10 messages"), "{short}");
+        assert!(fewer < frames, "{fewer} of {frames}");
+        let (past, more) = record(Some(30));
+        assert!(past.ends_with(", played)"), "{past}");
+        assert_eq!(more, frames, "steps past the end held again");
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
     /// `--duration` and `--hold` on a plain play (REQ-092): the film lasts
     /// as long as asked, its last state held as long as asked.
     #[test]
@@ -1277,7 +1364,7 @@ mod tests {
             text: None,
             output: output.clone(),
             events: vec!["open".into(), "close".into()],
-            steps: 2,
+            steps: Some(2),
             width: Some(240),
             fps: Some(10),
             folds: Vec::new(),
@@ -1337,7 +1424,7 @@ mod tests {
             text: None,
             output: work.join("door.webp"),
             events: vec!["open".into()],
-            steps: 1,
+            steps: Some(1),
             width: Some(300),
             fps: None,
             folds: Vec::new(),
@@ -1426,7 +1513,7 @@ mod tests {
             text: None,
             output: work.join(name),
             events: vec!["open".into()],
-            steps: 1,
+            steps: Some(1),
             width: Some(200),
             fps,
             folds: Vec::new(),
@@ -1487,7 +1574,7 @@ mod tests {
             ),
             output: work.join("fold.webp"),
             events: Vec::new(),
-            steps: 0,
+            steps: Some(0),
             width: Some(240),
             fps: Some(10),
             folds: vec![fold.to_owned()],
@@ -1533,7 +1620,7 @@ mod tests {
             text: Some(text.into()),
             output: work.join("fold.html"),
             events: Vec::new(),
-            steps: 0,
+            steps: Some(0),
             width: None,
             fps: None,
             folds: folds.iter().map(|f| (*f).to_owned()).collect(),
@@ -1636,7 +1723,7 @@ mod tests {
             text: None,
             output: work.join("never.gif"),
             events: events.iter().map(|e| (*e).to_owned()).collect(),
-            steps: 8,
+            steps: Some(8),
             width: None,
             fps: Some(10),
             folds: Vec::new(),
@@ -1738,7 +1825,7 @@ mod tests {
             text: None,
             output: work.join("greet.gif"),
             events,
-            steps: 4,
+            steps: Some(4),
             width: None,
             fps: None,
             folds: Vec::new(),

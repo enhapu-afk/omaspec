@@ -1475,6 +1475,13 @@ is open and the reasoning around it.
       `505.93704 + 40 - 40` rounding to `505.937`, and `clamp` panicked
       on the bounds (`graph::span::trim`). The window's last start is now
       never below the bar's.
+- [x] A scenario plays every message (REQ-108, 2026-11-23): `omaspec
+      play` took 8 steps without `--steps` whatever it played, so a
+      sequence of 13 messages stopped at `8 / 13` without a word. Now a
+      state machine takes 8, which may go round for ever, a scenario
+      every message and a git graph every commit. One stopped short by
+      `--steps` says so (`played 3 of 10 messages`), and steps past a
+      scenario's end no longer hold its last picture again for each.
 
 ## Next
 

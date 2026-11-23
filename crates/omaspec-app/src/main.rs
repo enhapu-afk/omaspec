@@ -460,9 +460,10 @@ enum Command {
         /// it: `--events 'start,"hello, world"'`.
         #[arg(long)]
         events: Vec<String>,
-        /// How many steps at most.
-        #[arg(long, default_value_t = 8)]
-        steps: usize,
+        /// How many steps at most. Without it a state machine takes 8, a
+        /// scenario every message and a git graph every commit.
+        #[arg(long)]
+        steps: Option<usize>,
         /// The picture's width in pixels; its height follows the diagram.
         /// Without it, twice the diagram's size, up to 1200.
         #[arg(long)]

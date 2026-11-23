@@ -231,7 +231,7 @@ impl App {
             text: Some(doc.text()),
             output: path.clone(),
             events: Vec::new(),
-            steps: 0,
+            steps: Some(0),
             width: None,
             fps: None,
             folds: vec![fold.clone()],
