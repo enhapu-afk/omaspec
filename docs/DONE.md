@@ -1542,6 +1542,12 @@ is open and the reasoning around it.
       reader keeps the hidden arrows beside the machine
       (`plantuml::read_placed`), and the checks say "the hidden arrow
       into it only places it" and "nothing leaves A but a hidden arrow".
+- [x] `play --help` says what takes `--look` (REQ-109, 2026-11-23): it
+      said a play without `--ink` was drawn in that look, which the
+      command line refuses (`--look` requires `--ink`; 1.0.0 took it and
+      drew the play dark all the same). It says now that only `--ink`
+      takes it, and that a light play takes a light theme's colors.toml
+      as `--theme`.
 
 ## Next
 
