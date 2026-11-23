@@ -16,10 +16,41 @@ use crate::specs::Maps;
 /// What a diagram drawn with folds asked for holds.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Folded {
-    /// The names asked for that it holds, in the order asked: folded.
+    /// The names asked for that it holds, in the order asked, each once:
+    /// folded.
     pub held: Vec<String>,
     /// Every container it holds, as drawn without a fold.
     pub offered: Vec<String>,
+    /// The Java PlantUML drew it, which folds nothing and names no box.
+    pub java: bool,
+}
+
+impl Folded {
+    /// Adds what it held and offered to what several diagrams did, each
+    /// name once.
+    pub(crate) fn gather(&self, held: &mut Vec<String>, offered: &mut Vec<String>) {
+        for (from, into) in [(&self.held, held), (&self.offered, offered)] {
+            for name in from {
+                if !into.contains(name) {
+                    into.push(name.clone());
+                }
+            }
+        }
+    }
+}
+
+/// The names `values` of `--fold` give: apart at each comma, but for one
+/// written `\,` or inside double quotes round a name, as `--events` takes
+/// them; each trimmed and once. An empty name is an error.
+pub(crate) fn names(values: &[String]) -> anyhow::Result<Vec<String>> {
+    let split = crate::editor::moving::split_names(values, "--fold")?;
+    let mut out: Vec<String> = Vec::new();
+    for name in split {
+        if !out.contains(&name) {
+            out.push(name);
+        }
+    }
+    Ok(out)
 }
 
 /// The containers of a picture: the boxes that hold others, which the
@@ -67,36 +98,97 @@ pub(crate) fn render(
     if folds.is_empty() {
         return Ok((whole, Folded::default()));
     }
-    let offered = containers(&whole.map);
-    let held: Vec<String> = folds
+    let java = whole.engine == omaspec_render::Engine::JavaPlantUml;
+    // A container the file folds itself (a fold line in it, as docs/adr/0024
+    // lets one write) is drawn folded already: held, and offered.
+    let already = omaspec_uml::fold::read(text);
+    let mut offered = containers(&whole.map);
+    for name in &already {
+        if !offered.contains(name) {
+            offered.push(name.clone());
+        }
+    }
+    let mut held: Vec<String> = Vec::new();
+    for name in folds {
+        if offered.contains(name) && !held.contains(name) {
+            held.push(name.clone());
+        }
+    }
+    let more: Vec<String> = held
         .iter()
-        .filter(|name| offered.contains(name))
+        .filter(|name| !already.contains(name))
         .cloned()
         .collect();
-    if held.is_empty() {
-        return Ok((whole, Folded { held, offered }));
+    if more.is_empty() {
+        return Ok((
+            whole,
+            Folded {
+                held,
+                offered,
+                java,
+            },
+        ));
     }
-    let text = folded(text, &held, language);
-    let drawn = crate::look::render(maps, renderer, &text, language, path, place, skin)?;
-    Ok((drawn, Folded { held, offered }))
+    let text = folded(text, &more, language);
+    let mut drawn = crate::look::render(maps, renderer, &text, language, path, place, skin)?;
+    // It was drawn twice: both take their time.
+    drawn.elapsed += whole.elapsed;
+    Ok((
+        drawn,
+        Folded {
+            held,
+            offered,
+            java,
+        },
+    ))
 }
 
-/// What is said of `name`, no container of a diagram that holds
-/// `offered`.
+/// `names` as a list to read: one with a comma in it in double quotes.
+fn listed(names: &[String]) -> String {
+    if names.is_empty() {
+        return "none".to_owned();
+    }
+    names
+        .iter()
+        .map(|name| match name.contains(',') {
+            true => format!("\"{name}\""),
+            false => name.clone(),
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// What is said of `name`, no container of a diagram that holds `offered`
+/// (its [`Folded::offered`]); one the Java PlantUML drew folds nothing.
 pub(crate) fn not_held(name: &str, offered: &[String]) -> String {
     format!(
-        "{name} is no container to fold; the diagram has {}",
-        if offered.is_empty() {
-            "none".to_owned()
-        } else {
-            offered.join(", ")
-        }
+        "{} is no container to fold; the diagram has {}",
+        listed(&[name.to_owned()]),
+        listed(offered)
     )
 }
 
-/// What is said of `name`, held by none of several diagrams.
-pub(crate) fn held_by_none(name: &str) -> String {
-    format!("{name} is no container to fold in any of the diagrams")
+/// What is said of `name`, held by none of a diagram drawn as `folded`
+/// says.
+pub(crate) fn not_held_in(name: &str, folded: &Folded) -> String {
+    if folded.java {
+        format!(
+            "{} is no container to fold: the Java PlantUML drew the diagram, which folds nothing",
+            listed(&[name.to_owned()])
+        )
+    } else {
+        not_held(name, &folded.offered)
+    }
+}
+
+/// What is said of `name`, held by none of several diagrams, which have
+/// the containers `offered` between them.
+pub(crate) fn held_by_none(name: &str, offered: &[String]) -> String {
+    format!(
+        "{} is no container to fold in any of the diagrams; they have {}",
+        listed(&[name.to_owned()]),
+        listed(offered)
+    )
 }
 
 /// The first of `folds` that `held` lacks.
@@ -140,6 +232,7 @@ mod tests {
         let (drawn, folded) = draw(BREWING, Language::PlantUml, &["Brewing", "Pantry"]);
         assert_eq!(folded.held, ["Brewing"]);
         assert_eq!(folded.offered, ["Brewing"]);
+        assert!(!folded.java);
         assert!(!drawn.svg.contains(">Heat<"), "what it holds is gone");
         assert!(drawn.svg.contains(">Brewing<"));
         assert_eq!(
@@ -149,6 +242,27 @@ mod tests {
         assert_eq!(
             not_held("Pantry", &folded.offered),
             "Pantry is no container to fold; the diagram has Brewing"
+        );
+    }
+
+    /// A name asked twice is folded once; one the file folds itself is
+    /// held; names are taken apart at commas but for one in quotes.
+    #[test]
+    fn names_are_taken_once_and_a_fold_line_counts() {
+        let (_, folded) = draw(BREWING, Language::PlantUml, &["Brewing", "Brewing"]);
+        assert_eq!(folded.held, ["Brewing"]);
+        let written = format!("{BREWING}' fold (Omaspec) Brewing\n");
+        let (drawn, folded) = draw(&written, Language::PlantUml, &["Brewing"]);
+        assert_eq!(folded.held, ["Brewing"]);
+        assert!(!drawn.svg.contains(">Heat<"));
+        assert_eq!(
+            names(&[" Brewing, Payment ".into(), r#""Sales, EU""#.into()]).unwrap(),
+            ["Brewing", "Payment", "Sales, EU"]
+        );
+        assert!(names(&["Brewing,,Payment".into()]).is_err());
+        assert_eq!(
+            not_held("Pantry", &["Sales, EU".into(), "Brewing".into()]),
+            "Pantry is no container to fold; the diagram has \"Sales, EU\", Brewing"
         );
     }
 

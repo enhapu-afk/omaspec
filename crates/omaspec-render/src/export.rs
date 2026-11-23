@@ -100,6 +100,9 @@ pub struct Source<'a> {
     pub language: Language,
     /// The file name, so the image can be opened under it again.
     pub file: Option<&'a str>,
+    /// The containers the picture shows folded (docs/adr/0024), kept with
+    /// the source so it can be drawn so again (`render --check`).
+    pub folds: &'a [String],
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -208,7 +211,7 @@ pub fn export_planned(
             let bytes = tiles::tile(tree, plan.scale, part, format)?;
             Ok(match (format, source) {
                 (Format::Png, Some(s)) => {
-                    embed::png_with_source(&bytes, s.code, s.language, s.file)
+                    embed::png_with_folded_source(&bytes, s.code, s.language, s.file, s.folds)
                         .expect("resvg writes valid PNGs")
                 }
                 _ => bytes,
@@ -225,7 +228,7 @@ pub fn export(svg: &str, format: Format, options: &Options) -> Result<Vec<u8>, E
                 svg = outlined(&svg)?;
             }
             Ok(match options.source {
-                Some(s) => embed::svg_with_source(&svg, s.code, s.language, s.file),
+                Some(s) => embed::svg_with_folded_source(&svg, s.code, s.language, s.file, s.folds),
                 None => svg,
             }
             .into_bytes())
@@ -233,7 +236,7 @@ pub fn export(svg: &str, format: Format, options: &Options) -> Result<Vec<u8>, E
         Format::Png => {
             let png = png(&parse(svg)?, options.scale)?;
             Ok(match options.source {
-                Some(s) => embed::png_with_source(&png, s.code, s.language, s.file)
+                Some(s) => embed::png_with_folded_source(&png, s.code, s.language, s.file, s.folds)
                     .expect("resvg writes valid PNGs"),
                 None => png,
             })
@@ -664,7 +667,8 @@ fn attach(document: &mut Document, source: Source<'_>, svg: &str) -> Result<(), 
     let when = utc_now();
     let svg_name = format!("{}.svg", stem(source.file));
     let code_name = source_name(source);
-    let stamped = embed::svg_with_source(svg, source.code, source.language, source.file);
+    let stamped =
+        embed::svg_with_folded_source(svg, source.code, source.language, source.file, source.folds);
     embed_file(
         document,
         Attachment {
@@ -725,8 +729,14 @@ fn zip_bundle(svg: &str, options: &Options<'_>) -> Result<Vec<u8>, ExportError> 
     let source = options.source.ok_or(ExportError::NeedsSource)?;
     let stem = stem(source.file);
     let laid = linked(svg, options)?;
-    let svg_bytes =
-        embed::svg_with_source(&laid, source.code, source.language, source.file).into_bytes();
+    let svg_bytes = embed::svg_with_folded_source(
+        &laid,
+        source.code,
+        source.language,
+        source.file,
+        source.folds,
+    )
+    .into_bytes();
     let pdf_bytes = pdf(svg, &parse(svg)?, options)?;
     let mut cursor = Cursor::new(Vec::new());
     let mut archive = ZipWriter::new(&mut cursor);
@@ -885,6 +895,7 @@ mod tests {
             code: "@startuml\nA -> B\n@enduml\n",
             language: Language::PlantUml,
             file: Some("a.puml"),
+            folds: &[],
         };
         let options = Options {
             source: Some(source),
@@ -913,6 +924,7 @@ mod tests {
             code: "@startuml\nA -> B\n@enduml\n",
             language: Language::PlantUml,
             file: Some("a.puml"),
+            folds: &[],
         };
         let png = export(
             SVG,
@@ -1010,6 +1022,7 @@ mod tests {
                 code: "@startuml\n@enduml\n",
                 language: Language::PlantUml,
                 file: Some("hand.puml"),
+                folds: &[],
             }),
             ..Options::default()
         };
@@ -1037,6 +1050,7 @@ mod tests {
             code: "@startuml\nA -> B\n@enduml\n",
             language: Language::PlantUml,
             file: Some("a.puml"),
+            folds: &[],
         }
     }
 
@@ -1080,6 +1094,7 @@ mod tests {
             code: "\u{feff}```mermaid\npie\n  \"a\": 1\n```\n",
             language: Language::Mermaid,
             file: Some("pie.md"),
+            folds: &[],
         };
         let options = Options {
             scale: 1.0,
@@ -1100,6 +1115,7 @@ mod tests {
                 code: "",
                 language: Language::Mermaid,
                 file,
+                folds: &[],
             })
         };
         assert_eq!(named(Some("untitled")), "untitled.mmd");

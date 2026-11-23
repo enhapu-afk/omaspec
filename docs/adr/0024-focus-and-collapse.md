@@ -40,7 +40,9 @@ play does for the states it is in, without the play.
    and the MCP server's `render` (`fold`) hand the engine these lines
    the same way, for a picture folded without a line in the file
    (REQ-104); a name no diagram holds is an error that lists those it
-   has.
+   has. The image keeps the file's source and, beside it, the names it
+   was drawn with folded, so `render --check` and `omaspec check` draw
+   it so again.
 3. **Folding by pointer and by caret.** Over a container the pointer
    shows a small button in its top right corner; a click folds it. A
    click on a folded box unfolds it, and the view moves to it when it

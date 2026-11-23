@@ -488,8 +488,8 @@ enum Command {
         lossy: u8,
         /// Instead of a play: these containers fold to their boxes, one
         /// after another, and unfold again, the diagram gliding to each
-        /// layout.
-        #[arg(long, value_delimiter = ',', value_name = "NAME", conflicts_with_all = ["events", "steps"])]
+        /// layout. Commas between them, as `render --fold` takes them.
+        #[arg(long, value_name = "NAME", conflicts_with_all = ["events", "steps"])]
         fold: Vec<String>,
         /// On a project's omaspec-project.toml: its map zooms into
         /// these tiles, one after another, and back out. `Day/Order`
@@ -637,16 +637,14 @@ enum Command {
         look: Option<crate::look::Look>,
         /// Fold these containers to their box, as the editor folds them: a
         /// composite state, a package or a subgraph, by name, with commas
-        /// between them (`--fold Brewing,Payment`). The picture shows the
-        /// box and what it holds in numbers, its lines ending on it; the
-        /// source stored in the image is the file's. A name no diagram
-        /// holds is an error that lists the containers there are.
-        #[arg(
-            long,
-            value_delimiter = ',',
-            value_name = "NAME",
-            conflicts_with = "check"
-        )]
+        /// between them (`--fold Brewing,Payment`), or the option again; a
+        /// name with a comma in it in double quotes or with `\,`. The
+        /// picture shows the box and what it holds in numbers, its lines
+        /// ending on it; the image keeps the file's source, and the names,
+        /// so `--check` draws it so again. A name no diagram holds is an
+        /// error that lists the containers there are, and nothing is
+        /// written.
+        #[arg(long, value_name = "NAME", conflicts_with = "check")]
         fold: Vec<String>,
         /// Print a JSON report on stdout instead of status lines.
         ///
@@ -686,7 +684,7 @@ enum Command {
         /// Fold these containers to their box in every diagram that holds
         /// them, as `render --fold` does; the map is drawn whole. A name
         /// no diagram holds stops the export before anything is written.
-        #[arg(long, value_delimiter = ',', value_name = "NAME")]
+        #[arg(long, value_name = "NAME")]
         fold: Vec<String>,
         /// Print a JSON report on stdout instead of status lines.
         #[arg(long)]
@@ -1011,7 +1009,8 @@ fn main() -> ExitCode {
             theme,
             lang,
         }) => editor::moving::events(&events)
-            .and_then(|events| {
+            .and_then(|events| Ok((events, folds::names(&fold)?)))
+            .and_then(|(events, fold)| {
                 editor::moving::play(&editor::moving::Moving {
                     file,
                     output,
@@ -1059,22 +1058,24 @@ fn main() -> ExitCode {
             json,
             check,
             lang,
-        }) => render_command::render(&render_command::RenderArgs {
-            files: &files,
-            output: output.as_deref(),
-            format: format.and_then(FormatChoice::image),
-            text: matches!(format, Some(FormatChoice::Text)),
-            scale,
-            fit,
-            min_font,
-            text_as_paths,
-            source: !no_source,
-            copy,
-            look,
-            folds: &fold,
-            lang: lang.get(),
-            json,
-            check,
+        }) => folds::names(&fold).and_then(|fold| {
+            render_command::render(&render_command::RenderArgs {
+                files: &files,
+                output: output.as_deref(),
+                format: format.and_then(FormatChoice::image),
+                text: matches!(format, Some(FormatChoice::Text)),
+                scale,
+                fit,
+                min_font,
+                text_as_paths,
+                source: !no_source,
+                copy,
+                look,
+                folds: &fold,
+                lang: lang.get(),
+                json,
+                check,
+            })
         }),
         Some(Command::Export {
             dir,
@@ -1083,7 +1084,8 @@ fn main() -> ExitCode {
             fold,
             json: _,
             html: true,
-        }) => project_export::page(&dir, output.as_deref(), look, &fold),
+        }) => folds::names(&fold)
+            .and_then(|fold| project_export::page(&dir, output.as_deref(), look, &fold)),
         Some(Command::Export {
             dir,
             output,
@@ -1091,7 +1093,8 @@ fn main() -> ExitCode {
             fold,
             json,
             html: _,
-        }) => project_export::command(&dir, output.as_deref(), look, &fold, json),
+        }) => folds::names(&fold)
+            .and_then(|fold| project_export::command(&dir, output.as_deref(), look, &fold, json)),
         Some(Command::Mcp) => mcp::run(),
         Some(Command::Example { name, json }) => commands::example(name.as_deref(), json),
         Some(Command::Extract {

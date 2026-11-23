@@ -72,8 +72,8 @@ pub(crate) fn write(
     let skin = crate::look::skin_for(look, Some(&root))?;
     let atlas = Arc::new(atlas);
     let mut maps = Maps::with(root.clone(), Arc::clone(&atlas));
-    // The containers of `folds` some diagram held.
-    let mut held: Vec<String> = Vec::new();
+    // The containers of `folds` some diagram held, and every one they have.
+    let (mut held, mut offered): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
     let mut draw = |is: &Is| -> Result<Drawn, String> {
         let rendered = match is {
             Is::Map(folder) => {
@@ -96,11 +96,7 @@ pub(crate) fn write(
                     folds,
                 )
                 .map(|(rendered, folded)| {
-                    for name in folded.held {
-                        if !held.contains(&name) {
-                            held.push(name);
-                        }
-                    }
+                    folded.gather(&mut held, &mut offered);
                     rendered
                 })
             }
@@ -203,8 +199,12 @@ pub(crate) fn write(
         hops.push(from_here);
         at += 1;
     }
-    if let Some(name) = crate::folds::first_unheld(folds, &held) {
-        anyhow::bail!(crate::folds::held_by_none(name));
+    // A diagram that did not draw may hold it: what did not draw is said
+    // instead.
+    if failed.is_empty()
+        && let Some(name) = crate::folds::first_unheld(folds, &held)
+    {
+        anyhow::bail!(crate::folds::held_by_none(name, &offered));
     }
     let paper = super::building::picture::paper_of(&pictures[0].svg);
     let paper = omaspec_theme::Rgb::parse_hex(&paper).unwrap_or(omaspec_theme::Rgb {

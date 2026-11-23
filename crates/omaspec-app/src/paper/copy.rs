@@ -96,6 +96,7 @@ impl Paper {
                         code: stored,
                         language,
                         file: Some(&file),
+                        folds: &[],
                     }),
                     links: &links,
                     up,

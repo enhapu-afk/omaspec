@@ -198,6 +198,7 @@ pub(super) fn write(
             code: text,
             language,
             file: Some(&name),
+            folds: &[],
         }),
         name.rsplit_once('.').map_or(&name, |(stem, _)| stem),
     )

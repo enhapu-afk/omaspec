@@ -425,6 +425,7 @@ fn fold_page(args: &Moving) -> Result<String> {
             code: &text,
             language,
             file: Some(&name),
+            folds: &[],
         }),
         name.rsplit_once('.')
             .map_or(name.as_str(), |(stem, _)| stem),
@@ -1035,6 +1036,13 @@ fn rehearse(args: &Moving) -> Result<()> {
 /// more than once. An empty event, or a quote not closed, is an error, not
 /// a play of the first events offered.
 pub fn events(values: &[String]) -> Result<Vec<String>> {
+    split_names(values, "--events")
+}
+
+/// The names the values of `option` give, as [`events`] takes them: apart
+/// at each comma but for `\,` or one in double quotes, trimmed; an empty
+/// one, or a quote not closed, is an error.
+pub fn split_names(values: &[String], option: &str) -> Result<Vec<String>> {
     let mut events = Vec::new();
     for value in values {
         let mut event = String::new();
@@ -1070,14 +1078,14 @@ pub fn events(values: &[String]) -> Result<Vec<String>> {
         }
         anyhow::ensure!(
             !quoted,
-            r"--events {value}: a double quote is not closed; an event with a comma in its name is written in double quotes or with \,"
+            r"{option} {value}: a double quote is not closed; a name with a comma in it is written in double quotes or with \,"
         );
         events.push(event);
     }
     let events: Vec<String> = events.iter().map(|event| event.trim().to_owned()).collect();
     anyhow::ensure!(
         events.iter().all(|event| !event.is_empty()),
-        "--events names an empty event: {}",
+        "{option} names an empty one: {}",
         values.join(" ")
     );
     Ok(events)

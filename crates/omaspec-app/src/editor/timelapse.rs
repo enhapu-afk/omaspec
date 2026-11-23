@@ -491,6 +491,7 @@ fn page(args: &Moving, versions: Vec<Version>) -> Result<String> {
             code: newest,
             language,
             file: Some(&name),
+            folds: &[],
         }),
         name.rsplit_once('.')
             .map_or(name.as_str(), |(stem, _)| stem),

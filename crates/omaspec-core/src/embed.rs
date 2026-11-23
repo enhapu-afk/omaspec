@@ -2,9 +2,12 @@
 //! a diagram again.
 //!
 //! PNG: an `iTXt` chunk named after the language (`plantuml`, the name
-//! PlantUML itself uses, or `mermaid`) and one named `Omaspec file` with
-//! the file name. SVG: a `<metadata>` element holding `<sf:source>` in the
-//! namespace [`NAMESPACE`]. SVGs from PlantUML carry the source as a
+//! PlantUML itself uses, or `mermaid`), one named `Omaspec file` with
+//! the file name and one named `Omaspec folds` with the containers the
+//! picture shows folded, a line each. SVG: a `<metadata>` element holding
+//! `<sf:source>` in the namespace [`NAMESPACE`], the folds in its `folds`
+//! attribute. The source is the file's; the folds say how its picture was
+//! drawn (docs/adr/0024), so it can be drawn so again. SVGs from PlantUML carry the source as a
 //! `<?plantuml-src …?>` instruction, which is read too.
 //!
 //! Reading never trusts the image: chunk lengths are bounds-checked and
@@ -19,6 +22,9 @@ pub const NAMESPACE: &str = "urn:omaspec:source";
 
 /// The PNG text chunk holding the file name.
 const FILE_KEY: &str = "Omaspec file";
+
+/// The PNG text chunk holding the containers drawn folded, a line each.
+const FOLDS_KEY: &str = "Omaspec folds";
 
 /// What 0.4.0 wrote, when the tool was called Omagram (docs/adr/0015);
 /// read still, never written.
@@ -38,6 +44,8 @@ pub struct Source {
     pub language: Option<Language>,
     /// The file name the source was saved under, if known.
     pub file: Option<String>,
+    /// The containers the picture shows folded to their box.
+    pub folds: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -63,6 +71,17 @@ pub fn png_with_source(
     language: Language,
     file: Option<&str>,
 ) -> Result<Vec<u8>, EmbedError> {
+    png_with_folded_source(png, code, language, file, &[])
+}
+
+/// [`png_with_source`], with the containers its picture shows folded.
+pub fn png_with_folded_source(
+    png: &[u8],
+    code: &str,
+    language: Language,
+    file: Option<&str>,
+    folds: &[String],
+) -> Result<Vec<u8>, EmbedError> {
     if !png.starts_with(&PNG_SIGNATURE) || png.get(12..16) != Some(b"IHDR") {
         return Err(EmbedError::NotPng);
     }
@@ -76,6 +95,9 @@ pub fn png_with_source(
     out.extend(itxt_chunk(language.id(), code));
     if let Some(file) = file {
         out.extend(itxt_chunk(FILE_KEY, file));
+    }
+    if !folds.is_empty() {
+        out.extend(itxt_chunk(FOLDS_KEY, &folds.join("\n")));
     }
     out.extend_from_slice(&png[after_ihdr..]);
     Ok(out)
@@ -118,7 +140,7 @@ pub fn source_from_png(png: &[u8]) -> Option<Source> {
     if !png.starts_with(&PNG_SIGNATURE) {
         return None;
     }
-    let (mut plantuml, mut mermaid, mut file) = (None, None, None);
+    let (mut plantuml, mut mermaid, mut file, mut folds) = (None, None, None, None);
     let mut pos = 8;
     while pos + 12 <= png.len() {
         let len = u32::from_be_bytes(png[pos..pos + 4].try_into().expect("4 bytes")) as usize;
@@ -138,6 +160,7 @@ pub fn source_from_png(png: &[u8]) -> Option<Source> {
             "plantuml" => &mut plantuml,
             "mermaid" => &mut mermaid,
             k if k == FILE_KEY.to_lowercase() || k == OLD_FILE_KEY.to_lowercase() => &mut file,
+            k if k == FOLDS_KEY.to_lowercase() => &mut folds,
             _ => continue,
         };
         if let Some(text) = chunk_text(kind, &data[nul + 1..]) {
@@ -156,7 +179,17 @@ pub fn source_from_png(png: &[u8]) -> Option<Source> {
         code,
         language: Some(language),
         file: file.filter(|f| !f.is_empty()),
+        folds: folds.as_deref().map(lines).unwrap_or_default(),
     })
+}
+
+/// The names of a list written a line each, empty ones left out.
+fn lines(text: &str) -> Vec<String> {
+    text.lines()
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned)
+        .collect()
 }
 
 /// The text of a `tEXt`, `zTXt` or `iTXt` chunk after its keyword.
@@ -189,6 +222,17 @@ fn latin1(bytes: &[u8]) -> String {
 /// `svg` with the source as `<metadata>` right after the opening `<svg>` tag.
 /// A self-closing or missing `<svg>` tag leaves it unchanged.
 pub fn svg_with_source(svg: &str, code: &str, language: Language, file: Option<&str>) -> String {
+    svg_with_folded_source(svg, code, language, file, &[])
+}
+
+/// [`svg_with_source`], with the containers its picture shows folded.
+pub fn svg_with_folded_source(
+    svg: &str,
+    code: &str,
+    language: Language,
+    file: Option<&str>,
+    folds: &[String],
+) -> String {
     let Some(tag) = re!(r"<svg\b[^>]*>").find(svg) else {
         return svg.to_owned();
     };
@@ -200,8 +244,13 @@ pub fn svg_with_source(svg: &str, code: &str, language: Language, file: Option<&
     let file_attr = file
         .map(|f| format!(r#" file="{}""#, xml_escape(f, true)))
         .unwrap_or_default();
+    let folds_attr = if folds.is_empty() {
+        String::new()
+    } else {
+        format!(r#" folds="{}""#, xml_escape(&folds.join("\n"), true))
+    };
     let metadata = format!(
-        r#"<metadata><sf:source xmlns:sf="{NAMESPACE}" lang="{}"{file_attr}>{}</sf:source></metadata>"#,
+        r#"<metadata><sf:source xmlns:sf="{NAMESPACE}" lang="{}"{file_attr}{folds_attr}>{}</sf:source></metadata>"#,
         language.id(),
         xml_escape(code, false),
     );
@@ -274,6 +323,7 @@ pub fn source_from_svg(svg: &str) -> Option<Source> {
         code,
         language: Some(Language::PlantUml),
         file: None,
+        folds: Vec::new(),
     })
 }
 
@@ -305,6 +355,7 @@ fn own_source(xml: &str) -> Result<Option<Source>, ()> {
             .attribute("file")
             .filter(|f| !f.is_empty())
             .map(str::to_owned),
+        folds: el.attribute("folds").map(lines).unwrap_or_default(),
     }))
 }
 
@@ -376,6 +427,24 @@ mod tests {
         assert_eq!(src.code, code.replace('\u{1}', ""));
         assert_eq!(src.language, Some(Language::Mermaid));
         assert_eq!(src.file.as_deref(), Some("a \"b\".mmd"));
+    }
+
+    /// The containers a picture shows folded go with its source, a name
+    /// with a comma or a quote in it too, and come back as they were.
+    #[test]
+    fn the_folds_go_with_the_source() {
+        let code = "@startuml\nstate Brewing {\n  Heat\n}\n@enduml\n";
+        let folds = vec!["Brewing".to_owned(), "Sales, \"EU\"".to_owned()];
+        let png = png_with_folded_source(&PIXEL, code, Language::PlantUml, None, &folds).unwrap();
+        assert_eq!(source_from_png(&png).unwrap().folds, folds);
+        let svg = r#"<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>"#;
+        let out = svg_with_folded_source(svg, code, Language::PlantUml, None, &folds);
+        let source = source_from_svg(&out).unwrap();
+        assert_eq!((source.code.as_str(), source.folds), (code, folds));
+        // Without folds, none is written or read.
+        let plain = svg_with_source(svg, code, Language::PlantUml, None);
+        assert!(!plain.contains("folds="));
+        assert!(source_from_svg(&plain).unwrap().folds.is_empty());
     }
 
     #[test]

@@ -449,6 +449,7 @@ impl Drawn<'_> {
                     code: self.text,
                     language: self.language,
                     file: Some(self.file),
+                    folds: &[],
                 }),
             links: &links,
             up: self.own.map_or(0, crate::specs::depth),

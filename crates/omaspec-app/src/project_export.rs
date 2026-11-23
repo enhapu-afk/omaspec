@@ -218,8 +218,9 @@ pub fn export(
         index: false,
         failed: Vec::new(),
     };
-    // The containers of `folds` some diagram held.
+    // The containers of `folds` some diagram held, and every one they have.
     let mut held: Vec<String> = Vec::new();
+    let mut offered: Vec<String> = Vec::new();
     for (entry, target) in atlas.diagrams.iter().zip(targets) {
         let path = root.join(&entry.file);
         let drawn = crate::folds::render(
@@ -232,14 +233,10 @@ pub fn export(
             skin.as_ref(),
             folds,
         );
-        let rendered = match drawn {
+        let (rendered, folded) = match drawn {
             Ok((rendered, folded)) => {
-                for name in folded.held {
-                    if !held.contains(&name) {
-                        held.push(name);
-                    }
-                }
-                rendered
+                folded.gather(&mut held, &mut offered);
+                (rendered, folded)
             }
             Err(err) => {
                 let (line, engine, message) = crate::commands::failure(&err);
@@ -268,6 +265,7 @@ pub fn export(
                     code: &entry.source,
                     language: entry.language,
                     file: Some(file),
+                    folds: &folded.held,
                 }),
                 links: &links,
                 up: crate::specs::depth(own),
@@ -279,8 +277,12 @@ pub fn export(
         pictures.push((target.clone(), svg(&own)?));
         exported.written.push((entry.file.clone(), target));
     }
-    if let Some(name) = crate::folds::first_unheld(folds, &held) {
-        anyhow::bail!(crate::folds::held_by_none(name));
+    // A diagram that did not draw may hold it: what did not draw is said
+    // instead, as without `--fold`.
+    if exported.failed.is_empty()
+        && let Some(name) = crate::folds::first_unheld(folds, &held)
+    {
+        anyhow::bail!(crate::folds::held_by_none(name, &offered));
     }
     anyhow::ensure!(
         !exported.written.is_empty(),

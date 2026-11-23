@@ -181,8 +181,12 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             eprintln!("{}: error: {message}", input.name());
         }
     }
-    // The containers of `--fold` some diagram held.
-    let mut held: Vec<String> = Vec::new();
+    // The containers of `--fold` some diagram held, and every one they have.
+    let (mut held, mut offered): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
+    // With `--fold`, every picture is drawn before one is written: a name
+    // no diagram holds writes none.
+    let mut drawn: Vec<(&crate::document::Piece, Option<PathBuf>, Exported)> = Vec::new();
+    let mut drew_all = true;
     for piece in &pieces {
         let input = piece.input;
         // Where the picture goes: a file, else the clipboard or standard
@@ -193,6 +197,17 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             (Some(_), _) | (None, None) => None,
             (None, Some(_)) => piece.image_path(format.extension()),
         };
+        // A project's map is drawn whole; among diagrams, it is left so.
+        anyhow::ensure!(
+            args.folds.is_empty()
+                || pieces.len() > 1
+                || input
+                    .path
+                    .as_deref()
+                    .and_then(crate::look::map_root)
+                    .is_none(),
+            "--fold folds a diagram's containers; a project's map is drawn whole"
+        );
         let exported = match export_piece(
             piece,
             &mut maps,
@@ -214,6 +229,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             Ok(exported) => exported,
             Err(err) => {
                 failed = true;
+                drew_all = false;
                 let (line, engine, message) = failure(&err);
                 let line = line.map(|l| piece.line(l - 1) + 1);
                 if args.json {
@@ -232,107 +248,40 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             }
         };
         // One diagram holds every name asked to fold, or nothing is
-        // written; of several, each name is held by one at least.
+        // written.
         if pieces.len() == 1
             && let Some(name) = crate::folds::first_unheld(args.folds, &exported.folded.held)
         {
-            anyhow::bail!(crate::folds::not_held(name, &exported.folded.offered));
+            anyhow::bail!(crate::folds::not_held_in(name, &exported.folded));
         }
-        for name in &exported.folded.held {
-            if !held.contains(name) {
-                held.push(name.clone());
-            }
-        }
-        let folded = if exported.folded.held.is_empty() {
-            String::new()
+        exported.folded.gather(&mut held, &mut offered);
+        if args.folds.is_empty() {
+            emit(args, format, piece, dest, exported, &mut reports)?;
         } else {
-            format!(", folded {}", exported.folded.held.join(", "))
-        };
-        let took = format!(
-            "{}, {:.1} ms{folded}",
-            exported.engine,
-            exported.elapsed.as_secs_f64() * 1000.0
-        );
-        let done = Report {
-            file: input.name(),
-            ok: true,
-            engine: Some(exported.engine),
-            elapsed_ms: Some(millis(exported.elapsed)),
-            undrawable: exported.undrawable.iter().map(char::to_string).collect(),
-            fitted_scale: exported.fitted,
-            sized: exported.sized,
-            fence: exported.fence.clone(),
-            folded: exported.folded.held.clone(),
-            ..Report::default()
-        };
-        // Where it went, and what it says besides, on standard error.
-        let said = |to: String| {
-            eprintln!("{} {to} ({took})", input.name());
-            warn_undrawable(&input.name(), &exported.undrawable);
-            warn_fence(&input.name(), exported.fence.as_deref());
-            say_fitted(&input.name(), exported.fitted);
-            say_sized(&input.name(), exported.sized);
-        };
-        match (exported.picture, dest) {
-            (Picture::Tiles(tiles), Some(dest)) => {
-                let paths = write_tiles(&dest, &tiles, input.path.as_deref())?;
-                match args.json {
-                    true => reports.push(Report {
-                        tiles: paths.iter().map(|p| p.display().to_string()).collect(),
-                        ..done
-                    }),
-                    false => said(format!(
-                        "→ {} … {}, {} tiles",
-                        paths[0].display(),
-                        paths[paths.len() - 1].display(),
-                        paths.len()
-                    )),
-                }
-            }
-            (Picture::Tiles(_), None) => anyhow::bail!("tiles are files"),
-            (Picture::One(bytes), _) if args.copy => {
-                copy_to_clipboard(&bytes, format.mime())?;
-                match args.json {
-                    true => reports.push(Report {
-                        copied: true,
-                        ..done
-                    }),
-                    false => said(format!("copied as {}", format.extension().to_uppercase())),
-                }
-            }
-            (Picture::One(bytes), Some(dest)) => {
-                anyhow::ensure!(
-                    input.path.as_deref() != Some(dest.as_path()),
-                    "{} would overwrite the diagram itself",
-                    dest.display()
-                );
-                write_atomic(&dest, &bytes)?;
-                // Tiles an earlier drawing cut it into are gone now.
-                if args.min_font.is_some() {
-                    clear_tiles(&tiles_folder(&dest), &[])?;
-                }
-                match args.json {
-                    true => reports.push(Report {
-                        output: Some(dest.display().to_string()),
-                        ..done
-                    }),
-                    false => said(format!("→ {}", dest.display())),
-                }
-            }
-            // The picture on standard output, its warnings beside it.
-            (Picture::One(bytes), None) => {
-                stdout().write_all(&bytes)?;
-                warn_undrawable(&input.name(), &exported.undrawable);
-                warn_fence(&input.name(), exported.fence.as_deref());
-            }
+            drawn.push((piece, dest, exported));
         }
     }
-    // A name to fold that none of several diagrams held.
-    if pieces.len() > 1 {
-        for name in args.folds.iter().filter(|name| !held.contains(name)) {
-            failed = true;
-            eprintln!("error: {}", crate::folds::held_by_none(name));
+    // Of several diagrams, each name is held by one at least, or none is
+    // written; where one did not draw, it may hold it, and that is said.
+    if pieces.len() > 1
+        && drew_all
+        && let Some(name) = crate::folds::first_unheld(args.folds, &held)
+    {
+        failed = true;
+        drawn.clear();
+        let message = crate::folds::held_by_none(name, &offered);
+        if args.json {
+            reports.push(Report {
+                file: "--fold".to_owned(),
+                message: Some(message),
+                ..Report::default()
+            });
+        } else {
+            eprintln!("error: {message}");
         }
+    }
+    for (piece, dest, exported) in drawn {
+        emit(args, format, piece, dest, exported, &mut reports)?;
     }
     if args.json {
         let mut out = stdout();
@@ -344,6 +293,104 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     } else {
         ExitCode::SUCCESS
     })
+}
+
+/// `exported`, the picture of `piece`, written to `dest`, else copied or
+/// written to standard output, and said: on standard error, or in
+/// `reports` with `--json`.
+fn emit(
+    args: &RenderArgs,
+    format: Format,
+    piece: &crate::document::Piece,
+    dest: Option<PathBuf>,
+    exported: Exported,
+    reports: &mut Vec<Report>,
+) -> Result<()> {
+    let input = piece.input;
+    let folded = if exported.folded.held.is_empty() {
+        String::new()
+    } else {
+        format!(", folded {}", exported.folded.held.join(", "))
+    };
+    let took = format!(
+        "{}, {:.1} ms{folded}",
+        exported.engine,
+        exported.elapsed.as_secs_f64() * 1000.0
+    );
+    let done = Report {
+        file: input.name(),
+        ok: true,
+        engine: Some(exported.engine),
+        elapsed_ms: Some(millis(exported.elapsed)),
+        undrawable: exported.undrawable.iter().map(char::to_string).collect(),
+        fitted_scale: exported.fitted,
+        sized: exported.sized,
+        fence: exported.fence.clone(),
+        folded: exported.folded.held.clone(),
+        ..Report::default()
+    };
+    // Where it went, and what it says besides, on standard error.
+    let said = |to: String| {
+        eprintln!("{} {to} ({took})", input.name());
+        warn_undrawable(&input.name(), &exported.undrawable);
+        warn_fence(&input.name(), exported.fence.as_deref());
+        say_fitted(&input.name(), exported.fitted);
+        say_sized(&input.name(), exported.sized);
+    };
+    match (exported.picture, dest) {
+        (Picture::Tiles(tiles), Some(dest)) => {
+            let paths = write_tiles(&dest, &tiles, input.path.as_deref())?;
+            match args.json {
+                true => reports.push(Report {
+                    tiles: paths.iter().map(|p| p.display().to_string()).collect(),
+                    ..done
+                }),
+                false => said(format!(
+                    "→ {} … {}, {} tiles",
+                    paths[0].display(),
+                    paths[paths.len() - 1].display(),
+                    paths.len()
+                )),
+            }
+        }
+        (Picture::Tiles(_), None) => anyhow::bail!("tiles are files"),
+        (Picture::One(bytes), _) if args.copy => {
+            copy_to_clipboard(&bytes, format.mime())?;
+            match args.json {
+                true => reports.push(Report {
+                    copied: true,
+                    ..done
+                }),
+                false => said(format!("copied as {}", format.extension().to_uppercase())),
+            }
+        }
+        (Picture::One(bytes), Some(dest)) => {
+            anyhow::ensure!(
+                input.path.as_deref() != Some(dest.as_path()),
+                "{} would overwrite the diagram itself",
+                dest.display()
+            );
+            write_atomic(&dest, &bytes)?;
+            // Tiles an earlier drawing cut it into are gone now.
+            if args.min_font.is_some() {
+                clear_tiles(&tiles_folder(&dest), &[])?;
+            }
+            match args.json {
+                true => reports.push(Report {
+                    output: Some(dest.display().to_string()),
+                    ..done
+                }),
+                false => said(format!("→ {}", dest.display())),
+            }
+        }
+        // The picture on standard output, its warnings beside it.
+        (Picture::One(bytes), None) => {
+            stdout().write_all(&bytes)?;
+            warn_undrawable(&input.name(), &exported.undrawable);
+            warn_fence(&input.name(), exported.fence.as_deref());
+        }
+    }
+    Ok(())
 }
 
 /// The behavior of the state machine or sequence diagram `code`, one fact
@@ -731,6 +778,20 @@ fn hold(
         });
     }
     for piece in pieces {
+        // Drawn as the SVG beside it was, with the containers it shows
+        // folded (`render --fold`).
+        let beside = piece
+            .image_path("svg")
+            .and_then(|dest| std::fs::read_to_string(dest).ok());
+        let folds = beside
+            .as_deref()
+            .and_then(omaspec_core::embed::source_from_svg)
+            .map(|source| source.folds)
+            .unwrap_or_default();
+        let draw = Draw {
+            folds: &folds,
+            ..draw
+        };
         match export_piece(piece, &mut maps, &mut renderer, &mut skins, draw)? {
             Err(err) => {
                 let (line, engine, message) = failure(&err);
@@ -930,6 +991,8 @@ fn export_piece(
             code: &piece.code,
             language: piece.language,
             file: source_name.as_deref(),
+            // How it was drawn, so `render --check` draws it so again.
+            folds: &folded.held,
         }),
         links: &links,
         up,

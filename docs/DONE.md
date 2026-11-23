@@ -1585,6 +1585,22 @@ is open and the reasoning around it.
       (`--html`), the map whole; a name no diagram holds stops it before
       anything is written. The MCP server's `render` takes `fold`, a list
       of names. `play --fold` says an unknown name in the same words.
+- [x] What the review of the folds on the command line found
+      (2026-11-23): the image keeps the folds with the source (an
+      attribute `folds` of `<sf:source>`, a PNG chunk `Omaspec folds`), and
+      `render --check` and `omaspec check` draw an SVG beside its diagram
+      with the folds it keeps; a folded SVG written beside its file was
+      said to differ. Names are taken apart at commas but for one in
+      double quotes or with `\,`, as `--events` takes them, trimmed and
+      once each, by `render`, `export` and `play`: `"Sales, EU"` folds.
+      With several diagrams every picture is drawn before one is written,
+      so a name none holds writes nothing, lists the containers they have,
+      and is in the `--json` report; a diagram that does not draw is said
+      instead of a name it may have held, in `render` and `export` alike.
+      A project's map with `--fold` says it is drawn whole; a diagram the
+      Java PlantUML drew says it folds nothing. A container the file folds
+      itself counts as held. The time is both drawings'. The MCP server
+      reports the names it folded.
 
 ## Next
 

@@ -1095,6 +1095,56 @@ fn render_folds_the_containers_named_and_keeps_the_file_s_source() {
         String::from_utf8_lossy(&out.stderr)
             .contains("Pantry is no container to fold in any of the diagrams")
     );
+    // The image keeps the folds: `render --check` draws it so again.
+    let beside = omaspec(&["render", coffee, "--fold", "Brewing"]);
+    assert_eq!(beside.status.code(), Some(0), "{beside:?}");
+    let check = omaspec(&["render", "--check", coffee]);
+    assert_eq!(check.status.code(), Some(0), "{check:?}");
+    // Names trimmed, given twice or in quotes with a comma.
+    let sales = dir.join("sales.puml");
+    fs::write(
+        &sales,
+        "@startuml\npackage \"Sales, EU\" {\n  class Order\n}\nclass Shop\nShop --> Order\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&[
+        "render",
+        sales.to_str().unwrap(),
+        "--fold",
+        r#" "Sales, EU" "#,
+        "-o",
+        dir.join("sales.svg").to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("folded Sales, EU"),
+        "{out:?}"
+    );
+    let out = omaspec(&[
+        "render",
+        coffee,
+        "--fold",
+        " Brewing , Brewing",
+        "-o",
+        svg.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("folded Brewing)"),
+        "{out:?}"
+    );
+    // Of several, a name none holds writes nothing, lists what they have,
+    // and is in the report.
+    let before = fs::read(&svg).unwrap();
+    let out = omaspec(&["render", coffee, net, "--fold", "Pantry", "--json"]);
+    assert_eq!(out.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let said = report.as_array().unwrap().last().unwrap()["message"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(said.contains("they have Brewing, Core"), "{said}");
+    assert_eq!(fs::read(&svg).unwrap(), before, "nothing written");
     // Text and a presentation are the whole behavior.
     for output in ["coffee.txt", "coffee.html"] {
         let out = omaspec(&[
@@ -1137,6 +1187,38 @@ fn render_folds_the_containers_named_and_keeps_the_file_s_source() {
     ]);
     assert_eq!(out.status.code(), Some(2));
     assert!(!never.exists());
+    // The map is drawn whole.
+    let toml = project.join("omaspec-project.toml");
+    let out = omaspec(&[
+        "render",
+        toml.to_str().unwrap(),
+        "--fold",
+        "Brewing",
+        "-o",
+        dir.join("map.svg").to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("a project's map is drawn whole"));
+    // A diagram that does not draw is said, not a name it may hold.
+    fs::write(
+        project.join("broken.puml"),
+        "@startuml\nstate Brewing {\n  [*] -->\n}\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&[
+        "export",
+        project.to_str().unwrap(),
+        "-o",
+        never.to_str().unwrap(),
+        "--fold",
+        "Pantry",
+    ]);
+    assert_eq!(out.status.code(), Some(1), "{out:?}");
+    let said = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        said.contains("broken.puml") && !said.contains("Pantry"),
+        "{said}"
+    );
     let _ = fs::remove_dir_all(&dir);
 }
 

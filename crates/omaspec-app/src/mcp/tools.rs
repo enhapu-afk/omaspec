@@ -454,13 +454,20 @@ impl Tools {
             .is_some_and(|ext| ext.eq_ignore_ascii_case("txt"));
         let folds: Vec<String> = match args.map.get("fold") {
             None | Some(Value::Null) => Vec::new(),
-            Some(Value::Array(items)) => items
-                .iter()
-                .map(|item| match item {
-                    Value::String(name) => Ok(name.trim().to_owned()),
-                    _ => bail!("`fold` must be a list of names"),
-                })
-                .collect::<Result<_>>()?,
+            Some(Value::Array(items)) => {
+                let mut names: Vec<String> = Vec::new();
+                for item in items {
+                    let Value::String(name) = item else {
+                        bail!("`fold` must be a list of names");
+                    };
+                    let name = name.trim();
+                    ensure!(!name.is_empty(), "`fold` names an empty container");
+                    if !names.iter().any(|n| n == name) {
+                        names.push(name.to_owned());
+                    }
+                }
+                names
+            }
             Some(_) => bail!("`fold` must be a list of names"),
         };
         if txt || args.text("format")? == Some("text") {
@@ -542,12 +549,12 @@ impl Tools {
                 &folds,
             ),
         };
-        let rendered = match drawn {
+        let (rendered, folded) = match drawn {
             Ok((rendered, folded)) => {
                 if let Some(name) = crate::folds::first_unheld(&folds, &folded.held) {
-                    bail!(crate::folds::not_held(name, &folded.offered));
+                    bail!(crate::folds::not_held_in(name, &folded));
                 }
-                rendered
+                (rendered, folded.held)
             }
             Err(err) => {
                 let (line, engine, message) = failure(&err);
@@ -565,8 +572,8 @@ impl Tools {
             "engine": rendered.engine.name(),
             "elapsed_ms": millis(rendered.elapsed),
         });
-        if !folds.is_empty() {
-            report["folded"] = json!(folds);
+        if !folded.is_empty() {
+            report["folded"] = json!(folded);
         }
         if let Some(fence) = &rendered.fence {
             report["fence"] = json!(fence);
@@ -641,6 +648,7 @@ impl Tools {
                 code: &piece.code,
                 language: lang,
                 file: source_name.as_deref(),
+                folds: &folded,
             }),
             links: &links,
             up,

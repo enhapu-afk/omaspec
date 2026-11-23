@@ -1207,6 +1207,7 @@ fn images_open_their_diagram_under_a_free_name() {
             code: flow,
             language: Language::Mermaid,
             file: Some("flow.mmd"),
+            folds: &[],
         }),
         links: &[],
         up: 0,

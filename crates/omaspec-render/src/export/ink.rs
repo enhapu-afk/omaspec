@@ -160,6 +160,7 @@ mod tests {
             code: "@startuml\nA -> B\n@enduml\n",
             language: omaspec_core::Language::PlantUml,
             file: Some("door.puml"),
+            folds: &[],
         };
         let page = page(&ink, Some(source), "door").unwrap();
         assert!(!page.contains("alert(1)"));

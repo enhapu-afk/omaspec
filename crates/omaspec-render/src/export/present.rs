@@ -312,6 +312,7 @@ mod tests {
                 code: source,
                 language: Language::PlantUml,
                 file: Some("talk.puml"),
+                folds: &[],
             }),
             "A <talk>",
         );
@@ -401,6 +402,7 @@ mod tests {
                 code: source,
                 language: Language::PlantUml,
                 file: None,
+                folds: &[],
             }),
             "door",
         );
