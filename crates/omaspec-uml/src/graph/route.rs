@@ -520,8 +520,11 @@ struct Port {
 fn usable(end: Side, axis: Axis) -> (f32, f32) {
     let (lo, hi) = end.rect.span(axis);
     if end.flat {
+        // Half a short side in from each end may cross by rounding:
+        // `0.0004 + 5.0` is above `10.0004 - 5.0`.
         let inset = CORNER.min((hi - lo) / 2.0);
-        (lo + inset, hi - inset)
+        let from = lo + inset;
+        (from, (hi - inset).max(from))
     } else {
         let mid = (lo + hi) / 2.0;
         (mid, mid)
@@ -1260,6 +1263,21 @@ mod tests {
 
     fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect {
         Rect { x, y, w, h }
+    }
+
+    /// The stretch a flat end's lines may use never runs backwards, so the
+    /// places on it can be clamped to it: a short side near the origin
+    /// rounded its two ends across each other, and `clamp` panicked.
+    #[test]
+    fn a_short_flat_side_keeps_its_ends_in_order() {
+        let end = Side {
+            rect: Bounds::of(rect(0.0004, 0.0, 10.0, 6.0)),
+            flat: true,
+        };
+        for axis in [Axis::X, Axis::Y] {
+            let (a, b) = usable(end, axis);
+            assert!(a <= b, "{a} > {b}");
+        }
     }
 
     #[test]

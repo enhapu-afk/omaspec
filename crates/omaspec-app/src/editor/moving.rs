@@ -11,7 +11,8 @@
 //! one before, however long drawing it took. The events are taken by name (`--events open,close`;
 //! with its guard, `"start [tank empty]"`, where two share a name),
 //! else the first the machine offers at each state, for `--steps` steps
-//! (8 without it); a scenario plays every message, a git graph every commit.
+//! (8 without it, or as many as `--events` names); a scenario plays every
+//! message and a git graph every commit, up to 50 without `--steps`.
 //! With `--fold Brewing` no play runs: the container folds to its box,
 //! the diagram glides to its new layout, and it unfolds again. With
 //! `--dive Orders` on a project's file the map zooms into that tile, the
@@ -41,9 +42,16 @@ pub struct Travel {
     pub to: Option<String>,
 }
 
-/// The steps a state machine's play takes without `--steps`: a machine
-/// may go round for ever, a scenario ends.
+/// The steps a state machine's play takes without `--steps` or more
+/// `--events`: a machine may go round for ever, a scenario ends.
 pub const MACHINE_STEPS: usize = 8;
+
+/// The messages or commits a scenario's or a git graph's play takes
+/// without `--steps`. Each keeps some two seconds of frames until the
+/// picture is written, 5 MB of them for a large sequence diagram in full
+/// color: fifty keep a film within a few hundred MB. One that stops here
+/// says so.
+pub const SCENARIO_STEPS: usize = 50;
 
 /// What the command line asks for.
 #[derive(Debug, Clone)]
@@ -55,7 +63,8 @@ pub struct Moving {
     /// The events to take, in order; empty takes the first offered.
     pub events: Vec<String>,
     /// How many steps at most; `None` takes [`MACHINE_STEPS`] in a state
-    /// machine and every message or commit of a scenario or a git graph.
+    /// machine, or as many as `events` names, and every message or commit
+    /// of a scenario or a git graph up to [`SCENARIO_STEPS`].
     pub steps: Option<usize>,
     /// The picture's width in pixels, the height following the diagram;
     /// `None` takes twice the diagram's size, up to [`WIDEST`].
@@ -115,6 +124,14 @@ pub struct Moving {
 }
 
 impl Moving {
+    /// The steps a state machine's play takes: `--steps`, else
+    /// [`MACHINE_STEPS`] or as many as `--events` names, so none of them
+    /// is left out without a word.
+    fn machine_steps(&self) -> usize {
+        self.steps
+            .unwrap_or_else(|| MACHINE_STEPS.max(self.events.len()))
+    }
+
     /// The diagram's text: the one given, else the file's.
     pub(super) fn read(&self) -> Result<String> {
         match &self.text {
@@ -642,30 +659,41 @@ impl Stage {
             let offer = self.app.doc().paper.offer();
             let Some(paper::Offer::Machine { options, ended, .. }) = offer else {
                 // A scenario or a git graph: its next message or commit,
-                // every one of them without `--steps`, none past its end.
-                if let Some(paper::Offer::Scenario { at, of, commits }) = offer {
-                    scenario = Some((at, of, commits));
-                    if at >= of {
-                        break;
+                // every one up to `SCENARIO_STEPS` without `--steps`, none
+                // past its end.
+                let at = match offer {
+                    Some(paper::Offer::Scenario { at, of, commits }) => {
+                        scenario = Some((at, of, commits));
+                        if at >= of {
+                            break;
+                        }
+                        Some(at)
                     }
-                }
-                if step
-                    >= args.steps.unwrap_or(if scenario.is_some() {
-                        usize::MAX
-                    } else {
-                        MACHINE_STEPS
-                    })
-                {
+                    _ => None,
+                };
+                let limit = match (args.steps, at) {
+                    (Some(steps), _) => steps,
+                    (None, Some(_)) => SCENARIO_STEPS,
+                    (None, None) => args.machine_steps(),
+                };
+                if step >= limit {
                     break;
                 }
                 self.send(Message::Command(Command::PlayAsk(Ask::Next)));
                 if !self.app.doc().paper.playing() {
                     break;
                 }
+                // A step that does not move it on would be held for ever.
+                if let (Some(was), Some(paper::Offer::Scenario { at, .. })) =
+                    (at, self.app.doc().paper.offer())
+                    && at == was
+                {
+                    break;
+                }
                 self.step(moving);
                 continue;
             };
-            if step >= args.steps.unwrap_or(MACHINE_STEPS) || ended || options.is_empty() {
+            if step >= args.machine_steps() || ended || options.is_empty() {
                 break;
             }
             let Some(choice) = choose(&options, &args.events, step, &walked)? else {
@@ -686,11 +714,7 @@ impl Stage {
             self.step(moving);
         }
         Ok(match scenario {
-            // Stopped short by `--steps`: said, so it is not taken for the whole.
-            Some((at, of, commits)) if at < of => {
-                let what = if commits { "commits" } else { "messages" };
-                format!("played {at} of {of} {what}")
-            }
+            Some((at, of, commits)) if at < of => stopped(at, of, commits, args.steps.is_some()),
             _ if taken.is_empty() => "played".to_owned(),
             _ => taken.join(", "),
         })
@@ -928,6 +952,25 @@ fn choose(
         })
 }
 
+/// What a scenario's play says that stopped at `at` of its `of` messages
+/// or commits, short of its end, so it is not taken for the whole; one
+/// that stopped at [`SCENARIO_STEPS`], not `asked` to, says how to play
+/// them all.
+fn stopped(at: usize, of: usize, commits: bool, asked: bool) -> String {
+    let what = match (commits, of) {
+        (true, 1) => "commit",
+        (true, _) => "commits",
+        (false, 1) => "message",
+        (false, _) => "messages",
+    };
+    let all = if asked {
+        String::new()
+    } else {
+        format!("; --steps {of} plays them all")
+    };
+    format!("played {at} of {of} {what}{all}")
+}
+
 /// Walks `--events` on the state machine alone, as the play will, before
 /// anything is drawn: an event it does not offer stops it at once, with
 /// the words the play would say.
@@ -945,7 +988,7 @@ fn rehearse(args: &Moving) -> Result<()> {
     };
     let mut walked = Vec::new();
     let mut before: Vec<(String, String)> = Vec::new();
-    for step in 0..args.steps.unwrap_or(MACHINE_STEPS) {
+    for step in 0..args.machine_steps() {
         let ways = run.options(&machine);
         if run.ended(&machine) || ways.is_empty() {
             break;
@@ -1337,8 +1380,13 @@ mod tests {
         let (whole, frames) = record(None);
         assert!(whole.ends_with(", played)"), "{whole}");
         let (short, fewer) = record(Some(3));
-        assert!(short.contains("played 3 of 10 messages"), "{short}");
+        assert!(short.ends_with(", played 3 of 10 messages)"), "{short}");
         assert!(fewer < frames, "{fewer} of {frames}");
+        assert_eq!(stopped(0, 1, false, true), "played 0 of 1 message");
+        assert_eq!(
+            stopped(50, 300, true, false),
+            "played 50 of 300 commits; --steps 300 plays them all"
+        );
         let (past, more) = record(Some(30));
         assert!(past.ends_with(", played)"), "{past}");
         assert_eq!(more, frames, "steps past the end held again");
@@ -1723,7 +1771,7 @@ mod tests {
             text: None,
             output: work.join("never.gif"),
             events: events.iter().map(|e| (*e).to_owned()).collect(),
-            steps: Some(8),
+            steps: None,
             width: None,
             fps: Some(10),
             folds: Vec::new(),
@@ -1750,6 +1798,15 @@ mod tests {
         assert_eq!(
             err,
             "step 2: fly is not offered here; the machine offers close"
+        );
+        // Without `--steps`, every event named is taken: a ninth too, and
+        // a wrong one after the eighth is said (it was never reached).
+        let long = ["open", "close"].repeat(4);
+        let mut wrong: Vec<&str> = long.clone();
+        wrong.extend(["open", "fly"]);
+        assert_eq!(
+            rehearse(&moving(&wrong)).unwrap_err().to_string(),
+            "step 10: fly is not offered here; the machine offers close"
         );
         // The play itself says so too, and writes nothing.
         assert!(play(&moving(&["open", "fly"])).is_err());

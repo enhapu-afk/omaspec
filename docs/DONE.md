@@ -1482,6 +1482,18 @@ is open and the reasoning around it.
       every message and a git graph every commit. One stopped short by
       `--steps` says so (`played 3 of 10 messages`), and steps past a
       scenario's end no longer hold its last picture again for each.
+- [x] What the review of the fork bar and the scenario's play found
+      (2026-11-23): a scenario without `--steps` plays up to 50 messages
+      or commits; each keeps some two seconds of frames until the film is
+      written, 5 MB of them for a large sequence diagram in full color, so
+      300 would have kept 1.6 GB. One that stops there says so and how to
+      play them all (`--steps 300`), and a step that does not move it on
+      ends the play. A state machine takes as many steps as `--events`
+      names where they are more than 8, and a wrong event after the
+      eighth is said before anything is drawn. A line's end on a short
+      flat side near the origin had the same rounding as the fork bar, its
+      stretch running backwards (`graph::route::usable`). One message or
+      commit is said in the singular.
 
 ## Next
 
