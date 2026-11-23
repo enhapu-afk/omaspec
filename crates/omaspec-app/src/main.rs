@@ -547,10 +547,10 @@ enum Command {
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from", "traffic", "themes"])]
         ink: bool,
         /// With `--ink`: the look the sketch is inked into (plain, vivid,
-        /// omarchy, light, dark, file; auto is light in a film), else the
-        /// play's colors. Only `--ink` takes it: a play, a fold or a dive
-        /// is drawn in `--theme`'s colors, a light one with a light
-        /// theme's colors.toml.
+        /// omarchy, light, dark, file; auto is light in a film); without
+        /// `--look`, the play's colors. Only `--ink` takes it: a play, a
+        /// fold or a dive is drawn in `--theme`'s colors, a light one with
+        /// a light theme's colors.toml.
         #[arg(long, value_enum, requires = "ink")]
         look: Option<crate::look::Look>,
         /// How long the film lasts, in seconds: its holds stretched or

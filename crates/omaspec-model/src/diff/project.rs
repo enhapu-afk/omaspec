@@ -400,8 +400,8 @@ impl Versions<'_> {
 /// a sequence diagram's against `specs`.
 fn checked(u: &Unit, specs: &Specs) -> Vec<Finding> {
     match u.kind.kind {
-        DiagramKind::State => Machine::read(&u.code, u.language)
-            .map(|m| check::machine(&m))
+        DiagramKind::State => Machine::read_placed(&u.code, u.language)
+            .map(|(m, hidden)| check::placed(&m, &hidden))
             .unwrap_or_default(),
         DiagramKind::Sequence => across::check(&u.code, u.language, specs),
         _ => Vec::new(),

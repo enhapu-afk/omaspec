@@ -74,7 +74,7 @@ const PARTS: &[&str] = &["classDef", "style", "linkStyle", "click"];
 /// Each `'` on `line` in a box's text, in quotes or in a link's label,
 /// written as [`APOSTROPHE`]; `None` where there is none. One in a name
 /// stays: a name is not put back.
-fn mask_apostrophes(line: &str) -> Option<String> {
+pub(super) fn mask_apostrophes(line: &str) -> Option<String> {
     if !line.contains('\'') {
         return None;
     }

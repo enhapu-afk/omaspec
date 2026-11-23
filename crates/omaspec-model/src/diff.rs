@@ -84,10 +84,13 @@ pub(crate) fn between(
     let (a, b) = (classify(old, old_lang), classify(new, new_lang));
     match (a.kind, b.kind) {
         (DiagramKind::State, DiagramKind::State) => {
-            let a = Machine::read(old, old_lang).ok_or(UNREAD_OLD)?;
-            let b = Machine::read(new, new_lang).ok_or(UNREAD_NEW)?;
+            let (a, a_hidden) = Machine::read_placed(old, old_lang).ok_or(UNREAD_OLD)?;
+            let (b, b_hidden) = Machine::read_placed(new, new_lang).ok_or(UNREAD_NEW)?;
             let mut changes = machines(&a, &b);
-            changes.extend(findings(check::machine(&a), check::machine(&b)));
+            changes.extend(findings(
+                check::placed(&a, &a_hidden),
+                check::placed(&b, &b_hidden),
+            ));
             Ok(changes)
         }
         (DiagramKind::Sequence, DiagramKind::Sequence) => {

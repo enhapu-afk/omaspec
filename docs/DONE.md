@@ -1548,6 +1548,26 @@ is open and the reasoning around it.
       drew the play dark all the same). It says now that only `--ink`
       takes it, and that a light play takes a light theme's colors.toml
       as `--theme`.
+- [x] What the review of the hidden arrows, the help and the last fixes
+      found (2026-11-23): a hidden arrow is named only where a transition in
+      its place would reach the state, from a state reached and not from
+      itself; one into a state inside a composite names it at the
+      composite, one that leaves a composite at a state inside, and two
+      are said as two. `omaspec diff`, `log`, git's textconv and `render
+      -o x.txt` say what lint says, from the same reading. The help says
+      "without `--look`" where it said "else". Of the last fixes: a `>`
+      in the words of a link (`-- n>0 -->`), a `|` in a quoted label
+      (`-->|"a|b"|`) and a one-line `accTitle`, `accDescr` or `title`
+      with an open bracket hid every line after them from the refusal;
+      a link and its label are words to it now, and such a line is text.
+      A `;` in a label in bars no longer cuts a statement in two. The
+      refusal is worded by what follows the first name (boxes side by
+      side want a link), and its words go in brackets after the bare id,
+      without classes. Shape data is YAML, where a `'` quotes
+      (`label: 'Order, ship'`); a box's text keeps its `'` as Mermaid
+      draws it (`A['x y']`), on a line that is repaired too; and a box
+      mmdr misread beside an invisible link is found by the name it read
+      in its masked copy, so no stray box is left.
 
 ## Next
 

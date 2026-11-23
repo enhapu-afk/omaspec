@@ -131,7 +131,10 @@ impl Machine {
 
     /// [`Machine::read`], and the hidden arrows that only place two of its
     /// states, by index (PlantUML's `-[hidden]->`; Mermaid has none).
-    fn read_placed(code: &str, lang: Language) -> Option<(Machine, Vec<(usize, usize)>)> {
+    pub(crate) fn read_placed(
+        code: &str,
+        lang: Language,
+    ) -> Option<(Machine, Vec<(usize, usize)>)> {
         if classify(code, lang).kind != DiagramKind::State {
             return None;
         }

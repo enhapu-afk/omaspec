@@ -23,9 +23,9 @@ pub fn behavior(code: &str, lang: Language) -> Option<String> {
     };
     let mut lines = match classify(code, lang).kind {
         DiagramKind::State => {
-            let machine = Machine::read(code, lang)?;
+            let (machine, hidden) = Machine::read_placed(code, lang)?;
             let mut lines = vec![named("State machine")];
-            lines.extend(machine_lines(&machine));
+            lines.extend(machine_lines(&machine, &hidden));
             lines
         }
         DiagramKind::Sequence => {
@@ -40,8 +40,9 @@ pub fn behavior(code: &str, lang: Language) -> Option<String> {
     Some(lines.join("\n"))
 }
 
-/// The states, the transitions and the findings, each sorted.
-fn machine_lines(m: &Machine) -> Vec<String> {
+/// The states, the transitions and the findings, each sorted; `hidden`
+/// the arrows that only place two states, as the checks name them.
+fn machine_lines(m: &Machine, hidden: &[(usize, usize)]) -> Vec<String> {
     let mut states: Vec<String> = (0..m.states.len())
         .filter_map(|s| {
             let kind = match m.states[s].kind {
@@ -70,7 +71,7 @@ fn machine_lines(m: &Machine) -> Vec<String> {
         })
         .collect();
     transitions.sort();
-    let mut findings: Vec<String> = check::machine(m)
+    let mut findings: Vec<String> = check::placed(m, hidden)
         .into_iter()
         .map(|f| format!("  {}: {}", severity(f.severity), without_lines(&f.message)))
         .collect();

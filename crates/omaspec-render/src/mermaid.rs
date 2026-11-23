@@ -1284,6 +1284,42 @@ mod tests {
         assert!(message.contains("it's"), "{message}");
     }
 
+    /// The words drawn in `svg`, each once, in order.
+    fn drawn_words(svg: &str) -> Vec<String> {
+        let mut words: Vec<String> = Vec::new();
+        for piece in svg
+            .split('<')
+            .filter(|p| p.starts_with("text") || p.starts_with("tspan"))
+        {
+            let word = piece.split_once('>').map_or("", |(_, w)| w).trim();
+            let word = word.replace("&apos;", "'").replace("&#39;", "'");
+            if !word.is_empty() && !words.contains(&word) {
+                words.push(word);
+            }
+        }
+        words
+    }
+
+    /// A `'` is a letter in a box and quotes in shape data, which is YAML,
+    /// as Mermaid has it; a box's text with one drawn beside an invisible
+    /// link leaves no box mmdr misread behind.
+    #[test]
+    fn a_quote_mark_is_a_letter_in_a_box_and_quotes_in_shape_data() {
+        let words = drawn_words(
+            &render("flowchart TD\n  A@{ shape: rect, label: 'Order, ship' } --> B\n").unwrap(),
+        );
+        assert!(words.contains(&"Order, ship".to_owned()), "{words:?}");
+        let words = drawn_words(&render("flowchart TD\n  A[it's] ~~~ B\n").unwrap());
+        assert_eq!(words, ["it's", "B"]);
+        for text in [
+            "flowchart TD\n  A['x y'] --> B\n",
+            "flowchart TD\n  A['x y'] ~~~ B\n",
+        ] {
+            let words = drawn_words(&render(text).unwrap());
+            assert!(words.contains(&"'x y'".to_owned()), "{text}: {words:?}");
+        }
+    }
+
     /// A box named with a space, which Mermaid refuses, is refused on its
     /// line in a flowchart and in a swimlane diagram (REQ-112).
     #[test]

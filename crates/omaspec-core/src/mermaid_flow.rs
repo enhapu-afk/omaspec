@@ -8,10 +8,11 @@
 //! refuse such a line alike ([`wrong`]).
 
 /// Where the statements of `line` stand: apart at each `;`, up to a
-/// comment. A `;` or `%%` in quotes or brackets is words.
+/// comment. A `;` or `%%` in quotes, in brackets or in a link's label in
+/// bars (`-->|a;b|`) is words.
 pub fn statements(line: &str) -> Vec<(usize, usize)> {
     let mut found = Vec::new();
-    let (mut depth, mut quote) = (0usize, false);
+    let (mut depth, mut quote, mut bar) = (0usize, false, false);
     let mut start = 0;
     let mut end = line.trim_end_matches(['\n', '\r']).len();
     for (at, ch) in line[..end].char_indices() {
@@ -19,6 +20,10 @@ pub fn statements(line: &str) -> Vec<(usize, usize)> {
             quote = ch != '"';
         } else if ch == '"' {
             quote = true;
+        } else if bar {
+            bar = ch != '|';
+        } else if depth == 0 && ch == '|' {
+            bar = true;
         } else if matches!(ch, '[' | '(' | '{') {
             depth += 1;
         } else if matches!(ch, ']' | ')' | '}') {
@@ -119,7 +124,7 @@ pub fn links(text: &str) -> Vec<Link> {
             }
             let mut labelled = false;
             if chars.get(next).map(|&(_, ch)| ch) == Some('|')
-                && let Some(close) = chars[next + 1..].iter().position(|&(_, ch)| ch == '|')
+                && let Some(close) = bar_close(&chars[next + 1..])
             {
                 end = next + close + 2;
                 labelled = true;
@@ -147,6 +152,18 @@ pub fn links(text: &str) -> Vec<Link> {
         );
     }
     found
+}
+
+/// Where the `|` that closes a label in bars stands in `rest`, past its
+/// opening `|`: the first outside quotes (`-->|"a|b"|`).
+fn bar_close(rest: &[(usize, char)]) -> Option<usize> {
+    let mut quote = false;
+    rest.iter().position(|&(_, ch)| {
+        if ch == '"' {
+            quote = !quote;
+        }
+        ch == '|' && !quote
+    })
 }
 
 /// Whether `ch` may end a box's name, so a `>` after it opens an
@@ -223,28 +240,35 @@ const KEYWORDS: &[&str] = &[
 ];
 
 /// Where a quote or a bracket stands open at the end of `line`, from
-/// `open` at its start; a comment ends it. A link's label in bars
-/// (`-->|n>0|`) is words, opening nothing.
+/// `open` at its start; a comment ends it. A link with its label, in bars
+/// or between its dashes (`-->|n>0|`, `-- n>0 -->`), is words, opening
+/// nothing, where the line starts with none open.
 fn carried(line: &str, open: (usize, bool)) -> (usize, bool) {
     let (mut depth, mut quote) = open;
-    let mut label = false;
-    let chars: Vec<char> = line.chars().collect();
-    for (index, &ch) in chars.iter().enumerate() {
+    let spans = if open == (0, false) {
+        links(line)
+    } else {
+        Vec::new()
+    };
+    let chars: Vec<(usize, char)> = line.char_indices().collect();
+    for (index, &(at, ch)) in chars.iter().enumerate() {
+        if spans
+            .iter()
+            .any(|link| (link.start..link.end).contains(&at))
+        {
+            continue;
+        }
         if quote {
             quote = ch != '"';
-        } else if label {
-            label = ch != '|';
         } else if ch == '"' {
             quote = true;
-        } else if ch == '|' && depth == 0 {
-            label = true;
         } else if matches!(ch, '[' | '(' | '{') {
             depth += 1;
         } else if matches!(ch, ']' | ')' | '}') {
             depth = depth.saturating_sub(1);
-        } else if ch == '>' && index > 0 && named(chars[index - 1]) && depth == 0 {
+        } else if ch == '>' && index > 0 && named(chars[index - 1].1) && depth == 0 {
             depth += 1;
-        } else if depth == 0 && ch == '%' && chars.get(index + 1) == Some(&'%') {
+        } else if depth == 0 && ch == '%' && chars.get(index + 1).map(|&(_, c)| c) == Some('%') {
             break;
         }
     }
@@ -325,9 +349,9 @@ fn names(end: &str) -> Vec<Name> {
 }
 
 /// The first run of names in `statement` that stand side by side without
-/// a link or an `&` between them, from its first name to its last, which
-/// mermaid.js refuses: the run's text and its first name.
-fn side_by_side(statement: &str) -> Option<(&str, &str)> {
+/// a link or an `&` between them, which mermaid.js refuses: the run's
+/// text, from its first name to its last, and each name's.
+fn side_by_side(statement: &str) -> Option<(&str, Vec<&str>)> {
     let lead = statement.trim_start();
     let word = lead
         .split(|c: char| c.is_whitespace() || c == ':' || c == ';')
@@ -347,37 +371,56 @@ fn side_by_side(statement: &str) -> Option<(&str, &str)> {
         let end = &statement[from..to];
         let words = names(end);
         if let Some(first) = words.windows(2).position(|pair| !pair[1].parted) {
-            let last = words[first + 1..]
-                .iter()
-                .take_while(|name| !name.parted)
-                .last()?;
-            let name = &words[first];
-            return Some((&end[name.start..last.end], &end[name.start..name.end]));
+            let run: Vec<&Name> = std::iter::once(&words[first])
+                .chain(words[first + 1..].iter().take_while(|name| !name.parted))
+                .collect();
+            let last = run.last()?;
+            let text = &end[run[0].start..last.end];
+            return Some((
+                text,
+                run.iter().map(|name| &end[name.start..name.end]).collect(),
+            ));
         }
         from = next;
     }
     None
 }
 
-/// What is said of `run`, names side by side whose first is `name`: an
-/// `&` written onto a name, a box's text after a space, or one name with
-/// a space in it.
-fn said(run: &str, name: &str) -> String {
-    if run.contains('&') {
+/// What is said of `run`, the names `names` side by side, by what
+/// follows the first: an `&` written onto a name, a box's text after a
+/// space, a box beside a box, or one name with a space in it. The words
+/// of the last go in brackets after the first's id, without classes.
+fn said(run: &str, names: &[&str]) -> String {
+    let rest = names[1..].join(" ");
+    let bare = |name: &str| -> String {
+        let end = name
+            .find([':', '@', '[', '(', '{', '>', '"'])
+            .unwrap_or(name.len());
+        name[..end].to_owned()
+    };
+    if rest.contains('&') || names[0].ends_with('&') {
         format!(
             "`{run}`: an `&` stands apart from the names it joins (`A & B`), \
              and Mermaid refuses this line too"
         )
-    } else if run.contains(['[', ']', '(', ')', '{', '}', '>', '"']) {
+    } else if rest.contains(['[', ']', '(', ')', '{', '}', '>', '"']) {
         format!(
             "`{run}`: a box's text follows its name without a space between, \
              and Mermaid refuses this line too"
         )
+    } else if names[0].contains(['[', '(', '{', '>', '"']) {
+        format!(
+            "`{run}`: boxes side by side want a link or an `&` between them, \
+             and Mermaid refuses this line too"
+        )
     } else {
+        let words: Vec<String> = names.iter().map(|name| bare(name)).collect();
+        let id = &words[0];
+        let words = words.join(" ");
         format!(
             "`{run}` stands where one name goes: a box's name has no space, and \
              Mermaid refuses this line too; its words go in brackets, as \
-             `{name}[{run}]`"
+             `{id}[{words}]`"
         )
     }
 }
@@ -428,6 +471,14 @@ pub fn wrong(body: &str) -> Option<(usize, String)> {
             described = !trimmed.contains('}');
             continue;
         }
+        // Words to the end of the line: a title, a description in one.
+        let word = trimmed
+            .split(|c: char| c.is_whitespace() || c == ':')
+            .next()
+            .unwrap_or("");
+        if open == (0, false) && matches!(word, "accTitle" | "accDescr" | "title") {
+            continue;
+        }
         let mut parts = statements(line).into_iter();
         if index == head && headed {
             parts.next();
@@ -438,8 +489,8 @@ pub fn wrong(body: &str) -> Option<(usize, String)> {
             continue;
         }
         for (start, end) in parts {
-            if let Some((run, name)) = side_by_side(&line[start..end]) {
-                return Some((index, said(run, name)));
+            if let Some((run, names)) = side_by_side(&line[start..end]) {
+                return Some((index, said(run, &names)));
             }
         }
     }
@@ -479,6 +530,36 @@ mod tests {
         );
         assert!(words("flowchart TD\n    A &B\n").contains("an `&` stands apart"));
         assert!(words("flowchart TD\n    A >some text]\n").contains("without a space between"));
+        // By what follows the first name, and the words without classes.
+        assert!(words("flowchart TD\n    A[x] B\n").contains("boxes side by side"));
+        assert!(words("flowchart TD\n    A[x & y] B\n").contains("boxes side by side"));
+        assert!(words("flowchart TD\n    A:::hot B --> C\n").contains("as `A[A B]`"));
+        assert!(
+            words("flowchart TD\n    Order parts:::hot --> C\n")
+                .contains("as `Order[Order parts]`")
+        );
+        // A `>` in the words of a link, a `|` in a quoted label and a title
+        // with an open bracket hide no line after them.
+        assert_eq!(
+            said("flowchart TD\n    A -- n>0 --> B\n    C --> Order parts\n"),
+            Some(2)
+        );
+        assert_eq!(
+            said("flowchart TD\n    A == n>0 ==> B\n    C --> Order parts\n"),
+            Some(2)
+        );
+        assert_eq!(
+            said("flowchart TD\n    A -->|\"a|b\"| B\n    C --> Order parts\n"),
+            Some(2)
+        );
+        assert_eq!(
+            said("flowchart TD\n    accTitle: Orders (draft\n    C --> Order parts\n"),
+            Some(2)
+        );
+        assert_eq!(
+            said("flowchart TD\n    accDescr: see (below\n    C --> Order parts\n"),
+            Some(2)
+        );
         // A label in bars with a `>` opens no box (it hid the rest), a
         // head as mmdr reads it, a flowchart without one, and swimlanes.
         assert_eq!(
@@ -507,6 +588,7 @@ mod tests {
             "flowchart TD\n    A ~~~B\n    C~~~ D\n    E~~~~F\n",
             "flowchart TD\n  accDescr {\n    1) Order parts\n    2) Ship them\n  }\n  A --> B\n",
             "flowchart TD\n    A -- n>0 --> B\n",
+            "flowchart TD\n    A -->|a;b c| B\n    A -->|\"a|b\"| B\n",
             "flowchart TD\n    A>Order parts] --> B[/Adjust again/]\n",
             "flowchart TD\n    A((x y)) --> B{{x y}} --> C[(x y)] --> D([x y])\n",
             "flowchart TD\n    A[\"x y\"] --> B\n    A@{ shape: rect, label: \"x y\" } --> B\n",

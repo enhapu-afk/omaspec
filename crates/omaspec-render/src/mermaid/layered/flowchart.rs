@@ -108,7 +108,10 @@ fn apply_statement(
     }
     for id in unread_ids(line) {
         if !parsed.iter().any(|piece| piece.holds(&id)) {
-            drop_unread(graph, &id);
+            // mmdr read the copy with a `'` in a box masked, and named
+            // what it misread so.
+            let read = super::reading::mask_apostrophes(&id).unwrap_or(id);
+            drop_unread(graph, &read);
         }
     }
     for piece in &parsed {
@@ -532,7 +535,7 @@ fn parse_spec(token: &str) -> Result<Spec, Decline> {
     let mut at = None;
     let mut from = None;
     if let Some(after_at) = rest.strip_prefix('@') {
-        let (group, trailing) = take_group(after_at).ok_or(Decline)?;
+        let (group, trailing) = take_group_in(after_at, YAML).ok_or(Decline)?;
         if !group.starts_with('{') || !trailing.trim().is_empty() {
             return Err(Decline);
         }
@@ -553,7 +556,7 @@ fn parse_spec(token: &str) -> Result<Spec, Decline> {
 
 fn properties(body: &str) -> Result<AtMeta, Decline> {
     let mut meta = AtMeta::default();
-    for part in split_top(body, |rest| rest.starts_with(',').then_some(1)) {
+    for part in split_top_in(body, YAML, |rest| rest.starts_with(',').then_some(1)) {
         let Some((key, value)) = part.split_once(':') else {
             continue;
         };
@@ -582,7 +585,7 @@ fn shorthand(group: &str) -> Option<(String, NodeShape)> {
         group
             .strip_prefix(prefix)
             .and_then(|inner| inner.strip_suffix(suffix))
-            .map(|inner| (unquote(inner.trim()), shape))
+            .map(|inner| (unquote_box(inner.trim()), shape))
     };
     pair("[[", "]]", NodeShape::Subroutine)
         .or_else(|| pair("[(", ")]", NodeShape::Cylinder))
@@ -596,9 +599,9 @@ fn shorthand(group: &str) -> Option<(String, NodeShape)> {
                 .and_then(|inner| inner.strip_suffix(']'))
                 .map(|inner| {
                     if let Some(label) = inner.strip_prefix('(').and_then(|s| s.strip_suffix(')')) {
-                        (unquote(label.trim()), NodeShape::Stadium)
+                        (unquote_box(label.trim()), NodeShape::Stadium)
                     } else {
-                        (unquote(inner.trim()), NodeShape::Rectangle)
+                        (unquote_box(inner.trim()), NodeShape::Rectangle)
                     }
                 })
         })
@@ -610,9 +613,9 @@ fn shorthand(group: &str) -> Option<(String, NodeShape)> {
                 .and_then(|inner| inner.strip_suffix(')'))
                 .map(|inner| {
                     if let Some(label) = inner.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
-                        (unquote(label.trim()), NodeShape::Stadium)
+                        (unquote_box(label.trim()), NodeShape::Stadium)
                     } else {
-                        (unquote(inner.trim()), NodeShape::RoundRect)
+                        (unquote_box(inner.trim()), NodeShape::RoundRect)
                     }
                 })
         })
@@ -625,6 +628,19 @@ fn is_id_char(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_' || ch == '-'
 }
 
+/// A box's text without the `"` round it; a `'` is a letter, and stays
+/// as Mermaid draws it (`A['x y']`).
+fn unquote_box(value: &str) -> String {
+    match value
+        .strip_prefix('"')
+        .and_then(|inner| inner.strip_suffix('"'))
+    {
+        Some(inner) if value.len() >= 2 => unescape(inner),
+        _ => value.to_string(),
+    }
+}
+
+/// A value of shape data without the quotes round it, YAML's `"` or `'`.
 fn unquote(value: &str) -> String {
     let bytes = value.as_bytes();
     if bytes.len() >= 2 {
@@ -651,7 +667,16 @@ fn unescape(value: &str) -> String {
     out
 }
 
+/// What quotes a value in shape data (`@{ label: 'x, y' }`), which is
+/// YAML; elsewhere only a `"` quotes, a `'` is a letter.
+const YAML: &[char] = &['"', '\''];
+
 fn take_group(text: &str) -> Option<(&str, &str)> {
+    take_group_in(text, &['"'])
+}
+
+/// The group `text` starts with and what follows it, `quotes` quoting.
+fn take_group_in<'a>(text: &'a str, quotes: &[char]) -> Option<(&'a str, &'a str)> {
     let mut chars = text.char_indices();
     let (_, open) = chars.next()?;
     let close = match open {
@@ -679,7 +704,7 @@ fn take_group(text: &str) -> Option<(&str, &str)> {
             }
             continue;
         }
-        if ch == '"' {
+        if quotes.contains(&ch) {
             quote = Some(ch);
             continue;
         }
@@ -777,10 +802,15 @@ fn split_classes(token: &str) -> (String, Vec<String>) {
 }
 
 fn split_top(text: &str, sep: impl Fn(&str) -> Option<usize>) -> Vec<String> {
+    split_top_in(text, &['"'], sep)
+}
+
+/// [`split_top`], `quotes` quoting.
+fn split_top_in(text: &str, quotes: &[char], sep: impl Fn(&str) -> Option<usize>) -> Vec<String> {
     let mut parts = Vec::new();
     let mut source = text;
     loop {
-        let Some(at) = find_top(source, |rest| sep(rest).is_some()) else {
+        let Some(at) = find_top_in(source, quotes, |rest| sep(rest).is_some()) else {
             let part = source.trim();
             if !part.is_empty() {
                 parts.push(part.to_string());
@@ -803,8 +833,14 @@ fn split_top(text: &str, sep: impl Fn(&str) -> Option<usize>) -> Vec<String> {
 /// Index of the first character where `pred` holds outside quotes and
 /// brackets. `{` `(` `[` open a group, so a `~~~` inside a label is not a link.
 /// A quote is a `"`: a `'` is a letter, as Mermaid has it and mmdr reads
-/// it in the copy written for it ([`super::reading`]).
+/// it in the copy written for it ([`super::reading`]); in shape data,
+/// which is YAML, it quotes ([`find_top_in`] with [`YAML`]).
 fn find_top(text: &str, pred: impl Fn(&str) -> bool) -> Option<usize> {
+    find_top_in(text, &['"'], pred)
+}
+
+/// [`find_top`], `quotes` quoting.
+fn find_top_in(text: &str, quotes: &[char], pred: impl Fn(&str) -> bool) -> Option<usize> {
     let mut index = 0;
     let mut depth = 0i32;
     let mut quote: Option<char> = None;
@@ -830,7 +866,7 @@ fn find_top(text: &str, pred: impl Fn(&str) -> bool) -> Option<usize> {
             index += len;
             continue;
         }
-        if ch == '"' {
+        if quotes.contains(&ch) {
             quote = Some(ch);
             index += len;
             continue;

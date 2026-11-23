@@ -19,15 +19,10 @@ use omaspec_core::lint::{Finding, Fix, Severity};
 
 use crate::{Kind, Machine};
 
-/// The findings for `m`, in line order.
-pub fn machine(m: &Machine) -> Vec<Finding> {
-    placed(m, &[])
-}
-
-/// [`machine`], with the arrows that only place two of its states
-/// (`-[hidden]->`, by index): no transitions, but a state that one alone
-/// reaches or leaves is said to be so, where the arrow drawn would seem
-/// to say otherwise (REQ-113).
+/// The findings for `m`, in line order. `hidden` are the arrows that
+/// only place two of its states (`-[hidden]->`, by index): no
+/// transitions, but a state that one alone reaches or leaves is said to
+/// be so, where the arrow drawn would seem to say otherwise (REQ-113).
 pub(crate) fn placed(m: &Machine, hidden: &[(usize, usize)]) -> Vec<Finding> {
     let mut out = Vec::new();
     let reached = reachable(m);
@@ -141,14 +136,21 @@ fn named(m: &Machine, state: usize) -> bool {
 }
 
 /// States no path reaches; inside one of them only that one is reported.
-/// One a hidden arrow leads to is said to be placed by it alone.
+/// One that a hidden arrow from a state reached leads to, or into, is
+/// said to be placed by it alone: a transition there would reach it.
 fn unreachable(m: &Machine, reached: &[bool], hidden: &[(usize, usize)], out: &mut Vec<Finding>) {
     for (i, s) in m.states.iter().enumerate() {
         if named(m, i) && !reached[i] && m.ancestors(i).all(|a| reached[a]) {
-            let placed = if hidden.iter().any(|&(_, to)| to == i) {
-                ": the hidden arrow into it only places it, and is no transition"
-            } else {
-                ""
+            let placing = hidden
+                .iter()
+                .filter(|&&(from, to)| {
+                    reached[from] && (to == i || m.ancestors(to).any(|a| a == i))
+                })
+                .count();
+            let placed = match placing {
+                0 => "",
+                1 => ": the hidden arrow into it only places it, and is no transition",
+                _ => ": the hidden arrows into it only place it, and are no transitions",
             };
             out.push(finding(
                 "unreachable-state",
@@ -162,7 +164,7 @@ fn unreachable(m: &Machine, reached: &[bool], hidden: &[(usize, usize)], out: &m
 
 /// States nothing leaves, neither they nor a state around them. A state
 /// that cannot be reached is reported for that alone; one a hidden arrow
-/// leaves is said to be left by that alone.
+/// leaves, or leaves a state around it, is said to be left by that alone.
 fn dead_ends(
     m: &Machine,
     reached: Option<&[bool]>,
@@ -182,7 +184,10 @@ fn dead_ends(
         {
             continue;
         }
-        let but = if hidden.iter().any(|&(from, _)| from == i) {
+        let but = if hidden
+            .iter()
+            .any(|&(from, _)| from == i || m.ancestors(i).any(|a| a == from))
+        {
             " but a hidden arrow, which only places the states"
         } else {
             ""
@@ -388,6 +393,41 @@ mod tests {
         // Beside a transition, a hidden arrow changes no word.
         let found = puml("[*] --> A\nA -[hidden]-> B\nA --> B : go\nB --> [*]");
         assert!(found.is_empty(), "{found:?}");
+        let said =
+            |body: &str| -> Vec<String> { puml(body).into_iter().map(|(_, _, m)| m).collect() };
+        // Not where a transition in its place would not reach it either:
+        // from a state not reached, or from itself.
+        let found = said(
+            "[*] --> A\nA --> [*]\nX --> Y\nX -[hidden]-> Y\nY --> [*]\nB -[hidden]-> B\nB --> [*]",
+        );
+        assert!(found.iter().all(|m| !m.contains("hidden")), "{found:?}");
+        // Two say so, and one into a state inside a composite names it.
+        let found = said(
+            "[*] --> A\n[*] --> C\nA -[hidden]-> B\nC -[hidden]-> B\nB --> [*]\nA --> [*]\nC --> [*]",
+        );
+        assert!(
+            found
+                .iter()
+                .any(|m| m.contains("the hidden arrows into it only place it")),
+            "{found:?}"
+        );
+        let found = said(
+            "[*] --> A\nA --> [*]\nstate P {\n  [*] --> In\n  In --> [*]\n}\nA -[hidden]-> In",
+        );
+        assert!(
+            found.iter().any(
+                |m| m.starts_with("State P cannot be reached from the start: the hidden arrow")
+            ),
+            "{found:?}"
+        );
+        // One that leaves the composite around a state.
+        let found = said("[*] --> P\nstate P {\n  [*] --> In\n}\nP -[hidden]-> Q\nQ --> [*]");
+        assert!(
+            found
+                .iter()
+                .any(|m| m.starts_with("Nothing leaves In but a hidden arrow")),
+            "{found:?}"
+        );
     }
 
     /// REQ-076: one state alone at the top is where the machine begins, so
