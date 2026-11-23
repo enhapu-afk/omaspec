@@ -1494,6 +1494,23 @@ is open and the reasoning around it.
       flat side near the origin had the same rounding as the fork bar, its
       stretch running backwards (`graph::route::usable`). One message or
       commit is said in the singular.
+- [x] A box's name with a space is refused, and a `'` is a letter
+      (REQ-112 and REQ-102, 2026-11-23). After `D --> Order parts`
+      Mermaid stops at `parts`, a parse error (its `flow.jison` has no
+      space in a name), and mmdr drew a box `Order`, the rest lost
+      without a word; so with `Order parts --> B`, `A --> B & Order
+      parts` and `B:Order parts`. Render and lint now refuse such a line
+      alike, its words to go in brackets (`Order[Order parts]`). The
+      lexer of a flowchart's statements and links moved to
+      `omaspec_core::mermaid_flow` for both; its refusal reads past the
+      front matter, directives and comments, and past quotes and brackets
+      over several lines (a Markdown label, `accDescr { … }`, shape
+      data). mmdr takes a `'` for a quote mark where Mermaid takes it for
+      a letter: `a[it's] --> b` lost `a`, and after `a -->|don't| b --> c`
+      the rest of the chain. In a box's text, in quotes and in a link's
+      label it reaches mmdr as a letter of the private use area and is
+      put back in the words mmdr read (`layered::reading::read`); a
+      statement about parts keeps its quotes.
 
 ## Next
 

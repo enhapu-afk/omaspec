@@ -377,21 +377,12 @@ what is plainly missing, then the larger pieces.
       the machine's fonts (`fc-match sans-serif`).
 - [ ] From the test of 1.0.0: without `skinparam groupInheritance 2` the triangles
       of several subclasses' lines to one class overlap.
-- [ ] Left from the chain with a label (2026-11-21, REQ-102): where a `'` stands before a
-      later link (`a -->|don't| b --> c`, `a[it's] -->|x| b --> c`), the chain is still
-      read only up to the label's link, `c` lost: mmdr takes a `'` for a quote mark,
-      also in a label, so no `;` after it splits the line for it. Wanted: the
-      statements of such a chain on lines of their own in mmdr's copy, with its errors'
-      lines taken back to the source's.
 
 ## From the tester's round of 2026-11-23
 
 Reproduced on `main` (9f7a72a), in the order they are taken: first what
 is lost without a word, then what misleads, then what is missing.
 
-- [ ] REQ-112: a Mermaid flowchart's node written in bare words after a
-      link (`D --> Order parts`) is drawn as `Order`, the rest lost
-      without a word; Mermaid draws it whole, the tester says.
 - [ ] REQ-110: `nodeSpacing` and `rankSpacing` (in `init` or the front
       matter) change nothing in a flowchart, and `lint --strict` says
       nothing of it, as it does of `padding` and `elk`.

@@ -282,12 +282,15 @@ fn marked(raw: &str, spans: &[(usize, usize)]) -> String {
     out
 }
 
-/// `text` as mmdr reads it; `None` where it refuses it or fails on it.
+/// `text`, written for mmdr ([`reading::readable`]), as mmdr reads it,
+/// its words as written; `None` where it refuses it or fails on it.
 fn parsed(text: &str) -> Option<Graph> {
-    crate::caught::caught(|| parse_mermaid_strict(text))
+    let mut graph = crate::caught::caught(|| parse_mermaid_strict(text))
         .ok()?
-        .ok()
-        .map(|output| output.graph)
+        .ok()?
+        .graph;
+    reading::restore(&mut graph);
+    Some(graph)
 }
 
 /// For each edge of `graph`, where the first edge in `found` not taken

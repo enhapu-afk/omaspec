@@ -283,7 +283,18 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
         let flowchart_text = head::header(body)
             .filter(|header| head::names(header, "flowchart") || head::names(header, "graph"))
             .map(|_| layered::readable(body));
-        let parsed = parse_mermaid_strict(flowchart_text.as_deref().unwrap_or(body))?;
+        // What Mermaid refuses and mmdr reads otherwise, a box's name with
+        // a space, is refused on its line, as lint has it (REQ-112).
+        if flowchart_text.is_some()
+            && unread.is_none()
+            && let Some((at, said)) = omaspec_core::mermaid_flow::wrong(body)
+        {
+            return Err(Refused::Placed(at, said));
+        }
+        let mut parsed = parse_mermaid_strict(flowchart_text.as_deref().unwrap_or(body))?;
+        if flowchart_text.is_some() {
+            layered::restore(&mut parsed.graph);
+        }
         let curve = flowchart_curve(init.as_ref());
         let flowchart = parsed.graph.kind == DiagramKind::Flowchart;
         if let Some((svg, map)) = flowchart
@@ -333,7 +344,7 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
             Err(RenderError::Diagram {
                 engine: Engine::Mermaid,
                 line: line.map(|l| written_from(source, l + offset)),
-                message,
+                message: layered::unmasked(&message),
             })
         }
         Err(_) => Err(RenderError::Engine {

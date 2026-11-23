@@ -20,7 +20,7 @@ use omaspec_uml::map::Map;
 use omaspec_uml::{Block, Canvas, Family, Font, Link, Paint, Stroke};
 
 use look::{Palette, edge_look, look_for, palette, styled_node};
-pub(super) use reading::readable;
+pub(super) use reading::{read, readable, restore, unmasked};
 use shape::{Kind, Shape};
 
 mod flowchart;

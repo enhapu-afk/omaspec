@@ -9,12 +9,17 @@
 //! that follows the label for one node, `B`, and `C` was lost. These are
 //! written here so mmdr reads them as Mermaid does: the space after
 //! `title` as a tab, the box's text in quotes, a chain with a label as a
-//! statement for each link. Every line keeps its number; only mmdr reads
-//! the copy.
+//! statement for each link. mmdr also takes a `'` for a quote mark,
+//! where Mermaid takes it for a letter: `a[it's] --> b` lost `a`, and
+//! after `a -->|don't| b --> c` the rest of the chain (REQ-102). In a
+//! box's text, in quotes and in a link's label it is written as a letter
+//! mmdr has no use for, and put back in what mmdr read ([`read`]).
+//! Every line keeps its number; only mmdr reads the copy.
 
 use std::borrow::Cow;
 
-use mermaid_rs_renderer::parse_mermaid_strict;
+use mermaid_rs_renderer::{Graph, ParseError, ParseOutput, parse_mermaid_strict};
+use omaspec_core::mermaid_flow::{links, statements};
 
 /// `body` with the lines mmdr misreads written so it reads them; `body`
 /// itself when none is.
@@ -53,7 +58,115 @@ fn read_line(line: &str) -> Option<String> {
     let text = titled.as_deref().unwrap_or(line);
     let quoted = quote_asymmetric(text);
     let text = quoted.as_deref().unwrap_or(text);
-    split_chains(text).or(quoted).or(titled)
+    let masked = mask_apostrophes(text);
+    let text = masked.as_deref().unwrap_or(text);
+    split_chains(text).or(masked).or(quoted).or(titled)
+}
+
+/// What stands for a `'` in mmdr's copy: a character of the private use
+/// area, which no text writes.
+const APOSTROPHE: char = '\u{E027}';
+
+/// Words that start a statement about parts: their quotes are CSS's or a
+/// call's (`style a font-family:'Mono'`), and stay.
+const PARTS: &[&str] = &["classDef", "style", "linkStyle", "click"];
+
+/// Each `'` on `line` in a box's text, in quotes or in a link's label,
+/// written as [`APOSTROPHE`]; `None` where there is none. One in a name
+/// stays: a name is not put back.
+fn mask_apostrophes(line: &str) -> Option<String> {
+    if !line.contains('\'') {
+        return None;
+    }
+    let mut at = Vec::new();
+    for (start, end) in statements(line) {
+        let text = &line[start..end];
+        let word = text
+            .trim_start()
+            .split(|c: char| c.is_whitespace() || c == ':')
+            .next()
+            .unwrap_or("");
+        if PARTS.contains(&word) {
+            continue;
+        }
+        let labels = links(text);
+        let chars: Vec<(usize, char)> = text.char_indices().collect();
+        let (mut depth, mut quote) = (0usize, false);
+        for (index, &(byte, ch)) in chars.iter().enumerate() {
+            if ch == '\'' {
+                let labelled = labels
+                    .iter()
+                    .any(|link| (link.start..link.end).contains(&byte));
+                if depth > 0 || quote || labelled {
+                    at.push(start + byte);
+                }
+            } else if quote {
+                quote = ch != '"';
+            } else if ch == '"' {
+                quote = true;
+            } else if matches!(ch, '[' | '(' | '{') {
+                depth += 1;
+            } else if matches!(ch, ']' | ')' | '}') {
+                depth = depth.saturating_sub(1);
+            } else if ch == '>'
+                && depth == 0
+                && index > 0
+                && (chars[index - 1].1.is_alphanumeric() || chars[index - 1].1 == '_')
+            {
+                // An asymmetric box, `id>text]`, open to its `]`.
+                depth += 1;
+            }
+        }
+    }
+    if at.is_empty() {
+        return None;
+    }
+    let mut out = String::with_capacity(line.len() + 2 * at.len());
+    let mut from = 0;
+    for byte in at {
+        out.push_str(&line[from..byte]);
+        out.push(APOSTROPHE);
+        from = byte + 1;
+    }
+    out.push_str(&line[from..]);
+    Some(out)
+}
+
+/// The `'` written as [`APOSTROPHE`] put back in the words of what mmdr
+/// read: the boxes' text, the links' labels and the subgraphs' titles.
+pub(in crate::mermaid) fn restore(graph: &mut Graph) {
+    let back = |text: &mut String| {
+        if text.contains(APOSTROPHE) {
+            *text = text.replace(APOSTROPHE, "'");
+        }
+    };
+    for node in graph.nodes.values_mut() {
+        back(&mut node.label);
+    }
+    for edge in &mut graph.edges {
+        for label in [&mut edge.label, &mut edge.start_label, &mut edge.end_label]
+            .into_iter()
+            .flatten()
+        {
+            back(label);
+        }
+    }
+    for subgraph in &mut graph.subgraphs {
+        back(&mut subgraph.label);
+    }
+}
+
+/// `words` from mmdr, a refusal's, with each `'` put back.
+pub(in crate::mermaid) fn unmasked(words: &str) -> String {
+    words.replace(APOSTROPHE, "'")
+}
+
+/// The flowchart `body` as mmdr reads the copy written for it
+/// ([`readable`]), its words as written.
+pub(in crate::mermaid) fn read(body: &str) -> Result<ParseOutput, ParseError> {
+    let mut parsed = parse_mermaid_strict(&readable(body))?;
+    restore(&mut parsed.graph);
+    Ok(parsed)
 }
 
 /// `title --> B` with a tab after `title`, which mmdr does not skip. A
@@ -152,34 +265,6 @@ fn split_chains(line: &str) -> Option<String> {
     })
 }
 
-/// Where the statements of `line` stand: apart at each `;`, up to a
-/// comment. A `;` or `%%` in quotes or brackets is words.
-fn statements(line: &str) -> Vec<(usize, usize)> {
-    let mut found = Vec::new();
-    let (mut depth, mut quote) = (0usize, false);
-    let mut start = 0;
-    let mut end = line.trim_end_matches(['\n', '\r']).len();
-    for (at, ch) in line[..end].char_indices() {
-        if quote {
-            quote = ch != '"';
-        } else if ch == '"' {
-            quote = true;
-        } else if matches!(ch, '[' | '(' | '{') {
-            depth += 1;
-        } else if matches!(ch, ']' | ')' | '}') {
-            depth = depth.saturating_sub(1);
-        } else if depth == 0 && ch == ';' {
-            found.push((start, at));
-            start = at + 1;
-        } else if depth == 0 && line[at..].starts_with("%%") {
-            end = at;
-            break;
-        }
-    }
-    found.push((start, end));
-    found
-}
-
 /// The statement `text` as one statement for each link, when it is a
 /// chain with a labelled link; `None` otherwise. Each statement runs from
 /// one end through its link to the next end, as written.
@@ -262,162 +347,6 @@ fn reads_apart(pieces: &[&str], split: &str) -> bool {
         }
     }
     edges(split) == Some(apart)
-}
-
-/// A link of a statement: where it starts and ends, its label with it.
-struct Link {
-    start: usize,
-    end: usize,
-    labelled: bool,
-}
-
-/// The links of the statement `text`, outside quotes and boxes, each with
-/// its label: `-->|yes|`, or `-- yes -->` from its first dashes to its
-/// arrow (`-.yes.->` as mmdr reads it, without spaces).
-fn links(text: &str) -> Vec<Link> {
-    let chars: Vec<(usize, char)> = text.char_indices().collect();
-    let byte = |index: usize| chars.get(index).map_or(text.len(), |&(at, _)| at);
-    let mut found: Vec<Link> = Vec::new();
-    // The opening dashes of a link with words, `-- yes -->`: where they
-    // start and end, and whether a space follows them.
-    let mut open: Option<(usize, usize, bool)> = None;
-    let (mut depth, mut quote) = (0usize, false);
-    let mut index = 0;
-    while index < chars.len() {
-        let (_, ch) = chars[index];
-        if quote {
-            quote = ch != '"';
-        } else if ch == '"' {
-            quote = true;
-        } else if matches!(ch, '[' | '(' | '{') {
-            depth += 1;
-        } else if matches!(ch, ']' | ')' | '}') {
-            depth = depth.saturating_sub(1);
-        } else if ch == '>'
-            && depth == 0
-            && index > 0
-            && (chars[index - 1].1.is_alphanumeric() || chars[index - 1].1 == '_')
-        {
-            // An asymmetric box, `id>text]`, open to its `]`.
-            depth += 1;
-        } else if depth == 0
-            && let Some((len, opens)) = link_at(&chars, index)
-        {
-            let mut end = index + len;
-            let start = byte(index);
-            if let Some((first, last, spaced)) = open {
-                if opens {
-                    // Dashes among the words.
-                    index = end;
-                    continue;
-                }
-                open = None;
-                // The arrow of the words' link: the words were its label.
-                if spaced || ch == '.' {
-                    found.push(Link {
-                        start: first,
-                        end: byte(end),
-                        labelled: true,
-                    });
-                    index = end;
-                    continue;
-                }
-                // `-.b --> c`: the dots a link of their own, `b` its end.
-                found.push(Link {
-                    start: first,
-                    end: byte(last),
-                    labelled: false,
-                });
-            }
-            let spaced = chars.get(end).is_some_and(|&(_, ch)| ch.is_whitespace());
-            if opens && (spaced || text[start..byte(end)].ends_with("-.")) {
-                open = Some((start, end, spaced));
-                index = end;
-                continue;
-            }
-            // A label in bars after the arrow, `-->|yes|` or `--> |yes|`.
-            let mut next = end;
-            while chars
-                .get(next)
-                .is_some_and(|&(_, ch)| ch == ' ' || ch == '\t')
-            {
-                next += 1;
-            }
-            let mut labelled = false;
-            if chars.get(next).map(|&(_, ch)| ch) == Some('|')
-                && let Some(close) = chars[next + 1..].iter().position(|&(_, ch)| ch == '|')
-            {
-                end = next + close + 2;
-                labelled = true;
-            }
-            found.push(Link {
-                start,
-                end: byte(end),
-                labelled,
-            });
-            index = end;
-            continue;
-        }
-        index += 1;
-    }
-    // Opening dashes no arrow followed are a link without words.
-    if let Some((start, last, _)) = open {
-        let at = found.partition_point(|link| link.start < start);
-        found.insert(
-            at,
-            Link {
-                start,
-                end: byte(last),
-                labelled: false,
-            },
-        );
-    }
-    found
-}
-
-/// How many characters the link at `index` runs, and whether it is the
-/// opening `--`, `==` or `-.` of a link with words; `None` when no link
-/// starts there. A circle or a cross starts one only where no name runs
-/// into it (`A o--o B`), so `box-->c` is the box `box`; a link has two
-/// dashes, or one with a dot or an arrow (`-.`, `.->`, `->`).
-fn link_at(chars: &[(usize, char)], index: usize) -> Option<(usize, bool)> {
-    let at = |k: usize| chars.get(k).map(|&(_, ch)| ch);
-    let mut k = index;
-    let mut marked = false;
-    match at(k)? {
-        '<' => {
-            k += 1;
-            marked = true;
-        }
-        'o' | 'x' => {
-            let named =
-                index > 0 && at(index - 1).is_some_and(|ch| ch.is_alphanumeric() || ch == '_');
-            if named || !matches!(at(k + 1), Some('-' | '=' | '.')) {
-                return None;
-            }
-            k += 1;
-        }
-        '-' | '=' | '.' => {}
-        _ => return None,
-    }
-    let body = k;
-    while matches!(at(k), Some('-' | '=' | '.')) {
-        k += 1;
-    }
-    let run: String = chars[body..k].iter().map(|&(_, ch)| ch).collect();
-    let lines = run.chars().filter(|ch| matches!(ch, '-' | '=')).count();
-    marked |= run.contains('.');
-    let opens = matches!(run.as_str(), "--" | "==" | "-.");
-    match at(k) {
-        Some('>') => {
-            k += 1;
-            marked = true;
-        }
-        Some('o' | 'x') if k > body => k += 1,
-        _ => {}
-    }
-    let opens = opens && k == body + run.len();
-    (lines >= 2 || (lines == 1 && marked)).then_some((k - index, opens))
 }
 
 #[cfg(test)]
@@ -504,8 +433,16 @@ mod tests {
                 "A>go] -->|on| B[x --> y]; B[x --> y] <--> C\n",
             ),
             ("a -.yes.-> b --> c\n", "a -.yes.-> b; b --> c\n"),
-            // A quote mark after the last `;` hides none.
-            ("a -->|x| b --> c[it's]\n", "a -->|x| b; b --> c[it's]\n"),
+            // A quote mark in a label or a box is a letter mmdr reads.
+            (
+                "a -->|x| b --> c[it's]\n",
+                "a -->|x| b; b --> c[it\u{E027}s]\n",
+            ),
+            ("a -->|don't| b --> c\n", "a -->|don\u{E027}t| b; b --> c\n"),
+            (
+                "a -->|x| b --> c[it's] --> d\n",
+                "a -->|x| b; b --> c[it\u{E027}s]; c[it\u{E027}s] --> d\n",
+            ),
         ] {
             assert_eq!(
                 readable(&format!("flowchart LR\n{written}")),
@@ -523,16 +460,72 @@ mod tests {
             "flowchart LR\nlinkStyle 0 stroke-width:2px\nstyle a stroke-dasharray: 5 5\n",
             "flowchart LR\ntitle Go -->|x| b --> c\na ~~~ b -->|x| c --> d\n",
             "flowchart LR\n%% a -->|x| b --> c\n",
-            // A `'` or a `\` before a `;` would hide it from mmdr, and a
-            // circle's dashes after a label would leave a link without
-            // its end: mmdr's reading, as it was.
-            "flowchart LR\na -->|don't| b --> c\n",
-            "flowchart LR\na -->|x| b --> c[it's] --> d\n",
+            // A `\` before a `;` would hide it from mmdr, and a circle's
+            // dashes after a label would leave a link without its end:
+            // mmdr's reading, as it was.
             "flowchart LR\na -->|x| B[C:\\] --> c\n",
             "flowchart LR\na -->|x|o-->b\n",
         ] {
             assert!(matches!(readable(kept), Cow::Borrowed(_)), "{kept}");
         }
+    }
+
+    /// A `'` in a box, in quotes or in a label reaches mmdr as a letter
+    /// and comes back from it as written (REQ-102): `a[it's] --> b` lost
+    /// `a`, and a chain after `-->|don't|` lost its rest.
+    #[test]
+    fn a_quote_mark_is_a_letter() {
+        for (body, nodes, labels) in [
+            (
+                "flowchart LR\n  a[it's] --> b\n  b --> c\n",
+                vec!["it's", "b", "c"],
+                vec![],
+            ),
+            (
+                "flowchart LR\n  a -->|don't| b --> c\n",
+                vec!["a", "b", "c"],
+                vec!["don't"],
+            ),
+            (
+                "flowchart LR\n  a[it's] -->|x| b --> c\n",
+                vec!["it's", "b", "c"],
+                vec!["x"],
+            ),
+            (
+                "flowchart LR\n  a -- don't --> b --> c\n",
+                vec!["a", "b", "c"],
+                vec!["don't"],
+            ),
+            (
+                "flowchart LR\n  a[\"it's\"] --> b((Bob's)) --> c>it's]\n",
+                vec!["it's", "Bob's", "it's"],
+                vec![],
+            ),
+            (
+                "flowchart LR\n  subgraph s [Ann's]\n    a\n  end\n",
+                vec!["a"],
+                vec![],
+            ),
+        ] {
+            let graph = read(body).unwrap().graph;
+            let mut found: Vec<&str> = graph.nodes.values().map(|n| n.label.as_str()).collect();
+            let mut wanted = nodes.clone();
+            found.sort_unstable();
+            wanted.sort_unstable();
+            assert_eq!(found, wanted, "{body}");
+            let said: Vec<&str> = graph
+                .edges
+                .iter()
+                .filter_map(|e| e.label.as_deref())
+                .collect();
+            assert_eq!(said, labels, "{body}");
+            if body.contains("subgraph") {
+                assert_eq!(graph.subgraphs[0].label, "Ann's");
+            }
+        }
+        // A statement about parts keeps its quotes.
+        let style = "flowchart LR\n  style a font-family:'Mono'\n";
+        assert!(matches!(readable(style), Cow::Borrowed(_)));
     }
 
     #[test]

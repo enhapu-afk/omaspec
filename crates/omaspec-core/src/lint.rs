@@ -145,6 +145,16 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
             }
             let rows = mermaid_rows(&lines);
             if portable::is_flowchart(&code) {
+                // A box's name with a space, which Mermaid refuses and
+                // render too (REQ-112).
+                if let Some((line, said)) = crate::mermaid_flow::wrong(body) {
+                    findings.push(Finding::new(
+                        "refused",
+                        line + offset,
+                        Severity::Error,
+                        said,
+                    ));
+                }
                 portable::findings(&lines, &rows, &mut findings);
             }
             // The engine's reader says where each name is written; the

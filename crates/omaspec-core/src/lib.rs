@@ -20,6 +20,7 @@ pub mod lang;
 pub mod lint;
 pub mod locate;
 pub mod markdown;
+pub mod mermaid_flow;
 pub mod mermaid_head;
 pub mod outline;
 pub mod project;

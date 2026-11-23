@@ -21,8 +21,7 @@ use super::head;
 /// ([`as_flowchart`]).
 pub(super) fn draw(theme: &Theme, body: &str, fenced: &str) -> Option<(String, Map)> {
     let (text, lanes) = read(body)?;
-    let parsed =
-        mermaid_rs_renderer::parse_mermaid_strict(&super::layered::readable(&text)).ok()?;
+    let parsed = super::layered::read(&text).ok()?;
     let curve = super::flowchart_curve(omaspec_core::settings::merged(body).as_ref());
     let hands = omaspec_uml::hand::numbered(fenced);
     super::layered::try_draw_lanes(&parsed.graph, theme, &text, &hands, curve, &lanes)
