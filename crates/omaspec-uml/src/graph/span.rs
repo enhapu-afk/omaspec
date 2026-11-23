@@ -189,7 +189,9 @@ fn trim(layout: &mut Layout, bars: &[bool], least: &[f32], direction: Direction)
         let (mut from, mut to) = ((low - PAST).max(start), (high + PAST).min(end));
         let least = least[index].min(length);
         if to - from < least {
-            let window = ((from + to - least) / 2.0).clamp(start, end - least);
+            // `end - least` may round below `start` where `least` is the
+            // bar's whole length.
+            let window = ((from + to - least) / 2.0).clamp(start, (end - least).max(start));
             (from, to) = (from.min(window), to.max(window + least));
         }
         if to - from >= length - 0.5 {
@@ -253,6 +255,18 @@ mod tests {
         );
         trim(&mut laid, &[true], &[80.0], Direction::Down);
         assert_eq!(laid.nodes[0], rect(0.0, 100.0, 80.0, 8.0));
+    }
+
+    #[test]
+    fn a_bar_as_long_as_it_must_be_survives_rounding() {
+        // 505.93704 + 40 - 40 rounds to 505.937, below the bar's start:
+        // the nightly fuzzing's panic (2026-11-23).
+        let mut laid = layout(
+            vec![rect(505.937_04, 100.0, 40.0, 8.0)],
+            vec![route(&[(525.0, 108.0), (525.0, 200.0)])],
+        );
+        trim(&mut laid, &[true], &[40.0], Direction::Down);
+        assert_eq!(laid.nodes[0], rect(505.937_04, 100.0, 40.0, 8.0));
     }
 
     #[test]

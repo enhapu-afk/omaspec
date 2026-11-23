@@ -377,12 +377,43 @@ what is plainly missing, then the larger pieces.
       the machine's fonts (`fc-match sans-serif`).
 - [ ] From the test of 1.0.0: without `skinparam groupInheritance 2` the triangles
       of several subclasses' lines to one class overlap.
-- [ ] Left from the chain with a label (2026-11-21): where a `'` stands before a
+- [ ] Left from the chain with a label (2026-11-21, REQ-102): where a `'` stands before a
       later link (`a -->|don't| b --> c`, `a[it's] -->|x| b --> c`), the chain is still
       read only up to the label's link, `c` lost: mmdr takes a `'` for a quote mark,
       also in a label, so no `;` after it splits the line for it. Wanted: the
       statements of such a chain on lines of their own in mmdr's copy, with its errors'
       lines taken back to the source's.
+
+## From the tester's round of 2026-11-23
+
+Reproduced on `main` (9f7a72a), in the order they are taken: first what
+is lost without a word, then what misleads, then what is missing.
+
+- [ ] REQ-112: a Mermaid flowchart's node written in bare words after a
+      link (`D --> Order parts`) is drawn as `Order`, the rest lost
+      without a word; Mermaid draws it whole, the tester says.
+- [ ] REQ-110: `nodeSpacing` and `rankSpacing` (in `init` or the front
+      matter) change nothing in a flowchart, and `lint --strict` says
+      nothing of it, as it does of `padding` and `elk`.
+- [ ] REQ-109: `play --help` says `--look` without `--ink` sets the
+      play's colors; the command line refuses it.
+- [ ] REQ-113: a state reached only by a hidden arrow is said to be
+      unreachable, as decided (a hidden arrow is no transition); the
+      warning should say that only a hidden arrow leads there.
+- [ ] REQ-114: `play --steps 1 --events go` is said to end on the end
+      state instead of B. Not reproduced in four machines (PlantUML,
+      Mermaid, `[*]` and a state as the end); needs the tester's file.
+- [ ] REQ-106: a scenario's notes as steps of a play, lit as its
+      messages are.
+- [ ] REQ-107: `inspect` of a sequence diagram with its messages and
+      notes, of a state machine with its transitions.
+- [ ] REQ-104: `render --fold NAME`, and in `export`: a container folded
+      in the picture, as the editor folds it.
+- [ ] REQ-111: `padding` and `elk` carried out in Mermaid flowcharts.
+- [ ] REQ-103: `@startchart` drawn natively; the Java PlantUML hangs or
+      crashes on it (plantuml/plantuml#3030, #3031).
+- [ ] REQ-105: marble diagrams of reactive streams
+      (mermaid-js/mermaid#8864), a niche.
 
 ## Next
 

@@ -1468,6 +1468,14 @@ is open and the reasoning around it.
       `@{ }` that is not that participant annotation, a color that still
       does not parse, and links, which are not drawn
 
+## From the tester's round of 2026-11-23
+
+- [x] What the nightly fuzzing found (2026-11-23): a state diagram's fork
+      bar exactly as long as it must be cut itself back past its start,
+      `505.93704 + 40 - 40` rounding to `505.937`, and `clamp` panicked
+      on the bounds (`graph::span::trim`). The window's last start is now
+      never below the bar's.
+
 ## Next
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it
