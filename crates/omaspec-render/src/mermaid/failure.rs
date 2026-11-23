@@ -53,7 +53,9 @@ fn unplaced(message: &str, body: &str) -> (Option<usize>, String) {
         };
     }
     if let Some(edge) = message.strip_prefix(BAD_EDGE) {
-        let edge = edge.trim();
+        // mmdr quotes the copy written for it, a `'` there masked.
+        let edge = super::layered::unmasked(edge.trim());
+        let edge = edge.as_str();
         // The line that is the edge, else one that holds it (a chain of
         // edges, statements apart by `;`); never a comment or front matter.
         let lines: Vec<(usize, &str)> = super::head::significant(body)

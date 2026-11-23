@@ -322,10 +322,11 @@ fn split_chain(text: &str) -> Option<String> {
 }
 
 /// Whether mmdr reads `split`, the statements of `pieces` on one line, as
-/// it reads each of them alone, and each as a link. It takes a `'` for a
-/// quote mark even in a label (`-->|don't|`), and a `\` for an escape, so
-/// a `;` after one is words to it; and a statement it cannot read alone
-/// would refuse the whole diagram. Such a chain is left as it was.
+/// it reads each of them alone, and each as a link. It takes a `\` for an
+/// escape and a `'` in a name for a quote mark (one in a label or a box
+/// is masked before), so a `;` after one is words to it; and a statement
+/// it cannot read alone would refuse the whole diagram. Such a chain is
+/// left as it was.
 fn reads_apart(pieces: &[&str], split: &str) -> bool {
     let edges = |text: &str| {
         crate::caught::caught(|| parse_mermaid_strict(&format!("flowchart TD\n{text}")))

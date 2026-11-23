@@ -283,10 +283,10 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
         let flowchart_text = head::header(body)
             .filter(|header| head::names(header, "flowchart") || head::names(header, "graph"))
             .map(|_| layered::readable(body));
-        // What Mermaid refuses and mmdr reads otherwise, a box's name with
-        // a space, is refused on its line, as lint has it (REQ-112).
-        if flowchart_text.is_some()
-            && unread.is_none()
+        // What Mermaid refuses and mmdr reads otherwise, a flowchart's box
+        // named with a space, is refused on its line, as lint has it
+        // (REQ-112); a swimlane diagram's by its entry's `wrong`.
+        if unread.is_none()
             && let Some((at, said)) = omaspec_core::mermaid_flow::wrong(body)
         {
             return Err(Refused::Placed(at, said));
@@ -442,7 +442,7 @@ const NATIVE: &[Native] = &[
         noun: "swimlane diagram",
         draw: |i| swimlane::draw(i.theme, i.body, i.fenced),
         refusal: |_| None,
-        wrong: |_| None,
+        wrong: omaspec_core::mermaid_flow::wrong,
         as_read: swimlane::as_flowchart,
     },
     Native {
@@ -1274,6 +1274,34 @@ mod tests {
             panic!("{fenced:?}");
         };
         assert_eq!(line, Some(2));
+        // mmdr quotes its copy, where a `'` is masked: the edge is found
+        // on its line all the same.
+        let err = render("flowchart TD\n  A[it's] --> B -->\n").unwrap_err();
+        let RenderError::Diagram { line, message, .. } = err else {
+            panic!("{err:?}");
+        };
+        assert_eq!(line, Some(1), "{message}");
+        assert!(message.contains("it's"), "{message}");
+    }
+
+    /// A box named with a space, which Mermaid refuses, is refused on its
+    /// line in a flowchart and in a swimlane diagram (REQ-112).
+    #[test]
+    fn a_name_with_a_space_is_refused_on_its_line() {
+        for (text, at) in [
+            ("flowchart TD\n  A --> B\n  B --> Order parts\n", 2),
+            (
+                "swimlane-beta LR\n  subgraph shop [Shop]\n    A --> Order parts\n  end\n",
+                2,
+            ),
+        ] {
+            let err = render(text).unwrap_err();
+            let RenderError::Diagram { line, message, .. } = err else {
+                panic!("{err:?}");
+            };
+            assert_eq!(line, Some(at), "{text}");
+            assert!(message.contains("`Order[Order parts]`"), "{message}");
+        }
     }
 
     #[test]

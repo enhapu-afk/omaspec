@@ -480,6 +480,15 @@ pub fn unheeded(code: &str) -> Vec<Finding> {
                 }
                 _ => continue,
             }
+        } else if matches!(
+            name.as_str(),
+            "flowchart.nodeSpacing" | "flowchart.rankSpacing"
+        ) {
+            // mmdr's layout takes them, where Omaspec's drawer leaves a
+            // flowchart to it, which it mostly does not.
+            format!(
+                "`{name}` is not carried out by Omaspec's own drawer, which draws a flowchart unless it leaves it to mmdr"
+            )
         } else {
             format!("`{name}` is not carried out: Omaspec draws the diagram without this setting")
         };
@@ -658,8 +667,8 @@ mod tests {
         assert_eq!(
             said,
             [
-                "`flowchart.nodeSpacing` is not carried out: Omaspec draws the diagram without this setting",
-                "`flowchart.rankSpacing` is not carried out: Omaspec draws the diagram without this setting",
+                "`flowchart.nodeSpacing` is not carried out by Omaspec's own drawer, which draws a flowchart unless it leaves it to mmdr",
+                "`flowchart.rankSpacing` is not carried out by Omaspec's own drawer, which draws a flowchart unless it leaves it to mmdr",
             ]
         );
         // One nested without end is left to the drawer, which refuses it.

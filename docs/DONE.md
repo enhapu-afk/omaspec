@@ -1517,6 +1517,23 @@ is open and the reasoning around it.
       declines it, and lint counted them as carried out; a picture with
       150 was as large as one without. Now each is a warning on its line,
       so `lint --strict` fails, as with `padding` and `elk`.
+- [x] What the review of the names with a space, the quote marks and
+      the spacing found (2026-11-23): an invisible link with a space on
+      one side only (`A ~~~B`) and an `accDescr { … }` whose words hold a
+      `)` or a `]` were refused; `~~~` is a link to the lexer now, and a
+      description is words up to its `}`. A `>` in a label in bars
+      (`-->|n>0|`) no longer opens a box that hid the lines after it, nor
+      one in the words of a link (`-- n>0 -->`). The header is found and
+      judged as `mermaid_head` has it (`Flowchart TD`, a flowchart without
+      one), and a swimlane diagram is refused alike, by its entry's
+      `wrong`. The refusal names the whole run of words, and says so
+      where an `&` is written onto a name or a box's text follows its name
+      after a space. Omaspec's own scanners of the source took a `'` for
+      a quote mark as mmdr did: a double circle, shape data or an
+      invisible link after one was lost; they take it for a letter. An
+      edge mmdr cannot read is found on its line with a `'` in it, as mmdr
+      quotes its masked copy. The spacing's warning says that mmdr takes
+      it where it lays a flowchart out.
 
 ## Next
 

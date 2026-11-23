@@ -679,7 +679,7 @@ fn take_group(text: &str) -> Option<(&str, &str)> {
             }
             continue;
         }
-        if ch == '"' || ch == '\'' {
+        if ch == '"' {
             quote = Some(ch);
             continue;
         }
@@ -802,6 +802,8 @@ fn split_top(text: &str, sep: impl Fn(&str) -> Option<usize>) -> Vec<String> {
 
 /// Index of the first character where `pred` holds outside quotes and
 /// brackets. `{` `(` `[` open a group, so a `~~~` inside a label is not a link.
+/// A quote is a `"`: a `'` is a letter, as Mermaid has it and mmdr reads
+/// it in the copy written for it ([`super::reading`]).
 fn find_top(text: &str, pred: impl Fn(&str) -> bool) -> Option<usize> {
     let mut index = 0;
     let mut depth = 0i32;
@@ -828,7 +830,7 @@ fn find_top(text: &str, pred: impl Fn(&str) -> bool) -> Option<usize> {
             index += len;
             continue;
         }
-        if ch == '"' || ch == '\'' {
+        if ch == '"' {
             quote = Some(ch);
             index += len;
             continue;
@@ -864,7 +866,7 @@ pub(super) fn double_circles(source: &str) -> HashSet<String> {
             }
             continue;
         }
-        if ch == '"' || ch == '\'' {
+        if ch == '"' {
             index = skip_quoted(&chars, index);
             continue;
         }
@@ -920,7 +922,7 @@ fn skip_quoted(chars: &[char], start: usize) -> usize {
 
 fn skip_edge_label(chars: &[char], mut index: usize) -> usize {
     while index < chars.len() && chars[index] != '\n' {
-        if chars[index] == '"' || chars[index] == '\'' {
+        if chars[index] == '"' {
             index = skip_quoted(chars, index);
             continue;
         }

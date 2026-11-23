@@ -16,6 +16,14 @@ fn finds_double_circles_by_their_id() {
     assert!(!ids.contains("A"));
 }
 
+/// A `'` is a letter to Mermaid, and to mmdr in the copy written for it:
+/// a box's text with one hid every double circle after it.
+#[test]
+fn a_quote_mark_hides_no_double_circle() {
+    let ids = double_circles("flowchart TD\nA[it's] --> B(((x)))\nC --> D(((y)))\n");
+    assert!(ids.contains("B") && ids.contains("D"), "{ids:?}");
+}
+
 #[test]
 fn comments_and_labels_are_not_double_circles() {
     let comment = double_circles("flowchart LR\nA((circle))\n%% A(((no)))\nB(((yes)))\n");
