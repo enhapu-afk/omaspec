@@ -462,7 +462,7 @@ impl App {
         Task::perform(
             crate::worker::blocking(move || -> Result<String, String> {
                 let mut renderer = omaspec_render::Renderer::new(&crate::commands::render_config());
-                crate::project_export::export(&root, Some(&out), look, &mut renderer)
+                crate::project_export::export(&root, Some(&out), look, &[], &mut renderer)
                     .map(|exported| exported.summary())
                     .map_err(|e| format!("{e:#}"))
             }),

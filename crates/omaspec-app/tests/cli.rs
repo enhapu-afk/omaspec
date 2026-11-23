@@ -1029,6 +1029,117 @@ fn omaspec_with(env: (&str, &str), args: &[&str]) -> Output {
         .expect("omaspec runs")
 }
 
+/// `render --fold` (REQ-104): the containers named are drawn folded to
+/// their box, as the editor folds them; the source the image keeps is the
+/// file's. A name the diagram does not hold is said with those it has,
+/// and nothing is written; of several diagrams, each name is held by one.
+#[test]
+fn render_folds_the_containers_named_and_keeps_the_file_s_source() {
+    let dir = scratch("fold");
+    let coffee = dir.join("coffee.puml");
+    let code = "@startuml\n[*] --> Idle\nIdle --> Brewing : start\nstate Brewing {\n  [*] --> Heat\n  Heat --> Pour : hot\n}\nBrewing --> Idle : done\n@enduml\n";
+    fs::write(&coffee, code).unwrap();
+    let net = dir.join("net.mmd");
+    fs::write(
+        &net,
+        "flowchart LR\n  A --> B\n  subgraph Core [Core network]\n    B[Router] --> C[Switch]\n  end\n  C --> D\n",
+    )
+    .unwrap();
+    let (coffee, net) = (coffee.to_str().unwrap(), net.to_str().unwrap());
+    let svg = dir.join("coffee.svg");
+    let out = omaspec(&[
+        "render",
+        coffee,
+        "--fold",
+        "Brewing",
+        "-o",
+        svg.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert!(String::from_utf8_lossy(&out.stderr).contains("folded Brewing"));
+    let drawn = fs::read_to_string(&svg).unwrap();
+    assert!(
+        drawn.contains("2 states · 2 transitions"),
+        "the box says what it holds"
+    );
+    assert!(!drawn.contains(">Heat<"), "what it holds is not drawn");
+    assert_eq!(embed::source_from_svg(&drawn).unwrap().code, code);
+
+    // A name it does not hold: those it has, and no picture.
+    let none = dir.join("none.svg");
+    let out = omaspec(&[
+        "render",
+        coffee,
+        "--fold",
+        "Pantry",
+        "-o",
+        none.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&out.stderr)
+            .contains("Pantry is no container to fold; the diagram has Brewing"),
+        "{out:?}"
+    );
+    assert!(!none.exists());
+
+    // Of two diagrams, each folds what it holds, and says so.
+    let out = omaspec(&["render", coffee, net, "--fold", "Core,Brewing", "--json"]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(report[0]["folded"], serde_json::json!(["Brewing"]));
+    assert_eq!(report[1]["folded"], serde_json::json!(["Core"]));
+    let out = omaspec(&["render", coffee, net, "--fold", "Pantry"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        String::from_utf8_lossy(&out.stderr)
+            .contains("Pantry is no container to fold in any of the diagrams")
+    );
+    // Text and a presentation are the whole behavior.
+    for output in ["coffee.txt", "coffee.html"] {
+        let out = omaspec(&[
+            "render",
+            coffee,
+            "--fold",
+            "Brewing",
+            "-o",
+            dir.join(output).to_str().unwrap(),
+        ]);
+        assert_eq!(out.status.code(), Some(2), "{output}");
+    }
+
+    // `export --fold` folds in every diagram that holds the name; one no
+    // diagram holds stops it before anything is written.
+    let project = dir.join("project");
+    fs::create_dir_all(&project).unwrap();
+    fs::write(project.join("omaspec-project.toml"), "name = \"Cafe\"\n").unwrap();
+    fs::write(project.join("coffee.puml"), code).unwrap();
+    let folder = project.join("out");
+    let out = omaspec(&[
+        "export",
+        project.to_str().unwrap(),
+        "-o",
+        folder.to_str().unwrap(),
+        "--fold",
+        "Brewing",
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    let drawn = fs::read_to_string(folder.join("coffee.svg")).unwrap();
+    assert!(drawn.contains("2 states · 2 transitions") && !drawn.contains(">Heat<"));
+    let never = project.join("never");
+    let out = omaspec(&[
+        "export",
+        project.to_str().unwrap(),
+        "-o",
+        never.to_str().unwrap(),
+        "--fold",
+        "Pantry",
+    ]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(!never.exists());
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn render_takes_a_look_and_keeps_the_file_s_source() {
     let dir = scratch("look");

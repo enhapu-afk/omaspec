@@ -432,7 +432,10 @@ it. The palette folds or
 unfolds the container whose name the caret is on, and unfolds every container. Folds are
 the pane's, not the file's: nothing is written, the checks and a play see the whole
 diagram, and a play unfolds everything before it starts. An export draws what the pane
-shows.
+shows. On the command line `omaspec render coffee.puml --fold Brewing` draws a picture
+with that container folded, `--fold Brewing,Payment` several, and `omaspec export DIR
+--fold Brewing` folds it in every diagram of the project that holds it; the map stays
+whole. A name the diagram does not hold is an error that lists those it has.
 
 A mind map and a WBS fold the same way, in PlantUML and in Mermaid: a box with boxes
 below it folds to itself: the boxes below glide into it with their links, and come out
@@ -813,11 +816,13 @@ omaspec play order.puml -o traffic.gif --traffic week.jsonl   # recorded traces 
 omaspec play coffee.puml -o sweep.gif --themes             # the diagram through every bundled Omarchy theme, each theme's colors sweeping over the one before, its name under it; --themes=tokyo-night,gruvbox,my/colors.toml,built-in names them; .html a page in vectors, sweep.html#t=4 holds it still; drawn without a GPU
 omaspec play parcel.puml -o ink.gif --ink                 # from sketch to ink: the diagram in the sketch look drawn stroke by stroke as with a pen, down the picture, each box with its words; then inked into the clean look, its words going and coming apart from its lines; --look light inks into a look of its own (plain, vivid, omarchy, light, dark, file); the film starts on the clean picture, held as long as --hold, and keeps a screen's proportions; --duration gives the pen what the rest leaves; .html a page in vectors, ink.html#t=3 holds it still; drawn without a GPU
 omaspec render flow.mmd --look auto # plain, sketch, vivid, omarchy, light or dark; auto: one SVG, dark under a dark scheme
+omaspec render net.mmd --fold Core  # the container Core folded to its box, as the editor folds it; --fold A,B several; the image keeps the file's source
 omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1
 omaspec check ~/specs/shop          # lint, the machines, the links and render --check; --strict, --json, --github
 omaspec export ~/specs/shop         # every diagram as an SVG, linked, the map as index.svg, and shop.zip, in shop/export
 omaspec export ~/specs/shop --html  # the project as one page: the map, a click zooming into a tile and back out, every diagram inside
+omaspec export ~/specs/shop --fold Payment   # Payment folded in every diagram that holds it; the map whole; with --html too
 omaspec lint README.md              # each plantuml and mermaid block of a Markdown document, on its lines
 omaspec render README.md            # one image per block: README-1.svg, README-2.svg, …
 omaspec extract diagram.png         # the source stored in an exported PNG, SVG or presentation

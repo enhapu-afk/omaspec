@@ -41,6 +41,9 @@ pub struct RenderArgs<'a> {
     pub copy: bool,
     /// A look laid over the file's colors.
     pub look: Option<crate::look::Look>,
+    /// The containers to fold to their box where a diagram holds them
+    /// ([`crate::folds`], REQ-104).
+    pub folds: &'a [String],
     pub lang: Option<Language>,
     /// A JSON report on stdout instead of status lines. The images are
     /// still written; stdout is not an image in this mode.
@@ -84,6 +87,10 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             "--min-font sizes the words of a PNG or JPEG; text has no pixels"
         );
         anyhow::ensure!(
+            args.folds.is_empty(),
+            "--fold folds a picture's containers; text is the whole behavior"
+        );
+        anyhow::ensure!(
             !args.check,
             "--check holds each diagram's SVG; text is not drawn"
         );
@@ -122,6 +129,10 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             "--min-font must be between 0 and 200 pixels"
         );
     }
+    anyhow::ensure!(
+        args.folds.is_empty() || format != Format::Html,
+        "--fold folds a picture; a presentation plays the whole machine"
+    );
     anyhow::ensure!(
         args.look != Some(crate::look::Look::Auto) || format == Format::Svg,
         "--look auto makes an SVG, which a viewer turns dark with its own scheme; for {} take light or dark",
@@ -170,6 +181,8 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             eprintln!("{}: error: {message}", input.name());
         }
     }
+    // The containers of `--fold` some diagram held.
+    let mut held: Vec<String> = Vec::new();
     for piece in &pieces {
         let input = piece.input;
         // Where the picture goes: a file, else the clipboard or standard
@@ -195,6 +208,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 outline: args.text_as_paths,
                 source: args.source,
                 look: args.look,
+                folds: args.folds,
             },
         )? {
             Ok(exported) => exported,
@@ -217,8 +231,25 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 continue;
             }
         };
+        // One diagram holds every name asked to fold, or nothing is
+        // written; of several, each name is held by one at least.
+        if pieces.len() == 1
+            && let Some(name) = crate::folds::first_unheld(args.folds, &exported.folded.held)
+        {
+            anyhow::bail!(crate::folds::not_held(name, &exported.folded.offered));
+        }
+        for name in &exported.folded.held {
+            if !held.contains(name) {
+                held.push(name.clone());
+            }
+        }
+        let folded = if exported.folded.held.is_empty() {
+            String::new()
+        } else {
+            format!(", folded {}", exported.folded.held.join(", "))
+        };
         let took = format!(
-            "{}, {:.1} ms",
+            "{}, {:.1} ms{folded}",
             exported.engine,
             exported.elapsed.as_secs_f64() * 1000.0
         );
@@ -231,6 +262,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             fitted_scale: exported.fitted,
             sized: exported.sized,
             fence: exported.fence.clone(),
+            folded: exported.folded.held.clone(),
             ..Report::default()
         };
         // Where it went, and what it says besides, on standard error.
@@ -293,6 +325,13 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 warn_undrawable(&input.name(), &exported.undrawable);
                 warn_fence(&input.name(), exported.fence.as_deref());
             }
+        }
+    }
+    // A name to fold that none of several diagrams held.
+    if pieces.len() > 1 {
+        for name in args.folds.iter().filter(|name| !held.contains(name)) {
+            failed = true;
+            eprintln!("error: {}", crate::folds::held_by_none(name));
         }
     }
     if args.json {
@@ -443,6 +482,9 @@ struct Report {
     /// With `--min-font`, where the picture is cut: the tiles, row by row.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     tiles: Vec<String>,
+    /// With `--fold`: the containers this diagram held, folded.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    folded: Vec<String>,
 }
 
 /// How `--min-font` drew a picture.
@@ -584,6 +626,8 @@ struct Exported {
     sized: Option<Sizing>,
     /// What the fence around the Java PlantUML that drew it lacked.
     fence: Option<String>,
+    /// What it held of the containers asked to fold.
+    folded: crate::folds::Folded,
 }
 
 /// What a diagram was drawn as: one file, or the tiles `--min-font` cut
@@ -595,7 +639,7 @@ enum Picture {
 
 /// How [`export_piece`] draws.
 #[derive(Clone, Copy)]
-struct Draw {
+struct Draw<'a> {
     format: Format,
     scale: f32,
     /// A picture too large at `scale` is drawn at the largest that fits.
@@ -608,6 +652,8 @@ struct Draw {
     outline: bool,
     source: bool,
     look: Option<crate::look::Look>,
+    /// The containers to fold where it holds them.
+    folds: &'a [String],
 }
 
 /// What [`hold`] says about one diagram: drawn and held against the SVG
@@ -669,6 +715,7 @@ fn hold(
         outline,
         source,
         look,
+        folds: &[],
     };
     let mut held = Vec::new();
     for input in empty {
@@ -842,9 +889,12 @@ fn export_piece(
     // A project's file is drawn as the project's map, which is made from
     // its diagrams (docs/adr/0026).
     let project = input.path.as_deref().and_then(crate::look::map_root);
+    // A map is drawn whole; a diagram with the containers of `--fold` it
+    // holds folded (REQ-104).
     let drawn = match &project {
-        Some(root) => crate::look::render_map(maps, renderer, root, "", skin.as_ref()),
-        None => crate::look::render(
+        Some(root) => crate::look::render_map(maps, renderer, root, "", skin.as_ref())
+            .map(|rendered| (rendered, crate::folds::Folded::default())),
+        None => crate::folds::render(
             maps,
             renderer,
             &piece.code,
@@ -852,10 +902,11 @@ fn export_piece(
             input.path.as_deref(),
             place.as_ref(),
             skin.as_ref(),
+            draw.folds,
         ),
     };
-    let rendered = match drawn {
-        Ok(rendered) => rendered,
+    let (rendered, folded) = match drawn {
+        Ok(drawn) => drawn,
         Err(err) => return Ok(Err(err)),
     };
     // Each tile or state that opens a diagram links to its export.
@@ -933,6 +984,7 @@ fn export_piece(
                 columns: plan.columns,
             }),
             fence: rendered.fence.clone(),
+            folded,
         }));
     }
     let (bytes, fitted) = match export_at(draw.scale) {
@@ -960,6 +1012,7 @@ fn export_piece(
         fitted,
         sized: None,
         fence: rendered.fence.clone(),
+        folded,
     }))
 }
 

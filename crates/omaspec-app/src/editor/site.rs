@@ -42,11 +42,14 @@ pub(crate) struct Written {
 }
 
 /// Writes the page of the project at `root` into `out` (its `export`
-/// folder where none is named), in `look` or the one the project pins.
+/// folder where none is named), in `look` or the one the project pins, the
+/// containers of `folds` folded in every diagram that holds them; a name
+/// none of its diagrams holds writes nothing.
 pub(crate) fn write(
     root: &Path,
     out: Option<&Path>,
     look: Option<Look>,
+    folds: &[String],
     renderer: &mut Renderer,
 ) -> Result<Written> {
     let root =
@@ -69,6 +72,8 @@ pub(crate) fn write(
     let skin = crate::look::skin_for(look, Some(&root))?;
     let atlas = Arc::new(atlas);
     let mut maps = Maps::with(root.clone(), Arc::clone(&atlas));
+    // The containers of `folds` some diagram held.
+    let mut held: Vec<String> = Vec::new();
     let mut draw = |is: &Is| -> Result<Drawn, String> {
         let rendered = match is {
             Is::Map(folder) => {
@@ -80,7 +85,7 @@ pub(crate) fn write(
                     .iter()
                     .find(|e| e.file == *file)
                     .ok_or_else(|| format!("{file} is not in the project"))?;
-                crate::look::render(
+                crate::folds::render(
                     &mut maps,
                     renderer,
                     &entry.source,
@@ -88,7 +93,16 @@ pub(crate) fn write(
                     Some(&root.join(&entry.file)),
                     entry.place.as_ref(),
                     skin.as_ref(),
+                    folds,
                 )
+                .map(|(rendered, folded)| {
+                    for name in folded.held {
+                        if !held.contains(&name) {
+                            held.push(name);
+                        }
+                    }
+                    rendered
+                })
             }
         }
         .map_err(|err| err.to_string())?;
@@ -188,6 +202,9 @@ pub(crate) fn write(
         }
         hops.push(from_here);
         at += 1;
+    }
+    if let Some(name) = crate::folds::first_unheld(folds, &held) {
+        anyhow::bail!(crate::folds::held_by_none(name));
     }
     let paper = super::building::picture::paper_of(&pictures[0].svg);
     let paper = omaspec_theme::Rgb::parse_hex(&paper).unwrap_or(omaspec_theme::Rgb {
@@ -378,16 +395,16 @@ mod tests {
         );
         // `-o` ending in `.html` names the page itself; another, its folder.
         let named = work.join("out/site.html");
-        let written = super::write(&work, Some(&named), None, &mut renderer).unwrap();
+        let written = super::write(&work, Some(&named), None, &[], &mut renderer).unwrap();
         assert_eq!(written.page, named);
         assert!(named.is_file());
         let folder = work.join("pages");
-        let written = super::write(&work, Some(&folder), None, &mut renderer).unwrap();
+        let written = super::write(&work, Some(&folder), None, &[], &mut renderer).unwrap();
         assert_eq!(written.page, folder.join("Cafe- day-night.html"));
         let _ = std::fs::remove_dir_all(&work);
     }
 
     fn write_site(work: &Path, renderer: &mut Renderer) -> Written {
-        write(work, None, None, renderer).unwrap()
+        write(work, None, None, &[], renderer).unwrap()
     }
 }

@@ -35,7 +35,12 @@ play does for the states it is in, without the play.
    carries the file as it is, so an export embeds the file's own source,
    while its picture is the one on screen. The checks, the play and lint
    read the file and never see a fold. A fold line a writer puts into a
-   file folds there too, for `omaspec render` and exports.
+   file folds there too, for `omaspec render` and exports. Since
+   2026-11-23 `omaspec render --fold NAME`, `omaspec export --fold NAME`
+   and the MCP server's `render` (`fold`) hand the engine these lines
+   the same way, for a picture folded without a line in the file
+   (REQ-104); a name no diagram holds is an error that lists those it
+   has.
 3. **Folding by pointer and by caret.** Over a container the pointer
    shows a small button in its top right corner; a click folds it. A
    click on a folded box unfolds it, and the view moves to it when it

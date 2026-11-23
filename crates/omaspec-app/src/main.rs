@@ -9,6 +9,7 @@ mod document;
 mod editor;
 mod file_dialog;
 mod files;
+mod folds;
 mod gallery;
 mod git;
 mod git_setup;
@@ -634,6 +635,19 @@ enum Command {
         /// omaspec-project.toml) is drawn in that.
         #[arg(long, value_enum)]
         look: Option<crate::look::Look>,
+        /// Fold these containers to their box, as the editor folds them: a
+        /// composite state, a package or a subgraph, by name, with commas
+        /// between them (`--fold Brewing,Payment`). The picture shows the
+        /// box and what it holds in numbers, its lines ending on it; the
+        /// source stored in the image is the file's. A name no diagram
+        /// holds is an error that lists the containers there are.
+        #[arg(
+            long,
+            value_delimiter = ',',
+            value_name = "NAME",
+            conflicts_with = "check"
+        )]
+        fold: Vec<String>,
         /// Print a JSON report on stdout instead of status lines.
         ///
         /// Each diagram is one object: where the image went, or the error
@@ -669,6 +683,11 @@ enum Command {
         /// turns dark under the viewer's dark scheme.
         #[arg(long, value_enum)]
         look: Option<crate::look::Look>,
+        /// Fold these containers to their box in every diagram that holds
+        /// them, as `render --fold` does; the map is drawn whole. A name
+        /// no diagram holds stops the export before anything is written.
+        #[arg(long, value_delimiter = ',', value_name = "NAME")]
+        fold: Vec<String>,
         /// Print a JSON report on stdout instead of status lines.
         #[arg(long)]
         json: bool,
@@ -1036,6 +1055,7 @@ fn main() -> ExitCode {
             no_source,
             copy,
             look,
+            fold,
             json,
             check,
             lang,
@@ -1051,6 +1071,7 @@ fn main() -> ExitCode {
             source: !no_source,
             copy,
             look,
+            folds: &fold,
             lang: lang.get(),
             json,
             check,
@@ -1059,16 +1080,18 @@ fn main() -> ExitCode {
             dir,
             output,
             look,
+            fold,
             json: _,
             html: true,
-        }) => project_export::page(&dir, output.as_deref(), look),
+        }) => project_export::page(&dir, output.as_deref(), look, &fold),
         Some(Command::Export {
             dir,
             output,
             look,
+            fold,
             json,
             html: _,
-        }) => project_export::command(&dir, output.as_deref(), look, json),
+        }) => project_export::command(&dir, output.as_deref(), look, &fold, json),
         Some(Command::Mcp) => mcp::run(),
         Some(Command::Example { name, json }) => commands::example(name.as_deref(), json),
         Some(Command::Extract {

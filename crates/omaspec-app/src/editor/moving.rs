@@ -159,19 +159,12 @@ impl Moving {
 /// Each of `names` is a container the diagram `offered` to fold; else
 /// which it has.
 fn offered_all<S: AsRef<str>>(names: &[String], offered: &[S]) -> Result<()> {
+    let offered: Vec<String> = offered.iter().map(|one| one.as_ref().to_owned()).collect();
     for name in names {
         anyhow::ensure!(
-            offered.iter().any(|one| one.as_ref() == name),
-            "{name} is no container to fold; the diagram has {}",
-            if offered.is_empty() {
-                "none".to_owned()
-            } else {
-                offered
-                    .iter()
-                    .map(AsRef::as_ref)
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            }
+            offered.contains(name),
+            "{}",
+            crate::folds::not_held(name, &offered)
         );
     }
     Ok(())

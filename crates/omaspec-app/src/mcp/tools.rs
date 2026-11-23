@@ -339,6 +339,11 @@ pub fn definitions() -> Vec<Value> {
                     "enum": ["plain", "omarchy", "light", "dark", "auto", "file"],
                     "description": "Draw in a look instead of the file's own colors, laid over as the editor lays the Omarchy theme over; the file and the stored source stay as written. plain: black lines; omarchy: the active theme; light, dark: Omaspec's palettes; auto: one SVG, dark under a dark color scheme (SVG only); file: the file's own colors. Without it, a diagram of a project that pins a look (`[look]` in omaspec-project.toml) is drawn in that.",
                 })),
+                ("fold", json!({
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Containers to fold to their box, as the editor folds them: a composite state, a package or a subgraph, by name. The box says what it holds in numbers and its lines end on it; the stored source stays as written. A name the diagram does not hold is an error that lists the containers it has. Not with text, a presentation or a project's map.",
+                })),
             ]),
             "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false },
         }),
@@ -447,7 +452,22 @@ impl Tools {
             .as_deref()
             .and_then(std::path::Path::extension)
             .is_some_and(|ext| ext.eq_ignore_ascii_case("txt"));
+        let folds: Vec<String> = match args.map.get("fold") {
+            None | Some(Value::Null) => Vec::new(),
+            Some(Value::Array(items)) => items
+                .iter()
+                .map(|item| match item {
+                    Value::String(name) => Ok(name.trim().to_owned()),
+                    _ => bail!("`fold` must be a list of names"),
+                })
+                .collect::<Result<_>>()?,
+            Some(_) => bail!("`fold` must be a list of names"),
+        };
         if txt || args.text("format")? == Some("text") {
+            ensure!(
+                folds.is_empty(),
+                "`fold` folds a picture's containers; text is the whole behavior"
+            );
             return Self::render_text(&input, piece, output);
         }
         let format = match args.text("format")? {
@@ -481,6 +501,10 @@ impl Tools {
             look != Some(Look::Auto) || shown == Format::Svg,
             "the look auto makes an SVG, which a viewer turns dark with its own scheme; ask for `format: svg`, or take light or dark"
         );
+        ensure!(
+            folds.is_empty() || shown != Format::Html,
+            "`fold` folds a picture; a presentation plays the whole machine"
+        );
         let place = input
             .path
             .as_deref()
@@ -500,9 +524,14 @@ impl Tools {
         let mut maps = crate::specs::Maps::default();
         let map_root = input.path.as_deref().and_then(crate::look::map_root);
         let is_map = map_root.is_some();
+        ensure!(
+            folds.is_empty() || !is_map,
+            "`fold` folds a diagram's containers; a project's map is drawn whole"
+        );
         let drawn = match map_root {
-            Some(root) => crate::look::render_map(&mut maps, renderer, &root, "", skin.as_ref()),
-            None => crate::look::render(
+            Some(root) => crate::look::render_map(&mut maps, renderer, &root, "", skin.as_ref())
+                .map(|rendered| (rendered, crate::folds::Folded::default())),
+            None => crate::folds::render(
                 &mut maps,
                 renderer,
                 &piece.code,
@@ -510,10 +539,16 @@ impl Tools {
                 input.path.as_deref(),
                 place.as_ref(),
                 skin.as_ref(),
+                &folds,
             ),
         };
         let rendered = match drawn {
-            Ok(rendered) => rendered,
+            Ok((rendered, folded)) => {
+                if let Some(name) = crate::folds::first_unheld(&folds, &folded.held) {
+                    bail!(crate::folds::not_held(name, &folded.offered));
+                }
+                rendered
+            }
             Err(err) => {
                 let (line, engine, message) = failure(&err);
                 let line = line.map(|l| piece.line(l - 1) + 1);
@@ -530,6 +565,9 @@ impl Tools {
             "engine": rendered.engine.name(),
             "elapsed_ms": millis(rendered.elapsed),
         });
+        if !folds.is_empty() {
+            report["folded"] = json!(folds);
+        }
         if let Some(fence) = &rendered.fence {
             report["fence"] = json!(fence);
         }
@@ -1652,6 +1690,36 @@ mod tests {
         assert_eq!(png["isError"], true, "{png}");
         let none = call("render", json!({"code": code, "look": "sepia"}));
         assert_eq!(none["isError"], true, "{none}");
+    }
+
+    /// `fold` folds the containers named, as `render --fold` does; a name
+    /// the diagram does not hold is an error that lists those it has.
+    #[test]
+    fn render_folds_the_containers_named() {
+        let code = "@startuml\n[*] --> Idle\nIdle --> Brewing : start\nstate Brewing {\n  [*] --> Heat\n}\n@enduml\n";
+        let folded = call(
+            "render",
+            json!({"code": code, "format": "svg", "fold": ["Brewing"]}),
+        );
+        let svg = folded["content"][0]["text"].as_str().unwrap();
+        assert!(
+            !svg.contains(">Heat<") && svg.contains(">Brewing<"),
+            "{folded}"
+        );
+        let wrong = call(
+            "render",
+            json!({"code": code, "format": "svg", "fold": ["Pantry"]}),
+        );
+        assert_eq!(wrong["isError"], true, "{wrong}");
+        assert!(
+            wrong.to_string().contains("the diagram has Brewing"),
+            "{wrong}"
+        );
+        let text = call(
+            "render",
+            json!({"code": code, "format": "text", "fold": ["Brewing"]}),
+        );
+        assert_eq!(text["isError"], true, "{text}");
     }
 
     #[test]

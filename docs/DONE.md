@@ -1568,6 +1568,23 @@ is open and the reasoning around it.
       draws it (`A['x y']`), on a line that is repaired too; and a box
       mmdr misread beside an invisible link is found by the name it read
       in its masked copy, so no stray box is left.
+- [x] Containers folded on the command line (REQ-104, 2026-11-23): `omaspec
+      render FILE --fold Brewing,Payment` draws those containers folded to
+      their box, as the editor folds them (docs/adr/0024): a composite
+      state, a package, a subgraph; the box says what it holds and its
+      lines end on it. The names reach the engine as the pane hands its
+      folds over, as lines after the diagram (`crate::folds`), so the
+      source an image keeps is the file's. A diagram is drawn once as it
+      is first, for the containers it holds; a name it does not hold is an
+      error that lists those, and nothing is written. Of several diagrams
+      (a folder, a Markdown document), each folds what it holds, and a
+      name none holds is an error. The status line and `--json` say what
+      was folded; text and a presentation, which are the whole behavior,
+      refuse it. `omaspec export DIR --fold NAME` folds it in every
+      diagram of the project that holds it, as SVGs and ZIP or as one page
+      (`--html`), the map whole; a name no diagram holds stops it before
+      anything is written. The MCP server's `render` takes `fold`, a list
+      of names. `play --fold` says an unknown name in the same words.
 
 ## Next
 

@@ -390,8 +390,6 @@ is lost without a word, then what misleads, then what is missing.
       messages are.
 - [ ] REQ-107: `inspect` of a sequence diagram with its messages and
       notes, of a state machine with its transitions.
-- [ ] REQ-104: `render --fold NAME`, and in `export`: a container folded
-      in the picture, as the editor folds it.
 - [ ] REQ-110, the rest: `nodeSpacing` and `rankSpacing` carried out by
       the graph engine, whose gaps are its own (`CROSS_GAP`, the ranks'
       gaps); lint says they are not since 2026-11-23.

@@ -89,9 +89,15 @@ impl Exported {
 
 /// `omaspec export`: status lines on standard error, or the JSON report on
 /// standard output. Fails when a diagram did not draw.
-pub fn command(dir: &Path, out: Option<&Path>, look: Option<Look>, json: bool) -> Result<ExitCode> {
+pub fn command(
+    dir: &Path,
+    out: Option<&Path>,
+    look: Option<Look>,
+    folds: &[String],
+    json: bool,
+) -> Result<ExitCode> {
     let mut renderer = Renderer::new(&crate::commands::render_config());
-    let exported = export(dir, out, look, &mut renderer)?;
+    let exported = export(dir, out, look, folds, &mut renderer)?;
     if json {
         let mut stdout = std::io::stdout();
         serde_json::to_writer_pretty(&mut stdout, &exported)?;
@@ -127,9 +133,14 @@ pub fn command(dir: &Path, out: Option<&Path>, look: Option<Look>, json: bool) -
 
 /// `omaspec export --html`: the project as one page
 /// ([`crate::editor::site`]); what did not draw is told, and fails it.
-pub fn page(dir: &Path, out: Option<&Path>, look: Option<Look>) -> Result<ExitCode> {
+pub fn page(
+    dir: &Path,
+    out: Option<&Path>,
+    look: Option<Look>,
+    folds: &[String],
+) -> Result<ExitCode> {
     let mut renderer = Renderer::new(&crate::commands::render_config());
-    let written = crate::editor::site::write(dir, out, look, &mut renderer)?;
+    let written = crate::editor::site::write(dir, out, look, folds, &mut renderer)?;
     for (file, why) in &written.failed {
         eprintln!("{}: error: {why}", dir.join(file).display());
     }
@@ -162,14 +173,17 @@ fn pairs<S: serde::Serializer>(pairs: &[(String, String)], s: S) -> Result<S::Ok
 
 /// Exports the project at `root` into `out`, or into its `export` folder,
 /// drawn in `look`, else in the look the project pins, else in the files'
-/// own colors. A diagram that does
+/// own colors, the containers of `folds` folded in every diagram that
+/// holds them ([`crate::folds`]). A diagram that does
 /// not draw is reported and left out; two diagrams that would be one SVG
-/// (`a.puml` and `a.mmd`), or one that would be the map's `index.svg`,
-/// stop the export before anything is written.
+/// (`a.puml` and `a.mmd`), one that would be the map's `index.svg`, or a
+/// name to fold that no diagram holds stop the export before anything is
+/// written.
 pub fn export(
     root: &Path,
     out: Option<&Path>,
     look: Option<Look>,
+    folds: &[String],
     renderer: &mut Renderer,
 ) -> Result<Exported> {
     let root =
@@ -204,9 +218,11 @@ pub fn export(
         index: false,
         failed: Vec::new(),
     };
+    // The containers of `folds` some diagram held.
+    let mut held: Vec<String> = Vec::new();
     for (entry, target) in atlas.diagrams.iter().zip(targets) {
         let path = root.join(&entry.file);
-        let drawn = crate::look::render(
+        let drawn = crate::folds::render(
             &mut maps,
             renderer,
             &entry.source,
@@ -214,9 +230,17 @@ pub fn export(
             Some(&path),
             entry.place.as_ref(),
             skin.as_ref(),
+            folds,
         );
         let rendered = match drawn {
-            Ok(rendered) => rendered,
+            Ok((rendered, folded)) => {
+                for name in folded.held {
+                    if !held.contains(&name) {
+                        held.push(name);
+                    }
+                }
+                rendered
+            }
             Err(err) => {
                 let (line, engine, message) = crate::commands::failure(&err);
                 exported.failed.push(Failed {
@@ -254,6 +278,9 @@ pub fn export(
         };
         pictures.push((target.clone(), svg(&own)?));
         exported.written.push((entry.file.clone(), target));
+    }
+    if let Some(name) = crate::folds::first_unheld(folds, &held) {
+        anyhow::bail!(crate::folds::held_by_none(name));
     }
     anyhow::ensure!(
         !exported.written.is_empty(),
