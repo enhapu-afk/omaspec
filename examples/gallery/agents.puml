@@ -1,0 +1,20 @@
+@startuml
+title Agents at work
+' Where a person decides: the review and the release (<<decide>>).
+' Follow a run live: omaspec preview agents.puml --follow agents.jsonl
+skinparam state {
+  BackgroundColor<<decide>> #FFF1C2
+  BorderColor<<decide>> #8B6508
+}
+[*] --> Planning
+Planning --> Coding : plan ready
+Coding --> Testing : pushed
+Testing --> Coding : tests fail
+Testing --> Review : tests pass
+Review --> Coding : changes asked
+Review --> Release : approved
+Release --> [*] : shipped
+Release --> Coding : held back
+state Review <<decide>>
+state Release <<decide>>
+@enduml

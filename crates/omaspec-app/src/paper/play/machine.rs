@@ -420,14 +420,26 @@ impl MachinePlay {
             Driver::Writer(writer) => writer,
             Driver::Live(live) => {
                 let (last, finding) = (live.last(), live.wrong());
-                // The pills say who stands where; the head counts them.
-                let object = match (live.objects(), live.deviating(), live.only()) {
-                    (1, 0, Some(only)) => format!("live · {only}"),
-                    (1, _, Some(only)) => format!("live · {only} deviates"),
-                    (n, 0, _) => format!("live · {n} objects"),
-                    (n, 1, _) => format!("live · {n} objects · 1 deviates"),
-                    (n, d, _) => format!("live · {n} objects · {d} deviate"),
+                // The pills say who stands where; the head counts them,
+                // and who waits for a person.
+                let mut head = match (live.objects(), live.only()) {
+                    (1, Some(only)) => format!("live · {only}"),
+                    (n, _) => format!("live · {n} objects"),
                 };
+                // Who waits the pills say; the head counts them.
+                match (live.waiting().len(), live.objects()) {
+                    (0, _) => {}
+                    (1, 1) => head.push_str(" waits for you"),
+                    (1, _) => head.push_str(" · 1 waits"),
+                    (n, _) => head.push_str(&format!(" · {n} wait")),
+                }
+                match live.deviating() {
+                    0 => {}
+                    1 if live.objects() == 1 => head.push_str(" · deviates"),
+                    1 => head.push_str(" · 1 deviates"),
+                    n => head.push_str(&format!(" · {n} deviate")),
+                }
+                let object = head;
                 let said = last.map_or_else(String::new, |(step, object)| {
                     match (&step.event, &step.state) {
                         (Some(event), Some(state)) => format!("{object}: {event} → {state}"),
@@ -657,7 +669,8 @@ impl MachinePlay {
         if let Driver::Live(live) = &self.driver {
             for (state, names) in live.standing() {
                 if let Some(spot) = &self.placed.states[state] {
-                    pills(frame, look, (view.place)(spot.rect), &names);
+                    let waits = self.machine.states[state].decide;
+                    pills(frame, look, (view.place)(spot.rect), &names, waits);
                 }
             }
         }

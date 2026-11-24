@@ -75,6 +75,10 @@ impl Reader {
                 parent,
                 region,
                 line: node.line,
+                decide: node
+                    .stereotype
+                    .as_deref()
+                    .is_some_and(|s| s.trim().eq_ignore_ascii_case("decide")),
             });
             self.states.insert(here.clone(), id);
             self.container(&node.children, &here, Some(id), 0);

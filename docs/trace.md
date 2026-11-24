@@ -98,6 +98,14 @@ the state it is in, past three a pill that counts the rest; a light runs
 along each transition a new line takes; an object whose last line
 deviates stands in red, and the bar says why. Esc stops following.
 
+A state where a person decides, not the system or its agents, is
+`state Review <<decide>>` in PlantUML and `class Review decide` in
+Mermaid (`omaspec convert` writes each as the other). An object standing
+there waits for that person: its pill is filled, `‖ pr-42`, and the bar
+counts who waits. The gallery's *Agents at work* has two such places
+and a run to follow: `omaspec preview agents.puml --follow
+agents.jsonl` in `examples/gallery`.
+
 ## Writing one
 
 Append a line where the system takes an event, and flush it, so a run that

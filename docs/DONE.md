@@ -66,6 +66,17 @@ is open and the reasoning around it.
       following as Esc does, a link to another diagram ends it, and the
       status line says only Esc stops. `--strict` fails a followed trace
       as it fails a whole one (`commands::fails`).
+- [x] Where a person decides (2026-11-24): `state Review <<decide>>` in
+      PlantUML and `class Review decide` in Mermaid mark a state where a
+      person decides, not the system or its agents (`State::decide` in
+      the model); `omaspec convert` writes each as the other, without a
+      notice. In a trace followed live an object standing there waits:
+      its pill is filled, `‖ pr-42`, and the head counts who waits
+      (`live · 3 objects · 1 waits · 1 deviates`). The gallery's *Agents
+      at work* (`examples/gallery/agents.puml`, 47 examples now) is an
+      orchestrator's workflow with two such places, colored by a
+      skinparam of the stereotype, and `agents.jsonl` a run of it to
+      follow; `snapshot_live` draws that run.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

@@ -171,8 +171,9 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                     said.chars().count() + time.as_ref().map_or(0, |t| t.chars().count() + 2);
                 cut(&head, row.saturating_sub(event + 3).max(row / 2))
             } else if *live {
-                // Nothing to step: the head has the room of the tools.
-                cut(&head, third * 3 / 2)
+                // Nothing to step: the head, which counts, has the room of
+                // the tools; what the last line said comes after.
+                cut(&head, third * 2)
             } else {
                 cut(&head, third)
             };

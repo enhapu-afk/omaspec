@@ -56,6 +56,7 @@ crates/omaspec-uml/tests/structure/usecase.puml 2 0 0 0 0 0 0 91 0 14.8
 examples/door/door.puml 7 0 0 0 0 0 8 596 0 16.5
 examples/drone/delivery-drone.puml 72 1 0 0 5 0 87 37122 2 8.9
 examples/gallery/agent-platform.puml 17 4 0 0 0 0 18 2561 4 11.3
+examples/gallery/agents.puml 9 0 0 0 0 0 12 999 0 14.6
 examples/gallery/bike-rental.puml 8 0 0 0 0 0 8 1953 0 11.0
 examples/gallery/bookshop.puml 6 0 0 0 0 0 0 279 0 9.0
 examples/gallery/brakes.mmd 6 0 0 0 0 0 0 1544 0 0.0
@@ -70,10 +71,11 @@ examples/gallery/parcel.puml 11 0 0 0 1 0 6 1131 0 13.0
 examples/gallery/pipeline.mmd 16 0 0 0 0 0 27 2850 1 8.5
 examples/gallery/repair-shop.mmd 8 0 0 0 0 0 8 1362 0 1.2
 examples/gallery/smart-home.puml 6 0 0 0 0 0 16 1747 0 86.0
+examples/gallery/tea.puml 9 0 0 0 0 0 4 546 0 -
 examples/gallery/ticket-machine.puml 5 0 0 0 1 0 8 565 0 14.3
 examples/library.mmd 2 0 0 0 0 0 0 105 0 11.7
 examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 12.9
 examples/platform.mmd 17 1 0 0 4 0 33 5250 6 43.9
 examples/player.puml 8 0 0 0 0 0 14 1022 0 15.4
 examples/shop.mmd 6 0 0 0 0 0 4 595 0 16.7
-total 641 10 0 2 24 1 618 108609 23 1479.6
+total 659 10 0 2 24 1 634 110154 23 1494.1

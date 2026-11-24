@@ -75,6 +75,10 @@ pub struct State {
     pub region: usize,
     /// Zero-based line where it first appears.
     pub line: usize,
+    /// A person decides here, not the system or its agents: `<<decide>>`
+    /// in PlantUML, the class `decide` in Mermaid (`class Review decide`).
+    /// A trace followed live says who waits there (docs/adr/0036).
+    pub decide: bool,
 }
 
 impl State {

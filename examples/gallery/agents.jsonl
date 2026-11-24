@@ -1,0 +1,9 @@
+{"time":"09:00:00","object":"planner","machine":"agents","state":"Planning"}
+{"time":"09:00:05","object":"coder-1","machine":"agents","state":"Planning"}
+{"time":"09:00:06","object":"coder-2","machine":"agents","state":"Planning"}
+{"time":"09:02:10","object":"coder-1","machine":"agents","event":"plan ready"}
+{"time":"09:02:11","object":"coder-2","machine":"agents","event":"plan ready"}
+{"time":"09:14:40","object":"coder-1","machine":"agents","event":"pushed"}
+{"time":"09:15:02","object":"coder-1","machine":"agents","event":"tests pass"}
+{"time":"09:21:30","object":"coder-2","machine":"agents","event":"pushed"}
+{"time":"09:22:01","object":"coder-2","machine":"agents","event":"tests fail"}

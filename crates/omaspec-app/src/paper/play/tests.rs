@@ -818,3 +818,47 @@ fn a_trace_followed_live_moves_as_it_is_written() {
     assert_eq!(standing(&play), [at("Open", &[("side", false)])]);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// An object where a person decides (`<<decide>>`) waits for them: it is
+/// counted in the head, and its pills are drawn filled (docs/adr/0036).
+#[test]
+fn an_object_where_a_person_decides_waits_for_them() {
+    let source = "@startuml\n[*] --> Coding\nCoding --> Review : pushed\nReview --> Coding : changes asked\nstate Review <<decide>>\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let dir = std::env::temp_dir().join(format!("omaspec-decide-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("run.jsonl");
+    std::fs::write(
+        &path,
+        "{\"object\":\"pr-42\",\"machine\":\"flow\",\"event\":\"pushed\"}\n{\"object\":\"pr-43\",\"machine\":\"flow\",\"state\":\"Coding\"}\n",
+    )
+    .unwrap();
+    let play = Play::live(
+        source,
+        Language::PlantUml,
+        &map,
+        "flow.puml",
+        path,
+        Instant::now(),
+    )
+    .unwrap();
+    let Play::Machine(machine) = &play else {
+        panic!("a machine");
+    };
+    let Driver::Live(live) = &machine.driver else {
+        panic!("live");
+    };
+    assert_eq!(live.waiting(), ["pr-42"]);
+    let review = machine
+        .machine
+        .states
+        .iter()
+        .position(|s| s.name == "Review")
+        .unwrap();
+    assert!(machine.machine.states[review].decide);
+    let Offer::Trace { object, .. } = play.offer() else {
+        panic!("a trace");
+    };
+    assert_eq!(object, "live · 2 objects · 1 waits");
+    let _ = std::fs::remove_dir_all(&dir);
+}

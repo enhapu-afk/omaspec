@@ -141,6 +141,12 @@ pub static EXAMPLES: &[Example] = &[
         "A scenario with a loop and two endings."
     ),
     example!(
+        "agents.puml",
+        Behavior,
+        "Agents at work",
+        "A workflow of agents with two places a person decides: follow a run as it is written with preview --follow."
+    ),
+    example!(
         "tea.puml",
         Behavior,
         "Tea, the old way",

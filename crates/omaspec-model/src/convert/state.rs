@@ -53,6 +53,9 @@ struct ToMermaid {
     renames: HashMap<String, String>,
     /// Transitions between containers, written last at the top.
     crossings: Vec<String>,
+    /// The states where a person decides (`<<decide>>`), written last as
+    /// Mermaid's class `decide`, which reads back the same.
+    decide: Vec<String>,
 }
 
 fn to_mermaid(code: &str) -> Result<Written, Refused> {
@@ -122,6 +125,9 @@ fn to_mermaid(code: &str) -> Result<Written, Refused> {
     w.container(&diagram.root, 1)?;
     let crossings = std::mem::take(&mut w.crossings);
     w.out.extend(crossings);
+    let decide = std::mem::take(&mut w.decide);
+    w.out
+        .extend(decide.iter().map(|id| format!("    class {id} decide")));
     let mut text = w.out.join("\n");
     text.push('\n');
     Ok((text, w.notices, w.renames))
@@ -288,11 +294,16 @@ impl ToMermaid {
                 "Colors and line styles are not carried over",
             );
         }
-        if let Some(own) = &node.stereotype {
-            self.notice(
+        match &node.stereotype {
+            // Where a person decides is Mermaid's class `decide`.
+            Some(own) if own.trim().eq_ignore_ascii_case("decide") => {
+                self.decide.push(id.clone());
+            }
+            Some(own) => self.notice(
                 Some(node.line),
                 format!("Mermaid has no stereotypes; <<{own}>> is left out"),
-            );
+            ),
+            None => {}
         }
         let stereotype = match node.kind {
             Kind::Choice => Some("choice"),
@@ -484,7 +495,13 @@ fn to_plantuml(code: &str) -> Result<Written, Refused> {
         }
         Some(chart::Direction::Down) | None => {}
     }
-    if !chart.class_defs.is_empty() || !chart.classes.is_empty() || !chart.styles.is_empty() {
+    // The class `decide` is where a person decides, PlantUML's
+    // `<<decide>>`; the others, their looks, stay behind.
+    let other = |(_, class): &&(String, String)| !class.trim().eq_ignore_ascii_case("decide");
+    if !chart.class_defs.is_empty()
+        || chart.classes.iter().any(|c| other(&c))
+        || !chart.styles.is_empty()
+    {
         w.notice(None, "classDef, class and style are not carried over");
     }
     w.name_all(&chart);
@@ -609,12 +626,21 @@ impl ToPlantUml {
         let name = self.name(&s.id);
         // A renamed state shows its Mermaid id.
         let shown = s.label.as_ref().or((name != s.id).then_some(&s.id));
+        let decides = chart
+            .classes
+            .iter()
+            .any(|(id, class)| *id == s.id && class.trim().eq_ignore_ascii_case("decide"));
         let head = match (shown, stereotype) {
             (_, Some(stereotype)) => format!("state {name} <<{stereotype}>>"),
             (Some(label), None) => {
                 format!("state \"{}\" as {name}", to_plantuml_text(label))
             }
             (None, None) => format!("state {name}"),
+        };
+        // Where a person decides: PlantUML's `<<decide>>`.
+        let head = match decides && stereotype.is_none() {
+            true => format!("{head} <<decide>>"),
+            false => head,
         };
         if s.composite {
             self.out.push(format!("{pad}{head} {{"));
@@ -852,5 +878,59 @@ mod tests {
             "{:?}",
             plantuml.notices
         );
+    }
+
+    /// Where a person decides is `<<decide>>` in PlantUML and the class
+    /// `decide` in Mermaid: both read so, and each is written as the
+    /// other, with no notice (docs/adr/0036).
+    #[test]
+    fn where_a_person_decides_reads_and_converts_the_same() {
+        let puml = "@startuml\n[*] --> Coding\nCoding --> Review : pushed\nReview --> [*] : approved\nstate Review <<decide>>\n@enduml\n";
+        let decides = |code: &str, lang: Language| -> Vec<String> {
+            let m = crate::Machine::read(code, lang).unwrap();
+            m.states
+                .iter()
+                .filter(|s| s.decide)
+                .map(|s| s.name.clone())
+                .collect()
+        };
+        assert_eq!(decides(puml, Language::PlantUml), ["Review"]);
+        let mermaid = both(puml, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(
+            mermaid.code.contains("    class Review decide\n"),
+            "{}",
+            mermaid.code
+        );
+        assert!(
+            !mermaid
+                .notices
+                .iter()
+                .any(|n| n.message.contains("stereotype")),
+            "{:?}",
+            mermaid.notices
+        );
+        assert_eq!(decides(&mermaid.code, Language::Mermaid), ["Review"]);
+        let back = both(&mermaid.code, Language::Mermaid, Language::PlantUml).unwrap();
+        assert!(
+            back.code.contains("state Review <<decide>>"),
+            "{}",
+            back.code
+        );
+        assert!(
+            !back.notices.iter().any(|n| n.message.contains("classDef")),
+            "{:?}",
+            back.notices
+        );
+        assert_eq!(decides(&back.code, Language::PlantUml), ["Review"]);
+        // Another stereotype is still told it is left out.
+        let other = puml.replace("<<decide>>", "<<phase>>");
+        let mermaid = both(&other, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(
+            mermaid
+                .notices
+                .iter()
+                .any(|n| n.message.contains("<<phase>>"))
+        );
+        assert!(decides(&other, Language::PlantUml).is_empty());
     }
 }

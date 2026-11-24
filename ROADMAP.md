@@ -32,16 +32,13 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
 Omaspec beside the person, and the loops between them come first. Each
 item says how it is checked.
 
-- [ ] **A run, live.** The editor follows a trace as it grows, as the
-      preview does since 2026-11-24 (`omaspec preview FILE --follow
-      run.jsonl`, and `omaspec trace run.jsonl --follow` on the command
-      line): each object lit where it stands,
-      a finding the moment it happens, a state marked as waiting for a
-      person (`<<decide>>`) shown as such. For an orchestrator's workflow
-      or an agent client's hook writing the file. Checked: a test appends
-      to a file and the picture moves within a frame of the line; a gallery
-      example of an orchestrator's workflow with two places a person
-      decides.
+- [ ] **A run, live, in the editor.** The editor follows a trace as it
+      grows, as the preview does since 2026-11-24 (`omaspec preview FILE
+      --follow run.jsonl`, `omaspec trace run.jsonl --follow`, the places
+      a person decides as `<<decide>>`): a command *Follow a trace…* with
+      the desktop's file dialog, the trace's file watched beside the
+      diagram's. Checked: a test opens a trace in the editor, appends to
+      it and the pills move.
 - [ ] **Review by behavior in a pull request.** `omaspec diff` as a
       Markdown comment with its picture beside it (`--markdown`), for a CI
       step to post; the same through MCP `diff` for an agent before it

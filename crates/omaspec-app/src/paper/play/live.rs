@@ -184,6 +184,17 @@ impl LiveRun {
             .map(|f| (f.severity, f.message.clone()))
     }
 
+    /// Objects that stand where a person decides (`<<decide>>`), by
+    /// name, their last line as the machine allows.
+    pub(super) fn waiting(&self) -> Vec<&str> {
+        let m = self.machine();
+        self.followers
+            .objects()
+            .filter(|(_, f)| !deviates(f) && at(f).iter().any(|&s| m.states[s].decide))
+            .map(|(object, _)| object)
+            .collect()
+    }
+
     /// Objects whose last line deviates.
     pub(super) fn deviating(&self) -> usize {
         self.followers
@@ -223,12 +234,14 @@ fn deviates(followed: &Followed) -> bool {
 
 /// The pills of `names` beside the state drawn at `state` on screen: a
 /// name each, in the color of what deviates where its last line does,
-/// and past [`PILLS`] one that counts the rest.
+/// and past [`PILLS`] one that counts the rest. Where a person decides
+/// (`waits`), the pills are filled and say they wait: `‖ pr-42`.
 pub(super) fn pills(
     frame: &mut iced::widget::canvas::Frame,
     look: &super::Look,
     state: iced::Rectangle,
     names: &[(String, bool)],
+    waits: bool,
 ) {
     use iced::widget::canvas::{Stroke, Text};
     use iced::{Point, Rectangle, alignment};
@@ -244,6 +257,10 @@ pub(super) fn pills(
     let counted = (more > 0).then(|| (format!("+{more}"), false));
     for (words, wrong) in shown.chain(counted) {
         let color = if wrong { look.wrong } else { look.accent };
+        let words = match waits {
+            true => format!("‖ {words}"),
+            false => words,
+        };
         // A monospace face is as wide as six tenths of its size a letter.
         let width = words.chars().count() as f32 * SIZE * 0.6 + 14.0;
         let pill = Rectangle {
@@ -253,12 +270,17 @@ pub(super) fn pills(
             height: HIGH,
         };
         let shape = super::draw::rounded(pill, HIGH / 2.0);
-        frame.fill(&shape, look.veil);
+        // Waiting for a person: filled, so it is seen from afar.
+        let (ground, ink) = match waits {
+            true => (color, look.veil),
+            false => (look.veil, color),
+        };
+        frame.fill(&shape, ground);
         frame.stroke(&shape, Stroke::default().with_color(color).with_width(1.5));
         frame.fill_text(Text {
             content: words,
             position: Point::new(x + width / 2.0, y + HIGH / 2.0),
-            color,
+            color: ink,
             size: SIZE.into(),
             font: look.font,
             align_x: alignment::Horizontal::Center.into(),

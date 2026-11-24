@@ -8,10 +8,19 @@ use crate::{Kind, Machine, State, Transition, Trigger};
 /// the diagram or it is no state diagram.
 pub fn read(code: &str) -> Option<Machine> {
     let chart = mermaid::read(code)?;
+    // A person decides in a state of the class `decide`.
+    let decide = |id: &str| {
+        chart
+            .classes
+            .iter()
+            .any(|(state, class)| state == id && class.trim().eq_ignore_ascii_case("decide"))
+    };
+    let decides: Vec<bool> = chart.states.iter().map(|s| decide(&s.id)).collect();
     let states = chart
         .states
         .into_iter()
-        .map(|s| State {
+        .zip(decides)
+        .map(|(s, decide)| State {
             label: s.label.as_deref().and_then(|l| crate::long_name(l, &s.id)),
             name: s.id,
             kind: match s.kind {
@@ -25,6 +34,7 @@ pub fn read(code: &str) -> Option<Machine> {
             parent: s.parent,
             region: s.region,
             line: s.line,
+            decide,
         })
         .collect();
     let transitions = chart
