@@ -1,7 +1,8 @@
 //! Flowchart subgraphs folded to their box (docs/adr/0024): the subgraph
 //! becomes a node of its id and title, what it held is gone, and a line
-//! into it or out of it ends on that node. Read from the fold lines the
-//! pane adds after the diagram ([`omaspec_uml::fold`]).
+//! into it or out of it ends on that node. The box says what it holds,
+//! *3 nodes · 2 links*, as a folded state or package does. Read from the
+//! fold lines the pane adds after the diagram ([`omaspec_uml::fold`]).
 
 use std::collections::{HashMap, HashSet};
 
@@ -85,6 +86,17 @@ pub(super) fn fold(
     for &index in &folded {
         let sub = &graph.subgraphs[index];
         let id = sub.id.clone()?;
+        let held = |node: &String| redirect.get(node) == Some(&id);
+        let nodes = sub
+            .nodes
+            .iter()
+            .filter(|n| graph.nodes.contains_key(*n) && held(n))
+            .count();
+        let links = graph
+            .edges
+            .iter()
+            .filter(|edge| held(&edge.from) && held(&edge.to))
+            .count();
         let order = sub
             .nodes
             .iter()
@@ -97,7 +109,7 @@ pub(super) fn fold(
             id.clone(),
             Node {
                 id,
-                label: sub.label.clone(),
+                label: holding(&sub.label, nodes, links),
                 shape: NodeShape::Rectangle,
                 value: None,
                 icon: None,
@@ -199,6 +211,24 @@ pub(super) fn fold(
         written,
         hidden,
     })
+}
+
+/// A folded subgraph's `label` with what it held under it, as Mermaid
+/// writes a second line: in a markdown string on a line of its own.
+fn holding(label: &str, nodes: usize, links: usize) -> String {
+    let counted = |n: usize, word: &str| match n {
+        1 => format!("1 {word}"),
+        _ => format!("{n} {word}s"),
+    };
+    let said = format!("{} · {}", counted(nodes, "node"), counted(links, "link"));
+    match label
+        .trim()
+        .strip_prefix('`')
+        .and_then(|rest| rest.strip_suffix('`'))
+    {
+        Some(inner) => format!("`{inner}\n{said}`"),
+        None => format!("{label}<br/>{said}"),
+    }
 }
 
 /// The entries of lines by hand that name no hidden node.

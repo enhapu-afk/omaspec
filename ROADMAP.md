@@ -391,15 +391,6 @@ is lost without a word, then what misleads, then what is missing.
 - [ ] REQ-105: marble diagrams of reactive streams
       (mermaid-js/mermaid#8864), a niche.
 
-## From the tester's round of 1.1.0 (2026-11-24)
-
-Reproduced on 1.1.0, in the order they are taken.
-
-- [ ] REQ-104, the rest: a folded Mermaid subgraph shows its name only,
-      where a folded state or package says what it holds.
-- [ ] A folded PlantUML package's tab, with its name and what it holds,
-      is wider than its body: the outline steps at the bottom right.
-
 ## Next
 
 What comes after 0.4, announced in the README. Lines by hand, projects and

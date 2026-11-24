@@ -12,7 +12,7 @@
 <line x1="95.39" y1="141.89" x2="95.39" y2="170.18" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="53.69" cy="141.89" rx="41.69" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M26.69,243.15 C26.69,235.15 58.69,235.15 58.69,243.15 C58.69,235.15 90.69,235.15 90.69,243.15 C98.69,243.15 98.69,259.15 90.69,259.15 C98.69,259.15 98.69,275.15 90.69,275.15 C90.69,283.15 58.69,283.15 58.69,275.15 C58.69,283.15 26.69,283.15 26.69,275.15 C18.69,275.15 18.69,259.15 26.69,259.15 C18.69,259.15 18.69,243.15 26.69,243.15Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
-<polygon points="85.64,337.45 85.64,313.15 27.75,313.15 27.75,357.45 89.64,357.45 89.64,337.45" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<polygon points="79.64,337.45 79.64,313.15 21.75,313.15 21.75,357.45 95.64,357.45 95.64,337.45" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="161.39" y="94.59" width="60.64" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M266.03,94.59 L266.03,122.89 L344.07,122.89 L344.07,104.02 L334.63,94.59 Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M334.63,94.59 L334.63,104.02 L344.07,104.02" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
@@ -53,7 +53,7 @@
 <tspan x="43.26" y="264" font-size="14" fill="#000000" textLength="30.87" lengthAdjust="spacing">CDN</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="39.75" y="330.14" font-size="14" fill="#000000" textLength="33.89" lengthAdjust="spacing">Docs</tspan>
+<tspan x="33.75" y="330.14" font-size="14" fill="#000000" textLength="33.89" lengthAdjust="spacing">Docs</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="173.39" y="113.58" font-size="14" fill="#000000" textLength="36.64" lengthAdjust="spacing">Panel</tspan>

@@ -25,6 +25,22 @@ fn draw(code: &str, language: Language, folds: &[&str]) -> Map {
     drawn.map
 }
 
+/// The picture `code` draws with `folds` folded.
+fn svg(code: &str, language: Language, folds: &[&str]) -> String {
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    let mut text = code.to_owned();
+    for name in folds {
+        text.push_str(&omaspec_uml::fold::line(
+            name,
+            language == Language::Mermaid,
+        ));
+    }
+    renderer.render(&text, language).unwrap().svg
+}
+
 fn names(map: &Map) -> Vec<&str> {
     map.places.iter().map(|p| p.name.as_str()).collect()
 }
@@ -112,4 +128,11 @@ fn a_flowchart_subgraph_folds_and_alike_lines_are_one() {
     let folded = draw(code, Language::Mermaid, &["Build"]);
     folds_to_a_box(&map, &folded, "Build", "L");
     assert_eq!(lines(&folded), [pair("A", "Build"), pair("Build", "P")]);
+    // It says what it holds, as a folded state does (REQ-104).
+    let drawn = svg(code, Language::Mermaid, &["Build"]);
+    assert!(drawn.contains("3 nodes · 2 links"), "{drawn}");
+    // In a markdown string too.
+    let marked = "flowchart LR\n  subgraph B [\"`**Build**`\"]\n    L --> T\n  end\n  A --> L\n";
+    let drawn = svg(marked, Language::Mermaid, &["B"]);
+    assert!(drawn.contains("2 nodes · 1 link"), "{drawn}");
 }

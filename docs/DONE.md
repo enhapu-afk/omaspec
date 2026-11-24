@@ -1824,6 +1824,18 @@ is open and the reasoning around it.
       regions of three states without events make 64 places, well within
       what a play visits. The landing page's coffee machine and the
       README's play are drawn again by the halts.
+- [x] A folded subgraph says what it holds (REQ-104, the rest,
+      2026-11-24): a flowchart's folded box said its title only, where a
+      folded state or package says what it held. It says *3 nodes · 2
+      links* under its title now, in a markdown string on a line of its
+      own (`mermaid/layered/fold.rs`).
+- [x] A package holding nothing as PlantUML draws one (2026-11-24): its
+      name and stereotypes stood in a tab hardly narrower than the box,
+      so a folded package's outline stepped at its bottom right, and a
+      long name's tab left a shoulder of 4 pixels. Its name is in the tab
+      now, its stereotypes, or what a fold says it holds, in the body
+      under it; a package's body reaches at least 16 pixels past its tab
+      (`SHOULDER`), open or folded.
 
 ## Next
 

@@ -267,6 +267,15 @@ mod tests {
         let source = "@startuml\npackage Shop {\n  class Order\n  class Line\n  Order --> Line\n}\nclass Customer\nCustomer --> Order\n@enduml\n' fold (Omaspec) Shop\n";
         let svg = crate::render(source).unwrap();
         assert!(svg.contains("2 elements · 1 line"), "{svg}");
+        // Its name in the tab, what it holds in the body under it, as
+        // PlantUML draws a package holding nothing.
+        let y_of = |words: &str| -> f32 {
+            let at = svg.find(words).unwrap();
+            let tag = &svg[svg[..at].rfind("<tspan").unwrap()..at];
+            let y = tag.split(" y=\"").nth(1).unwrap();
+            y[..y.find('"').unwrap()].parse().unwrap()
+        };
+        assert!(y_of(">Shop<") < y_of("2 elements · 1 line"), "{svg}");
     }
 
     #[test]

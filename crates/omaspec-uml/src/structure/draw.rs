@@ -41,6 +41,9 @@ const NOTE_GAP: f32 = 10.0;
 const NOTE_PAD: f32 = 6.0;
 /// A `--` between members, and the line under a class name.
 const RULE: f32 = 10.0;
+/// How far a package's body reaches past its tab at the least, so the
+/// tab reads as one.
+const SHOULDER: f32 = 16.0;
 const HEAD_LENGTH: f32 = 10.0;
 const HEAD_HALF: f32 = 4.0;
 const MARK_LENGTH: f32 = 14.0;
@@ -451,7 +454,15 @@ fn measure_element(
     }
     // An actor's and a use case's words belong to their figure.
     let left = skin.left && !matches!(el.shape, Shape::Actor | Shape::UseCase | Shape::Lollipop);
-    let (rows, body) = rows_of(el, &look, family, left)?;
+    let (mut rows, mut body) = rows_of(el, &look, family, left)?;
+    // A package holding nothing has its name in the tab and its
+    // stereotypes, or what a fold says it holds, in the body, as
+    // PlantUML draws one.
+    let tabbed = matches!(shape, Shape::Package | Shape::Folder) && !el.composite;
+    if tabbed && body > el.stereotypes.len() {
+        rows[..body].rotate_left(el.stereotypes.len());
+        body -= el.stereotypes.len();
+    }
     let children = if el.composite && !open {
         layout_group(&el.children, skin, family)?
     } else {
@@ -489,7 +500,7 @@ fn measure_element(
                 let banner = header_h + 8.0;
                 let below = if empty { COMP_PAD } else { gap };
                 let width = (children.width + COMP_PAD * 2.0)
-                    .max(header_w + 28.0)
+                    .max(header_w + PAD_X * 2.0 + SHOULDER)
                     .max(min_w);
                 let height = banner + below + children.height + COMP_PAD;
                 (width, height, banner, below)
@@ -561,9 +572,13 @@ fn measure_element(
                 (width, height, 0.0, 0.0)
             }
             Shape::Package | Shape::Folder => {
-                let banner = all_h + 8.0;
-                let width = (all_w + 28.0).max(min_w);
-                let height = banner + 20.0;
+                let banner = header_h + 8.0;
+                let under_w = rows[body..].iter().map(Row::width).fold(0.0, f32::max);
+                let under_h = rows[body..].iter().map(Row::height).sum::<f32>();
+                let width = (header_w + PAD_X * 2.0 + SHOULDER)
+                    .max(under_w + PAD_X * 2.0)
+                    .max(min_w);
+                let height = banner + (under_h + PAD_Y * 2.0).max(20.0);
                 (width, height, banner, 0.0)
             }
             Shape::Note => {
@@ -1753,6 +1768,10 @@ enum Place {
 }
 
 fn paint_rows(canvas: &mut Canvas, node: &Placed) {
+    if matches!(node.item.shape, Shape::Package | Shape::Folder) && !node.item.composite {
+        paint_tabbed(canvas, node);
+        return;
+    }
     let (area, place) = text_area(node);
     let pad_y = if node.item.shape == Shape::Note {
         NOTE_PAD
@@ -1816,6 +1835,29 @@ fn paint_rows(canvas: &mut Canvas, node: &Placed) {
                 paint_row(canvas, area, pad_x, y, other, node.item.shape);
                 y += other.height();
             }
+        }
+    }
+}
+
+/// A package holding nothing: its name in the middle of the tab, the rest
+/// (its stereotypes, what a fold says it holds) in the middle of the body.
+fn paint_tabbed(canvas: &mut Canvas, node: &Placed) {
+    let (tab, _) = text_area(node);
+    let rect = node.rect;
+    let header = node.item.body.min(node.item.rows.len());
+    let (name, rest) = node.item.rows.split_at(header);
+    let body = Rect {
+        x: rect.x,
+        y: tab.y + tab.h,
+        w: rect.w,
+        h: (rect.y + rect.h - tab.y - tab.h).max(1.0),
+    };
+    for (area, rows) in [(tab, name), (body, rest)] {
+        let content = rows.iter().map(Row::height).sum::<f32>();
+        let mut y = area.y + (area.h - content) / 2.0;
+        for row in rows {
+            paint_row(canvas, area, PAD_X, y, row, node.item.shape);
+            y += row.height();
         }
     }
 }
