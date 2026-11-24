@@ -98,6 +98,18 @@ is open and the reasoning around it.
       follows on the tab it was asked for. The bar keeps room for its ✕.
       A choice, a fork or a join with the class `decide` says that
       PlantUML takes no `<<decide>>` there.
+- [x] Review by behavior in a pull request (2026-11-24): `omaspec diff
+      --markdown` writes the changes as a comment (`diff_markdown.rs`), by
+      diagram with their files and lines, and each state machine that
+      changed drawn below them as Mermaid, which GitHub draws in a comment
+      where no picture of one's own can be put: the states that came in
+      green, those that changed in amber (`classDef`, the states as
+      `diff -o` marks them, a PlantUML machine converted, a renamed state
+      found by the name its box shows). For files and folders alike;
+      nothing changed says so, with exit 0. MCP `diff` gives the same with
+      `markdown`, for an agent's pull request. `docs/ci/behavior-diff.yml`
+      is a workflow to copy: Omaspec's latest release, `diff . --rev
+      origin/<base> --markdown`, one comment edited on each push.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

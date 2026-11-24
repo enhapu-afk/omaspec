@@ -3127,6 +3127,54 @@ fn coverage_counts_what_traces_take_and_draws_it_over_the_machine() {
     assert!(String::from_utf8_lossy(&out.stderr).contains("no state machine"));
 }
 
+/// `diff --markdown`: the changes as a comment for a pull request, each
+/// changed machine drawn as Mermaid below them; for files and folders
+/// alike, and nothing but a line where nothing changed (docs/ci/).
+#[test]
+fn diff_writes_a_pull_request_s_comment() {
+    let dir = scratch("diff-markdown");
+    let (old, new) = (dir.join("old"), dir.join("new"));
+    fs::create_dir_all(&old).unwrap();
+    fs::create_dir_all(&new).unwrap();
+    fs::write(
+        old.join("door.puml"),
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+    )
+    .unwrap();
+    fs::write(
+        new.join("door.puml"),
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\n@enduml\n",
+    )
+    .unwrap();
+    let files = [
+        old.join("door.puml").to_str().unwrap().to_owned(),
+        new.join("door.puml").to_str().unwrap().to_owned(),
+    ];
+    let out = omaspec(&["diff", &files[0], &files[1], "--markdown"]);
+    assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
+    let text = stdout(&out);
+    assert!(text.starts_with("### Behavior changes from "), "{text}");
+    assert!(text.contains("```mermaid\nstateDiagram-v2"), "{text}");
+    assert!(text.contains("class Locked omaspecCame"), "{text}");
+    let out = omaspec(&[
+        "diff",
+        old.to_str().unwrap(),
+        new.to_str().unwrap(),
+        "--markdown",
+    ]);
+    assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
+    let text = stdout(&out);
+    assert!(text.contains("#### `door.puml`"), "{text}");
+    assert!(text.contains("class Locked omaspecCame"), "{text}");
+    // Nothing changed: said so, and the exit says it too.
+    let out = omaspec(&["diff", &files[0], &files[0], "--markdown"]);
+    assert_eq!(out.status.code(), Some(0));
+    assert!(stdout(&out).contains("No diagram changed in its behavior."));
+    // Markdown or JSON, not both.
+    let out = omaspec(&["diff", &files[0], &files[1], "--markdown", "--json"]);
+    assert_eq!(out.status.code(), Some(2));
+}
+
 #[test]
 fn diff_draws_a_state_machine_s_changes_over_its_new_version() {
     let dir = scratch("diff-picture");

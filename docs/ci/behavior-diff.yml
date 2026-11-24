@@ -1,0 +1,58 @@
+# The behavior a pull request changes, as a comment on it (docs/adr/0036):
+# what came, changed and went in its state machines and scenarios, what the
+# specification checks find now or no longer, and each state machine that
+# changed drawn as Mermaid, which GitHub draws in the comment. For a person
+# to review by behavior what an agent or a colleague changed.
+#
+# Copy it to .github/workflows/ in the repository whose diagrams it reads.
+# It takes Omaspec's latest release; `diff --markdown` came after 1.1.0.
+name: Behavior changes
+
+on:
+  pull_request:
+    paths: ["**/*.puml", "**/*.plantuml", "**/*.pu", "**/*.mmd", "**/*.mermaid", "**/*.md"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  behavior:
+    runs-on: ubuntu-latest
+    steps:
+      # The base branch's history too: the diagrams are compared with it.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Omaspec
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo enhapu-afk/omaspec --pattern '*-x86_64-linux.tar.gz*'
+          sha256sum -c omaspec-*-x86_64-linux.tar.gz.sha256
+          mkdir -p "$RUNNER_TEMP/omaspec"
+          tar xzf omaspec-*-x86_64-linux.tar.gz -C "$RUNNER_TEMP/omaspec" --strip-components=1
+          rm omaspec-*-x86_64-linux.tar.gz*
+          echo "$RUNNER_TEMP/omaspec" >> "$GITHUB_PATH"
+      # 0: no diagram changed in its behavior; 1: one did; else it failed.
+      - name: What changed in the behavior
+        id: diff
+        run: |
+          set +e
+          omaspec diff . --rev "origin/${{ github.base_ref }}" --markdown > "$RUNNER_TEMP/behavior.md"
+          code=$?
+          set -e
+          case "$code" in
+            0) echo "changed=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "changed=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$code" ;;
+          esac
+      # One comment, written again on each push.
+      - name: Comment
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR" --body-file "$RUNNER_TEMP/behavior.md" --edit-last \
+            || gh pr comment "$PR" --body-file "$RUNNER_TEMP/behavior.md"

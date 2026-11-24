@@ -803,6 +803,7 @@ omaspec outline flow.puml           # structure: participants, groups, lanes, st
 omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it
 omaspec diff door.puml              # what changed in the behavior since the last commit; --rev, or two files
 omaspec diff . --rev v1.0           # the same for the whole project since a tag; or two folders
+omaspec diff . --rev origin/main --markdown   # as a pull request's comment, each changed machine drawn as Mermaid (docs/ci/)
 omaspec log door.puml               # commit by commit, what each changed in the behavior; -n 5, --json
 omaspec git setup                   # git diff, git log -p and git show tell diagrams by their behavior
 omaspec convert door.puml -o door.mmd  # the same machine or scenario in Mermaid (or PlantUML), or why not

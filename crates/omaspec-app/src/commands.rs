@@ -334,7 +334,7 @@ pub fn diff(
     files: &[PathBuf],
     rev: Option<&str>,
     forced: Option<Language>,
-    (json, output): (bool, Option<&Path>),
+    (json, markdown, output): (bool, bool, Option<&Path>),
     project: Option<&Path>,
 ) -> Result<ExitCode> {
     if files.iter().any(|f| f.is_dir()) {
@@ -354,7 +354,7 @@ pub fn diff(
             project.is_none(),
             "a folder is its own project; --project is for a diagram file"
         );
-        return crate::history::diff(files, rev, json);
+        return crate::history::diff(files, rev, json, markdown);
     }
     let (old, new) = match files {
         [new] => (None, new.as_path()),
@@ -384,7 +384,27 @@ pub fn diff(
         )
     });
     let mut out = stdout();
-    if json {
+    if markdown {
+        let picture = crate::diff_markdown::picture(
+            (&old.text, language(&old, forced)),
+            (&new.text, language(&new, forced)),
+            &changes,
+        );
+        let since = match (files, rev) {
+            ([_], rev) => format!("since {}", rev.unwrap_or("HEAD")),
+            _ => format!("from {old_name}"),
+        };
+        let sections: Vec<crate::diff_markdown::Section> = (!changes.is_empty())
+            .then(|| crate::diff_markdown::Section {
+                old: &old_name,
+                new: &new_name,
+                changes: &changes,
+                picture,
+            })
+            .into_iter()
+            .collect();
+        write!(out, "{}", crate::diff_markdown::comment(&since, &sections))?;
+    } else if json {
         let reported = reported_changes(&old_name, &new_name, &changes);
         match output.filter(|_| matches!(drawn, Some(Ok(())))) {
             Some(output) => serde_json::to_writer_pretty(

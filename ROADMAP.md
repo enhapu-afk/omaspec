@@ -32,11 +32,11 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
 Omaspec beside the person, and the loops between them come first. Each
 item says how it is checked.
 
-- [ ] **Review by behavior in a pull request.** `omaspec diff` as a
-      Markdown comment with its picture beside it (`--markdown`), for a CI
-      step to post; the same through MCP `diff` for an agent before it
-      hands over. Checked: the workflow in `docs/ci/` on a branch that
-      changes a machine.
+- [ ] **The pull request's comment on GitHub.** `docs/ci/behavior-diff.yml`
+      (`omaspec diff --markdown`, since 2026-11-24) run on a branch that
+      changes a machine, once the release after 1.1.0 has `--markdown`:
+      the comment comes, its Mermaid drawn by GitHub, and is edited on the
+      next push.
 - [ ] **Findings with their fix.** Every lint rule that can say its fix
       says it (`fix` in `--json` and MCP `lint`); the share of rules with
       one is measured and kept here. Checked: each fix applied makes its

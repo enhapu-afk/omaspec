@@ -4,6 +4,7 @@ mod check_command;
 mod clock;
 mod commands;
 mod coverage_command;
+mod diff_markdown;
 mod diff_picture;
 mod document;
 mod editor;
@@ -341,6 +342,12 @@ enum Command {
         /// Print the changes as JSON.
         #[arg(long)]
         json: bool,
+        /// Write the changes as Markdown, a comment for a pull request: by
+        /// diagram with their files and lines, and each state machine that
+        /// changed drawn as Mermaid below them, what came in green, what
+        /// changed in amber (docs/ci/).
+        #[arg(long, conflicts_with_all = ["json", "output"])]
+        markdown: bool,
         /// The folder whose state machines sequence diagrams are checked
         /// against; by default the new file's project, else its own folder.
         #[arg(long, value_name = "DIR")]
@@ -993,6 +1000,7 @@ fn main() -> ExitCode {
             files,
             rev,
             json,
+            markdown,
             project,
             output,
             lang,
@@ -1000,7 +1008,7 @@ fn main() -> ExitCode {
             &files,
             rev.as_deref(),
             lang.get(),
-            (json, output.as_deref()),
+            (json, markdown, output.as_deref()),
             project.as_deref(),
         ),
         Some(Command::Convert {

@@ -22,7 +22,12 @@ use crate::names::{MAX_FILE, Owned, diagram_files, diagram_files_at, owned};
 
 /// `omaspec diff` for folders: one compared with its version in git's
 /// `rev` (`HEAD` unless given), or two with each other.
-pub fn diff(folders: &[PathBuf], rev: Option<&str>, json: bool) -> Result<ExitCode> {
+pub fn diff(
+    folders: &[PathBuf],
+    rev: Option<&str>,
+    json: bool,
+    markdown: bool,
+) -> Result<ExitCode> {
     let (old, new, since) = match folders {
         [dir] => {
             let rev = rev.unwrap_or("HEAD");
@@ -44,7 +49,25 @@ pub fn diff(folders: &[PathBuf], rev: Option<&str>, json: bool) -> Result<ExitCo
     };
     let diagrams = omaspec_model::diff_project(&files(&old), &files(&new));
     let mut out = stdout();
-    if json {
+    if markdown {
+        // A diagram file's machine is drawn; one in a document is listed.
+        let sections: Vec<crate::diff_markdown::Section> = diagrams
+            .iter()
+            .map(|d| {
+                let (old_name, new_name) = names(d);
+                let picture = text_of(&old, d.old_file.as_deref())
+                    .zip(text_of(&new, d.new_file.as_deref()))
+                    .and_then(|(a, b)| crate::diff_markdown::picture(a, b, &d.changes));
+                crate::diff_markdown::Section {
+                    old: old_name,
+                    new: new_name,
+                    changes: &d.changes,
+                    picture,
+                }
+            })
+            .collect();
+        write!(out, "{}", crate::diff_markdown::comment(&since, &sections))?;
+    } else if json {
         serde_json::to_writer_pretty(&mut out, &report(&diagrams))?;
         writeln!(out)?;
     } else {
@@ -61,6 +84,18 @@ pub fn diff(folders: &[PathBuf], rev: Option<&str>, json: bool) -> Result<ExitCo
     } else {
         ExitCode::FAILURE
     })
+}
+
+/// The text and language of the diagram file at `path` among `owned`;
+/// `None` for a document or a trace.
+fn text_of<'a>(owned: &'a [Owned], path: Option<&str>) -> Option<(&'a str, Language)> {
+    owned
+        .iter()
+        .find(|o| Some(o.path.as_str()) == path)
+        .and_then(|o| match o.kind {
+            FileKind::Diagram(language) => Some((o.text.as_str(), language)),
+            _ => None,
+        })
 }
 
 /// The files as the model reads them.

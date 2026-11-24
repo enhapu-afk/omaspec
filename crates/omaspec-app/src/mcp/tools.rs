@@ -259,6 +259,10 @@ pub fn definitions() -> Vec<Value> {
                     "type": "string",
                     "description": "Where to write the new state machine with its changes drawn over it.",
                 })),
+                ("markdown", json!({
+                    "type": "boolean",
+                    "description": "Also give the changes as Markdown in `markdown`, for the description of a pull request: listed with their lines, a state machine that changed drawn as Mermaid below them, what came in green, what changed in amber.",
+                })),
                 ("lang", lang.clone()),
                 ("project", project.clone()),
             ]),
@@ -1080,6 +1084,28 @@ fn diff(args: &Args) -> Result<Answer> {
         "same": changes.is_empty(),
         "changes": serde_json::to_value(reported_changes(&old_name, &name(&new), &changes))?,
     });
+    // As a pull request's description says it (docs/ci/).
+    if args.flag("markdown")?.unwrap_or(false) {
+        let new_name = name(&new);
+        let picture = crate::diff_markdown::picture(
+            (&old.text, language(&old, lang)),
+            (&new.text, language(&new, lang)),
+            &changes,
+        );
+        let sections: Vec<crate::diff_markdown::Section> = (!changes.is_empty())
+            .then(|| crate::diff_markdown::Section {
+                old: &old_name,
+                new: &new_name,
+                changes: &changes,
+                picture,
+            })
+            .into_iter()
+            .collect();
+        data["markdown"] = json!(crate::diff_markdown::comment(
+            &format!("from {old_name}"),
+            &sections
+        ));
+    }
     // The changes are listed whether or not they can be drawn.
     if let Some(output) = output {
         match crate::diff_picture::draw(
@@ -1520,8 +1546,21 @@ mod tests {
         );
         assert_eq!(moved["old"]["line"], 4);
         assert_eq!(moved["new"]["line"], 4);
+        // As a pull request's description, the machine drawn as Mermaid
+        // with the state that came in green.
+        let marked = call(
+            "diff",
+            json!({"old_code": old, "code": new, "markdown": true}),
+        );
+        let markdown = marked["structuredContent"]["markdown"].as_str().unwrap();
+        assert!(
+            markdown.starts_with("### Behavior changes from <old code>"),
+            "{markdown}"
+        );
+        assert!(markdown.contains("class Jammed omaspecCame"), "{markdown}");
         let same = call("diff", json!({"old_code": old, "code": old}));
         assert_eq!(same["structuredContent"]["same"], true);
+        assert!(same["structuredContent"].get("markdown").is_none());
         let apart = call(
             "diff",
             json!({"old_code": old, "code": "@startuml\nA -> B : x\n@enduml\n"}),
