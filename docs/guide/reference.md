@@ -685,7 +685,9 @@ and the bar below offers what can happen next, numbered 1 to 9 (where they would
 one line with their names, anywhere in the play, the bar has a second or third from the
 start, so it keeps its height); a light runs along the
 transition's route to the next state, regions start side by side, a choice (or a state
-with several ways out) waits for you to pick one, a history goes back to where its
+with several ways out) waits for you to pick one, every state is a halt (its way
+without an event, as `Idle --> [*]`, is an option, *go on*, as an event is; only a
+composite state whose regions have all ended goes on by itself), a history goes back to where its
 state was left, and an entry or exit point on a state's border passes the transition on
 along its way, into the state or out of it. A scenario unfolds message by message (Space), a light running along each
 arrow, a note beside a message lit with it; a note of its own (`note over A, B`) is a

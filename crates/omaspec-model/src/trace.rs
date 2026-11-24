@@ -20,8 +20,8 @@
 //! trace gives; after a wrong event, from the next line that gives one.
 //! Every region with a way for an event takes it at once. Guards are not
 //! evaluated, and what the writer picks in a play (the way out of a choice,
-//! one of several ways without an event) the system may take without
-//! logging it, so the object may be wherever any of them leads. All of this
+//! a state's way without an event) the system may take without logging
+//! it, so the object may be wherever any of them leads. All of this
 //! errs towards a machine that can do more, so a finding is sure.
 
 use std::collections::HashMap;

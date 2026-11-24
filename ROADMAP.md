@@ -376,9 +376,6 @@ what is plainly missing, then the larger pieces.
 Reproduced on `main` (9f7a72a), in the order they are taken: first what
 is lost without a word, then what misleads, then what is missing.
 
-- [ ] REQ-114: `play --steps 1 --events go` is said to end on the end
-      state instead of B. Not reproduced in four machines (PlantUML,
-      Mermaid, `[*]` and a state as the end); needs the tester's file.
 - [ ] REQ-107: `inspect` of a sequence diagram with its messages and
       notes, of a state machine with its transitions.
 - [ ] REQ-110, the rest: `nodeSpacing` and `rankSpacing` carried out by
@@ -393,6 +390,17 @@ is lost without a word, then what misleads, then what is missing.
       crashes on it (plantuml/plantuml#3030, #3031).
 - [ ] REQ-105: marble diagrams of reactive streams
       (mermaid-js/mermaid#8864), a niche.
+
+## From the tester's round of 1.1.0 (2026-11-24)
+
+Reproduced on 1.1.0, in the order they are taken.
+
+- [ ] REQ-115: `!include <awslib/…>` and the rest of PlantUML's standard
+      library past C4: render says Omaspec lacks it, lint says nothing.
+- [ ] REQ-104, the rest: a folded Mermaid subgraph shows its name only,
+      where a folded state or package says what it holds.
+- [ ] A folded PlantUML package's tab, with its name and what it holds,
+      is wider than its body: the outline steps at the bottom right.
 
 ## Next
 

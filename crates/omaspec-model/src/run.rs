@@ -7,9 +7,14 @@
 //! every state up to the one that holds both of its ends and enters its
 //! target; a composite state starts each of its regions, and with no start
 //! to begin at it is entered as a whole. What needs nobody is taken by
-//! itself: the way out of a start, of a fork, of a choice with one way, the
-//! one transition without event out of a state once it is entered or done.
-//! Where a choice or a state has several such ways, the writer picks.
+//! itself: the way out of a start, of a fork or a join, of a choice or a
+//! point with one way, and the one way without an event out of a composite
+//! state once each of its regions has ended. A state is a halt: its way
+//! without an event is the writer's to take, as an event is, since what
+//! the state stands for takes the time it takes, which the diagram does
+//! not say; `Idle --> [*]` beside `Idle --> Running : start` is a way to
+//! end, not the end at once. Where a choice has several ways, the writer
+//! picks too.
 //! Guards are not evaluated: a guarded transition is offered, and the
 //! writer decides.
 //!
@@ -225,14 +230,16 @@ impl Run {
             Kind::Choice | Kind::Entry | Kind::Exit => {
                 m.transitions.iter().filter(|u| u.from == tr.from).count() == 1
             }
-            // The one way out of a state without an event; with several,
-            // the writer picks too.
+            // A state is a halt: only a composite state whose regions have
+            // all ended goes on by itself, by its one way without an event.
+            // With several, or entered as a whole, the writer picks.
             Kind::State => {
-                m.transitions
-                    .iter()
-                    .filter(|u| u.from == tr.from && u.trigger.events.is_empty())
-                    .count()
-                    == 1
+                self.finished(m, tr.from)
+                    && m.transitions
+                        .iter()
+                        .filter(|u| u.from == tr.from && u.trigger.events.is_empty())
+                        .count()
+                        == 1
             }
             _ => true,
         }
@@ -279,9 +286,11 @@ impl Run {
     /// Whether every region of the composite `state` reached its end, or
     /// it was entered as a whole.
     fn done(&self, m: &Machine, state: usize) -> bool {
-        if self.active.contains(&state) {
-            return true;
-        }
+        self.active.contains(&state) || self.finished(m, state)
+    }
+
+    /// Whether `state` has regions and every one reached its end.
+    fn finished(&self, m: &Machine, state: usize) -> bool {
         let children: Vec<usize> = (0..m.states.len())
             .filter(|&c| m.states[c].parent == Some(state))
             .collect();
@@ -792,9 +801,12 @@ mod tests {
         assert_eq!(labels(&m, &run.options(&m)), ["ok", "kill"]);
         take(&mut run, &m, "ok");
         let steps = take(&mut run, &m, "quit");
-        // The session's end completes it, which leads on by itself, to the
-        // end of the machine.
-        assert_eq!(steps.len(), 3, "{steps:?}");
+        // The session's end completes it, which leads on by itself to Gone,
+        // a halt: its way to the end is the writer's.
+        assert_eq!(steps.len(), 2, "{steps:?}");
+        assert_eq!(names(&m, run.active()), ["Gone"]);
+        assert_eq!(labels(&m, &run.options(&m)), [""]);
+        take(&mut run, &m, "");
         assert!(run.ended(&m));
     }
 
@@ -809,7 +821,10 @@ mod tests {
         // The join waits for the other way.
         assert!(names(&m, run.active()).contains(&"j".to_owned()));
         assert_eq!(labels(&m, &run.options(&m)), ["b"]);
+        // The join goes on by itself, to Done, which halts.
         take(&mut run, &m, "b");
+        assert_eq!(names(&m, run.active()), ["Done"]);
+        take(&mut run, &m, "");
         assert!(run.ended(&m), "{:?}", names(&m, run.active()));
     }
 
@@ -954,9 +969,35 @@ mod tests {
         assert_eq!(names(&m, run.active()), ["A"]);
         let options = run.options(&m);
         assert_eq!(targets(&m, &options), ["[*]", "B"]);
-        // B has one way out: it goes on by itself.
+        // B has one way out without an event, and halts all the same.
         run.take(&m, options[1]);
+        assert_eq!(names(&m, run.active()), ["B"]);
+        assert_eq!(targets(&m, &run.options(&m)), ["[*]"]);
+    }
+
+    /// REQ-114: a state is a halt. A way to the end without an event beside
+    /// an event is a way to end, not the end at once, and a state whose one
+    /// way is the end is where an event leads.
+    #[test]
+    fn a_state_with_a_way_without_an_event_halts() {
+        let m = machine(
+            "[*] --> Idle\nIdle --> Running : start\nRunning --> Idle : stop\nIdle --> [*]",
+        );
+        let (mut run, steps) = Run::start(&m).unwrap();
+        assert_eq!(steps.len(), 1);
+        assert_eq!(names(&m, run.active()), ["Idle"]);
+        assert_eq!(labels(&m, &run.options(&m)), ["start", ""]);
+        take(&mut run, &m, "start");
+        take(&mut run, &m, "stop");
+        take(&mut run, &m, "");
         assert!(run.ended(&m));
+
+        let m = machine("[*] --> A\nA --> B : go\nB --> [*]");
+        let (mut run, _) = Run::start(&m).unwrap();
+        let steps = take(&mut run, &m, "go");
+        assert_eq!(steps.len(), 1);
+        assert_eq!(names(&m, run.active()), ["B"]);
+        assert!(!run.ended(&m));
     }
 
     #[test]

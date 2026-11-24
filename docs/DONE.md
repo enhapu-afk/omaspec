@@ -1785,6 +1785,18 @@ is open and the reasoning around it.
       picture beside its diagram needs the source kept (`--no-source` is
       refused), so `--check` can draw it so again; the map's refusal comes
       before anything is drawn; `--events` names an empty event again.
+- [x] A state is a halt (REQ-114, 2026-11-24): the player took the one
+      way without an event out of a state the moment it was entered, as
+      UML takes a completion, so `A --> B : go` and `B --> [*]` ended a
+      film of `--events go` on the end, never on B, and `Idle --> [*]`
+      beside `Idle --> Running : start` ended the play as it began, start
+      never offered. What a state stands for takes the time it takes,
+      which the diagram does not say: its way without an event is now an
+      option, *go on*, as an event is, and `--steps` counts it
+      (`run.rs`). Only a start, a fork, a join, a choice or a point with
+      one way, and a composite state whose regions have all ended go on by
+      themselves. A trace may still pass a state's way without an event
+      unlogged.
 
 ## Next
 

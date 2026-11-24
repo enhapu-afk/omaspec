@@ -19,7 +19,9 @@ fn lights_fade_on_and_off() {
 
 #[test]
 fn the_lit_line_follows_the_light_through_a_step_that_follows_by_itself() {
-    let source = "@startuml\n[*] --> Brewing\nstate Brewing {\n  [*] --> Heating\n  Heating --> Pouring : hot\n  Pouring --> [*]\n}\n@enduml\n";
+    // A state is a halt; a composite state whose region has ended goes on
+    // by itself.
+    let source = "@startuml\n[*] --> Brewing\nstate Brewing {\n  [*] --> Heating\n  Heating --> [*] : hot\n}\nBrewing --> Done\n@enduml\n";
     let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
     let t0 = Instant::now();
     let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
@@ -33,13 +35,13 @@ fn the_lit_line_follows_the_light_through_a_step_that_follows_by_itself() {
     let lines: Vec<_> = machine.lines.clone();
     assert_eq!(
         lines.iter().map(|&(_, line)| line).collect::<Vec<_>>(),
-        [4, 5],
-        "hot, then Pouring --> [*] by itself"
+        [4, 6],
+        "hot, then Brewing --> Done by itself"
     );
     assert!(lines[0].0 < lines[1].0);
     assert_eq!(play.take_jump(lines[0].0), Some(4));
     assert_eq!(play.take_jump(lines[1].0 - Duration::from_millis(1)), None);
-    assert_eq!(play.take_jump(lines[1].0), Some(5));
+    assert_eq!(play.take_jump(lines[1].0), Some(6));
 }
 
 #[test]
