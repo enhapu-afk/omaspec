@@ -607,8 +607,7 @@ impl Layout<'_> {
         // Where every flow of a split starts with a hidden arrow, nothing
         // joins them at the top, as PlantUML draws it; a fork keeps its bar.
         let hidden = |flow: &Flow| {
-            flow.steps
-                .first()
+            flow.first_step()
                 .and_then(|step| step.arrow.as_ref())
                 .is_some_and(|arrow| arrow.style == LineStyle::Hidden)
         };
@@ -781,5 +780,5 @@ enum Side {
 
 /// The swimlane a flow starts in.
 fn entry_lane(flow: &Flow, lane: usize) -> usize {
-    flow.steps.first().map_or(lane, |s| s.lane)
+    flow.first_step().map_or(lane, |s| s.lane)
 }

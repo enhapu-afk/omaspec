@@ -1341,7 +1341,8 @@ mod tests {
     }
 
     /// Creole's rules, headings and wavy lines are PlantUML's: in
-    /// Mermaid's words they are drawn as they stand.
+    /// Mermaid's words they are drawn as they stand, a wave by mmdr, as
+    /// before Omaspec drew it for PlantUML (found in review, 2026-11-24).
     #[test]
     fn mermaid_words_take_no_rules_headings_or_waves() {
         for (text, kept) in [
@@ -1359,6 +1360,9 @@ mod tests {
             ),
         ] {
             let svg = render(text).unwrap();
+            if text.contains("~~w~~") {
+                assert!(svg.contains("~~w~~"), "{svg}");
+            }
             for part in kept {
                 assert!(svg.contains(part), "{part} in {text}: {svg}");
             }

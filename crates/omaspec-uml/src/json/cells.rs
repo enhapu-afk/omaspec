@@ -120,7 +120,8 @@ fn counted(n: usize, what: &str) -> String {
 /// carriage return is dropped, a tab is four spaces, a line break breaks.
 pub(super) fn creole(text: &str, font: Font, family: Family) -> Block {
     let plain = text.replace('\r', "").replace('\t', "    ");
-    text::inline_lines(&plain, font, family).unwrap_or_else(|_| words(&plain, font, family))
+    text::as_data(|| text::block(&plain, font, family))
+        .unwrap_or_else(|_| words(&plain, font, family))
 }
 
 /// Words as written, a line each.

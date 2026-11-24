@@ -53,6 +53,23 @@ pub struct Flow {
     pub out: Option<Arrow>,
 }
 
+impl Flow {
+    /// Its first step; a `label` is a point on the line, no step.
+    pub fn first_step(&self) -> Option<&Step> {
+        self.steps
+            .iter()
+            .find(|step| !matches!(step.node, Node::Label { .. }))
+    }
+
+    /// Its last step, a `label` passed over.
+    pub fn last_step(&self) -> Option<&Step> {
+        self.steps
+            .iter()
+            .rev()
+            .find(|step| !matches!(step.node, Node::Label { .. }))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Step {
     pub node: Node,

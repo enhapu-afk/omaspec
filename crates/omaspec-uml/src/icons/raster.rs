@@ -41,17 +41,30 @@ pub enum Unread {
 }
 
 /// Runs `draw` with the pictures `source`'s text names read through
-/// `includes`, and forgets them after, also when it panics.
+/// `includes`, and forgets them after, also when it panics. The text is
+/// read as the preprocessor writes it, so a picture an included file or a
+/// variable names is read too, relative to the diagram. Without
+/// `includes`, as a diagram inside another one is drawn, the pictures
+/// already read stay.
 pub(crate) fn within<T>(
     source: &str,
     includes: Option<&dyn Includes>,
     draw: impl FnOnce() -> T,
 ) -> T {
+    let Some(includes) = includes else {
+        return draw();
+    };
     let mut read = HashMap::new();
-    for path in paths(source) {
-        let picture = match includes.map(|includes| includes.picture(&path)) {
-            Some(Ok(bytes)) => raster(&bytes).map(Arc::new).ok_or(Unread::Kind),
-            _ => Err(Unread::Missing),
+    let mut named = paths(source);
+    for path in paths(&expanded(source, includes)) {
+        if !named.contains(&path) {
+            named.push(path);
+        }
+    }
+    for path in named {
+        let picture = match includes.picture(&path) {
+            Ok(bytes) => raster(&bytes).map(Arc::new).ok_or(Unread::Kind),
+            Err(_) => Err(Unread::Missing),
         };
         read.insert(path, picture);
     }
@@ -65,6 +78,22 @@ pub(crate) fn within<T>(
     let before = PICTURES.with_borrow_mut(|pictures| std::mem::replace(pictures, read));
     let _forget = Forget(before);
     draw()
+}
+
+/// `source`'s lines as the preprocessor writes them; empty where it
+/// declines, as the parse then says.
+fn expanded(source: &str, includes: &dyn Includes) -> String {
+    let Ok((_, raw)) = crate::source::body(source) else {
+        return String::new();
+    };
+    match crate::preprocess::run(&raw, Some(includes)) {
+        Ok(Some(lines)) => lines
+            .iter()
+            .map(|line| line.text.as_str())
+            .collect::<Vec<_>>()
+            .join("\n"),
+        _ => String::new(),
+    }
 }
 
 /// The picture `path` names, as read for the diagram being drawn.
@@ -287,15 +316,20 @@ mod tests {
             assert_eq!((logo.width, logo.height), (40, 30));
             assert_eq!(find("notes.txt"), Err(Unread::Kind));
             assert_eq!(find("gone.png"), Err(Unread::Missing));
-            // A diagram inside reads its own, and the outer ones return.
+            // A diagram inside with a reader reads its own, and the outer
+            // ones return; one without, as `{{ }}` draws it, keeps them.
             within("<img:other.png>", Some(&One), || {
                 assert_eq!(find("logo.png"), Err(Unread::Missing));
             });
             assert!(find("logo.png").is_ok());
+            within("<img:logo.png>", None, || assert!(find("logo.png").is_ok()));
         });
         assert_eq!(find("logo.png"), Err(Unread::Missing));
         within(source, None, || {
             assert_eq!(find("logo.png"), Err(Unread::Missing));
         });
+        // A picture a variable names is read as the preprocessor writes it.
+        let source = "@startuml\n!$logo = \"logo.png\"\nA -> B : <img:$logo>\n@enduml\n";
+        within(source, Some(&One), || assert!(find("logo.png").is_ok()));
     }
 }

@@ -587,6 +587,26 @@ is open and the reasoning around it.
       sequence diagram 78 of 79, the activity diagram 61 of 62, Creole's
       own chapter 21 of 44.
 
+- [x] What the review of Creole, pictures and `label`/`goto` found
+      (2026-11-24). A line starting with a mark and a letter of more than
+      one byte (`=Übersicht`, `-→ next`) no longer panics: a rule's marks
+      are compared as bytes. Two or three marks alone (`--`, `...`) are a
+      rule only among other lines, as PlantUML reads them; a message of
+      `--` is words, and a rule alone is 24 points long. The end of a
+      wave, and the end of every tag, takes back only what it changed, so
+      a color closed inside a wave stays closed; a wave wrapped onto the
+      next line stays a wave. A value of data draws tables again, only no
+      rules, headings and lists (`text::as_data`); Mermaid's words leave
+      the markup only PlantUML draws (`~~`, `<font>`, `<back>`, `<w>`,
+      `<U+…>`, `<img>`) to mmdr, as before. Pictures are read from the
+      preprocessed text, so one an included file or a variable names is
+      read too, relative to the diagram, and a diagram inside a note keeps
+      them. A goto down goes around what stands between on a rail, a
+      goto's rail stays in its own swimlane, a label after a flow that
+      stopped stands below it and the room before it draws no line, a
+      label first in a flow leaves its arrow's words room, a label written
+      twice and a goto after `stop` decline on their line.
+
 ## Phase 0: foundation and spikes
 
 - [x] Workspace, MIT license, `AGENTS.md`, CI (fmt, clippy, test, cargo-deny)

@@ -610,7 +610,13 @@ mod tests {
     struct Logo;
     impl Includes for Logo {
         fn read(&self, path: &str, _: Option<&str>) -> Result<Included, String> {
-            Err(format!("`{path}` is not there"))
+            match path {
+                "inc.iuml" => Ok(Included {
+                    key: path.to_owned(),
+                    text: "C -> D : <img:logo.png>".to_owned(),
+                }),
+                _ => Err(format!("`{path}` is not there")),
+            }
         }
         fn picture(&self, path: &str) -> Result<Vec<u8>, String> {
             let mut png = b"\x89PNG\r\n\x1a\n\0\0\0\x0dIHDR".to_vec();
@@ -639,6 +645,14 @@ mod tests {
         let (svg, _) = render_mapped(source, None).unwrap();
         assert!(!svg.contains("<image "), "{svg}");
         assert!(svg.contains("(cannot read logo.png)"), "{svg}");
+        // Named by an included file, and in a diagram inside a note (found
+        // in review, 2026-11-24).
+        let included = "@startuml\n!include inc.iuml\n@enduml\n";
+        let (svg, _) = render_mapped(included, Some(&Logo)).unwrap();
+        assert_eq!(svg.matches("<image ").count(), 1, "{svg}");
+        let inside = "@startuml\nA -> B : <img:logo.png>\nnote right\n{{\nC -> D : <img:logo.png>\n}}\nend note\n@enduml\n";
+        let (svg, _) = render_mapped(inside, Some(&Logo)).unwrap();
+        assert!(!svg.contains("cannot read"), "{svg}");
     }
 
     #[test]

@@ -150,6 +150,8 @@ const NOT_YET: [&str; 11] = [
 #[derive(Default)]
 struct Parser {
     frame: Frame,
+    /// Each `label` so far, by its name, with its line.
+    labels: std::collections::HashMap<String, usize>,
     lanes: Vec<Lane>,
     /// The swimlane new steps go to.
     lane: usize,
@@ -469,6 +471,15 @@ impl Parser {
                 ));
             }
             let name = name.to_owned();
+            if !goto && let Some(first) = self.labels.insert(name.clone(), no) {
+                return Err(Declined::at(
+                    no,
+                    format!(
+                        "`label {name}` is written twice, here and on line {}",
+                        first + 1
+                    ),
+                ));
+            }
             if goto {
                 self.add(Node::Goto { name }, no)?;
             } else {

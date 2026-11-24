@@ -11,9 +11,11 @@
 //! `--title--`), lists, Creole tables (`|= a |= b |` over `| 1 | 2 |`),
 //! links (`[[url]]`, `[[url label]]`, `[[url{tooltip} label]]`),
 //! underlined in the text's color, and icons (`<&heart>`, `<$sprite>`,
-//! [`crate::icons`]). Markup it knows but does not draw (images, …) is an
-//! error naming it; anything else that looks like a tag is shown as
-//! written, as PlantUML does.
+//! [`crate::icons`]), and pictures (`<img:logo.png>`,
+//! [`crate::icons::raster`]). Markup it knows but does not draw (`<sub>`,
+//! `<sup>`, `<code>`, `<math>`, …) is an error naming it; anything else
+//! that looks like a tag is shown as written, as PlantUML does. A value of
+//! data and Mermaid's words read less of it ([`as_data`], [`as_mermaid`]).
 
 use crate::color::{self, Color};
 pub use crate::icons::{Icon, Picture};
@@ -318,23 +320,26 @@ pub(crate) fn wrapped(
         // What is open where the line at hand starts, and its words.
         let mut carried: Vec<String> = Vec::new();
         let mut line = String::new();
-        for word in wrap_words(paragraph) {
+        let words = wrap_words(paragraph);
+        for (at, word) in words.iter().enumerate() {
             let longer = if line.is_empty() {
                 word.clone()
             } else {
                 format!("{line} {word}")
             };
+            let past = words[at + 1..].join(" ");
             if !line.is_empty()
-                && block(&with_markup(&carried, &longer), font, family)?.width > width
+                && block(&with_markup(&carried, &longer, &past), font, family)?.width > width
             {
-                lines.push(with_markup(&carried, &line));
-                carried = open_after(carried, &line);
-                line = word;
+                let after = words[at..].join(" ");
+                lines.push(with_markup(&carried, &line, &after));
+                carried = open_after(carried, &line, &after);
+                line = word.clone();
             } else {
                 line = longer;
             }
         }
-        lines.push(with_markup(&carried, &line));
+        lines.push(with_markup(&carried, &line, ""));
     }
     block(&lines.join("\n"), font, family)
 }
@@ -370,11 +375,12 @@ fn wrap_words(text: &str) -> Vec<String> {
 }
 
 /// `line` with the markup `carried` from the line before opened in front
-/// of it, and what is open at its end closed after it.
-fn with_markup(carried: &[String], line: &str) -> String {
+/// of it, and what is open at its end closed after it; `after` is what
+/// follows it in its paragraph.
+fn with_markup(carried: &[String], line: &str, after: &str) -> String {
     let mut out: String = carried.concat();
     out.push_str(line);
-    for open in open_after(carried.to_vec(), line).iter().rev() {
+    for open in open_after(carried.to_vec(), line, after).iter().rev() {
         match open.strip_prefix('<') {
             Some(tag) => {
                 let name: String = tag
@@ -393,21 +399,22 @@ fn with_markup(carried: &[String], line: &str) -> String {
 /// toggles (`**`, `//`, …) and the tags the text draws (`<b>`,
 /// `<color:red>`), in the order they opened. A link's insides and an
 /// escaped mark (`~**`) open nothing.
-fn open_after(mut open: Vec<String>, text: &str) -> Vec<String> {
+fn open_after(mut open: Vec<String>, text: &str, after: &str) -> Vec<String> {
     const TAGS: [&str; 10] = [
         "b", "i", "u", "s", "strike", "color", "size", "font", "back", "w",
     ];
     let mut rest = text;
     while let Some(c) = rest.chars().next() {
-        // `~~waved~~` opens and closes as a toggle does.
-        if rest.starts_with("~~") {
+        // `~~waved~~` opens and closes as a toggle does, where a `~~`
+        // closes it later in its paragraph.
+        if rest.starts_with("~~") && READING.get() != Reading::Mermaid {
             let at = open.iter().rposition(|o| o == "~~");
             if let Some(at) = at {
                 open.remove(at);
                 rest = &rest[2..];
                 continue;
             }
-            if rest[2..].contains("~~") {
+            if rest[2..].contains("~~") || after.contains("~~") {
                 open.push("~~".to_owned());
                 rest = &rest[2..];
                 continue;
@@ -486,6 +493,9 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
     };
     // How far a numbered list has counted, by its depth.
     let mut counts: Vec<u32> = Vec::new();
+    // Two or three marks are a rule only among other lines, as PlantUML
+    // reads them: a message of `--` is words.
+    let several = text.contains('\n') || find_newline_escape(text).is_some();
     let all: Vec<&str> = text.split('\n').collect();
     let mut skip = 0;
     for (at, &line) in all.iter().enumerate() {
@@ -525,9 +535,10 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
             rows.push(line);
         } else {
             flush(&mut lines, &mut rows)?;
-            let creole = !MERMAID.get();
+            let reading = READING.get();
+            let creole = reading == Reading::PlantUml;
             for piece in split_lines(line) {
-                if let Some((rule, title)) = rule(piece).filter(|_| creole) {
+                if let Some((rule, title)) = rule(piece, several).filter(|_| creole) {
                     counts.clear();
                     lines.push(ruled(rule, title, font, family)?);
                     continue;
@@ -541,7 +552,8 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
                     ));
                     continue;
                 }
-                let Some((depth, numbered, words)) = list_item(piece) else {
+                let item = list_item(piece).filter(|_| reading != Reading::Data);
+                let Some((depth, numbered, words)) = item else {
                     counts.clear();
                     lines.push(line_of(
                         inline(piece, Style::from(font))?,
@@ -574,42 +586,47 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
     Ok(stack(lines))
 }
 
-thread_local! {
-    /// The words drawn are Mermaid's ([`as_mermaid`]).
-    static MERMAID: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+/// How the words drawn are read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Reading {
+    /// As PlantUML reads a diagram's words: all of Creole.
+    PlantUml,
+    /// As PlantUML reads a value of data ([`as_data`]).
+    Data,
+    /// As Mermaid writes them ([`as_mermaid`]).
+    Mermaid,
 }
 
-/// Runs `draw` with words read as Mermaid writes them. Creole's rules,
-/// headings and wavy lines are PlantUML's alone: a line of `----` or
-/// `= Title` is drawn as it stands, and `~~` draws no wavy line. The
-/// markup inside a line the engine reads as it does for PlantUML.
-pub fn as_mermaid<T>(draw: impl FnOnce() -> T) -> T {
-    struct Restore(bool);
+thread_local! {
+    static READING: std::cell::Cell<Reading> = const { std::cell::Cell::new(Reading::PlantUml) };
+}
+
+/// Runs `draw` with the words read as `reading` says, and as before after.
+fn read_as<T>(reading: Reading, draw: impl FnOnce() -> T) -> T {
+    struct Restore(Reading);
     impl Drop for Restore {
         fn drop(&mut self) {
-            MERMAID.set(self.0);
+            READING.set(self.0);
         }
     }
-    let _restore = Restore(MERMAID.replace(true));
+    let _restore = Restore(READING.replace(reading));
     draw()
 }
 
-/// `text` in `font` with the markup inside its lines alone, as PlantUML
-/// reads a value of data (`@startjson`): a line of `----` or `= Title` is
-/// written as it stands, not drawn as a rule or a heading.
-pub fn inline_lines(text: &str, font: Font, family: Family) -> Result<Block, String> {
-    let lines = text
-        .split('\n')
-        .flat_map(split_lines)
-        .map(|piece| {
-            Ok(line_of(
-                inline(piece, Style::from(font))?,
-                font.size,
-                family,
-            ))
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    Ok(stack(lines))
+/// Runs `draw` with words read as Mermaid writes them. Creole's rules and
+/// headings are PlantUML's alone: a line of `----` or `= Title` is drawn
+/// as it stands. The markup only PlantUML draws (`~~waved~~`, `<font>`,
+/// `<back>`, `<w>`, `<U+…>`, `<img>`) declines, so mmdr draws those words;
+/// the rest of a line's markup the engine reads as it does for PlantUML.
+pub fn as_mermaid<T>(draw: impl FnOnce() -> T) -> T {
+    read_as(Reading::Mermaid, draw)
+}
+
+/// Runs `draw` with words read as PlantUML reads a value of data
+/// (`@startjson`): a table is drawn, a line of `----`, `= Title` or
+/// `* item` is written as it stands.
+pub fn as_data<T>(draw: impl FnOnce() -> T) -> T {
+    read_as(Reading::Data, draw)
 }
 
 /// Lines of styled pieces, measured as they are: no markup is read. An
@@ -980,21 +997,24 @@ fn list_item(line: &str) -> Option<(usize, bool, &str)> {
 /// two or more of one mark (`--`, `====`, `____`, `....`), or words between
 /// two of them on each side (`--title--`, `== Title ==`), as PlantUML
 /// reads them.
-fn rule(line: &str) -> Option<(Rule, &str)> {
+fn rule(line: &str, several: bool) -> Option<(Rule, &str)> {
     let t = line.trim();
-    let mark = t.chars().next()?;
+    let mark = *t.as_bytes().first()?;
     let rule = match mark {
-        '-' => Rule::Single,
-        '=' => Rule::Double,
-        '_' => Rule::Strong,
-        '.' => Rule::Dotted,
+        b'-' => Rule::Single,
+        b'=' => Rule::Double,
+        b'_' => Rule::Strong,
+        b'.' => Rule::Dotted,
         _ => return None,
     };
-    if t.len() >= 2 && t.chars().all(|c| c == mark) {
-        return Some((rule, ""));
+    if t.bytes().all(|c| c == mark) {
+        return (t.len() >= 4 || (several && t.len() >= 2)).then_some((rule, ""));
     }
-    let two = &t[..2.min(t.len())];
-    if two.len() == 2 && two.chars().all(|c| c == mark) && t.len() > 4 && t.ends_with(two) {
+    // The marks are one byte each, so the words between them start and
+    // end on a character's edge.
+    let two = [mark, mark];
+    let b = t.as_bytes();
+    if b.len() > 4 && b.starts_with(&two) && b.ends_with(&two) {
         let title = t[2..t.len() - 2].trim();
         if !title.is_empty() {
             return Some((rule, title));
@@ -1037,6 +1057,8 @@ fn ruled(rule: Rule, title: &str, font: Font, family: Family) -> Result<Line, St
         let mut line = line_of(Vec::new(), font.size, family);
         line.height = rule.height();
         line.ascent = 0.0;
+        // As long as PlantUML draws one alone, where no box gives it more.
+        line.width = RULE_LEAST;
         line
     } else {
         let mut line = line_of(inline(title, Style::from(font))?, font.size, family);
@@ -1051,6 +1073,8 @@ fn ruled(rule: Rule, title: &str, font: Font, family: Family) -> Result<Line, St
 
 /// How far a rule reaches at least on either side of its words.
 pub const RULE_REACH: f32 = 12.0;
+/// How long a rule without words is at least.
+pub const RULE_LEAST: f32 = 24.0;
 
 /// Creole that works on whole lines, which a cell of a table does not
 /// take.
@@ -1094,7 +1118,7 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
     // Markers that are open: the value they replaced.
     let mut open: [Option<bool>; 5] = [None; 5];
     // A wavy underline open with `~~`: the style before it.
-    let mut waved: Option<Style> = None;
+    let mut waved: Option<bool> = None;
     let mut i = 0;
     let flush = |out: &mut Vec<Piece>, text: &mut String, style: Style| {
         if !text.is_empty() {
@@ -1111,13 +1135,16 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
         let rest = &line[i..];
         let c = rest.chars().next().unwrap_or(' ');
         // `~~waved~~`; a `~~` that closes nothing is an escaped `~`.
-        if rest.starts_with("~~") && (waved.is_some() || rest[2..].contains("~~")) && !MERMAID.get()
-        {
+        let mermaid = READING.get() == Reading::Mermaid;
+        if rest.starts_with("~~") && (waved.is_some() || rest[2..].contains("~~")) {
+            if mermaid {
+                return Err("wavy underlines are not supported yet".into());
+            }
             flush(&mut out, &mut text, style);
             match waved.take() {
-                Some(before) => style = before,
+                Some(before) => style.wave = before,
                 None => {
-                    waved = Some(style);
+                    waved = Some(style.wave);
                     style.wave = true;
                 }
             }
@@ -1169,6 +1196,9 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
             && let Some(close) = rest.find('>')
             && let Some(code) = unicode(&rest[1..close])
         {
+            if mermaid {
+                return Err(format!("`{}` is not supported yet", &rest[..=close]));
+            }
             text.push(code);
             i += close + 1;
             continue;
@@ -1179,6 +1209,9 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
             && let Some(close) = rest.find('>')
             && let Some((path, scale)) = crate::icons::raster::tag(&rest[1..close])
         {
+            if mermaid {
+                return Err(format!("`{}` is not supported yet", &rest[..=close]));
+            }
             flush(&mut out, &mut text, style);
             match crate::icons::raster::find(path) {
                 Ok(raster) => out.push(Piece {
@@ -1239,9 +1272,11 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
                     style = new;
                 }
                 Tag::Close(name) => {
+                    // It closes the tags opened inside it too.
                     if let Some(at) = tags.iter().rposition(|(n, _)| *n == name) {
-                        style = tags[at].1;
-                        tags.truncate(at);
+                        for (name, before) in tags.drain(at..).rev() {
+                            style = undo(&name, before, style);
+                        }
                     }
                 }
             }
@@ -1342,6 +1377,17 @@ fn tag_change(tag: &str, style: Style) -> Result<Option<Tag>, String> {
         Some((name, arg)) => (name.trim(), Some(arg.trim())),
         None => (lower.as_str(), None),
     };
+    // What only PlantUML draws, Mermaid's words leave to mmdr; a line in a
+    // color of its own they show as written.
+    if READING.get() == Reading::Mermaid {
+        match (name, arg) {
+            ("font" | "back" | "w" | "wave", _) => {
+                return Err(format!("`<{tag}>` is not supported yet"));
+            }
+            ("u" | "s" | "strike" | "del", Some(_)) => return Ok(None),
+            _ => {}
+        }
+    }
     // The value as written: color names ignore case, a face's name keeps it.
     let value = || {
         tag.trim()
@@ -1444,6 +1490,28 @@ fn unicode(tag: &str) -> Option<char> {
     u32::from_str_radix(hex, 16).ok().and_then(char::from_u32)
 }
 
+/// `now` with what the tag `name` changed taken back to `before`, and
+/// nothing else: a toggle or another tag that opened or closed inside it
+/// keeps its own.
+fn undo(name: &str, before: Style, now: Style) -> Style {
+    let mut style = now;
+    match name {
+        "b" => style.bold = before.bold,
+        "i" => style.italic = before.italic,
+        "u" => (style.underline, style.lines) = (before.underline, before.lines),
+        "s" => (style.strike, style.lines) = (before.strike, before.lines),
+        "w" => (style.wave, style.lines) = (before.wave, before.lines),
+        "color" => style.color = before.color,
+        "size" => style.size = before.size,
+        "back" => style.back = before.back,
+        "font" => {
+            (style.color, style.size, style.face) = (before.color, before.size, before.face);
+        }
+        _ => style = before,
+    }
+    style
+}
+
 fn canonical(name: &str) -> &str {
     match name {
         "strike" | "del" => "s",
@@ -1515,6 +1583,14 @@ mod wrap_tests {
                         run.text
                     );
                 }
+            }
+        }
+        // So does a wave, closed and opened again at each break.
+        let b = wrap("~~one two three four five six seven~~");
+        assert!(b.lines.len() > 1);
+        for line in &b.lines {
+            for run in line.runs.iter().filter(|r| !r.text.trim().is_empty()) {
+                assert!(run.style.wave && !run.text.contains('~'), "{}", run.text);
             }
         }
         // A link is one word, whatever its label holds.
@@ -1724,7 +1800,6 @@ mod tests {
             ("====", Rule::Double, ""),
             ("____", Rule::Strong, ""),
             ("....", Rule::Dotted, ""),
-            ("--", Rule::Single, ""),
             ("--Another title--", Rule::Single, "Another title"),
             ("== Head ==", Rule::Double, "Head"),
             ("..My title..", Rule::Dotted, "My title"),
@@ -1760,11 +1835,35 @@ mod tests {
             assert_eq!(run.style.size, size + grown, "{text}");
             assert_eq!((run.style.bold, run.style.italic), (bold, italic), "{text}");
         }
-        // Data reads the markup inside a line alone.
-        let b = inline_lines("----\n= x\n**b**", font(), Family::Sans).unwrap();
-        assert!(b.lines.iter().all(|l| l.rule.is_none()));
+        // Two or three marks are a rule among other lines, words alone; a
+        // rule alone is as long as PlantUML draws it. A mark that is not
+        // one byte is words.
+        let b = block("a\n--\n...", font(), Family::Sans).unwrap();
+        assert!(b.lines[1].rule.is_some() && b.lines[2].rule.is_some());
+        for text in ["--", "...", "=="] {
+            let b = block(text, font(), Family::Sans).unwrap();
+            assert!(b.lines[0].rule.is_none(), "{text}");
+        }
+        assert_eq!(
+            block("----", font(), Family::Sans).unwrap().width,
+            RULE_LEAST
+        );
+        for text in [
+            "-\u{2192} next",
+            "=\u{dc}bersicht",
+            "_\u{e4}h",
+            ".\u{2026}",
+            "--\u{e4}--",
+        ] {
+            block(text, font(), Family::Sans).unwrap();
+        }
+        // Data reads a table, not a rule, a heading or a list.
+        let b = as_data(|| block("----\n= x\n* item\n**b**\n| t |", font(), Family::Sans)).unwrap();
+        assert!(b.lines.iter().all(|l| l.rule.is_none() && !l.flush));
         assert_eq!(b.lines[1].runs[0].text, "= x");
-        assert!(b.lines[2].runs[0].style.bold);
+        assert_eq!(b.lines[2].runs[0].text, "* item");
+        assert!(b.lines[3].runs[0].style.bold);
+        assert!(b.lines[4].table.is_some());
     }
 
     #[test]
@@ -1801,6 +1900,31 @@ mod tests {
         assert_eq!(runs("a ~~ b")[0].text, "a ~ b");
         // What PlantUML shows as written.
         assert_eq!(runs("<wave:blue>w</wave>")[0].text, "<wave:blue>w</wave>");
+        // A wave's end takes back the wave alone, not what a tag changed
+        // within it (found in review, 2026-11-24).
+        let r = runs("<color:red>~~x</color>~~ after");
+        assert_eq!(r.last().unwrap().text, " after");
+        assert_eq!(r.last().unwrap().style, Style::from(font()));
+        let r = runs("~~a <color:blue>b~~ c</color> d");
+        let c = r.iter().find(|r| r.text == " c").unwrap();
+        assert!(!c.style.wave && c.style.color == blue);
+        assert!(!r.last().unwrap().style.wave);
+        // Mermaid's words leave what only PlantUML draws to mmdr, and show
+        // a line in a color of its own as written.
+        let mermaid = |text: &str| as_mermaid(|| block(text, font(), Family::Sans));
+        for text in [
+            "~~w~~",
+            "<font color=red>x</font>",
+            "<back:red>x",
+            "<w>x</w>",
+            "<U+0025>",
+            "<img:x.png>",
+        ] {
+            assert!(mermaid(text).is_err(), "{text}");
+        }
+        let b = mermaid("<u:red>u</u> ----").unwrap();
+        let words: String = b.lines[0].runs.iter().map(|r| r.text.as_str()).collect();
+        assert_eq!(words, "<u:red>u ----");
     }
 
     #[test]

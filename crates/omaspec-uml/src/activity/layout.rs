@@ -92,7 +92,7 @@ impl Layout<'_> {
     pub(super) fn labels_above(&self, flows: &[&Flow]) -> Result<f32, Declined> {
         let mut room: f32 = 0.0;
         for flow in flows {
-            let arrow = flow.steps.first().and_then(|s| s.arrow.as_ref());
+            let arrow = flow.first_step().and_then(|s| s.arrow.as_ref());
             let label = self.arrow_label(arrow)?;
             if !label.is_empty() {
                 room = room.max(label.height + 4.0);
@@ -149,7 +149,7 @@ impl Layout<'_> {
                     // `kill`, `detach`, `goto`: the flow ends at the step
                     // before it.
                     if matches!(step.node, Node::Goto { .. } | Node::Detach) {
-                        Self::stop(&mut prev, &mut next, step);
+                        Self::stop(&mut prev, &mut next, step)?;
                         prev
                     } else {
                         self.join(prev, next, arrow.as_deref())?
@@ -170,15 +170,18 @@ impl Layout<'_> {
         });
         // Labels last in the flow stand on the line where it goes on.
         if !labels.is_empty() {
-            let end = tile.exit.unwrap_or(tile.entry);
-            let below = pt(end.x, end.y + GAP / 2.0, end.lane);
+            // Below where it stops, if it stops.
+            let below = match tile.exit {
+                Some(end) => pt(end.x, end.y + GAP / 2.0, end.lane),
+                None => pt(tile.entry.x, tile.bounds.3 + GAP / 2.0, tile.entry.lane),
+            };
             tile.jumps()
                 .marks
                 .extend(labels.drain(..).map(|name| (name, below)));
         }
         // A `while` that ends a branch whose last arrow is hidden goes on
         // by no way out either.
-        let last = flow.steps.last().map(|step| &step.node);
+        let last = flow.last_step().map(|step| &step.node);
         if flow
             .out
             .as_ref()
@@ -219,7 +222,10 @@ impl Layout<'_> {
             .marks
             .extend(labels.drain(..).map(|name| (name, above)));
         if room > 0.0 {
-            let spacer = self.spacer(room, lane);
+            // After a flow that stopped, the room has no line: only a goto
+            // leads on.
+            let goes_on = tile.as_ref().is_none_or(|prev| prev.exit.is_some());
+            let spacer = self.spacer(room, lane, goes_on);
             *tile = Some(match tile.take() {
                 None => spacer,
                 Some(prev) => self.join(prev, spacer, None)?,
@@ -233,7 +239,7 @@ impl Layout<'_> {
     /// to its label. Labels before it, which `next` holds, stand where
     /// the flow stops.
     #[inline(never)]
-    fn stop(prev: &mut Tile, next: &mut Tile, step: &Step) {
+    fn stop(prev: &mut Tile, next: &mut Tile, step: &Step) -> Result<(), Declined> {
         let out = prev.exit.take();
         let at = match out {
             Some(out) => pt(out.x, out.y + GAP / 2.0, out.lane),
@@ -243,9 +249,17 @@ impl Layout<'_> {
             let marks = jumps.marks.into_iter().map(|(name, _)| (name, at));
             prev.jumps().marks.extend(marks);
         }
-        if let (Node::Goto { name }, Some(out)) = (&step.node, out) {
+        if let Node::Goto { name } = &step.node {
+            // After `stop` or another goto nothing reaches it.
+            let out = out.ok_or_else(|| {
+                Declined::at(
+                    step.line,
+                    format!("`goto {name}` stands where its flow has stopped already"),
+                )
+            })?;
             prev.jumps().gotos.push((name.clone(), out, step.line));
         }
+        Ok(())
     }
 
     /// `next` below `prev`, joined by an arrow if `prev` goes on.
