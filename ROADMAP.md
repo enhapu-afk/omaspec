@@ -32,14 +32,6 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
 Omaspec beside the person, and the loops between them come first. Each
 item says how it is checked.
 
-- [ ] **The trace as a contract.** The JSON Lines a system writes for
-      `omaspec trace` written down as a format of its own (`docs/trace.md`)
-      with a version and a JSON Schema (`omaspec trace --schema`), and how
-      an agent emits it while it implements a machine. A finding comes back
-      as a task: what the diagram expected, what happened, the line of the
-      diagram and of the trace, in `--json` and in MCP `trace`. Checked: an
-      agent given only the schema and a machine writes a trace `trace`
-      reads; every finding of the trace tests names both lines.
 - [ ] **A run, live.** `omaspec trace FILE --follow run.jsonl` and the
       preview follow a trace as it grows: each object lit where it stands,
       a finding the moment it happens, a state marked as waiting for a

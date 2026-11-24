@@ -28,11 +28,16 @@ mod refs;
 mod rename;
 mod run;
 mod specs;
+mod task;
 mod trace;
 
 use omaspec_core::lint::{self, Finding, Severity};
 use omaspec_core::{Kind as DiagramKind, Language, classify};
 use omaspec_uml::map::{Map, Shape, Spot};
+
+/// The JSON Schema of a trace's line, version 1 (docs/trace.md): what
+/// `omaspec trace --schema` prints, for an agent that writes traces.
+pub const TRACE_SCHEMA: &str = include_str!("trace.schema.json");
 
 pub use across::Spec;
 pub use behavior::behavior;

@@ -6,7 +6,23 @@ is open and the reasoning around it.
 
 # Omaspec roadmap
 
-## PlantUML's guide, drawn natively (2026-11-21)
+## Between agents and people (2026-11-24)
+
+- [x] The trace as a contract (2026-11-24, [0036](adr/0036-between-agents-and-people.md)).
+      [docs/trace.md](trace.md) writes the format down, version 1: the
+      fields of a line, how a line is held, what comes back, how a
+      program writes one and how an agent works with it. `omaspec trace
+      --schema` prints the JSON Schema of a line
+      (`omaspec_model::TRACE_SCHEMA`, `urn:omaspec:trace:1`). A
+      deviation carries a task (`omaspec_core::lint::Task`, built in
+      `omaspec-model/src/task.rs`): the object, its machine's file, what
+      the line says happened, and what the machine expected there, the
+      states the object could be in and the events they take, each with
+      the line of the diagram it is written on; `--json` and MCP `trace`
+      give it with lines counted from 1. A test holds every kind of
+      deviation to a task whose lines lie in the diagram, each event's on
+      the line that writes it.
+
 
 ### Step 0: the yardstick, and refusals that say why
 

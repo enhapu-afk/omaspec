@@ -18,6 +18,7 @@ mod fix;
 mod icons;
 mod namesakes;
 mod portable;
+mod task;
 mod unseen;
 mod written;
 
@@ -61,6 +62,10 @@ pub struct Finding {
     /// `--strict` holds as a failure ([`only_java`]).
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub java_only: bool,
+    /// What it asks of whoever puts it right, beside its words: a
+    /// trace's deviation from its machine ([`Task`]).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task: Option<Box<Task>>,
 }
 
 impl Finding {
@@ -77,6 +82,7 @@ impl Finding {
             message: message.into(),
             fix: None,
             java_only: false,
+            task: None,
         }
     }
 
@@ -94,6 +100,13 @@ impl Finding {
         }
     }
 
+    /// The finding with what it asks of whoever puts it right.
+    #[must_use]
+    pub fn asking(mut self, task: Task) -> Self {
+        self.task = Some(Box::new(task));
+        self
+    }
+
     /// The finding with the way to put it right.
     #[must_use]
     pub fn with(mut self, fix: Fix) -> Self {
@@ -103,6 +116,7 @@ impl Finding {
 }
 
 pub use fix::{Fix, fix_all};
+pub use task::{Expected, Happened, Offer, Place, Task};
 
 /// All findings for `code`, in line order.
 pub fn lint(code: &str, lang: Language) -> Vec<Finding> {

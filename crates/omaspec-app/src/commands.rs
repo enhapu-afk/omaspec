@@ -84,6 +84,10 @@ pub(crate) struct Reported<'a> {
     /// How to put it right, its line counted from 1 like the finding's.
     #[serde(skip_serializing_if = "Option::is_none")]
     fix: Option<omaspec_core::lint::Fix>,
+    /// What it asks of whoever puts it right (a trace's deviation, see
+    /// docs/trace.md), its lines counted from 1.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    task: Option<omaspec_core::lint::Task>,
 }
 
 /// The findings of the diagram `file` as the CLI reports them.
@@ -100,6 +104,11 @@ pub(crate) fn reported<'a>(file: &str, findings: &'a [Finding]) -> Vec<Reported<
                 fix.line += 1;
                 fix
             }),
+            task: f
+                .task
+                .as_deref()
+                .cloned()
+                .map(omaspec_core::lint::Task::one_based),
         })
         .collect()
 }

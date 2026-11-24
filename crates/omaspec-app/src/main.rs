@@ -216,10 +216,16 @@ enum Command {
     /// `machine` (the state machine's name, when the object is called
     /// otherwise). Other fields are left alone. Exits with 1 if a trace
     /// deviates from its machines or has a line that is no event (with
-    /// --strict also on a warning).
+    /// --strict also on a warning). A deviation's JSON says what happened
+    /// and what the machine expected, with the lines of the diagram: a
+    /// task for whoever fixes it (docs/trace.md).
     Trace {
         /// Traces to check; `-` or none reads standard input.
         files: Vec<PathBuf>,
+        /// Print the JSON Schema of a trace's line, for a program or an
+        /// agent that writes traces, and nothing else.
+        #[arg(long, conflicts_with_all = ["files", "json", "strict", "project", "as_kind"])]
+        schema: bool,
         /// Print the findings as JSON.
         #[arg(long)]
         json: bool,
@@ -893,6 +899,10 @@ fn main() -> ExitCode {
             min,
             river,
         }),
+        Some(Command::Trace { schema: true, .. }) => {
+            print!("{}", omaspec_model::TRACE_SCHEMA);
+            Ok(ExitCode::SUCCESS)
+        }
         Some(Command::Trace {
             files,
             json,

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:omaspec:trace:1",
+  "title": "A line of an Omaspec trace, version 1",
+  "description": "One JSON object a line (JSON Lines): what one object of a running system did. `omaspec trace` holds the lines, in order, against the state machines of a project. A field that is null counts as absent; other fields are left alone. See docs/trace.md.",
+  "type": "object",
+  "required": ["object"],
+  "anyOf": [{ "required": ["event"] }, { "required": ["state"] }],
+  "properties": {
+    "object": {
+      "description": "Who did it: goes by the state machine named like it, or by the one `machine` names. Many objects may share one machine.",
+      "type": ["string", "number"],
+      "minLength": 1
+    },
+    "event": {
+      "description": "The event the object took, as the machine writes it, without its guard or action.",
+      "type": ["string", "number", "null"],
+      "minLength": 1
+    },
+    "state": {
+      "description": "The state the object is in afterwards, by the name transitions use. On an object's first line without an event: where it begins.",
+      "type": ["string", "number", "null"],
+      "minLength": 1
+    },
+    "machine": {
+      "description": "The state machine the object goes by, where the object is called otherwise.",
+      "type": ["string", "number", "null"],
+      "minLength": 1
+    },
+    "time": {
+      "description": "When, as the system writes it; findings name it.",
+      "type": ["string", "number", "null"]
+    }
+  },
+  "additionalProperties": true
+}

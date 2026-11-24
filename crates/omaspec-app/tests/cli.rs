@@ -504,6 +504,26 @@ fn trace_holds_a_recording_against_the_machines_of_its_folder() {
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(json[0]["line"], 2);
     assert_eq!(json[0]["severity"], "error");
+    // A deviation is a task: what happened, and what the machine expected
+    // there with the lines of the diagram (docs/trace.md).
+    let task = &json[0]["task"];
+    assert_eq!(task["object"], "Door");
+    assert_eq!(task["happened"]["event"], "open");
+    assert_eq!(task["happened"]["time"], "10:30");
+    assert_eq!(
+        task["expected"]["states"],
+        serde_json::json!([{"name": "Locked", "line": 5}])
+    );
+    assert_eq!(
+        task["expected"]["events"],
+        serde_json::json!([{"event": "unlock", "to": "Closed", "line": 6}])
+    );
+    // The format's schema, for whoever writes traces.
+    let out = omaspec(&["trace", "--schema"]);
+    assert_eq!(out.status.code(), Some(0));
+    let schema: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(schema["$id"], "urn:omaspec:trace:1");
+    assert_eq!(schema["required"], serde_json::json!(["object"]));
 
     // As a timing diagram: written as PlantUML, or drawn.
     let out = omaspec(&["trace", "--as", "timing", bad.to_str().unwrap()]);

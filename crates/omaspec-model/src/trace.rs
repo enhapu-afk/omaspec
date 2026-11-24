@@ -26,12 +26,13 @@
 
 use std::collections::HashMap;
 
-use omaspec_core::lint::{Finding, Severity};
+use omaspec_core::lint::{Finding, Happened, Severity, Task};
 use serde_json::Value;
 
 use crate::across::{
     Spec, event_of, events_list, key, no_transition, orthogonal, states_list, written,
 };
+use crate::task::task;
 use crate::{Kind, Machine, Run, Specs, Taken};
 
 /// Ways an object can be at once that are followed; past that it is not
@@ -309,9 +310,9 @@ struct Outcome {
 }
 
 impl Outcome {
-    fn deviation(&mut self, line: usize, message: String) {
+    fn deviation(&mut self, line: usize, message: String, task: Task) {
         self.findings
-            .push(finding("trace-deviation", line, Severity::Error, message));
+            .push(finding("trace-deviation", line, Severity::Error, message).asking(task));
         self.deviated = true;
     }
 }
@@ -370,16 +371,28 @@ impl<'a> Object<'a> {
             Some(time) => format!("At {time}, the trace has {rest}"),
             None => format!("The trace has {rest}"),
         };
+        // What the line says happened, for a deviation's task.
+        let happened = || Happened {
+            event: entry.event.clone(),
+            state: entry.state.clone(),
+            time: entry.time.clone(),
+        };
+        let ask = |ways: &[Run]| task(m, file, &entry.object, happened(), ways);
         let state = match &entry.state {
             Some(name) => match state_named(m, name) {
                 Some(state) => Some(state),
                 None => {
+                    let ways = match &self.track {
+                        Track::Ways(ways) => ways.clone(),
+                        Track::Fresh | Track::Lost => Vec::new(),
+                    };
                     outcome.deviation(
                         entry.line,
                         trace_has(format!(
                             "{} in {name}, but its state machine has no such state ({file}).",
                             entry.object
                         )),
+                        ask(&ways),
                     );
                     self.track = Track::Lost;
                     self.pending.clear();
@@ -462,7 +475,7 @@ impl<'a> Object<'a> {
                             "{body} Its later events are checked again from a line that gives its state."
                         ),
                     };
-                    outcome.deviation(entry.line, say(body));
+                    outcome.deviation(entry.line, say(body), ask(&ways));
                     outcome.passed.clear();
                     if let Some(state) = state {
                         self.anchor(m, state);
@@ -508,6 +521,7 @@ impl<'a> Object<'a> {
                             m.states[state].name,
                             states_list(m, &can_be(m, &ways))
                         )),
+                        ask(&ways),
                     );
                     outcome.passed.clear();
                     self.anchor(m, state);
