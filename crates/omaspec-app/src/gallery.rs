@@ -141,6 +141,12 @@ pub static EXAMPLES: &[Example] = &[
         "A scenario with a loop and two endings."
     ),
     example!(
+        "tea.puml",
+        Behavior,
+        "Tea, the old way",
+        "An activity in PlantUML's old syntax: a choice, a bar and a note."
+    ),
+    example!(
         "repair-shop.mmd",
         Behavior,
         "A bike repair shop",

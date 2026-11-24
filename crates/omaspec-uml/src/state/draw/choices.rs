@@ -1,11 +1,16 @@
 //! Choices as PlantUML draws them: a small diamond with no words in it.
-//! The layout gives each the room of a larger one ([`super::CHOICE_ROOM`]),
-//! which keeps the lines around it as clear as they were; once every line
-//! is laid, the ends of those that meet the larger diamond go on, the way
-//! they come, to the drawn one ([`super::CHOICE`]).
+//! The layout gives each the room of a larger one ([`super::CHOICE_ROOM`];
+//! wider and higher for an activity's test beside it,
+//! [`super::actions::test_room`]), which keeps the lines around it as
+//! clear as they were; once every line is laid, the ends of those that
+//! meet the larger diamond go on, the way they come, to the drawn one
+//! ([`super::CHOICE`]).
 
 use super::super::{Container, Kind};
 use super::{CHOICE, Scene};
+
+/// A choice's middle, and half the width and the height of its room.
+type Room = ((f32, f32), (f32, f32));
 
 /// Lengthens the ends of the lines of `scene` that meet a choice of `root`
 /// onto the diamond drawn.
@@ -32,25 +37,24 @@ pub(super) fn names(container: &Container) -> Vec<String> {
 
 /// The middles of every choice of `container`, and of those inside its
 /// states.
-fn gather(container: &Container, scene: &Scene, out: &mut Vec<(f32, f32)>) {
+fn gather(container: &Container, scene: &Scene, out: &mut Vec<Room>) {
     for (node, placed) in container.nodes.iter().zip(&scene.nodes) {
         if node.kind == Kind::Choice {
             let r = placed.rect;
-            out.push((r.x + r.w / 2.0, r.y + r.h / 2.0));
+            out.push(((r.x + r.w / 2.0, r.y + r.h / 2.0), (r.w / 2.0, r.h / 2.0)));
         }
         gather(&node.children, &placed.children, out);
     }
 }
 
-fn lengthen(scene: &mut Scene, centers: &[(f32, f32)]) {
+fn lengthen(scene: &mut Scene, centers: &[Room]) {
     // A note's dashed line to a choice ends at its box: on to the diamond.
-    let room = super::CHOICE_ROOM / 2.0;
     for note in &mut scene.notes {
         if let Some((from, to)) = &mut note.tether
-            && let Some(&c) = centers
-                .iter()
-                .find(|c| (to.0 - c.0).abs() <= room + 0.5 && (to.1 - c.1).abs() <= room + 0.5)
-            && let Some(end) = toward(*from, *to, c)
+            && let Some(&room) = centers.iter().find(|(c, (hw, hh))| {
+                (to.0 - c.0).abs() <= hw + 0.5 && (to.1 - c.1).abs() <= hh + 0.5
+            })
+            && let Some(end) = toward(*from, *to, room)
         {
             *to = end;
         }
@@ -75,23 +79,22 @@ fn lengthen(scene: &mut Scene, centers: &[(f32, f32)]) {
 /// Where the line from `from` to `end` meets the drawn diamond of the
 /// choice whose larger one `end` is on, going on the way it comes; `None`
 /// when `end` is at no choice, or the line would miss it.
-fn onto(from: (f32, f32), end: (f32, f32), centers: &[(f32, f32)]) -> Option<(f32, f32)> {
-    let half = CHOICE / 2.0;
-    let room = super::CHOICE_ROOM / 2.0;
-    // How far out of a diamond of half `half` about `c` a point lies: 1 on
-    // its edge.
-    let out = |p: (f32, f32), c: (f32, f32)| ((p.0 - c.0).abs() + (p.1 - c.1).abs()) / half;
-    let &c = centers
-        .iter()
-        .find(|&&c| (out(end, c) - room / half).abs() < 0.2)?;
-    toward(from, end, c)
+fn onto(from: (f32, f32), end: (f32, f32), centers: &[Room]) -> Option<(f32, f32)> {
+    // How far out of the larger diamond a point lies: 1 on its edge; the
+    // play as wide as a fifth of the drawn one's half, at the narrower.
+    let near = |&&(c, (hw, hh)): &&Room| {
+        let out = (end.0 - c.0).abs() / hw + (end.1 - c.1).abs() / hh;
+        (out - 1.0).abs() < 0.2 * (CHOICE / 2.0) / hw.min(hh)
+    };
+    let &room = centers.iter().find(near)?;
+    toward(from, end, room)
 }
 
-/// Where the line from `from` to `end` meets the drawn diamond about `c`,
+/// Where the line from `from` to `end` meets the drawn diamond in `room`,
 /// going on the way it comes, or else toward its middle.
-fn toward(from: (f32, f32), end: (f32, f32), c: (f32, f32)) -> Option<(f32, f32)> {
+fn toward(from: (f32, f32), end: (f32, f32), (c, (hw, hh)): Room) -> Option<(f32, f32)> {
     let half = CHOICE / 2.0;
-    let room = super::CHOICE_ROOM / 2.0;
+    let room = hw.max(hh);
     let out = |p: (f32, f32)| ((p.0 - c.0).abs() + (p.1 - c.1).abs()) / half;
     let (dx, dy) = (end.0 - from.0, end.1 - from.1);
     let length = (dx * dx + dy * dy).sqrt();

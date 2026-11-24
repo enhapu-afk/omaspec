@@ -1,0 +1,15 @@
+@startuml
+title Tea, the old way
+(*) --> "Fill the kettle"
+--> "Boil the water"
+if "Green tea?" then
+  -->[yes] "Let it cool a little"
+  --> ===POUR===
+else
+  -->[no] ===POUR===
+endif
+--> "Pour over the leaves"
+--> "Wait three minutes"
+note right: A timer helps
+--> (*)
+@enduml

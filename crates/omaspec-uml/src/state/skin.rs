@@ -51,10 +51,14 @@ pub struct Skin {
     /// The look of the states of a stereotype (`BackgroundColor<<phase>>`),
     /// by its name in lower case.
     pub stereotypes: Vec<(String, Look)>,
-    /// The words under a state's name (`state A : words`,
-    /// `AttributeFontColor`): the state's font, two points smaller,
-    /// unless skinparams say otherwise.
-    pub attribute: Font,
+    /// What skinparams say of the words under a state's name (`state A :
+    /// words`, `AttributeFontColor`); the rest they take from the state's
+    /// font, a stereotype's too ([`Skin::attribute_font`]).
+    pub attribute: Attribute,
+    /// A choice's fill and border where skinparams give it its own
+    /// (`activityDiamondBackgroundColor` in the old activity syntax).
+    pub diamond_fill: Option<Paint>,
+    pub diamond_border: Option<Color>,
     /// The start, the end and the bars, where skinparams give them a color
     /// of their own (`StartColor`, `EndColor`, `BarColor`); else the
     /// border's, or the state's own color.
@@ -103,7 +107,9 @@ impl Default for Skin {
             footer_font: Font::new(10.0, gray),
             caption_font: Font::new(14.0, black),
             stereotypes: Vec::new(),
-            attribute: Font::new(12.0, black),
+            attribute: Attribute::default(),
+            diamond_fill: None,
+            diamond_border: None,
             start: None,
             end: None,
             bar: None,
@@ -187,9 +193,45 @@ const FONTS: [&str; 9] = [
     "default",
 ];
 
+/// What skinparams say of the words under a state's name
+/// (`StateAttributeFontSize`, …); `None` for what the state's font gives.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Attribute {
+    pub size: Option<f32>,
+    pub color: Option<Color>,
+    /// Bold and italic.
+    pub style: Option<(bool, bool)>,
+    pub face: Option<crate::text::Face>,
+}
+
 impl Skin {
     pub fn from_params(params: &[Skinparam]) -> Result<Skin, Declined> {
-        Skin::from_params_on(Skin::default(), params)
+        Skin::from_params_on(Skin::default(), params, false)
+    }
+
+    /// The skin of an activity in PlantUML's old syntax, drawn as states:
+    /// its look ([`Skin::activity`]) with its `activity…` skinparams read
+    /// as the state's (`activityBackgroundColor<< Begin >>`,
+    /// `activityBarColor`, `activityShape`, `activityDiamond…` for its
+    /// choices). A skinparam it declines is named as written.
+    pub fn from_activity_params(params: &[Skinparam]) -> Result<Skin, Declined> {
+        Skin::from_params_on(Skin::activity(), params, true)
+    }
+
+    /// The font of the words under a state's name: the state's, two points
+    /// smaller, as skinparams change it. The skin of a stereotype
+    /// ([`Skin::stereotyped`]) gives its state's font.
+    pub fn attribute_font(&self) -> Font {
+        let state = self.state.font;
+        let a = self.attribute;
+        let (bold, italic) = a.style.unwrap_or((state.bold, state.italic));
+        Font {
+            size: a.size.unwrap_or((state.size - 2.0).max(4.0)),
+            color: a.color.unwrap_or(state.color),
+            bold,
+            italic,
+            face: a.face.or(state.face),
+        }
     }
 
     /// The look of an activity in PlantUML's old syntax, before its
@@ -209,18 +251,23 @@ impl Skin {
         skin
     }
 
-    /// `base` changed by `params`.
-    pub fn from_params_on(base: Skin, params: &[Skinparam]) -> Result<Skin, Declined> {
+    /// `base` changed by `params`, an activity's `activity…` keys read as
+    /// the state's where `activity` says so.
+    fn from_params_on(base: Skin, params: &[Skinparam], activity: bool) -> Result<Skin, Declined> {
         let mut skin = base;
+        // The faces named, put in once the whole skin is read: the hand
+        // writes every word where the diagram is drawn by hand.
+        let mut named: Vec<(&'static str, crate::text::Face)> = Vec::new();
         let mut font_size = None;
         let mut font_color = None;
         let mut own_size = Vec::new();
         let mut own_color = Vec::new();
-        let mut own_face = Vec::new();
-        let mut own_style = Vec::new();
         let mut stereotyped = Vec::new();
         for p in params {
-            let key = normalize_key(&p.key);
+            let mut key = normalize_key(&p.key);
+            if activity && let Some(rest) = key.strip_prefix("activity") {
+                key = format!("state{rest}");
+            }
             let value = p.value.trim();
             if let Some((key, stereotype)) = key.split_once("<<") {
                 let stereotype = stereotype.trim_end_matches(">>").trim().to_owned();
@@ -276,6 +323,8 @@ impl Skin {
                 "statestartcolor" => skin.start = Some(p.solid()?),
                 "stateendcolor" => skin.end = Some(p.solid()?),
                 "statebarcolor" => skin.bar = Some(p.solid()?),
+                "statediamondbackgroundcolor" if activity => skin.diamond_fill = Some(p.paint()?),
+                "statediamondbordercolor" if activity => skin.diamond_border = Some(p.solid()?),
                 "notebackgroundcolor" => skin.note.fill = p.paint()?,
                 "notebordercolor" => skin.note.border = p.solid()?,
                 "noteborderthickness" => skin.note.thickness = p.number(0.0, 20.0)?,
@@ -283,6 +332,22 @@ impl Skin {
                     let Some((element, property)) = split_font(&key) else {
                         return Err(p.unsupported());
                     };
+                    if element == "stateattribute" {
+                        let a = &mut skin.attribute;
+                        match property {
+                            "fontsize" => a.size = Some(p.number(4.0, 100.0)?),
+                            "fontcolor" => a.color = Some(p.solid()?),
+                            "fontstyle" => {
+                                a.style = Some(font_style(value).ok_or_else(|| p.unsupported())?)
+                            }
+                            "fontname" => {
+                                let face = skin.faces.face(value).ok_or_else(|| p.unsupported())?;
+                                named.push((element, face));
+                            }
+                            _ => return Err(p.unsupported()),
+                        }
+                        continue;
+                    }
                     match property {
                         "fontsize" => {
                             let size = p.number(4.0, 100.0)?;
@@ -296,23 +361,13 @@ impl Skin {
                         }
                         "fontname" => {
                             let face = skin.faces.face(value).ok_or_else(|| p.unsupported())?;
-                            own_face.push(element);
-                            font_of(&mut skin, element).face = Some(face);
+                            named.push((element, face));
                         }
                         "fontstyle" => {
-                            let v = value.to_ascii_lowercase();
-                            let words: Vec<&str> = v.split_whitespace().collect();
-                            if words.is_empty()
-                                || words
-                                    .iter()
-                                    .any(|w| !matches!(*w, "plain" | "bold" | "italic"))
-                            {
-                                return Err(p.unsupported());
-                            }
-                            own_style.push(element);
+                            let (bold, italic) =
+                                font_style(value).ok_or_else(|| p.unsupported())?;
                             let font = font_of(&mut skin, element);
-                            font.bold = words.contains(&"bold");
-                            font.italic = words.contains(&"italic");
+                            (font.bold, font.italic) = (bold, italic);
                         }
                         _ => return Err(p.unsupported()),
                     }
@@ -339,20 +394,16 @@ impl Skin {
                 font.color = c;
             }
         }
-        let state = skin.state.font;
-        let attribute = &mut skin.attribute;
-        let set = |list: &[&str]| list.contains(&"stateattribute");
-        if !set(&own_size) {
-            attribute.size = (state.size - 2.0).max(4.0);
-        }
-        if !set(&own_color) {
-            attribute.color = state.color;
-        }
-        if !set(&own_style) {
-            (attribute.bold, attribute.italic) = (state.bold, state.italic);
-        }
-        if !set(&own_face) {
-            attribute.face = state.face;
+        // Faces, but none where the hand writes every word.
+        if skin.sketch {
+            skin.faces = Default::default();
+        } else {
+            for (element, face) in named {
+                match element {
+                    "stateattribute" => skin.attribute.face = Some(face),
+                    _ => font_of(&mut skin, element).face = Some(face),
+                }
+            }
         }
         // Over the look of every state, whichever line came first.
         for (key, stereotype, p) in stereotyped {
@@ -460,10 +511,18 @@ fn split_font(key: &str) -> Option<(&'static str, &str)> {
     found
 }
 
+/// Bold and italic, as `FontStyle` says them (`bold italic`, `plain`).
+fn font_style(value: &str) -> Option<(bool, bool)> {
+    let v = value.to_ascii_lowercase();
+    let words: Vec<&str> = v.split_whitespace().collect();
+    let known = |w: &&str| matches!(*w, "plain" | "bold" | "italic");
+    (!words.is_empty() && words.iter().all(known))
+        .then(|| (words.contains(&"bold"), words.contains(&"italic")))
+}
+
 fn font_of<'a>(skin: &'a mut Skin, element: &str) -> &'a mut Font {
     match element {
         "arrow" => &mut skin.arrow_font,
-        "stateattribute" => &mut skin.attribute,
         "note" => &mut skin.note.font,
         "title" => &mut skin.title_font,
         "header" => &mut skin.header_font,
@@ -558,10 +617,8 @@ mod tests {
     #[test]
     fn attributes_starts_ends_and_faces() {
         let s = skin(&[("StateFontSize", "15"), ("StateFontColor", "red")]).unwrap();
-        assert_eq!(
-            (s.attribute.size, s.attribute.color),
-            (13.0, Color(255, 0, 0))
-        );
+        let a = s.attribute_font();
+        assert_eq!((a.size, a.color), (13.0, Color(255, 0, 0)));
         let s = skin(&[
             ("StateAttributeFontColor", "blue"),
             ("StateAttributeFontSize", "9"),
@@ -573,12 +630,10 @@ mod tests {
             ("StateBarColor", "SaddleBrown"),
         ])
         .unwrap();
-        assert_eq!(
-            (s.attribute.size, s.attribute.color),
-            (9.0, Color(0, 0, 255))
-        );
-        assert!(s.attribute.italic);
-        assert_eq!(s.attribute.face.unwrap().family, crate::text::Family::Serif);
+        let a = s.attribute_font();
+        assert_eq!((a.size, a.color), (9.0, Color(0, 0, 255)));
+        assert!(a.italic && !a.bold);
+        assert_eq!(a.face.unwrap().family, crate::text::Family::Serif);
         assert_eq!(s.state.font.face.unwrap().name, Some(1));
         assert_eq!(s.faces.0, ["serif", "Impact"]);
         assert_eq!(s.start, Some(Color(0, 0, 205)));
@@ -589,6 +644,55 @@ mod tests {
         )
         .unwrap();
         assert!(svg.contains("#0000CD") && svg.contains("#FF0000"), "{svg}");
+        // A stereotype's words under its name follow its font (found in
+        // review, 2026-11-24).
+        let s = skin(&[
+            ("StateFontSize<<Error>>", "20"),
+            ("StateFontColor<<Error>>", "red"),
+        ])
+        .unwrap();
+        let a = s.stereotyped(Some("Error")).attribute_font();
+        assert_eq!((a.size, a.color), (18.0, Color(255, 0, 0)));
+        // The hand writes every word: no face of an element's own.
+        let s = skin(&[("StateFontName", "Impact"), ("handwritten", "true")]).unwrap();
+        assert_eq!((s.state.font.face, s.faces.0.len()), (None, 0));
+    }
+
+    /// An activity in the old syntax reads its `activity…` skinparams as
+    /// the state's, its diamonds' too, and names a key it declines as
+    /// written (found in review, 2026-11-24).
+    #[test]
+    fn an_activity_reads_its_own_keys() {
+        let params = |lines: &[(&str, &str)]| -> Vec<Skinparam> {
+            lines
+                .iter()
+                .enumerate()
+                .map(|(line, (key, value))| Skinparam {
+                    key: (*key).into(),
+                    value: (*value).into(),
+                    line,
+                    declared: None,
+                })
+                .collect()
+        };
+        let s = Skin::from_activity_params(&params(&[
+            ("ActivityBackgroundColor", "Peru"),
+            ("ActivityDiamondBackgroundColor", "#23272f"),
+            ("ActivityDiamondBorderColor", "red"),
+            ("ActivityBackgroundColor<< Begin >>", "Olive"),
+        ]))
+        .unwrap();
+        assert_eq!(s.state.fill, Some(Color(205, 133, 63)));
+        assert_eq!(s.diamond_fill, Some(Some(Color(0x23, 0x27, 0x2f))));
+        assert_eq!(s.diamond_border, Some(Color(255, 0, 0)));
+        assert_eq!(
+            s.stereotyped(Some("begin")).state.fill,
+            Some(Color(128, 128, 0))
+        );
+        let err = Skin::from_activity_params(&params(&[("ActivityNoSuchKey", "1")])).unwrap_err();
+        assert!(err.reason.contains("ActivityNoSuchKey"), "{}", err.reason);
+        // A state diagram has no diamonds of its own.
+        assert!(skin(&[("StateDiamondBackgroundColor", "red")]).is_err());
     }
 
     #[test]

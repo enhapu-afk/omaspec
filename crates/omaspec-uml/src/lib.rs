@@ -302,14 +302,19 @@ pub fn element_lines(source: &str) -> Option<Vec<Line<'_>>> {
 }
 
 /// The type of an `@startuml` diagram, by its deciding lines.
-fn decide(lines: &[source::Line]) -> UmlType {
-    // A one-line title stays in the element lines (the outline reads it)
-    // and still does not decide the type: `title Sidewa[*] --> Idle` is
-    // title text, and PlantUML draws a class diagram.
-    let deciding: Vec<source::Line> = common::deciding(lines)
+/// The lines that decide a diagram's type: neither the words of a note, a
+/// legend or a title, nor a one-line title, which stays in the element
+/// lines (the outline reads it): `title Sidewa[*] --> Idle` is title text,
+/// and PlantUML draws a class diagram.
+fn deciding<'a>(lines: &[source::Line<'a>]) -> Vec<source::Line<'a>> {
+    common::deciding(lines)
         .into_iter()
         .filter(|line| !common::one_line_frame(line.text))
-        .collect();
+        .collect()
+}
+
+fn decide(lines: &[source::Line]) -> UmlType {
+    let deciding = deciding(lines);
     // A timing keyword wins: `rectangle` is a timing row only once the
     // diagram is already a timing diagram, and on its own it stays a
     // structure diagram.
@@ -352,7 +357,7 @@ fn uml(lines: &[source::Line]) -> Result<Diagram, Declined> {
         UmlType::Timing => Diagram::Timing(timing::parse(lines)?),
         // The old syntax (`(*) --> "Action"`) is a graph, which the state
         // diagram's engine lays out.
-        UmlType::Activity if state::legacy::is_legacy(lines) => {
+        UmlType::Activity if state::legacy::is_legacy(&deciding(lines)) => {
             Diagram::State(state::legacy::parse(lines)?)
         }
         UmlType::Activity => Diagram::Activity(activity::parse(lines)?),

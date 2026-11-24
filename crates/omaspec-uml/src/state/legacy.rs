@@ -105,12 +105,16 @@ struct Reader {
     ifs: Vec<usize>,
     start: Option<usize>,
     end: Option<usize>,
+    /// Every name as its line writes it ([`Diagram::names`]).
+    names: Vec<crate::Mention>,
 }
 
 impl Reader {
     fn line(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
         let Line { no, text, .. } = lines[at];
         let t = text.trim();
+        // Where words of `t` start on the line of the source.
+        let col = |words: &str| lines[at].at + crate::source::offset_in(text, words);
         if t.is_empty() {
             return Ok(at + 1);
         }
@@ -148,14 +152,19 @@ impl Reader {
             let from = self
                 .last
                 .ok_or_else(|| Declined::at(no, "an `if` needs something before it"))?;
+            let test_at = t.find('"').map(|q| col(&t[q + 1..]));
             let choice = self.thing(Token::If(test), false, None, no)?;
+            self.raws[choice].label.col = test_at;
             self.arrows
                 .push((from, choice, transition(&Shape::default(), None, no)));
             self.last = Some(choice);
             return Ok(at + 1);
         }
         if let Some((start, end, shape)) = find_arrow(t) {
-            return self.arrow(lines, at, &t[..start], shape, &t[end..]);
+            let right = &t[end..];
+            // Words in brackets stand amid the line, where they start.
+            let label_at = right.trim_start().strip_prefix('[').map(col);
+            return self.arrow(lines, at, &t[..start], shape, (right, label_at));
         }
         Err(Declined::at(
             no,
@@ -174,7 +183,7 @@ impl Reader {
         at: usize,
         left: &str,
         shape: Shape,
-        right: &str,
+        (right, label_at): (&str, Option<usize>),
     ) -> Result<usize, Declined> {
         let no = lines[at].no;
         let (label, rest) = bracketed(right.trim_start());
@@ -217,8 +226,24 @@ impl Reader {
                 self.thing(from, false, stereotype, no)?
             }
         };
+        // The test of an `if` an arrow leads to stands amid the line too;
+        // `right` is a piece of it, which the words were copied from.
+        let test_at = match &to {
+            Token::If(_) => right.find('"').map(|q| {
+                let line = &lines[at];
+                line.at + crate::source::offset_in(line.text, &right[q + 1..])
+            }),
+            _ => None,
+        };
         let to = self.thing(to, true, stereotype, no)?;
-        self.arrows.push((from, to, transition(&shape, label, no)));
+        if test_at.is_some() && next == at + 1 {
+            self.raws[to].label.col = test_at;
+        }
+        let mut arrow = transition(&shape, label, no);
+        if let Some(label) = &mut arrow.label {
+            label.col = label_at;
+        }
+        self.arrows.push((from, to, arrow));
         self.last = Some(to);
         Ok(next)
     }
@@ -251,17 +276,24 @@ impl Reader {
                     }
                 }
             }
+            // A new alias is a new action, whatever its words, as PlantUML
+            // makes one; words alone reach the first with those words.
             Token::Quoted { words, alias } => {
-                let found = alias
-                    .as_ref()
-                    .and_then(|a| self.keys.get(a))
-                    .or_else(|| self.keys.get(&words))
-                    .copied();
+                let found = match &alias {
+                    Some(alias) => self.keys.get(alias),
+                    None => self.keys.get(&words),
+                }
+                .copied();
                 let at = match found {
-                    Some(at) => at,
+                    Some(at) => {
+                        self.mention(at, false, no);
+                        at
+                    }
                     None => {
                         let key = alias.clone().unwrap_or_else(|| words.clone());
-                        self.make(key, text_at(&words, no), Kind::State, no)
+                        let at = self.make(key, text_at(&words, no), Kind::State, no);
+                        self.mention(at, true, no);
+                        at
                     }
                 };
                 self.keys.entry(words).or_insert(at);
@@ -271,10 +303,14 @@ impl Reader {
                 at
             }
             Token::Name(name) => match self.keys.get(&name) {
-                Some(&at) => at,
+                Some(&at) => {
+                    self.mention(at, false, no);
+                    at
+                }
                 None => {
                     let at = self.make(name.clone(), text_at(&name, no), Kind::State, no);
                     self.keys.insert(name, at);
+                    self.mention(at, true, no);
                     at
                 }
             },
@@ -302,6 +338,27 @@ impl Reader {
         Ok(at)
     }
 
+    /// The name of the thing `at` as the line `no` writes it: declaring
+    /// it, or using it.
+    fn mention(&mut self, at: usize, declares: bool, no: usize) {
+        let raw = &self.raws[at];
+        let shown = match raw.label.value != raw.key {
+            true => raw.label.value.clone(),
+            false => String::new(),
+        };
+        let place = self
+            .open
+            .map(|p| vec![(self.partitions[p].name.clone(), 0)])
+            .unwrap_or_default();
+        self.names.push(crate::Mention {
+            name: raw.key.clone(),
+            shown,
+            line: no,
+            declares,
+            place,
+        });
+    }
+
     fn make(&mut self, key: String, label: Text, kind: Kind, line: usize) -> usize {
         let at = self.raws.len();
         self.raws.push(Raw {
@@ -327,15 +384,29 @@ impl Reader {
                 "a partition is written `partition Name {`",
             ));
         };
-        let mut rest = rest.trim();
-        let mut fill = None;
-        if let Some(at) = rest.rfind(" #") {
-            fill = Some(rest[at + 1..].trim().to_owned());
-            rest = rest[..at].trim();
-        } else if rest.starts_with('#') {
-            return Err(Declined::at(no, "a partition needs a name"));
-        }
-        let name = rest.trim_matches('"').trim();
+        let rest = rest.trim();
+        // A quoted name keeps a `#` in it; the color stands after it.
+        let (name, after) = match rest.strip_prefix('"') {
+            Some(quoted) => match quoted.find('"') {
+                Some(close) => (&quoted[..close], quoted[close + 1..].trim()),
+                None => return Err(Declined::at(no, "the partition's name has an open quote")),
+            },
+            None => match rest.find(" #") {
+                Some(at) => (&rest[..at], rest[at..].trim()),
+                None => (rest, ""),
+            },
+        };
+        let fill = match after {
+            "" => None,
+            color if color.starts_with('#') => Some(color.to_owned()),
+            _ => {
+                return Err(Declined::at(
+                    no,
+                    "a partition is written `partition Name #color {`",
+                ));
+            }
+        };
+        let name = name.trim();
         if name.is_empty() {
             return Err(Declined::at(no, "a partition needs a name"));
         }
@@ -424,6 +495,7 @@ impl Reader {
             notes,
             partitions,
             order,
+            names,
             ..
         } = self;
         let mut paths: Vec<Vec<usize>> = vec![Vec::new(); raws.len()];
@@ -492,27 +564,11 @@ impl Reader {
         }
         Ok(Diagram {
             root,
-            frame: activity_skin(frame),
-            names: Vec::new(),
+            frame,
+            names,
             activity: true,
         })
     }
-}
-
-/// `frame` with the activity's skinparams as the state's: `activity…` keys
-/// (`activityBackgroundColor<<Begin>>`, `activityBarColor`,
-/// `activityShape`) are `state…` keys; the arrow's are both diagrams'.
-fn activity_skin(mut frame: Frame) -> Frame {
-    for param in &mut frame.skinparams {
-        let key = &param.key;
-        if key.len() > 8 && key[..8].eq_ignore_ascii_case("activity") {
-            let rest = &key[8..];
-            if !rest.to_ascii_lowercase().starts_with("arrow") {
-                param.key = format!("state{rest}");
-            }
-        }
-    }
-    frame
 }
 
 fn container_mut<'a>(root: &'a mut Container, path: &[usize]) -> &'a mut Container {
@@ -618,17 +674,22 @@ fn arrow_at(text: &str) -> Option<(usize, Shape)> {
     let mut between = false;
     if b.get(j) == Some(&b'[') {
         let close = text[j..].find(']')? + j;
+        // Hidden whatever else the brackets say, as PlantUML reads them.
+        let mut hidden = false;
         for part in text[j + 1..close].split(',') {
             let part = part.trim();
             match part.to_ascii_lowercase().as_str() {
                 "dashed" => shape.dash = Dash::Dashed,
                 "dotted" => shape.dash = Dash::Dotted,
                 "bold" => shape.bold = true,
-                "hidden" => shape.dash = Dash::Hidden,
+                "hidden" => hidden = true,
                 "plain" | "" => {}
                 _ if part.starts_with('#') => shape.color = Some(part.to_owned()),
                 _ => return None,
             }
+        }
+        if hidden {
+            shape.dash = Dash::Hidden;
         }
         j = close + 1;
         between = true;
@@ -861,6 +922,70 @@ mod tests {
             .map(|n| (n.target, n.text.value.as_str()))
             .collect();
         assert_eq!(notes, [(1, "on one line"), (3, "on\nlines")]);
+    }
+
+    /// Found in review (2026-11-24): a new alias is a new action, hidden
+    /// stays hidden, names are kept as written, a quoted partition keeps a
+    /// `#`, and words amid a line say where they stand.
+    #[test]
+    fn aliases_hidden_arrows_names_and_places() {
+        let d = read(
+            "@startuml\n(*) --> \"same\" as a1\n(*) --> \"same\" as a2\na1 -[hidden,dashed]-> a2\npartition \"Step #1\" #pink {\n  a2 --> if \"ok?\" then\n  -->[yes] \"B\"\n  endif\n}\n@enduml\n",
+        );
+        let labels: Vec<&str> = d
+            .root
+            .nodes
+            .iter()
+            .map(|n| n.label.value.as_str())
+            .collect();
+        assert_eq!(labels, ["", "same", "same", "Step #1"]);
+        assert_eq!(d.root.nodes[3].fill.as_deref(), Some("#pink"));
+        assert_eq!(d.root.edges[2].dash, Dash::Hidden);
+        // `if "ok?"` on line 5: its test starts after the quote.
+        let choice = &d.root.nodes[3].children.nodes[0];
+        assert_eq!((choice.label.line, choice.label.col), (5, Some(13)));
+        let yes = d.root.nodes[3]
+            .children
+            .edges
+            .iter()
+            .find_map(|e| e.label.as_ref())
+            .unwrap();
+        assert_eq!((yes.value.as_str(), yes.col), ("yes", Some(6)));
+        let names: Vec<(&str, usize, bool)> = d
+            .names
+            .iter()
+            .map(|m| (m.name.as_str(), m.line, m.declares))
+            .collect();
+        assert_eq!(
+            names,
+            [
+                ("a1", 1, true),
+                ("a2", 2, true),
+                ("a1", 3, false),
+                ("a2", 3, false),
+                ("a2", 5, false),
+                ("B", 6, true)
+            ]
+        );
+        assert_eq!(d.names[5].place, [("Step #1".to_owned(), 0)]);
+    }
+
+    /// A new-syntax diagram whose note or title ends at `(*)` stays one;
+    /// one that starts at `(*top)` is an old one (found in review).
+    #[test]
+    fn what_decides_the_old_syntax() {
+        crate::render(
+            "@startuml\nstart\n:a;\nnote right\n  the old start was (*)\nend note\nstop\n@enduml\n",
+        )
+        .unwrap();
+        crate::render("@startuml\ntitle Flow (*)\nstart\n:a;\nstop\n@enduml\n").unwrap();
+        let svg = crate::render("@startuml\n(*top) --> \"A\"\n\"A\" --> (*)\n@enduml\n").unwrap();
+        assert!(svg.contains(">A</tspan>"), "{svg}");
+        // A stereotype of more than one byte in a key does not panic.
+        crate::render(
+            "@startuml\nskinparam activityBackgroundColor<<\u{e4}>> red\n(*) --> \"A\" <<\u{e4}>>\n\"A\" --> (*)\n@enduml\n",
+        )
+        .unwrap();
     }
 
     #[test]

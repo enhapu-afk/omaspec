@@ -234,6 +234,9 @@ impl Skin {
         let mut font_color = None;
         let mut own_size = Vec::new();
         let mut own_color = Vec::new();
+        // The faces named, put in once the whole skin is read: the hand
+        // writes every word where the diagram is drawn by hand.
+        let mut named: Vec<(&'static str, crate::text::Face)> = Vec::new();
         for p in params {
             let key = normalize(&p.key);
 
@@ -326,7 +329,7 @@ impl Skin {
                         }
                         "fontname" => {
                             let face = skin.faces.face(&p.value).ok_or_else(|| p.unsupported())?;
-                            font_of(&mut skin, element).face = Some(face);
+                            named.push((element, face));
                         }
                         "fontstyle" => {
                             let v = p.value.trim().to_ascii_lowercase();
@@ -382,6 +385,13 @@ impl Skin {
                 && !own_color.contains(&element)
             {
                 font.color = c;
+            }
+        }
+        if skin.sketch {
+            skin.faces = Default::default();
+        } else {
+            for (element, face) in named {
+                font_of(&mut skin, element).face = Some(face);
             }
         }
         Ok(skin)
@@ -704,6 +714,16 @@ mod tests {
         // The message keeps the diagram's face.
         assert_eq!(svg.matches("font-family=\"Impact").count(), 4, "{svg}");
         assert!(skin(&[("ParticipantFontName", "a<b")]).is_err());
+        // By hand, the hand writes every word; words that name a face of
+        // their own keep it (found in review, 2026-11-24).
+        let s = skin(&[("ParticipantFontName", "Impact"), ("handwritten", "true")]).unwrap();
+        assert_eq!((s.participant.font.face, s.faces.0.len()), (None, 0));
+        let svg = crate::render(
+            "@startuml\nskinparam handwritten true\nskinparam ParticipantFontName Impact\nA -> B : <font:courier>mono</font>\n@enduml\n",
+        )
+        .unwrap();
+        assert!(!svg.contains("Impact"), "{svg}");
+        assert!(svg.contains(crate::svg::MONO_FACES), "{svg}");
     }
 
     #[test]

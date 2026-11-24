@@ -20,6 +20,7 @@ use crate::map::{Map, Route, Shape, Spot};
 use crate::svg::{Align, Canvas, Layer, Stroke, n};
 use crate::text::{self, Block, Family, Font};
 
+mod actions;
 #[cfg(test)]
 mod bars;
 mod choices;
@@ -75,7 +76,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
 /// The SVG, and where its states and transitions are in it.
 pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let skin = match diagram.activity {
-        true => Skin::from_params_on(Skin::activity(), &diagram.frame.skinparams)?,
+        true => Skin::from_activity_params(&diagram.frame.skinparams)?,
         false => Skin::from_params(&diagram.frame.skinparams)?,
     };
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
@@ -380,12 +381,8 @@ fn measure_node(
     let (width, height, title, description) = match node.kind {
         Kind::State => {
             let mut title = node.label.measure(title_font(skin, node)?, family)?;
-            // An action's lines start at the left of its words, as
-            // PlantUML sets them.
             if !skin.bold_names {
-                for line in &mut title.lines {
-                    line.flush = true;
-                }
+                actions::from_left(&mut title);
             }
             let description = text_blocks(&node.description, desc_font(skin), family)?;
             let width = (stack_width(&title, &description) + PAD_X * 2.0).max(MIN_W);
@@ -404,9 +401,10 @@ fn measure_node(
         Kind::Choice => {
             let test = match skin.bold_names {
                 true => Block::empty(),
-                false => node.label.measure(skin.arrow_font, family)?,
+                false => node.label.measure_written(skin.arrow_font, family)?,
             };
-            (CHOICE_ROOM, CHOICE_ROOM, test, Vec::new())
+            let (w, h) = actions::test_room(&test);
+            (w, h, test, Vec::new())
         }
         Kind::History | Kind::DeepHistory => {
             let word = if node.kind == Kind::DeepHistory {
@@ -489,10 +487,10 @@ pub(super) fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color),
         Some(value) => color::parse(value).map_err(|err| Declined::at(node.line, err))?,
         None => None,
     };
-    let fill = if node.fill.is_some() {
-        own
-    } else {
-        skin.state.fill
+    let fill = match (&node.fill, node.kind) {
+        (Some(_), _) => own,
+        (None, Kind::Choice) => skin.diamond_fill.unwrap_or(skin.state.fill),
+        (None, _) => skin.state.fill,
     };
     let border_color = match &node.line_color {
         Some(value) => match color::parse(value).map_err(|err| Declined::at(node.line, err))? {
@@ -501,6 +499,7 @@ pub(super) fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color),
                 return Err(Declined::at(node.line, "a border must not be transparent"));
             }
         },
+        None if node.kind == Kind::Choice => skin.diamond_border.unwrap_or(skin.state.border),
         None => skin.state.border,
     };
     let width = if node.border_bold {
@@ -1064,7 +1063,7 @@ pub(super) fn name_color(node: &Node) -> Result<Option<Color>, Declined> {
 }
 
 fn desc_font(skin: &Skin) -> Font {
-    skin.attribute
+    skin.attribute_font()
 }
 
 fn text_blocks(items: &[super::Text], font: Font, family: Family) -> Result<Vec<Block>, Declined> {
@@ -1137,23 +1136,7 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
     match node.item.kind {
         Kind::State if skin.octagon && !node.item.composite => {
-            let cut = (rect.h / 4.0).min(rect.w / 4.0);
-            let (l, t, r, b) = (rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
-            canvas.polygon(
-                Layer::Frames,
-                &[
-                    (l + cut, t),
-                    (r - cut, t),
-                    (r, t + cut),
-                    (r, b - cut),
-                    (r - cut, b),
-                    (l + cut, b),
-                    (l, b - cut),
-                    (l, t + cut),
-                ],
-                node.item.fill,
-                Some(node.item.border),
-            );
+            actions::octagon(canvas, rect, node.item.fill, node.item.border);
         }
         Kind::State => {
             let radius = skin.round.min(rect.w / 2.0).min(rect.h / 2.0);
@@ -1543,23 +1526,8 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
             let at = point_name(node);
             canvas.text(Layer::Front, &node.item.title, (at.x, at.y), Align::Left);
         }
-        // An activity's test, to the left above the diamond, as PlantUML
-        // sets it: clear of the words on a way out to the left, and of the
-        // line coming in at the top.
-        Kind::Choice => {
-            let half = CHOICE / 2.0;
-            let (cx, cy) = (
-                node.rect.x + node.rect.w / 2.0,
-                node.rect.y + node.rect.h / 2.0,
-            );
-            let title = &node.item.title;
-            canvas.text(
-                Layer::Front,
-                title,
-                (cx - 4.0, cy - half - 4.0 - title.height),
-                Align::Right,
-            );
-        }
+        // An activity's test, to the left above its diamond.
+        Kind::Choice => actions::paint_test(canvas, node),
         Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
     }
 }

@@ -574,6 +574,24 @@ is open and the reasoning around it.
       a conversion leave it alone. The guide: the old syntax 13 of 13, 548
       of 897 in all.
 
+- [x] What the review of the element faces and the old activity syntax
+      found (2026-11-24). A skinparam's stereotype of more than one byte no
+      longer panics: the `activity…` keys are read as the state's in the
+      skin (`Skin::from_activity_params`), which names a key it declines
+      as written, and takes the theme packs' `activityDiamond…` for the
+      choices. A test of an `if` has room in the layout, as wide and as
+      high as it reaches beside its diamond (`state/draw/actions.rs`, which
+      also holds the octagon and the names from the left; a choice's room
+      may now be wider than high, `choices.rs`), and it and a branch's
+      words in brackets are tied to where they stand on their line. A new
+      alias is a new action, `-[hidden,dashed]->` stays hidden, a quoted
+      partition keeps a `#` in its name, and every name is kept as its line
+      writes it. A note or a title that ends at `(*)` no longer makes a
+      new-syntax diagram an old one, and `(*top)` starts one. A
+      stereotype's words under its name follow its font, and by hand the
+      hand writes every word, while words that name a face keep it. The
+      gallery has an activity in the old syntax (`tea.puml`).
+
 ### Step 5: what every diagram shares
 
 - [x] A face for one kind of element (2026-11-24): `ParticipantFontName

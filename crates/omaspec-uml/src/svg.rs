@@ -1332,7 +1332,9 @@ impl Canvas {
                     cut(out);
                     if s.mono {
                         let _ = write!(out, r#" font-family="{MONO_FACES}""#);
-                    } else if let Some(face) = s.face.filter(|_| !hand) {
+                    } else if let Some(face) = s.face {
+                        // A skin drawn by hand names no face of its own;
+                        // words that name one (`<font:courier>`) keep it.
                         match face.name.and_then(|at| self.faces.get(at as usize)) {
                             Some(name) => {
                                 let _ = write!(

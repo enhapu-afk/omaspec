@@ -89,6 +89,8 @@ fn marks_activity(text: &str) -> bool {
     starts_action(text)
         || list_item(text).is_some()
         || text.starts_with("(*)")
+        || text.starts_with("(*top)")
+        || text.ends_with("(*)")
         || (text.starts_with('#') && text.contains(':'))
         || (text.starts_with('|') && !text.starts_with("||") && text[1..].contains('|'))
         || [

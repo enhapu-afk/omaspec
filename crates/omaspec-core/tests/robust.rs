@@ -319,6 +319,8 @@ fn classify_names_the_type_the_engine_draws() {
         let drawn = match diagram {
             omaspec_uml::Diagram::Sequence(_) => Kind::Sequence,
             omaspec_uml::Diagram::Activity(_) => Kind::Activity,
+            // The old activity syntax is drawn on the state diagram's graph.
+            omaspec_uml::Diagram::State(d) if d.activity => Kind::Activity,
             omaspec_uml::Diagram::State(_) => Kind::State,
             omaspec_uml::Diagram::Structure(_) => Kind::Structure,
             omaspec_uml::Diagram::Timing(_) => Kind::Timing,
