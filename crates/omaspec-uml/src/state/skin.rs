@@ -51,6 +51,18 @@ pub struct Skin {
     /// The look of the states of a stereotype (`BackgroundColor<<phase>>`),
     /// by its name in lower case.
     pub stereotypes: Vec<(String, Look)>,
+    /// The words under a state's name (`state A : words`,
+    /// `AttributeFontColor`): the state's font, two points smaller,
+    /// unless skinparams say otherwise.
+    pub attribute: Font,
+    /// The start, the end and the bars, where skinparams give them a color
+    /// of their own (`StartColor`, `EndColor`, `BarColor`); else the
+    /// border's, or the state's own color.
+    pub start: Option<Color>,
+    pub end: Option<Color>,
+    pub bar: Option<Color>,
+    /// The faces its elements' fonts name (`StateFontName Impact`).
+    pub faces: crate::text::Faces,
 }
 
 impl Default for Skin {
@@ -86,6 +98,11 @@ impl Default for Skin {
             footer_font: Font::new(10.0, gray),
             caption_font: Font::new(14.0, black),
             stereotypes: Vec::new(),
+            attribute: Font::new(12.0, black),
+            start: None,
+            end: None,
+            bar: None,
+            faces: Default::default(),
         }
     }
 }
@@ -151,8 +168,16 @@ const NO_EFFECT: [&str; 5] = [
 ];
 
 /// Elements with a font, by their skinparam name.
-const FONTS: [&str; 8] = [
-    "state", "arrow", "note", "title", "header", "footer", "caption", "default",
+const FONTS: [&str; 9] = [
+    "state",
+    "stateattribute",
+    "arrow",
+    "note",
+    "title",
+    "header",
+    "footer",
+    "caption",
+    "default",
 ];
 
 impl Skin {
@@ -162,6 +187,8 @@ impl Skin {
         let mut font_color = None;
         let mut own_size = Vec::new();
         let mut own_color = Vec::new();
+        let mut own_face = Vec::new();
+        let mut own_style = Vec::new();
         let mut stereotyped = Vec::new();
         for p in params {
             let key = normalize_key(&p.key);
@@ -210,6 +237,9 @@ impl Skin {
                 "statebackgroundcolor" => skin.state.fill = p.paint()?,
                 "statebordercolor" => skin.state.border = p.solid()?,
                 "stateborderthickness" => skin.state.thickness = p.number(0.0, 20.0)?,
+                "statestartcolor" => skin.start = Some(p.solid()?),
+                "stateendcolor" => skin.end = Some(p.solid()?),
+                "statebarcolor" => skin.bar = Some(p.solid()?),
                 "notebackgroundcolor" => skin.note.fill = p.paint()?,
                 "notebordercolor" => skin.note.border = p.solid()?,
                 "noteborderthickness" => skin.note.thickness = p.number(0.0, 20.0)?,
@@ -228,6 +258,11 @@ impl Skin {
                             own_color.push(element);
                             font_of(&mut skin, element).color = c;
                         }
+                        "fontname" => {
+                            let face = skin.faces.face(value).ok_or_else(|| p.unsupported())?;
+                            own_face.push(element);
+                            font_of(&mut skin, element).face = Some(face);
+                        }
                         "fontstyle" => {
                             let v = value.to_ascii_lowercase();
                             let words: Vec<&str> = v.split_whitespace().collect();
@@ -238,6 +273,7 @@ impl Skin {
                             {
                                 return Err(p.unsupported());
                             }
+                            own_style.push(element);
                             let font = font_of(&mut skin, element);
                             font.bold = words.contains(&"bold");
                             font.italic = words.contains(&"italic");
@@ -250,8 +286,9 @@ impl Skin {
         for element in FONTS {
             // `default` is the fallback applied above, not a font of its own.
             // `font_of` would otherwise hand it the state font and overwrite
-            // a size set on the state.
-            if element == "default" {
+            // a size set on the state. A state's words take its font where
+            // their own say nothing.
+            if element == "default" || element == "stateattribute" {
                 continue;
             }
             let font = font_of(&mut skin, element);
@@ -265,6 +302,21 @@ impl Skin {
             {
                 font.color = c;
             }
+        }
+        let state = skin.state.font;
+        let attribute = &mut skin.attribute;
+        let set = |list: &[&str]| list.contains(&"stateattribute");
+        if !set(&own_size) {
+            attribute.size = (state.size - 2.0).max(4.0);
+        }
+        if !set(&own_color) {
+            attribute.color = state.color;
+        }
+        if !set(&own_style) {
+            (attribute.bold, attribute.italic) = (state.bold, state.italic);
+        }
+        if !set(&own_face) {
+            attribute.face = state.face;
         }
         // Over the look of every state, whichever line came first.
         for (key, stereotype, p) in stereotyped {
@@ -375,6 +427,7 @@ fn split_font(key: &str) -> Option<(&'static str, &str)> {
 fn font_of<'a>(skin: &'a mut Skin, element: &str) -> &'a mut Font {
     match element {
         "arrow" => &mut skin.arrow_font,
+        "stateattribute" => &mut skin.attribute,
         "note" => &mut skin.note.font,
         "title" => &mut skin.title_font,
         "header" => &mut skin.header_font,
@@ -464,6 +517,44 @@ mod tests {
         assert!(s.strict);
     }
 
+    /// The words under a state's name, the start, the end and the bars
+    /// take what skinparams give them; a face too.
+    #[test]
+    fn attributes_starts_ends_and_faces() {
+        let s = skin(&[("StateFontSize", "15"), ("StateFontColor", "red")]).unwrap();
+        assert_eq!(
+            (s.attribute.size, s.attribute.color),
+            (13.0, Color(255, 0, 0))
+        );
+        let s = skin(&[
+            ("StateAttributeFontColor", "blue"),
+            ("StateAttributeFontSize", "9"),
+            ("StateAttributeFontStyle", "italic"),
+            ("StateAttributeFontName", "serif"),
+            ("StateFontName", "Impact"),
+            ("StateStartColor", "MediumBlue"),
+            ("StateEndColor", "Red"),
+            ("StateBarColor", "SaddleBrown"),
+        ])
+        .unwrap();
+        assert_eq!(
+            (s.attribute.size, s.attribute.color),
+            (9.0, Color(0, 0, 255))
+        );
+        assert!(s.attribute.italic);
+        assert_eq!(s.attribute.face.unwrap().family, crate::text::Family::Serif);
+        assert_eq!(s.state.font.face.unwrap().name, Some(1));
+        assert_eq!(s.faces.0, ["serif", "Impact"]);
+        assert_eq!(s.start, Some(Color(0, 0, 205)));
+        assert_eq!(s.end, Some(Color(255, 0, 0)));
+        assert_eq!(s.bar, Some(Color(139, 69, 19)));
+        let svg = crate::render(
+            "@startuml\nskinparam state {\n  StartColor MediumBlue\n  EndColor Red\n}\n[*] --> A\nA --> [*]\n@enduml\n",
+        )
+        .unwrap();
+        assert!(svg.contains("#0000CD") && svg.contains("#FF0000"), "{svg}");
+    }
+
     #[test]
     fn handwritten_draws_by_hand() {
         assert!(!skin(&[]).unwrap().sketch);
@@ -475,7 +566,7 @@ mod tests {
     #[test]
     fn declines_what_would_change_the_picture() {
         for (key, value) in [
-            ("StateFontName", "Courier"),
+            ("StateFontName", "a<b"),
             ("StateBackgroundColor", "#red/blue"),
         ] {
             let err = skin(&[("roundCorner", "3"), (key, value)]).unwrap_err();

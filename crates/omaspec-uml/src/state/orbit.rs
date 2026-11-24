@@ -76,6 +76,7 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
+    canvas.faces(&skin.faces);
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,

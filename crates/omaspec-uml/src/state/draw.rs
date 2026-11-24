@@ -78,6 +78,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
+    canvas.faces(&skin.faces);
     if diagram.frame.parts {
         canvas.mark_parts();
     }
@@ -496,7 +497,14 @@ pub(super) fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color),
         Dash::Dashed => Some((7.0, 5.0)),
         Dash::Dotted => Some((1.5, 3.0)),
     };
-    let mark = own.unwrap_or(border_color);
+    // Its own color first, then what the skin gives its kind.
+    let kind = match node.kind {
+        Kind::Start => skin.start,
+        Kind::End => skin.end,
+        Kind::Fork | Kind::Join => skin.bar,
+        _ => None,
+    };
+    let mark = own.or(kind).unwrap_or(border_color);
     Ok((fill, border, mark))
 }
 
@@ -1035,10 +1043,7 @@ pub(super) fn name_color(node: &Node) -> Result<Option<Color>, Declined> {
 }
 
 fn desc_font(skin: &Skin) -> Font {
-    Font {
-        size: (skin.state.font.size - 2.0).max(4.0),
-        ..skin.state.font
-    }
+    skin.attribute
 }
 
 fn text_blocks(items: &[super::Text], font: Font, family: Family) -> Result<Vec<Block>, Declined> {

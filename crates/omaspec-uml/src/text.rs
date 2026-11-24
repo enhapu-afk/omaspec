@@ -80,6 +80,53 @@ impl Family {
     }
 }
 
+/// A face words are set in apart from the diagram's: the family whose
+/// metrics measure them, and, where it has a name of its own, its place
+/// in the picture's list of faces ([`crate::svg::Canvas::faces`]), which
+/// writes the name for those words alone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Face {
+    pub family: Family,
+    pub name: Option<u8>,
+}
+
+impl Face {
+    /// The face `name` (`Impact`, `Courier`), the `at`-th of the
+    /// picture's list.
+    pub fn named(name: &str, at: u8) -> Face {
+        Face {
+            family: Family::of(name),
+            name: Some(at),
+        }
+    }
+}
+
+/// The names of the faces a skin gives its elements (`ParticipantFontName
+/// Impact`), each once, in the order given: a [`Face`] holds its place
+/// here, which the picture's list of faces takes
+/// ([`crate::svg::Canvas::faces`]).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Faces(pub Vec<String>);
+
+impl Faces {
+    /// The face `name`, taken into the list if it is new. `None` for a
+    /// name no SVG can carry, or one past the 256 the list holds.
+    pub fn face(&mut self, name: &str) -> Option<Face> {
+        let name = name.trim().trim_matches('"').trim();
+        if name.is_empty() || name.contains(['<', '>', '"', '&']) {
+            return None;
+        }
+        let at = match self.0.iter().position(|n| n == name) {
+            Some(at) => at,
+            None => {
+                self.0.push(name.to_owned());
+                self.0.len() - 1
+            }
+        };
+        u8::try_from(at).ok().map(|at| Face::named(name, at))
+    }
+}
+
 /// How an element's text starts out.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Font {
@@ -87,6 +134,9 @@ pub struct Font {
     pub bold: bool,
     pub italic: bool,
     pub color: Color,
+    /// A face of its own (`ParticipantFontName`); the diagram's for
+    /// `None`.
+    pub face: Option<Face>,
 }
 
 impl Font {
@@ -96,6 +146,7 @@ impl Font {
             bold: false,
             italic: false,
             color,
+            face: None,
         }
     }
 
@@ -128,9 +179,10 @@ pub struct Style {
     pub lines: Option<Color>,
     /// The color behind the words (`<back:yellow>`).
     pub back: Option<Color>,
-    /// The face the words name (`<font:courier>`), by the family whose
-    /// metrics fit it.
-    pub face: Option<Family>,
+    /// The face the words are set in where it is not the diagram's: an
+    /// element's own (`ParticipantFontName`), or one they name
+    /// (`<font:courier>`), by the family whose metrics fit it.
+    pub face: Option<Face>,
 }
 
 impl From<Font> for Style {
@@ -146,7 +198,7 @@ impl From<Font> for Style {
             wave: false,
             lines: None,
             back: None,
-            face: None,
+            face: font.face,
         }
     }
 }
@@ -714,7 +766,7 @@ pub fn measure(text: &str, style: &Style, family: Family) -> f32 {
     let family = if style.mono {
         Family::Mono
     } else {
-        style.face.unwrap_or(family)
+        style.face.map_or(family, |face| face.family)
     };
     let letters =
         |text: &str| -> u32 { text.chars().map(|c| advance(c, family, style.bold)).sum() };
@@ -1414,7 +1466,10 @@ fn tag_change(tag: &str, style: Style) -> Result<Option<Tag>, String> {
         ("size", Some(value)) => new.size = font_size(value, tag)?,
         // `<font:monospaced>`: a face.
         ("font", Some(_)) if tag.trim()[4..].trim_start().starts_with(':') => {
-            new.face = Some(Family::of(value()))
+            new.face = Some(Face {
+                family: Family::of(value()),
+                name: None,
+            })
         }
         // `<font color=red size=20>`, a value quoted or not.
         ("font", Some(_)) => {
@@ -1422,7 +1477,12 @@ fn tag_change(tag: &str, style: Style) -> Result<Option<Tag>, String> {
                 match key.to_ascii_lowercase().as_str() {
                     "color" => new.color = opaque(&value, tag)?,
                     "size" => new.size = font_size(&value, tag)?,
-                    "face" => new.face = Some(Family::of(&value)),
+                    "face" => {
+                        new.face = Some(Face {
+                            family: Family::of(&value),
+                            name: None,
+                        })
+                    }
                     _ => {}
                 }
             }
@@ -1883,7 +1943,7 @@ mod tests {
         let r = runs("<font size=20>big</font>");
         assert_eq!(r[0].style.size, 20.0);
         let r = runs("<font:monospaced>m</font>");
-        assert_eq!(r[0].style.face, Some(Family::Mono));
+        assert_eq!(r[0].style.face.map(|f| f.family), Some(Family::Mono));
         assert_eq!(r[0].width, measure("m", &Style::from(font()), Family::Mono));
         assert_eq!(runs("<U+0025>a<U+221E>")[0].text, "%a\u{221E}");
         // A code that names no character is written as it stands.

@@ -556,6 +556,21 @@ is open and the reasoning around it.
 
 ### Step 5: what every diagram shares
 
+- [x] A face for one kind of element (2026-11-24): `ParticipantFontName
+      Impact`, `ActorFontName`, `NoteFontName` and the rest of a sequence
+      diagram's elements, `StateFontName`, `StateAttributeFontName` and
+      the state diagram's others. A font carries the face
+      (`text::Face`): the family whose metrics measure its words, and its
+      place in the skin's list of faces (`text::Faces`), which the canvas
+      takes (`Canvas::faces`) and writes for those words alone, the
+      family's faces behind it (`Impact, Arial, …, sans-serif`), so a
+      viewer without it draws a face of the same kind. With them the state
+      diagram's `AttributeFontColor`, `-Size`, `-Style` and `-Name` set the
+      words under a state's name, and `StartColor`, `EndColor` and
+      `BarColor` its start, end and bars, which PlantUML 1.2026.8 ignores
+      but the guide describes. The guide: the sequence diagram 79 of 79,
+      the state diagram 32 of 36.
+
 - [x] Creole's rules, headings and the rest of its inline markup
       (2026-11-24). A line of `----`, `====`, `____` or `....` (two of a
       mark are enough) is a rule, single, double, strong or dotted, and

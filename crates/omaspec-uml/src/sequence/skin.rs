@@ -89,6 +89,8 @@ pub struct Skin {
     /// `skinparam sequenceParticipant underline`: the heads' names are
     /// underlined.
     pub participant_underline: bool,
+    /// The faces its elements' fonts name (`ParticipantFontName Impact`).
+    pub faces: crate::text::Faces,
 }
 
 const DARK: Color = Color::hex(0x181818);
@@ -169,6 +171,7 @@ impl Default for Skin {
             stereotype_below: false,
             lifeline_solid: false,
             participant_underline: false,
+            faces: Default::default(),
         }
     }
 }
@@ -320,6 +323,10 @@ impl Skin {
                             let c = p.solid()?;
                             own_color.push(element);
                             font_of(&mut skin, element).color = c;
+                        }
+                        "fontname" => {
+                            let face = skin.faces.face(&p.value).ok_or_else(|| p.unsupported())?;
+                            font_of(&mut skin, element).face = Some(face);
                         }
                         "fontstyle" => {
                             let v = p.value.trim().to_ascii_lowercase();
@@ -667,11 +674,42 @@ mod tests {
         assert_eq!(s.message_align, MessageAlign::Center);
     }
 
+    /// A face for one kind of element, written for its words alone and
+    /// measured by its family's metrics.
+    #[test]
+    fn an_element_takes_a_face_of_its_own() {
+        let s = skin(&[
+            ("ParticipantFontName", "Impact"),
+            ("ActorFontName", "Courier"),
+            ("NoteFontName", "Impact"),
+        ])
+        .unwrap();
+        assert_eq!(s.faces.0, ["Impact", "Courier"]);
+        let face = s.participant.font.face.unwrap();
+        assert_eq!(
+            (face.family, face.name),
+            (crate::text::Family::Sans, Some(0))
+        );
+        assert_eq!(s.actor.font.face.unwrap().family, crate::text::Family::Mono);
+        assert_eq!(s.note.font.face.unwrap().name, Some(0));
+        assert_eq!(s.arrow_font.face, None);
+        let svg = crate::render(
+            "@startuml\nskinparam ParticipantFontName Impact\nparticipant Alice\nAlice -> Bob : hi\n@enduml\n",
+        )
+        .unwrap();
+        assert!(
+            svg.contains("font-family=\"Impact, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif\""),
+            "{svg}"
+        );
+        // The message keeps the diagram's face.
+        assert_eq!(svg.matches("font-family=\"Impact").count(), 4, "{svg}");
+        assert!(skin(&[("ParticipantFontName", "a<b")]).is_err());
+    }
+
     #[test]
     fn declines_what_it_does_not_draw() {
         for (key, value) in [
             ("monochrome", "reverse"),
-            ("ParticipantFontName", "Courier"),
             ("ArrowColor", "#red/blue"),
             ("SequenceTitleFontSize", "x"),
         ] {

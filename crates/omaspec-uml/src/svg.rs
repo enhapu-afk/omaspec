@@ -118,6 +118,8 @@ pub struct Canvas {
     tie: Option<usize>,
     /// Where a rule in the words drawn reaches ([`Self::across`]).
     across: Option<(f32, f32)>,
+    /// The faces the skin gives its elements ([`Self::faces`]).
+    faces: Vec<String>,
     /// The words drawn for a line, each where it stands.
     ties: Vec<crate::map::Tied>,
     /// Words are being drawn again ([`Self::echo`]), and where such were.
@@ -181,6 +183,7 @@ impl Canvas {
             groups: 0,
             tie: None,
             across: None,
+            faces: Vec::new(),
             ties: Vec::new(),
             echo: false,
             echoes: Vec::new(),
@@ -500,6 +503,12 @@ impl Canvas {
     /// counting, also where the same words are drawn for something else.
     pub fn tie(&mut self, line: Option<usize>) -> Option<usize> {
         std::mem::replace(&mut self.tie, line)
+    }
+
+    /// The faces the skin gives its elements, by their place in it
+    /// ([`crate::text::Face`]): words in one are written in it alone.
+    pub fn faces(&mut self, faces: &crate::text::Faces) {
+        self.faces.clone_from(&faces.0);
     }
 
     /// From here on, a rule in the words drawn (`----`, [`Rule`]) reaches
@@ -1323,8 +1332,21 @@ impl Canvas {
                     cut(out);
                     if s.mono {
                         let _ = write!(out, r#" font-family="{MONO_FACES}""#);
-                    } else if let Some(face) = s.face.filter(|face| *face != self.family) {
-                        let _ = write!(out, r#" font-family="{}""#, family_faces(face));
+                    } else if let Some(face) = s.face.filter(|_| !hand) {
+                        match face.name.and_then(|at| self.faces.get(at as usize)) {
+                            Some(name) => {
+                                let _ = write!(
+                                    out,
+                                    r#" font-family="{}""#,
+                                    escape(&named_faces(name, face.family))
+                                );
+                            }
+                            None if face.family != self.family => {
+                                let _ =
+                                    write!(out, r#" font-family="{}""#, family_faces(face.family));
+                            }
+                            None => {}
+                        }
                     }
                 }
                 if let Some(decoration) = decoration.filter(|_| !ruled) {
@@ -1912,6 +1934,18 @@ fn wave_path(from: f32, to: f32, y: f32, width: f32) -> String {
         up = !up;
     }
     d
+}
+
+/// The faces written for words in the face `name` of `family`: its name,
+/// and where that is no generic family's, the faces of its family behind
+/// it, which a viewer without it takes (`Impact, Arial, …, sans-serif`).
+fn named_faces(name: &str, family: Family) -> String {
+    let written = faces(name);
+    if written == name && !name.contains(',') {
+        format!("{name}, {}", family_faces(family))
+    } else {
+        written.into_owned()
+    }
 }
 
 /// The faces written for words in `family` amid others.

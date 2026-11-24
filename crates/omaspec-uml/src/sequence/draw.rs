@@ -119,6 +119,7 @@ fn laid<'a>(d: &'a Diagram, skin: &'a Skin) -> Result<(Drawer<'a>, Canvas), Decl
         let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
         canvas.sketch(skin.sketch);
         canvas.shadows(skin.shadow);
+        canvas.faces(&skin.faces);
         canvas
     };
     // Its words are measured once; each drawing starts from them.

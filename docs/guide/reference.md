@@ -995,7 +995,9 @@ Creole: rules across their box (`----`, `====`, `____`, `....`, `--title--`), he
 wavy underlines (`~~waved~~`, `<w:red>`) and lines in a color of their own (`<u:red>`). A
 picture in the words (`<img:logo.png>`, `{scale=0.5}`) is read as an `!include` is, from
 inside the project folder, and embedded in the picture; one Omaspec cannot read says so in
-its place. `hide`, `show`,
+its place. A skinparam may give one kind of element a face of its own in a sequence or state
+diagram (`ParticipantFontName Impact`, `StateAttributeFontName serif`): its words are
+written in it, with faces of its kind behind it for a viewer that lacks it. `hide`, `show`,
 `remove` and `restore` work as in PlantUML, wherever they stand, the last line about a box
 deciding: a part of the boxes (`hide members`, `hide private fields`, `show Foo methods`,
 `hide <<Entity>> stereotype`), a box (`hide Foo`, `hide <<Entity>>`, `hide class`), the

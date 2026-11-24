@@ -47,23 +47,19 @@ reaches all of its examples with step 5, which its examples use too.
 Stays with the Java PlantUML: the standard library (`!include <…>`, 29
 examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
 
-### Step 1: the sequence diagram (78 of 79)
-
-What the chapter declines still waits on step 5: a font name for one
-kind of element (`ParticipantFontName`).
+### Step 1: the sequence diagram (79 of 79)
 
 - [ ] Drawn but different: the cross of a destroyed participant is red in
       PlantUML (`#A80036`), in the lifeline's color here; in the themes'
       colors it wants a color of their own.
 
-### Step 2: the state diagram (30 of 36)
+### Step 2: the state diagram (32 of 36)
 
-- [ ] The six left wait on step 5: `skinparam state { StartColor,
-      EndColor, AttributeFont… }`, which PlantUML 1.2026.8 and the guide's
-      own pictures ignore, and with them `FontName` (a font name per
-      element); gradients in a state's color
-      (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
-      `json` element among the states waits on step 7.
+- [ ] The four left: gradients in a state's color (`#red-green`), a style
+      for a stereotype (`.foo { state { … } }`), a `json` element among
+      the states.
+- [ ] Drawn but different: one dash (`A -> B`) lays its states beside
+      each other in PlantUML; here it is a line down as `-->` is.
 
 ### Step 3: the activity diagram (62 of 62; the legacy syntax 0 of 13)
 - [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
@@ -106,8 +102,8 @@ kind of element (`ParticipantFontName`).
       stereotypes `.h1`, a font name beyond `root`).
 - [ ] Skinparams (32): the names the guide uses, skinparams of stereotypes
       (`BackgroundColor<<Foo>>`), `monochrome reverse`, a font name for one
-      kind of element (`ParticipantFontName`, `ActorFontName`): the face
-      measured and written for its words alone.
+      kind of element in the diagrams beyond the sequence and the state
+      diagram, which take it (`text::Face`).
 - [ ] Creole (21 of 44 in its chapter): `<code>`, `<sub>`, `<sup>`,
       emoji (`<:1f600:>`), `<math>` and `<latex>` in text.
 - [ ] Styles of lines (19): `#line:red;line.bold;text:red`, `[thickness=n]`,

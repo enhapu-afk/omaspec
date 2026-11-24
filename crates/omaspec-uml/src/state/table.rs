@@ -19,6 +19,7 @@ pub fn draw_table(diagram: &Diagram, table: &Table) -> Result<(String, Map), Dec
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
+    canvas.faces(&skin.faces);
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,
