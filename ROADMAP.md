@@ -342,7 +342,8 @@ diagrams drawn natively in every example of its guide (553 of 897 in all);
 each release's notes are in `docs/releases/`.
 
 - [ ] The release's last steps: AUR `omaspec` and `omaspec-bin`, the
-      announcement.
+      announcement. Both PKGBUILDs are at 1.1.0 with their checksums and
+      build; they wait for an AUR account to be pushed with.
 
 ## After 1.0
 
