@@ -3960,6 +3960,12 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       recording's clock (`docs/images/film.sh`, `editor/tests/film.rs`); the guide is a
       PDF of 47 pages whose examples the release build draws (`docs/guide/pdf/build.py`),
       to download from the page
+- [x] Release 1.1.0 (2026-11-24): the security review's fixes, what the nightly
+      fuzzing found, and PlantUML's sequence, activity and state diagrams drawn
+      natively in every example of its guide (553 of 897 in all). A release's notes
+      are `docs/releases/X.Y.Z.md`, which the release workflow makes the text of the
+      GitHub release (1.0.0's written afterwards); the guide drawn by 1.1.0 has 49
+      pages, with the swimlanes
 - [x] What the review of the presenter mode and the project's page found (2026-11-20).
       The speaker's window takes the presentation's keys and gives way to a question,
       a list or a menu opened there; a step back shows the notes of the step it went

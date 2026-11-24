@@ -154,6 +154,20 @@ jobs:
     if: ${{ !cancelled() && (github.event_name == 'push' || inputs.publish) }}
     runs-on: ubuntu-latest
     steps:
+      # The release's notes, docs/releases/X.Y.Z.md: the tag's own, or
+      # main's when a tag is built again by hand.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: docs/releases
+      - name: Notes
+        id: notes
+        run: |
+          notes="docs/releases/${TAG#v}.md"
+          if [ -f "$notes" ]; then
+            echo "path=$notes" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::$notes is missing: the release has no notes"
+          fi
       - uses: actions/download-artifact@v4
         with:
           pattern: omaspec-*
@@ -161,6 +175,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
+          body_path: ${{ steps.notes.outputs.path }}
           fail_on_unmatched_files: true
           files: |
             omaspec-*.tar.gz

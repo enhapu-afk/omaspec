@@ -336,7 +336,10 @@ Lint and outline move onto the syntax tree as each type lands.
 The target of [0006](docs/adr/0006-goals-and-scope.md) is met: sequence,
 activity, state diagrams and flowcharts are drawn by Omaspec in both
 languages. 1.0.0 was tagged on 2026-11-20, with the landing page and the
-guide as a PDF (docs/DONE.md).
+guide as a PDF (docs/DONE.md). 1.1.0 followed on 2026-11-24 with the
+security review's fixes and PlantUML's sequence, activity and state
+diagrams drawn natively in every example of its guide (553 of 897 in all);
+each release's notes are in `docs/releases/`.
 
 - [ ] The release's last steps: AUR `omaspec` and `omaspec-bin`, the
       announcement.

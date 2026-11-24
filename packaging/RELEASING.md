@@ -1,7 +1,10 @@
 # Releasing
 
 1. **Version.** Set `version` in the workspace `Cargo.toml`, run `cargo build` (updates
-   `Cargo.lock`), mark the release in `ROADMAP.md`, commit (`chore: release X.Y.Z`).
+   `Cargo.lock`), mark the release in `ROADMAP.md`, write its notes in
+   `docs/releases/X.Y.Z.md` (the release workflow makes them the GitHub release's text),
+   build the guide again (`docs/guide/pdf/build.py`, its pages on `docs/index.html`),
+   commit (`chore: release X.Y.Z`).
 2. **Signed tag.** `git tag -s vX.Y.Z -m "Omaspec X.Y.Z"` with the maintainer's GPG or
    SSH signing key (`git config user.signingkey …`; for SSH also
    `git config gpg.format ssh`). Put the public key on the GitHub account so the tag

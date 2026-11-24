@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 1.0: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 1.1: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -84,6 +84,18 @@ diagram as a scenario, in PlantUML and Mermaid alike:
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
 
+## New in 1.1
+
+- **PlantUML without Java, all of the three.** Every sequence, activity and state
+  diagram of PlantUML's *Language Reference Guide* is drawn by Omaspec's own engines,
+  the old activity syntax `(*) --> "Action"` too, with Creole headings and rules,
+  `<img:…>` pictures from the project folder, gradients and a font per kind of element.
+- **Mermaid swimlanes** drawn as bands, and git graphs that play commit by commit.
+- **Folds on the command line.** `omaspec render FILE --fold Brewing` and
+  `omaspec export DIR --fold NAME` draw containers folded, as the editor folds them.
+- **Safer.** The sanitizer's fixes from a security review, and what the nightly
+  fuzzing found.
+
 ## New in 1.0
 
 - **Show it.** Shift+F5 presents a diagram full screen, the speaker's notes in the
@@ -102,7 +114,7 @@ diagram as a scenario, in PlantUML and Mermaid alike:
 - **Long diagrams stay readable.** A sequence diagram's participants stay on top as
   pills while it scrolls; a click on a word in the picture lands on its line.
 - **A guide.** Every function with examples, as a
-  [PDF](https://enhapu-afk.github.io/omaspec/guide/omaspec-guide.pdf) of 47 pages.
+  [PDF](https://enhapu-afk.github.io/omaspec/guide/omaspec-guide.pdf).
 
 ## New in 0.9.9
 
