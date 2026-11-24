@@ -572,11 +572,19 @@ lacks.
 ### Fixes and an even hand
 
 A finding that can be put right in one sure way carries its fix: a line mermaid.js would
-not read, `@startuml` without `@enduml`, an entry of the lines by hand that is left out, a
-state nothing leaves (`Error --> [*]`). The card under the pointer names it; Ctrl+. (*Fix
-the finding at the caret*) makes the fix of the caret's line, *Fix every finding that has
-a fix* makes all of them in one undo step, and `omaspec lint --fix` does that in the
-files. `lint --json` gives each fix as the lines it takes out and puts in.
+not read, `@startuml` without `@enduml`, a block left open (closed where the diagram
+ends, as it is drawn now), a kind of diagram misspelled (`sequenceDiagam`), a participant
+or a lane written a letter off, a declaration or a transition written twice in the same
+words, an icon the set has one name near, a text too faint on its fill (black or white,
+whichever reads), an entry of the lines by hand that is left out, a state nothing leaves
+(`Error --> [*]`). A fix is made without being read first, so only where nothing is left
+to choose: which state a machine starts in, or which of two states an event leads to, is
+the writer's. The card under the pointer names it; Ctrl+. (*Fix the finding at the
+caret*) makes the fix of the caret's line, *Fix every finding that has a fix* makes all of
+them in one undo step, and `omaspec lint --fix` does that in the files, again while the
+fixes bring more (a name misspelled on two lines). `lint --json` and the MCP tool `lint`
+give each fix as the lines it takes out and puts in; [the codes](#findings-by-their-code)
+say which rules carry one.
 
 *Prettify the diagram* writes a state machine or a scenario evenly: one space around each
 arrow and colon, and the arrows and colons of lines that follow one another in a column.
@@ -921,6 +929,13 @@ there keeps its meaning.
 | `omaspec-only` | a diagram of Omaspec's own syntax (`@startflow`, `@startstorymap`, `@startcapabilities`), which PlantUML does not draw |
 | `project-file` | the project's file does not read |
 | `not-drawn` | `check`: no engine draws the diagram |
+
+These carry their fix where it is sure, 13 of the 36 rules: `missing-end`,
+`unclosed-block` (but a `repeat`), `unknown-head`, `declared-twice`,
+`undeclared-participant`, `lane-spelling`, `dead-end`, `transition-twice`, `stale-entry`,
+`unknown-icon`, `faint-color`, `unseen-character` and `not-mermaid-js`. The others leave a
+choice to the writer, or are about a record (a trace) or about Omaspec itself; what each
+one leaves is said in `omaspec_core::lint::RULES`.
 
 ## Omarchy
 

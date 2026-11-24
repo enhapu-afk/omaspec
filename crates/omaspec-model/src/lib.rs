@@ -31,7 +31,7 @@ mod specs;
 mod task;
 mod trace;
 
-use omaspec_core::lint::{self, Finding, Severity};
+use omaspec_core::lint::{self, Finding, Fix, Severity};
 use omaspec_core::{Kind as DiagramKind, Language, classify};
 use omaspec_uml::map::{Map, Shape, Spot};
 
@@ -306,8 +306,25 @@ fn checked(code: &str, lang: Language) -> (Vec<Finding>, bool) {
     match Machine::read_placed(code, lang) {
         Some((m, hidden)) => {
             let mut found = check::placed(&m, &hidden);
-            // A line a fix puts in stands as deep as the line before it.
             let lines: Vec<&str> = code.split('\n').collect();
+            // A transition written twice in the same words goes the second
+            // time, where it is all its line says.
+            let text = |line: usize| lines.get(line).map(|l| l.trim());
+            for f in found.iter_mut().filter(|f| f.code == "transition-twice") {
+                let mut on_line = m.transitions.iter().filter(|t| t.line == f.line);
+                let (Some(t), None) = (on_line.next(), on_line.next()) else {
+                    continue;
+                };
+                if m.transitions.iter().any(|o| {
+                    o.line < t.line
+                        && o.from == t.from
+                        && o.to == t.to
+                        && text(o.line) == text(t.line)
+                }) {
+                    f.fix = Some(Fix::remove("Take out the second", f.line));
+                }
+            }
+            // A line a fix puts in stands as deep as the line before it.
             for fix in found.iter_mut().filter_map(|f| f.fix.as_mut()) {
                 let Some(before) = fix.line.checked_sub(1).and_then(|at| lines.get(at)) else {
                     continue;

@@ -3,7 +3,7 @@
 //! word in the picture, so lint says it, with the names of the set that
 //! come close.
 
-use super::{Finding, Severity, distance};
+use super::{Finding, Fix, Severity, distance};
 
 /// How many names of the set a finding offers at most.
 const OFFERED: usize = 3;
@@ -26,11 +26,15 @@ pub(super) fn findings(lines: &[&str], findings: &mut Vec<Finding>) {
         if text.starts_with('\'') {
             continue;
         }
+        // Each name with the byte it starts at in the line.
         let tags = omaspec_uml::unknown_open_iconic(line)
             .into_iter()
-            .map(|(_, name)| (format!("<&{name}>"), name));
-        let sprites = sprites(line).map(|name| (format!("\"&{name}\""), name));
-        for (written, name) in tags.chain(sprites) {
+            .map(|(tag, name)| {
+                let at = tag.start + line[tag].find('&').map_or(0, |amp| amp + 1);
+                (format!("<&{name}>"), name, at)
+            });
+        let sprites = sprites(line).map(|(name, at)| (format!("\"&{name}\""), name, at));
+        for (written, name, at) in tags.chain(sprites) {
             let mut message = format!(
                 "`{written}`: Open Iconic has no icon of that name, so nothing is drawn in its place"
             );
@@ -39,26 +43,31 @@ pub(super) fn findings(lines: &[&str], findings: &mut Vec<Finding>) {
                 let names: Vec<String> = near.iter().map(|n| format!("`<&{n}>`")).collect();
                 message.push_str(&format!("; it has {}", names.join(", ")));
             }
-            findings.push(Finding::new(
-                "unknown-icon",
-                row,
-                Severity::Warning,
-                message,
-            ));
+            // One name near it is the one meant.
+            let fix = match near.as_slice() {
+                [meant] => Some(Fix::replace(
+                    format!("Write {meant}"),
+                    row,
+                    format!("{}{meant}{}", &line[..at], &line[at + name.len()..]),
+                )),
+                _ => None,
+            };
+            findings.push(Finding::new("unknown-icon", row, Severity::Warning, message).with(fix));
         }
     }
 }
 
 /// The Open Iconic names that the quoted words of `line` give a C4 sprite
-/// (`$sprite="&camera"`) and the set does not have.
-fn sprites(line: &str) -> impl Iterator<Item = &str> {
+/// (`$sprite="&camera"`) and the set does not have, each with the byte it
+/// starts at.
+fn sprites(line: &str) -> impl Iterator<Item = (&str, usize)> {
     line.match_indices("\"&").filter_map(move |(at, _)| {
         let rest = &line[at + 2..];
         let name = &rest[..rest
             .find(|c: char| !(c.is_ascii_alphanumeric() || c == '-' || c == '_'))
             .unwrap_or(rest.len())];
         (!name.is_empty() && !omaspec_uml::unknown_open_iconic(&format!("<&{name}>")).is_empty())
-            .then_some(name)
+            .then_some((name, at + 2))
     })
 }
 

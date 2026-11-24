@@ -18,6 +18,7 @@ mod fix;
 mod icons;
 mod namesakes;
 mod portable;
+mod rules;
 mod task;
 mod unseen;
 mod written;
@@ -107,24 +108,27 @@ impl Finding {
         self
     }
 
-    /// The finding with the way to put it right.
+    /// The finding with the way to put it right, where there is one.
     #[must_use]
-    pub fn with(mut self, fix: Fix) -> Self {
-        self.fix = Some(fix);
+    pub fn with(mut self, fix: impl Into<Option<Fix>>) -> Self {
+        self.fix = fix.into();
         self
     }
 }
 
 pub use fix::{Fix, fix_all};
+use fix::{closed, kind_meant, nested, renamed, text_end};
+pub use rules::{Fixes, RULES, Rule, rule_of, share};
 pub use task::{Expected, Happened, Offer, Place, Task};
 
 /// All findings for `code`, in line order.
 pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     let code = normalize_newlines(code);
     let lines: Vec<&str> = code.split('\n').collect();
+    let kind = classify(&code, lang).kind;
     let mut findings = match lang {
         Language::Mermaid => mermaid_syntax(&lines),
-        Language::PlantUml => plantuml_syntax(&lines),
+        Language::PlantUml => plantuml_syntax(&lines, kind == Kind::Sequence),
     };
     lines_by_hand(&code, &mut findings);
     unseen::findings(&lines, &mut findings);
@@ -140,9 +144,8 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     findings.extend(
         faint
             .into_iter()
-            .map(|f| Finding::new("faint-color", f.line, Severity::Warning, f.message)),
+            .map(|f| Finding::new("faint-color", f.line, Severity::Warning, f.message).with(f.fix)),
     );
-    let kind = classify(&code, lang).kind;
     match lang {
         Language::Mermaid => {
             findings.extend(crate::settings::unheeded(&code));
@@ -177,7 +180,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
                 Kind::Sequence => {
                     let names = omaspec_uml::sequence::from_mermaid(&code)
                         .map_or_else(|| written::mermaid_sequence(&rows), |d| d.names);
-                    sequence(&names, &mut findings);
+                    sequence(&names, &lines, &mut findings);
                 }
                 Kind::State => {
                     let names = omaspec_uml::state::mermaid::read(&code).map_or_else(
@@ -213,6 +216,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
         }
     }
     findings.sort_by_key(|f| f.line);
+    nested(&mut findings);
     findings
 }
 
@@ -225,6 +229,7 @@ fn plantuml_names(
     read: Option<&omaspec_uml::Diagram>,
     findings: &mut Vec<Finding>,
 ) {
+    let lines: Vec<&str> = code.split('\n').collect();
     let rows = || -> Vec<Row> {
         element_lines(code)
             .unwrap_or_default()
@@ -236,27 +241,51 @@ fn plantuml_names(
             .collect()
     };
     match (kind, read) {
-        (Kind::Sequence, Some(omaspec_uml::Diagram::Sequence(d))) => sequence(&d.names, findings),
-        (Kind::Sequence, _) => sequence(&written::plantuml_sequence(&rows()), findings),
+        (Kind::Sequence, Some(omaspec_uml::Diagram::Sequence(d))) => {
+            sequence(&d.names, &lines, findings);
+        }
+        (Kind::Sequence, _) => sequence(&written::plantuml_sequence(&rows()), &lines, findings),
         (Kind::Activity, read) => {
-            swimlanes(&rows(), findings);
+            swimlanes(&rows(), &lines, findings);
             // PlantUML ends a block left open with the diagram, and so
             // does the engine, which says which ones.
             if let Some(omaspec_uml::Diagram::Activity(d)) = read {
                 for (line, keyword) in &d.unclosed {
-                    // A `group {` is told by its brace already.
-                    if findings
-                        .iter()
-                        .any(|f| f.line == *line && f.code == "unclosed-block")
+                    // A `repeat` ends with its test, which only the writer
+                    // knows; a group with its brace, or `end group`.
+                    let braced = lines
+                        .get(*line)
+                        .is_some_and(|l| l.trim_end().ends_with('{'));
+                    let closer = match *keyword {
+                        "if" => Some("endif"),
+                        "switch" => Some("endswitch"),
+                        "while" => Some("endwhile"),
+                        "split" => Some("end split"),
+                        "fork" => Some("end fork"),
+                        "repeat" => None,
+                        _ if braced => Some("}"),
+                        "group" => Some("end group"),
+                        _ => None,
+                    };
+                    let fix = closer.map(|c| closed(&lines, *line, keyword, c));
+                    // A `group` is told by the lines already, which close
+                    // it as a scenario's: the engine says how here.
+                    if let Some(told) = findings
+                        .iter_mut()
+                        .find(|f| f.line == *line && f.code == "unclosed-block")
                     {
+                        told.fix = fix;
                         continue;
                     }
-                    findings.push(Finding::new(
-                        "unclosed-block",
-                        *line,
-                        Severity::Warning,
-                        format!("Unclosed {keyword}"),
-                    ));
+                    findings.push(
+                        Finding::new(
+                            "unclosed-block",
+                            *line,
+                            Severity::Warning,
+                            format!("Unclosed {keyword}"),
+                        )
+                        .with(fix),
+                    );
                 }
             }
         }
@@ -443,12 +472,13 @@ fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
         let line = lines[i];
         match head::head_of(line) {
             // Refused by render, in these words, on this line.
-            Head::Unknown => findings.push(Finding::new(
-                "unknown-head",
-                i,
-                Severity::Error,
-                head::unknown_said(line),
-            )),
+            Head::Unknown => findings.push(
+                Finding::new("unknown-head", i, Severity::Error, head::unknown_said(line)).with(
+                    kind_meant(line).map(|(word, kind)| {
+                        Fix::replace(format!("Write {kind}"), i, line.replacen(&word, kind, 1))
+                    }),
+                ),
+            ),
             // Drawn as a flowchart, and only told.
             Head::Flowchart => findings.push(Finding::new(
                 "unknown-head",
@@ -458,14 +488,21 @@ fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
             )),
             Head::Kind => {
                 if let Some((word, written)) = head::misspelled(line) {
-                    findings.push(Finding::new(
-                        "not-mermaid-js",
-                        i,
-                        Severity::Info,
-                        format!(
-                            "Omaspec draws this, mermaid.js (GitHub) takes the kind only as `{written}`, not `{word}`"
-                        ),
-                    ));
+                    findings.push(
+                        Finding::new(
+                            "not-mermaid-js",
+                            i,
+                            Severity::Info,
+                            format!(
+                                "Omaspec draws this, mermaid.js (GitHub) takes the kind only as `{written}`, not `{word}`"
+                            ),
+                        )
+                        .with(Fix::replace(
+                            format!("Write {written}"),
+                            i,
+                            line.replacen(&word, written, 1),
+                        )),
+                    );
                 }
             }
         }
@@ -496,17 +533,24 @@ fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
         }
     }
     for (row, kind) in stack {
-        findings.push(Finding::new(
-            "unclosed-block",
-            row,
-            Severity::Warning,
-            format!("Unclosed {kind}"),
-        ));
+        let closer = if kind == "note" { "end note" } else { "end" };
+        findings.push(
+            Finding::new(
+                "unclosed-block",
+                row,
+                Severity::Warning,
+                format!("Unclosed {kind}"),
+            )
+            .with(closed(lines, row, &kind, closer)),
+        );
     }
     findings
 }
 
-fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
+/// The blocks of a PlantUML diagram: `@start…` and `@end…`, groups,
+/// notes, braces. In a scenario (`sequence`) a group ends with `end`,
+/// whatever its title ends with.
+fn plantuml_syntax(lines: &[&str], sequence: bool) -> Vec<Finding> {
     let mut findings = Vec::new();
 
     let mut starts: Vec<(usize, String)> = Vec::new();
@@ -520,11 +564,7 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
             close(&mut starts, |k| k == kind);
         }
     }
-    // After the last line; the empty end a final line break leaves is none.
-    let end = match lines.last() {
-        Some(last) if last.is_empty() && lines.len() > 1 => lines.len() - 1,
-        _ => lines.len(),
-    };
+    let end = text_end(lines);
     for (row, kind) in starts {
         findings.push(
             Finding::new(
@@ -582,9 +622,10 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
         if let Some(c) = re!(r"(?i)^(alt|opt|loop|par|critical|group|box)\b").captures(&t)
             && !re!(r"^\s*[-<.:]").is_match(&t[c[0].len()..])
         {
-            // `alt#Gold` is an `alt`; `group Name {` closes with `}`.
+            // `alt#Gold` is an `alt`; `group Name {` closes with `}`, but
+            // in a scenario, where `{` ends its title.
             let mut kind = c[1].to_lowercase();
-            if t.ends_with('{') {
+            if t.ends_with('{') && !sequence {
                 kind.push_str(" {");
             }
             stack.push((row, kind));
@@ -616,12 +657,22 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
         }
     }
     for (row, kind) in stack {
-        findings.push(Finding::new(
-            "unclosed-block",
-            row,
-            Severity::Warning,
-            format!("Unclosed {kind}"),
-        ));
+        let closer = match kind.as_str() {
+            k if k.ends_with(" {") => "}",
+            "box" => "end box",
+            "note" => "end note",
+            _ => "end",
+        };
+        let word = kind.trim_end_matches(" {");
+        findings.push(
+            Finding::new(
+                "unclosed-block",
+                row,
+                Severity::Warning,
+                format!("Unclosed {kind}"),
+            )
+            .with(closed(lines, row, word, closer)),
+        );
     }
     findings
 }
@@ -681,22 +732,32 @@ fn mermaid_rows<'a>(lines: &[&'a str]) -> Vec<Row<'a>> {
 
 /// The rules about a sequence diagram's participants, from where each
 /// name is written.
-fn sequence(names: &[Mention], findings: &mut Vec<Finding>) {
+fn sequence(names: &[Mention], lines: &[&str], findings: &mut Vec<Finding>) {
     let decls: Vec<&Mention> = names.iter().filter(|m| m.declares).collect();
     // Name → index of the declaration that owns it.
     let mut declared: HashMap<&str, usize> = HashMap::new();
     for (i, d) in decls.iter().enumerate() {
         match declared.get(d.name.as_str()) {
-            Some(&first) => findings.push(Finding::new(
-                "declared-twice",
-                d.line,
-                Severity::Warning,
-                format!(
-                    "{} is declared twice (first {}).",
-                    d.name,
-                    crate::lines_away(d.line, decls[first].line)
-                ),
-            )),
+            Some(&first) => {
+                let found = Finding::new(
+                    "declared-twice",
+                    d.line,
+                    Severity::Warning,
+                    format!(
+                        "{} is declared twice (first {}).",
+                        d.name,
+                        crate::lines_away(d.line, decls[first].line)
+                    ),
+                );
+                // A second that says no more than the first goes.
+                let text = |line: usize| lines.get(line).map(|l| l.trim());
+                findings.push(
+                    found.with(
+                        (text(d.line) == text(decls[first].line))
+                            .then(|| Fix::remove("Take out the second declaration", d.line)),
+                    ),
+                );
+            }
             None => {
                 declared.insert(&d.name, i);
             }
@@ -719,14 +780,19 @@ fn sequence(names: &[Mention], findings: &mut Vec<Finding>) {
             continue;
         };
         warned.insert(name);
-        findings.push(Finding::new(
+        let found = Finding::new(
             "undeclared-participant",
             m.line,
             Severity::Warning,
             format!(
                 "{name} is not declared. Did you mean {near}? PlantUML and Mermaid would draw a new participant."
             ),
-        ));
+        );
+        let fixed = lines
+            .get(m.line)
+            .and_then(|line| renamed(line, name, near))
+            .map(|line| Fix::replace(format!("Write {near} for {name}"), m.line, line));
+        findings.push(found.with(fixed));
     }
     for (i, d) in decls.iter().enumerate() {
         if declared.get(d.name.as_str()) != Some(&i) {
@@ -753,7 +819,7 @@ fn puml_swimlane() -> &'static Regex {
     re!(r"^\|(?:#[^|]*\|)?([^|]+)\|")
 }
 
-fn swimlanes(rows: &[Row], findings: &mut Vec<Finding>) {
+fn swimlanes(rows: &[Row], lines: &[&str], findings: &mut Vec<Finding>) {
     // Normalized name → (spelling, row) in order of appearance.
     let mut lanes: Vec<(String, Vec<(&str, usize)>)> = Vec::new();
     for r in rows {
@@ -782,14 +848,22 @@ fn swimlanes(rows: &[Row], findings: &mut Vec<Finding>) {
         let main = counts[0].0;
         for &(raw, row) in list {
             if raw != main {
-                findings.push(Finding::new(
+                let found = Finding::new(
                     "lane-spelling",
                     row,
                     Severity::Warning,
                     format!(
                         "Lane \"{raw}\" differs from \"{main}\" only in case or spaces. PlantUML draws two lanes."
                     ),
-                ));
+                );
+                let fixed = lines.get(row).map(|line| {
+                    Fix::replace(
+                        format!("Write the lane as \"{main}\""),
+                        row,
+                        line.replacen(&format!("|{raw}|"), &format!("|{main}|"), 1),
+                    )
+                });
+                findings.push(found.with(fixed));
             }
         }
     }
@@ -1139,6 +1213,8 @@ mod tests {
         for code in [
             "@startuml\nstate A\nnote right of A\n note\n on A\nend note\n@enduml",
             "@startuml\nstart\ngroup Init {\n  :read;\n}\nstop\n@enduml",
+            // In a scenario `{` ends the group's title, and `end` ends it.
+            "@startuml\nA -> B : hi\ngroup Talk {\n  B -> A : yes\nend\n@enduml",
             "@startuml\nA -> B : hi\nalt#Gold #LightBlue ok\n  B -> A : yes\nelse #Pink no\n  B -> A : no\nend\n@enduml",
             "@startgantt\n[a] requires 2 days\nnote bottom\n  note for a\nend note\n@endgantt",
         ] {

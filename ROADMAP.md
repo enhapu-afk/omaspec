@@ -37,10 +37,6 @@ item says how it is checked.
       changes a machine, once the release after 1.1.0 has `--markdown`:
       the comment comes, its Mermaid drawn by GitHub, and is edited on the
       next push.
-- [ ] **Findings with their fix.** Every lint rule that can say its fix
-      says it (`fix` in `--json` and MCP `lint`); the share of rules with
-      one is measured and kept here. Checked: each fix applied makes its
-      finding go away (a test over every rule).
 - [ ] **Agents in the gallery.** An agent's life cycle (a state machine),
       a tool call as a scenario, an orchestrator's workflow with the
       places a person decides; `AGENTS.md` and the guide say how an agent

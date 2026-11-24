@@ -130,13 +130,25 @@ pub fn lint(
                 .path
                 .clone()
                 .context("--fix needs files, not standard input")?;
-            let (fixed, done) = omaspec_core::lint::fix_all(&input.text, &findings);
-            if done > 0 {
-                write_atomic(&path, fixed.as_bytes())?;
-                // Beside the findings on standard output, also as JSON.
-                eprintln!("fixed {done} in {}", path.display());
+            // Again, while fixes bring more: a name misspelled on several
+            // lines is found on the next one once the first is fixed. A
+            // fix that brings its finding back ends it.
+            let (mut done, mut passes) = (0, 0);
+            let text = input.text.clone();
+            while passes < 8 {
+                let (fixed, made) = omaspec_core::lint::fix_all(&input.text, &findings);
+                if made == 0 || fixed == input.text {
+                    break;
+                }
+                done += made;
+                passes += 1;
                 input.text = fixed;
                 findings = projects.findings(&input, forced, project);
+            }
+            if input.text != text {
+                write_atomic(&path, input.text.as_bytes())?;
+                // Beside the findings on standard output, also as JSON.
+                eprintln!("fixed {done} in {}", path.display());
             }
         }
         all.push((input.name(), findings));

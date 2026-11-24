@@ -6,6 +6,8 @@
 
 use omaspec_uml::{Color, parse_color};
 
+use crate::lint::Fix;
+
 /// The least contrast two colors the writer set need, as WCAG asks of
 /// lines and shapes; text asks 4.5:1, so under 3:1 even a large one fades.
 pub const LEAST: f32 = 3.0;
@@ -15,6 +17,10 @@ pub const LEAST: f32 = 3.0;
 pub struct Faint {
     pub line: usize,
     pub message: String,
+    /// The color of a text on its own fill, or of a line on the page,
+    /// written black or white, whichever reads; none where the color to
+    /// change is shared (the default text) or a fill.
+    pub fix: Option<Fix>,
 }
 
 /// What a color is for.
@@ -36,6 +42,8 @@ struct Set {
     color: Color,
     line: usize,
     written: String,
+    /// The value as written, at the end of its line.
+    value: String,
 }
 
 /// The faint pairs of a PlantUML diagram's `skinparam` colors.
@@ -51,22 +59,28 @@ pub fn plantuml(lines: &[&str]) -> Vec<Faint> {
     for set in &sets {
         match set.role {
             // A text lies on its element's fill; the default text and an
-            // arrow's lie on the page too.
+            // arrow's lie on the page too. The default text lies on every
+            // fill, so no one of them says what it is to be.
             Role::Text => {
                 let on = match set.element.as_str() {
                     "" | "default" | "arrow" => page,
                     element => find(element, &set.stereotype, Role::Fill),
                 };
-                out.extend(on.and_then(|on| pair(set, on)));
+                let own = !matches!(set.element.as_str(), "" | "default");
+                out.extend(
+                    on.and_then(|on| pair(set, on, own.then(|| fixed(lines, set, on)).flatten())),
+                );
             }
-            Role::Line => out.extend(page.and_then(|page| pair(set, page))),
+            Role::Line => {
+                out.extend(page.and_then(|page| pair(set, page, fixed(lines, set, page))));
+            }
             // An element's fill without a text color of its own holds the
             // default text.
             Role::Fill
                 if !set.element.is_empty()
                     && find(&set.element, &set.stereotype, Role::Text).is_none() =>
             {
-                out.extend(find("default", "", Role::Text).and_then(|text| pair(text, set)));
+                out.extend(find("default", "", Role::Text).and_then(|text| pair(text, set, None)));
             }
             Role::Fill => {}
         }
@@ -77,12 +91,37 @@ pub fn plantuml(lines: &[&str]) -> Vec<Faint> {
 }
 
 /// `a` on `b`, when they hardly differ.
-fn pair(a: &Set, b: &Set) -> Option<Faint> {
+fn pair(a: &Set, b: &Set, fix: Option<Fix>) -> Option<Faint> {
     let ratio = a.color.contrast(b.color);
     (ratio < LEAST).then(|| Faint {
         line: a.line.max(b.line),
         message: faint(&a.written, &b.written, ratio),
+        fix,
     })
+}
+
+/// Black or white, whichever reads on `on`, as `#000000` is written or
+/// as `#000`.
+fn readable(on: Color, short: bool) -> &'static str {
+    let black = Color::hex(0x000000).contrast(on) >= Color::hex(0xFFFFFF).contrast(on);
+    match (black, short) {
+        (true, false) => "#000000",
+        (false, false) => "#FFFFFF",
+        (true, true) => "#000",
+        (false, true) => "#fff",
+    }
+}
+
+/// `set`'s line with its color written as one that reads on `on`.
+fn fixed(lines: &[&str], set: &Set, on: &Set) -> Option<Fix> {
+    let line = lines.get(set.line)?;
+    let at = line.rfind(&set.value)?;
+    let color = readable(on.color, false);
+    Some(Fix::replace(
+        format!("Write {color} for {}", set.value),
+        set.line,
+        format!("{}{color}{}", &line[..at], &line[at + set.value.len()..]),
+    ))
 }
 
 fn faint(a: &str, b: &str, ratio: f32) -> String {
@@ -107,7 +146,8 @@ fn skinparams(lines: &[&str]) -> Vec<Set> {
             }
             if let Some((key, value)) = split(line) {
                 let key = format!("{prefix}{key}");
-                out.extend(set(&key, value, no, format!("skinparam {key} {value}")));
+                let written = format!("skinparam {key} {value}");
+                out.extend(set(&key, value, no, written));
             }
             continue;
         }
@@ -166,6 +206,7 @@ fn set(key: &str, value: &str, line: usize, written: String) -> Option<Set> {
         color,
         line,
         written,
+        value: value.to_owned(),
     })
 }
 
@@ -195,9 +236,29 @@ pub fn mermaid(lines: &[&str]) -> Vec<Faint> {
         };
         let ratio = t.contrast(f);
         if ratio < LEAST {
+            // The text's color, where `color:` stands as a key of its own.
+            let fix = raw
+                .match_indices("color:")
+                .find(|&(at, _)| {
+                    raw[..at]
+                        .chars()
+                        .next_back()
+                        .is_none_or(|c| c == ',' || c.is_whitespace())
+                        && raw[at + 6..].trim_start().starts_with(text)
+                })
+                .map(|(at, _)| {
+                    let start = at + 6 + (raw[at + 6..].len() - raw[at + 6..].trim_start().len());
+                    let color = readable(f, true);
+                    Fix::replace(
+                        format!("Write color:{color}"),
+                        no,
+                        format!("{}{color}{}", &raw[..start], &raw[start + text.len()..]),
+                    )
+                });
             out.push(Faint {
                 line: no,
                 message: faint(&format!("color:{text}"), &format!("fill:{fill}"), ratio),
+                fix,
             });
         }
     }

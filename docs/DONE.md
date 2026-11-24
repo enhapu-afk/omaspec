@@ -110,6 +110,25 @@ is open and the reasoning around it.
       `markdown`, for an agent's pull request. `docs/ci/behavior-diff.yml`
       is a workflow to copy: Omaspec's latest release, `diff . --rev
       origin/<base> --markdown`, one comment edited on each push.
+- [x] Findings with their fix (2026-11-24): every rule is listed with
+      whether its findings carry a fix (`omaspec_core::lint::RULES`):
+      always, where it is sure, or never and why not (the writer's choice,
+      a trace being a record). 13 of the 36 rules carry one now, 5 before:
+      a block left open closed where its diagram ends, as it is drawn now
+      (`end`, `}`, `end note`, `endif`, … but a `repeat`; blocks one
+      inside another by one fix, the innermost first), a Mermaid kind
+      misspelled (`sequenceDiagam`, and `SequenceDiagram` for mermaid.js),
+      a declaration or a transition written twice in the same words, a
+      participant or a lane a letter off, an icon the set has one name
+      near, a text too faint on its own fill or a line on the page (black
+      or white, whichever reads). `crates/omaspec-model/tests/fixes.rs`
+      makes each rule's fix and finds its finding gone, no error brought;
+      it holds the rules to their examples and the guide's list to the
+      rules, and the CLI's test every code the crates report to the rules.
+      `lint --fix` goes on while the fixes bring more (a name misspelled on
+      two lines); MCP `lint` says what a `fix` is. In a scenario a `group
+      Name {` ends with `end`, as PlantUML reads it, and is no longer told
+      unclosed.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

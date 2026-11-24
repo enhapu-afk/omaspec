@@ -290,8 +290,10 @@ fn render_writes_the_words_as_outlines() {
     let _ = fs::remove_dir_all(&dir);
 }
 
-/// Every finding has a code a program can hold on to, and the guide
-/// lists each one: a new kind of finding is written down there too.
+/// Every finding has a code a program can hold on to, the rules list
+/// each one with whether it carries its fix
+/// (`omaspec_core::lint::RULES`), and the guide lists each rule: a new
+/// kind of finding is written down in both.
 #[test]
 fn every_finding_code_is_in_the_guide() {
     fn sources(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -334,8 +336,15 @@ fn every_finding_code_is_in_the_guide() {
     assert!(codes.len() >= 30, "{codes:?}");
     for code in &codes {
         assert!(
-            guide.contains(&format!("`{code}`")),
-            "{code} is not in the guide"
+            omaspec_core::lint::rule_of(code).is_some(),
+            "{code} is in no rule"
+        );
+    }
+    for rule in omaspec_core::lint::RULES {
+        assert!(
+            guide.contains(&format!("`{}`", rule.code)),
+            "{} is not in the guide",
+            rule.code
         );
     }
     // The report carries it.
@@ -970,6 +979,22 @@ fn lint_fix_makes_the_fixes_findings_carry_and_fmt_pretty_writes_evenly() {
     );
     let out = omaspec(&["lint", "--fix"]);
     assert_ne!(out.status.code(), Some(0), "standard input has no file");
+
+    // A name misspelled on two lines is found on the second once the
+    // first is fixed: `--fix` goes on while fixes bring more.
+    let talk = dir.join("talk.puml");
+    fs::write(
+        &talk,
+        "@startuml\nparticipant Alice\nparticipant Bob\nAlcie -> Bob : hi\nBob -> Alcie : yes\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&["lint", "--fix", talk.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert!(String::from_utf8_lossy(&out.stderr).contains("fixed 2 in"));
+    assert_eq!(
+        fs::read_to_string(&talk).unwrap(),
+        "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob : hi\nBob -> Alice : yes\n@enduml\n"
+    );
 
     let out = omaspec(&["fmt", "--pretty", "--write", path]);
     assert_eq!(out.status.code(), Some(0));

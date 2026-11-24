@@ -150,13 +150,25 @@ pub fn unknown_said(header: &str) -> String {
 pub fn misspelled(header: &str) -> Option<(String, &'static str)> {
     let word = kind_of(header)?;
     let (_, written) = KINDS.iter().find(|(w, _)| *w == word)?;
-    let line = read(header);
-    let token = line
+    let token = first_word(header);
+    (!written.contains(&token.as_str())).then(|| (token, written[0]))
+}
+
+/// The first word of `header`, as mmdr reads the line.
+pub fn first_word(header: &str) -> String {
+    read(header)
         .split_whitespace()
         .next()
         .unwrap_or("")
-        .trim_end_matches([':', ';']);
-    (!written.contains(&token)).then(|| (token.to_owned(), written[0]))
+        .trim_end_matches([':', ';'])
+        .to_owned()
+}
+
+/// Every kind's word as mermaid.js writes it.
+pub fn written_kinds() -> impl Iterator<Item = &'static str> {
+    KINDS
+        .iter()
+        .flat_map(|(_, written)| written.iter().copied())
 }
 
 /// The line as mmdr reads it: without a byte order mark and without a `%%`
