@@ -132,7 +132,7 @@ pub enum Diagram {
     Ditaa(ditaa::Diagram),
 }
 
-pub use preprocess::{Included, Includes};
+pub use preprocess::{Included, Includes, library_missing};
 pub use source::{Line, front_title};
 pub use text::as_mermaid;
 

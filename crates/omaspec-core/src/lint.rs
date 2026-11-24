@@ -290,14 +290,19 @@ fn own(code: &str, lines: &[&str], findings: &mut Vec<Finding>) {
 /// What Omaspec's own engine says when it draws `code`, beyond what its
 /// reading says: a skinparam a drawer does not draw, a diagram the
 /// preprocessor writes. Too slow for every key typed, it is for `lint`
-/// and `check` on the command line. A diagram that includes others is
-/// left alone: where they are is not known here.
+/// and `check` on the command line. A diagram that includes files is
+/// left alone: where they are is not known here. One that includes only
+/// PlantUML's standard library is not: the engine knows without reading
+/// anything what of it it has (C4, ArchiMate) and what it lacks.
 pub fn drawing(code: &str) -> Option<Finding> {
-    let includes = code.lines().any(|line| {
+    let files = code.lines().any(|line| {
         let line = line.trim_start();
-        line.starts_with("!include") || line.starts_with("!import")
+        let library = line
+            .split_once(char::is_whitespace)
+            .is_some_and(|(_, path)| path.trim_start().starts_with('<'));
+        (line.starts_with("!include") || line.starts_with("!import")) && !library
     });
-    if includes {
+    if files {
         return None;
     }
     said(omaspec_uml::render(code).err()?)
@@ -1076,6 +1081,18 @@ mod tests {
         let written = "@startsalt\n!$a = 1\n{S\n  Line one\n}\n@endsalt\n";
         assert!(drawing(written).is_some_and(|f| only_java(&f)));
         assert!(drawing("@startuml\n!include other.puml\nA -> B\n@enduml\n").is_none());
+        // REQ-115: what of the standard library Omaspec lacks is said; C4,
+        // which it draws, is not.
+        let aws = "@startuml\n!include <awslib/AWSCommon>\nA -> B\n@enduml\n";
+        assert!(
+            drawing(aws).is_some_and(|f| only_java(&f)
+                && f.line == 1
+                && f.message.contains("standard library")),
+            "{:?}",
+            drawing(aws)
+        );
+        let c4 = "@startuml\n!include <C4/C4_Container>\nPerson(u, \"User\")\n@enduml\n";
+        assert!(drawing(c4).is_none(), "{:?}", drawing(c4));
         assert!(drawing("@startuml\nA -> B\n@enduml\n").is_none());
         // What Omaspec draws itself says nothing.
         assert!(but_java("@startuml\nA -> B : hi\n@enduml\n").is_empty());

@@ -125,9 +125,7 @@ impl Folder {
 impl Includes for Folder {
     fn read(&self, path: &str, from: Option<&str>) -> Result<Included, String> {
         if path.starts_with('<') {
-            return Err(format!(
-                "`{path}` is in PlantUML's standard library, which Omaspec does not have"
-            ));
+            return Err(omaspec_uml::library_missing(path));
         }
         let file = self.locate(path, from, MAX_FILE)?;
         let bytes = fs::read(&file).map_err(|e| format!("`{path}` cannot be read: {e}"))?;

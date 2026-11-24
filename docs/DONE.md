@@ -1798,6 +1798,17 @@ is open and the reasoning around it.
       themselves. A trace may still pass a state's way without an event
       unlogged.
 
+## From the tester's round of 1.1.0 (2026-11-24)
+
+- [x] Lint says what of PlantUML's standard library Omaspec lacks
+      (REQ-115, 2026-11-24): `render` said that `!include <awslib/…>`
+      is not there, `lint` said nothing, since it leaves a diagram that
+      includes files alone. The preprocessor now declines a path of the
+      library itself, without reading anything (`library_missing`), and
+      lint leaves alone only what includes files: a hint that only the
+      Java PlantUML draws the diagram, a failure with `--strict`. C4 and
+      ArchiMate, which Omaspec draws, are taken out before.
+
 ## Next
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it

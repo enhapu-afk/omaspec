@@ -56,6 +56,14 @@ pub trait Includes {
     }
 }
 
+/// Why `path` of PlantUML's standard library (`<awslib/AWSCommon>`) is
+/// not read: Omaspec does not ship the library. C4 and ArchiMate, which
+/// it draws itself, are taken out before the preprocessor runs. Said
+/// without reading anything, so lint says it too (REQ-115).
+pub fn library_missing(path: &str) -> String {
+    format!("`{path}` is in PlantUML's standard library, which Omaspec does not have")
+}
+
 /// A file read for `!include`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Included {
@@ -646,16 +654,13 @@ impl Machine<'_> {
         frame: &mut Frame,
         out: &mut Out,
     ) -> Result<(), Declined> {
-        let Some(includes) = self.includes else {
-            return Err(fail(
-                line.no,
-                format!("`!{word}` needs the diagram's folder; save the diagram first"),
-            ));
-        };
         let expanded = self.expand(rest, line.no, frame, 0)?;
         let target = unquote(&expanded);
         if target.is_empty() {
             return Err(fail(line.no, format!("`!{word}` needs a file")));
+        }
+        if target.starts_with('<') {
+            return Err(fail(line.no, library_missing(target)));
         }
         if let Some((_, part)) = target.rsplit_once('!')
             && !part.contains(['/', '\\'])
@@ -665,6 +670,12 @@ impl Machine<'_> {
                 format!("including one diagram of a file (`!{part}`) is not supported yet"),
             ));
         }
+        let Some(includes) = self.includes else {
+            return Err(fail(
+                line.no,
+                format!("`!{word}` needs the diagram's folder; save the diagram first"),
+            ));
+        };
         let from = self.files.last().map(String::as_str);
         let file = includes
             .read(target, from)
@@ -1524,6 +1535,13 @@ mod tests {
             "{}",
             err.reason
         );
+        // The standard library is not there, with a folder or without.
+        for err in [
+            declined("!include <awslib/AWSCommon>"),
+            with_files("!include <awslib/AWSCommon>", files()).unwrap_err(),
+        ] {
+            assert_eq!(err.reason, library_missing("<awslib/AWSCommon>"));
+        }
     }
 
     #[test]

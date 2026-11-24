@@ -395,8 +395,6 @@ is lost without a word, then what misleads, then what is missing.
 
 Reproduced on 1.1.0, in the order they are taken.
 
-- [ ] REQ-115: `!include <awslib/…>` and the rest of PlantUML's standard
-      library past C4: render says Omaspec lacks it, lint says nothing.
 - [ ] REQ-104, the rest: a folded Mermaid subgraph shows its name only,
       where a folded state or package says what it holds.
 - [ ] A folded PlantUML package's tab, with its name and what it holds,

@@ -421,6 +421,30 @@ fn lint_fails_on_errors_and_with_strict_on_warnings() {
     assert!(stdout(&out).contains("only the Java PlantUML draws"));
     let out = omaspec(&["lint", "--strict", java.to_str().unwrap()]);
     assert_eq!(out.status.code(), Some(1));
+    // So is one that takes what Omaspec lacks of PlantUML's standard
+    // library (REQ-115), not one of C4, which it draws.
+    let aws = dir.join("aws.puml");
+    fs::write(
+        &aws,
+        "@startuml\n!include <awslib/AWSCommon>\nA -> B\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&["lint", "--strict", aws.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
+    assert!(
+        stdout(&out)
+            .contains("aws.puml:2: info: `<awslib/AWSCommon>` is in PlantUML's standard library"),
+        "{}",
+        stdout(&out)
+    );
+    let c4 = dir.join("c4.puml");
+    fs::write(
+        &c4,
+        "@startuml\n!include <C4/C4_Container>\nPerson(u, \"User\")\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&["lint", "--strict", c4.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0), "{}", stdout(&out));
 
     let out = omaspec(&["lint", "--json", broken.to_str().unwrap()]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
