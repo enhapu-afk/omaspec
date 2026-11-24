@@ -513,11 +513,19 @@ table.cli td:first-child { font: 8.2pt var(--mono); color: var(--ink); white-spa
 <span class="p">$</span> <b>omaspec fmt --write README.md</b>   # each diagram in its place, the prose as it is</pre></div>
 
 <h2>AI agents</h2>
-<p><code>omaspec mcp</code> is a Model Context Protocol server over standard input and output. An agent lints a diagram, holds a trace against the machines of its project, formats, converts, and renders, getting a PNG back to look at. Nothing goes over the network.</p>
+<p><code>omaspec mcp</code> is a Model Context Protocol server over standard input and output. An agent lints a diagram, holds a trace against the machines of its project, compares, converts and renders, getting a PNG back to look at. Nothing goes over the network.</p>
 <div class="term"><pre><span class="p">$</span> <b>claude mcp add omaspec -- omaspec mcp</b>
 <span class="p">#</span> any other client: {"mcpServers": {"omaspec": {"command": "omaspec", "args": ["mcp"]}}}</pre></div>
-<p>The tools are the command line's: <code>lint</code>, <code>trace</code>, <code>refs</code>, <code>inspect</code>, <code>outline</code>, <code>diff</code>, <code>convert</code>, <code>format</code>, <code>render</code>. Every finding carries a <code>code</code> a program can rely on (chapter 10).</p>
-<term run="inspect docs/guide/pdf/examples/shop/leave.puml" show="omaspec inspect leave.puml" rows="16"/>
+<p>The tools are the command line's: <code>lint</code>, <code>trace</code>, <code>coverage</code>, <code>matrix</code>, <code>refs</code>, <code>inspect</code>, <code>outline</code>, <code>diff</code>, <code>convert</code>, <code>format</code>, <code>render</code>. Every finding carries a <code>code</code> a program can rely on (chapter 10). Where agent and person meet, four loops:</p>
+<p><b>The diagram is the contract.</b> The person writes or approves the machine; the agent implements it and lets the system write what it does as a trace (<code>omaspec trace --schema</code>). A deviation comes back as a task: what happened, and what the machine expected there, each on its line of the diagram.</p>
+<term run="trace docs/guide/pdf/examples/shop/night.jsonl --json" show="omaspec trace night.jsonl --json" rows="34"/>
+<p><b>A run, live.</b> An orchestrator appends a line for each step to a file; <code>omaspec preview flow.puml --follow run.jsonl</code> shows each agent where it stands, filled where it waits for a person (<code>state Review &lt;&lt;decide&gt;&gt;</code>), red where it deviates. <code>omaspec trace run.jsonl --follow --json</code> says each finding the moment its line is written.</p>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/live.jpg" alt=""><figcaption>The gallery's <i>Agents at work</i> followed live: <code>‖ coder-1</code> waits for a person in Review, <code>coder-2</code> in red took an event Coding does not offer.</figcaption></figure>
+<p><b>Review by behavior.</b> Before it hands its work over, the agent puts what came, changed and went into its pull request, each changed machine drawn as Mermaid, which GitHub draws; <code>docs/ci/behavior-diff.yml</code> posts the same as a comment on each push.</p>
+<term run="diff docs/guide/pdf/examples/door-first.puml docs/guide/pdf/examples/door-guards.puml --markdown" show="omaspec diff . --rev main --markdown" rows="26"/>
+<p><b>Findings it acts on alone.</b> A finding that can be put right in one sure way carries its fix, in <code>lint --json</code> and MCP <code>lint</code>: 13 of the 36 rules have one. What is left is the writer's choice, and there the agent asks, as the gallery's <i>A tool call</i> does: a scenario in Mermaid held against <i>An agent's life cycle</i> in PlantUML.</p>
+<ex src="examples/gallery/agent.puml" lines="6-25" pic="0.8fr" caption="An agent's life cycle: it waits for a person in Approval before a tool that changes something."/>
+<ex src="examples/gallery/tool-call.mmd" lines="7-29" pic="1fr" caption="A tool call: each message the agent gets must be an event of its life cycle, or lint says which it is not."/>
 
 <!-- ───────────────────────────── 9 ───────────────────────────── -->
 <h1 id="omarchy"><span class="no">Chapter 9</span>Omarchy</h1>
@@ -585,7 +593,7 @@ table.cli td:first-child { font: 8.2pt var(--mono); color: var(--ink); white-spa
 <h2>Commands of the terminal</h2>
 <table class="cli">
   <tr><td>omaspec [FILE…]</td><td>the editor; a folder shows in the sidebar</td></tr>
-  <tr><td>omaspec preview FILE</td><td>a window that follows the file</td></tr>
+  <tr><td>omaspec preview FILE</td><td>a window that follows the file; <code>--follow T.jsonl</code> a trace on its machine as it is written</td></tr>
   <tr><td>omaspec new DIR</td><td>a project: its file and a first machine; <code>--lang mermaid</code>, <code>--git</code></td></tr>
   <tr><td>omaspec lint FILE…</td><td>syntax, likely typos, specification checks; <code>--fix</code>, <code>--strict</code>, <code>--json</code>, <code>--project DIR</code></td></tr>
   <tr><td>omaspec check DIR</td><td>lint, the machines, the links and the pictures of a project; <code>--github</code></td></tr>
@@ -593,11 +601,11 @@ table.cli td:first-child { font: 8.2pt var(--mono); color: var(--ink); white-spa
   <tr><td>omaspec render FILE…</td><td>SVG beside the file; <code>-o</code> a PNG, JPEG, PDF, Markdown, ZIP, <code>.html</code> or <code>.txt</code>; <code>--look</code>, <code>--check</code>, <code>--fit</code>, <code>--min-font</code>, <code>--text-as-paths</code>, <code>--copy</code></td></tr>
   <tr><td>omaspec play FILE -o OUT</td><td>a film or a page that moves (chapter 6)</td></tr>
   <tr><td>omaspec export DIR</td><td>the project as linked SVGs and a ZIP; <code>--html</code> as one page</td></tr>
-  <tr><td>omaspec trace T.jsonl</td><td>a recorded trace against the machines; <code>--as timing</code>, <code>--json</code></td></tr>
+  <tr><td>omaspec trace T.jsonl</td><td>a recorded trace against the machines; <code>--json</code> a deviation as a task, <code>--follow</code> while it is written, <code>--schema</code>, <code>--as timing</code></td></tr>
   <tr><td>omaspec coverage FILE --traces T</td><td>what the traces take of a machine; <code>-o</code>, <code>--river</code>, <code>--min</code>, <code>--json</code></td></tr>
   <tr><td>omaspec matrix FILE</td><td>a machine as a table; <code>-o</code> <code>.md</code> or a picture, <code>--json</code></td></tr>
   <tr><td>omaspec orbit FILE</td><td>a machine's life cycle on a ring</td></tr>
-  <tr><td>omaspec diff FILE | OLD NEW | DIR</td><td>what changed in the behavior; <code>--rev</code>, <code>-o</code> a picture</td></tr>
+  <tr><td>omaspec diff FILE | OLD NEW | DIR</td><td>what changed in the behavior; <code>--rev</code>, <code>-o</code> a picture, <code>--markdown</code> a pull request's comment</td></tr>
   <tr><td>omaspec log FILE</td><td>commit by commit, what each changed; <code>-n</code>, <code>--json</code></td></tr>
   <tr><td>omaspec git setup</td><td>git tells diagrams by their behavior</td></tr>
   <tr><td>omaspec convert FILE</td><td>the machine or scenario in the other language</td></tr>
@@ -632,6 +640,7 @@ table.cli td:first-child { font: 8.2pt var(--mono); color: var(--ink); white-spa
   <tr><td><code>omaspec-only</code></td><td>a diagram of Omaspec's own syntax, which PlantUML does not draw</td></tr>
   <tr><td><code>project-file</code> <code>not-drawn</code></td><td>the project's file does not read; no engine draws the diagram</td></tr>
 </table>
+<p>These carry their fix where it is sure, 13 of the 36: <code>missing-end</code>, <code>unclosed-block</code>, <code>unknown-head</code>, <code>declared-twice</code>, <code>undeclared-participant</code>, <code>lane-spelling</code>, <code>dead-end</code>, <code>transition-twice</code>, <code>stale-entry</code>, <code>unknown-icon</code>, <code>faint-color</code>, <code>unseen-character</code>, <code>not-mermaid-js</code>.</p>
 
 <section class="back">
   <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#24283b"/><path d="M11 19h12M11 26.5h7M11 34h14M11 41.5h6M11 49h10" fill="none" stroke-width="3.2" stroke-linecap="round" stroke="#565f89"/><path d="M11 19h12" fill="none" stroke="#bb9af7" stroke-width="3.2" stroke-linecap="round"/><path d="M11 34h14" fill="none" stroke="#ff9e64" stroke-width="3.2" stroke-linecap="round"/><path d="M31.5 13v38" fill="none" stroke="#414868" stroke-width="1.6" stroke-linecap="round"/><rect x="37.5" y="13.5" width="17" height="11" rx="3.5" fill="#1a1b26" stroke="#7aa2f7" stroke-width="2.4"/><rect x="37.5" y="39.5" width="17" height="11" rx="3.5" fill="#1a1b26" stroke="#7aa2f7" stroke-width="2.4"/><path d="M46 24.5v11" fill="none" stroke="#a9b1d6" stroke-width="2.4" stroke-linecap="round"/><path d="M42.6 32.6 46 36.2 49.4 32.6" fill="none" stroke="#a9b1d6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>

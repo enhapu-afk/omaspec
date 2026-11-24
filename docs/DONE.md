@@ -4147,6 +4147,12 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       recording's clock (`docs/images/film.sh`, `editor/tests/film.rs`); the guide is a
       PDF of 47 pages whose examples the release build draws (`docs/guide/pdf/build.py`),
       to download from the page
+- [x] Release 1.2.0 (2026-11-24): the loops between agents and people of
+      [0036](adr/0036-between-agents-and-people.md), the trace as a contract, a run
+      followed live, `diff --markdown` for a pull request and 13 of 36 rules with
+      their fix, the gallery of 49 examples with three of agents at work; the guide
+      drawn by 1.2.0 has 52 pages, its *AI agents* the four loops with the run
+      followed live
 - [x] Release 1.1.0 (2026-11-24): the security review's fixes, what the nightly
       fuzzing found, and PlantUML's sequence, activity and state diagrams drawn
       natively in every example of its guide (553 of 897 in all). A release's notes

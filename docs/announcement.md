@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 1.1: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 1.2: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -83,6 +83,19 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   crosses less: on 300 random graphs 28 % fewer crossings.
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
+
+## New in 1.2
+
+- **Between agents and people.** A state machine is the contract an agent implements:
+  the system's trace is held against it (`omaspec trace --json`), and each deviation
+  comes back as a task on its line of the diagram.
+- **A run, live.** `omaspec preview flow.puml --follow run.jsonl` shows each agent where
+  it stands as its orchestrator writes, filled where it waits for a person
+  (`state Review <<decide>>`), red where it deviates.
+- **Review by behavior.** `omaspec diff . --rev main --markdown` writes a pull request's
+  comment, each changed machine drawn as Mermaid; a workflow to copy posts it.
+- **Fixes an agent can make alone.** 13 of the 36 lint rules say their fix;
+  `omaspec lint --fix` makes them.
 
 ## New in 1.1
 

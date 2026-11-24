@@ -355,7 +355,10 @@ languages. 1.0.0 was tagged on 2026-11-20, with the landing page and the
 guide as a PDF (docs/DONE.md). 1.1.0 followed on 2026-11-24 with the
 security review's fixes and PlantUML's sequence, activity and state
 diagrams drawn natively in every example of its guide (553 of 897 in all);
-each release's notes are in `docs/releases/`.
+each release's notes are in `docs/releases/`. 1.2.0 followed the same day
+with the loops between agents and people (the section above): the trace as
+a contract, a run followed live, a pull request reviewed by behavior, and
+findings with their fix.
 
 - [ ] The release's last steps: AUR `omaspec` and `omaspec-bin`, the
       announcement. Both PKGBUILDs are at 1.1.0 with their checksums and
