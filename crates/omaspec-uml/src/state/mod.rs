@@ -11,6 +11,7 @@
 //! draws them too.
 
 mod draw;
+pub mod legacy;
 mod lower;
 mod marks;
 pub mod mermaid;
@@ -35,6 +36,9 @@ pub struct Diagram {
     /// Each state's name where a line declares, describes or joins it, in
     /// the order written, with the states around that line.
     pub names: Vec<crate::Mention>,
+    /// An activity diagram in PlantUML's old syntax ([`legacy`]), drawn
+    /// in an activity's look: plain names, a choice's test beside it.
+    pub activity: bool,
 }
 
 /// The states and transitions written directly inside one state (or the

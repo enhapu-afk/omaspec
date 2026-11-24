@@ -173,6 +173,7 @@ impl Parser {
             root: self.root,
             frame: self.frame,
             names: self.written,
+            activity: false,
         })
     }
 

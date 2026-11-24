@@ -63,6 +63,11 @@ pub struct Skin {
     pub bar: Option<Color>,
     /// The faces its elements' fonts name (`StateFontName Impact`).
     pub faces: crate::text::Faces,
+    /// A state's name in bold and centered; an action's in an activity is
+    /// plain, its lines starting at the left of its words.
+    pub bold_names: bool,
+    /// `activityShape octagon`: an action's box has its corners cut.
+    pub octagon: bool,
 }
 
 impl Default for Skin {
@@ -103,6 +108,8 @@ impl Default for Skin {
             end: None,
             bar: None,
             faces: Default::default(),
+            bold_names: true,
+            octagon: false,
         }
     }
 }
@@ -182,7 +189,29 @@ const FONTS: [&str; 9] = [
 
 impl Skin {
     pub fn from_params(params: &[Skinparam]) -> Result<Skin, Declined> {
+        Skin::from_params_on(Skin::default(), params)
+    }
+
+    /// The look of an activity in PlantUML's old syntax, before its
+    /// skinparams: plain names of 12 points in boxes rounded as PlantUML
+    /// rounds them, thin borders, dark bars, its start and end.
+    pub fn activity() -> Skin {
+        let dark = Color::hex(0x222222);
         let mut skin = Skin::default();
+        skin.state.font = Font::new(12.0, Color::BLACK);
+        skin.state.thickness = 0.5;
+        skin.round = 12.5;
+        skin.arrow_font = Font::new(11.0, Color::BLACK);
+        skin.bold_names = false;
+        skin.start = Some(dark);
+        skin.end = Some(dark);
+        skin.bar = Some(Color::hex(0x555555));
+        skin
+    }
+
+    /// `base` changed by `params`.
+    pub fn from_params_on(base: Skin, params: &[Skinparam]) -> Result<Skin, Declined> {
+        let mut skin = base;
         let mut font_size = None;
         let mut font_color = None;
         let mut own_size = Vec::new();
@@ -237,6 +266,13 @@ impl Skin {
                 "statebackgroundcolor" => skin.state.fill = p.paint()?,
                 "statebordercolor" => skin.state.border = p.solid()?,
                 "stateborderthickness" => skin.state.thickness = p.number(0.0, 20.0)?,
+                "stateshape" => {
+                    skin.octagon = match value.to_ascii_lowercase().as_str() {
+                        "octagon" => true,
+                        "roundbox" => false,
+                        _ => return Err(p.unsupported()),
+                    };
+                }
                 "statestartcolor" => skin.start = Some(p.solid()?),
                 "stateendcolor" => skin.end = Some(p.solid()?),
                 "statebarcolor" => skin.bar = Some(p.solid()?),

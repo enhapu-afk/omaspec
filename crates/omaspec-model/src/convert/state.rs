@@ -59,6 +59,9 @@ fn to_mermaid(code: &str) -> Result<Written, Refused> {
     let Ok(Diagram::State(diagram)) = omaspec_uml::parse(code) else {
         return Err(refused(None, UNREAD));
     };
+    if diagram.activity {
+        return Err(refused(None, UNREAD));
+    }
     let mut w = ToMermaid::default();
     let mut taken = HashSet::new();
     w.name_all(&diagram.root, &mut taken);

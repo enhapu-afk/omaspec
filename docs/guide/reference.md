@@ -936,7 +936,7 @@ large diagram moves more smoothly with it.
 ## What Omaspec draws
 
 Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own engines:
-sequence, activity, state, class, component, use case, deployment, object, timing and
+sequence, activity (the old syntax, `(*) --> "Action"`, too), state, class, component, use case, deployment, object, timing and
 Gantt diagrams, C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF and regex railroads, mind maps, WBS, JSON, YAML and formulas (`@startlatex`,
 `@startmath`), and of
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,

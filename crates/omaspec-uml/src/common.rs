@@ -463,7 +463,7 @@ impl Frame {
                         "this skinparam block is not supported",
                     ));
                 }
-                let (key, value) = split_pair(line.text)
+                let (key, value) = skin_pair(line.text)
                     .ok_or_else(|| Declined::at(line.no, "a skinparam needs a value"))?;
                 skinparam_name(key, line.no, true)?;
                 if key.contains("<<") && !for_states(&format!("{prefix}{key}")) {
@@ -479,7 +479,7 @@ impl Frame {
             return Err(Declined::at(no, "the skinparam block has no `}`"));
         }
         let (key, value) =
-            split_pair(rest).ok_or_else(|| Declined::at(no, "a skinparam needs a value"))?;
+            skin_pair(rest).ok_or_else(|| Declined::at(no, "a skinparam needs a value"))?;
         skinparam_name(key, no, false)?;
         if rest.contains("<<") && !(key.contains("<<") && for_states(key)) {
             return Err(stereotyped(no));
@@ -530,9 +530,27 @@ fn skip_word_dots(text: &str) -> &str {
 }
 
 /// A skinparam for one stereotype (`BackgroundColor<<phase>>`): state
-/// diagrams draw those of states; the others are not drawn yet.
+/// diagrams draw those of states, and so do activities in the old syntax,
+/// drawn as states (`activityBackgroundColor<< Begin >>`; an activity in
+/// the new syntax declines it); the others are not drawn yet.
 fn for_states(key: &str) -> bool {
-    normalize_key(key).starts_with("state")
+    let key = normalize_key(key);
+    key.starts_with("state") || key.starts_with("activity")
+}
+
+/// A skinparam's key and value, a stereotype with spaces in it held in
+/// the key (`BackgroundColor<< Begin >> Olive`).
+fn skin_pair(text: &str) -> Option<(&str, &str)> {
+    let t = text.trim();
+    if let Some(open) = t.find("<<")
+        && !t[..open].contains(char::is_whitespace)
+        && let Some(close) = t[open..].find(">>")
+    {
+        let end = open + close + 2;
+        let value = t[end..].trim();
+        return (!value.is_empty()).then_some((&t[..end], value));
+    }
+    split_pair(t)
 }
 
 fn stereotyped(no: usize) -> Declined {

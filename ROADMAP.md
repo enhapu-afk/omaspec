@@ -61,10 +61,11 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
 - [ ] Drawn but different: one dash (`A -> B`) lays its states beside
       each other in PlantUML; here it is a line down as `-->` is.
 
-### Step 3: the activity diagram (62 of 62; the legacy syntax 0 of 13)
-- [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
-      tree where it fits it and laid out on the graph engine where it does
-      not; two examples in other chapters use it too.
+### Step 3: the activity diagram (62 of 62; the legacy syntax 13 of 13)
+
+- [ ] Drawn but different: a partition of the old syntax is a box with
+      its name over a line, as a state's; PlantUML draws a folder with its
+      name in a tab.
 
 ### Step 4: the other UML diagrams
 

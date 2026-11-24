@@ -96,6 +96,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         root,
         frame: lowering.frame,
         names: chart.names.clone(),
+        activity: false,
     })
 }
 

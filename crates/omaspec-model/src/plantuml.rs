@@ -16,6 +16,10 @@ pub fn read_placed(code: &str) -> Option<(Machine, Vec<(usize, usize)>)> {
     let Ok(Diagram::State(diagram)) = omaspec_uml::parse(code) else {
         return None;
     };
+    // An activity in the old syntax is drawn as states, and is no machine.
+    if diagram.activity {
+        return None;
+    }
     let mut reader = Reader::default();
     reader.container(&diagram.root, &[], None, 0);
     reader.links(&diagram.root, &[]);
@@ -145,6 +149,10 @@ mod tests {
         let (_, hidden) =
             read_placed("@startuml\n[*] --> Idle\nIdle -[hidden]-> Later\n@enduml\n").unwrap();
         assert_eq!(hidden.len(), 1);
+        // An activity in the old syntax, drawn as states, is no machine.
+        assert!(
+            read_placed("@startuml\n(*) --> \"First\"\n\"First\" --> (*)\n@enduml\n").is_none()
+        );
     }
 
     #[test]

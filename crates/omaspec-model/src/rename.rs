@@ -188,7 +188,7 @@ fn note_named(piece: &Piece, wanted: &str) -> bool {
         })
     }
     piece.language == omaspec_core::Language::PlantUml
-        && matches!(omaspec_uml::parse(&piece.code), Ok(omaspec_uml::Diagram::State(d)) if any(&d.root, wanted))
+        && matches!(omaspec_uml::parse(&piece.code), Ok(omaspec_uml::Diagram::State(d)) if !d.activity && any(&d.root, wanted))
 }
 
 /// What a name at a place of a file is, for a rename there.

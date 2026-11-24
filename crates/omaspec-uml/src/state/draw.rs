@@ -74,7 +74,10 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
 
 /// The SVG, and where its states and transitions are in it.
 pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
-    let skin = Skin::from_params(&diagram.frame.skinparams)?;
+    let skin = match diagram.activity {
+        true => Skin::from_params_on(Skin::activity(), &diagram.frame.skinparams)?,
+        false => Skin::from_params(&diagram.frame.skinparams)?,
+    };
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
@@ -376,7 +379,14 @@ fn measure_node(
 
     let (width, height, title, description) = match node.kind {
         Kind::State => {
-            let title = node.label.measure(title_font(skin, node)?, family)?;
+            let mut title = node.label.measure(title_font(skin, node)?, family)?;
+            // An action's lines start at the left of its words, as
+            // PlantUML sets them.
+            if !skin.bold_names {
+                for line in &mut title.lines {
+                    line.flush = true;
+                }
+            }
             let description = text_blocks(&node.description, desc_font(skin), family)?;
             let width = (stack_width(&title, &description) + PAD_X * 2.0).max(MIN_W);
             let mut height = (stack_height(&title, &description) + PAD_Y * 2.0).max(MIN_H);
@@ -389,7 +399,15 @@ fn measure_node(
             };
             (width, height, title, description)
         }
-        Kind::Choice => (CHOICE_ROOM, CHOICE_ROOM, Block::empty(), Vec::new()),
+        // An activity's test stands beside its diamond; a state's choice
+        // shows no name, as PlantUML draws it.
+        Kind::Choice => {
+            let test = match skin.bold_names {
+                true => Block::empty(),
+                false => node.label.measure(skin.arrow_font, family)?,
+            };
+            (CHOICE_ROOM, CHOICE_ROOM, test, Vec::new())
+        }
         Kind::History | Kind::DeepHistory => {
             let word = if node.kind == Kind::DeepHistory {
                 "H*"
@@ -1017,7 +1035,10 @@ fn graph_direction(direction: Direction) -> graph::Direction {
 }
 
 fn name_font(skin: &Skin) -> Font {
-    skin.state.font.bold()
+    match skin.bold_names {
+        true => skin.state.font.bold(),
+        false => skin.state.font,
+    }
 }
 
 /// The font of a state's name, in the color of its own text where it has
@@ -1115,6 +1136,25 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     let rect = node.rect;
     let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
     match node.item.kind {
+        Kind::State if skin.octagon && !node.item.composite => {
+            let cut = (rect.h / 4.0).min(rect.w / 4.0);
+            let (l, t, r, b) = (rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
+            canvas.polygon(
+                Layer::Frames,
+                &[
+                    (l + cut, t),
+                    (r - cut, t),
+                    (r, t + cut),
+                    (r, b - cut),
+                    (r - cut, b),
+                    (l + cut, b),
+                    (l, b - cut),
+                    (l, t + cut),
+                ],
+                node.item.fill,
+                Some(node.item.border),
+            );
+        }
         Kind::State => {
             let radius = skin.round.min(rect.w / 2.0).min(rect.h / 2.0);
             canvas.rect(
@@ -1503,7 +1543,24 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
             let at = point_name(node);
             canvas.text(Layer::Front, &node.item.title, (at.x, at.y), Align::Left);
         }
-        Kind::Choice | Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
+        // An activity's test, to the left above the diamond, as PlantUML
+        // sets it: clear of the words on a way out to the left, and of the
+        // line coming in at the top.
+        Kind::Choice => {
+            let half = CHOICE / 2.0;
+            let (cx, cy) = (
+                node.rect.x + node.rect.w / 2.0,
+                node.rect.y + node.rect.h / 2.0,
+            );
+            let title = &node.item.title;
+            canvas.text(
+                Layer::Front,
+                title,
+                (cx - 4.0, cy - half - 4.0 - title.height),
+                Align::Right,
+            );
+        }
+        Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
     }
 }
 

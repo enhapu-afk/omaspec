@@ -554,6 +554,26 @@ is open and the reasoning around it.
       label, or a label without a name of one word, declines on its line.
       The guide: the activity diagram 62 of 62.
 
+- [x] The old activity syntax (2026-11-24): `(*) --> "First Action"`
+      is read into the state diagram's tree (`state/legacy.rs`) and laid
+      out on its graph, as PlantUML lays it out on one: an action is a
+      state, `(*)` the start where an arrow leaves it and the one end where
+      arrows lead to it, `if "test" then` … `else` … `endif` a choice whose
+      branches start at it with their words in brackets, `===B1===` a bar,
+      a partition a box around what is first named in it (named again, the
+      same one), `note left: …` and `note right` … `end note` notes on the
+      last thing named, words over several lines in quotes, `as A1`, a
+      stereotype (`<< Begin >>`). An arrow without a start leaves the last
+      thing; after `endif` the flow goes on from the last branch's end;
+      one dash lays its end beside its start. It is drawn in an activity's
+      look (`Skin::activity`): plain names of 12 points, their lines from
+      the left, the test to the left above its diamond, dark bars, and the
+      `activity…` skinparams as the state's, `activityShape octagon` too;
+      a stereotype with spaces in a skinparam's key (`BackgroundColor<<
+      Begin >>`) is read. It is no state machine: the model, a rename and
+      a conversion leave it alone. The guide: the old syntax 13 of 13, 548
+      of 897 in all.
+
 ### Step 5: what every diagram shares
 
 - [x] A face for one kind of element (2026-11-24): `ParticipantFontName

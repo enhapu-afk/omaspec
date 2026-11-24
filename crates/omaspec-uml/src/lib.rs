@@ -350,6 +350,11 @@ fn only_frame(lines: &[source::Line]) -> bool {
 fn uml(lines: &[source::Line]) -> Result<Diagram, Declined> {
     Ok(match decide(lines) {
         UmlType::Timing => Diagram::Timing(timing::parse(lines)?),
+        // The old syntax (`(*) --> "Action"`) is a graph, which the state
+        // diagram's engine lays out.
+        UmlType::Activity if state::legacy::is_legacy(lines) => {
+            Diagram::State(state::legacy::parse(lines)?)
+        }
         UmlType::Activity => Diagram::Activity(activity::parse(lines)?),
         UmlType::State => Diagram::State(state::parse(lines)?),
         UmlType::Structure => Diagram::Structure(structure::parse(lines)?),
