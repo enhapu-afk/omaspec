@@ -253,6 +253,9 @@ impl Parser {
             self.arrow(arrow?, no)?;
             return Ok(at + 1);
         }
+        if let Some(rest) = keyword(text, "json") {
+            return self.json(lines, at, rest);
+        }
         if let Some(word) = refused(text) {
             return Err(Declined::at(no, format!("`{word}` is not supported yet")));
         }
@@ -654,9 +657,58 @@ impl Parser {
         Ok(Some(next))
     }
 
+    /// `json name { … }`: data among the states, its value from the
+    /// opening brace to the one that closes it, which the drawer draws as
+    /// a table under its name.
+    fn json(&mut self, lines: &[Line], at: usize, rest: &str) -> Result<usize, Declined> {
+        let no = lines[at].no;
+        let Some(name) = rest.trim().strip_suffix('{').map(str::trim) else {
+            return Err(Declined::at(
+                no,
+                "a `json` element is written `json name {`",
+            ));
+        };
+        if name.is_empty() || name.contains(char::is_whitespace) || name.contains('"') {
+            return Err(Declined::at(no, "a `json` element needs one name"));
+        }
+        if self.find(name).is_some() {
+            return Err(Declined::at(no, format!("`{name}` is declared already")));
+        }
+        let mut value = String::from("{");
+        let mut depth = 1usize;
+        let mut next = at + 1;
+        while depth > 0 {
+            let Some(line) = lines.get(next) else {
+                return Err(Declined::at(
+                    no,
+                    "the `json` element has no `}` that closes it",
+                ));
+            };
+            depth = braces(line.text, depth);
+            value.push('\n');
+            value.push_str(line.text);
+            next += 1;
+        }
+        let mut node = plain_node(name, "", no);
+        node.kind = Kind::Data;
+        node.label = Text {
+            value,
+            line: no,
+            col: None,
+        };
+        self.push(node);
+        Ok(next)
+    }
+
     /// Declines a line that treats the note at `path` as a state.
     fn not_a_note(&self, path: &[usize], line: usize) -> Result<(), Declined> {
         let node = self.node(path);
+        if node.kind == Kind::Data {
+            return Err(Declined::at(
+                line,
+                format!("`{}` is data; a line to it is not supported yet", node.key),
+            ));
+        }
         if node.kind == Kind::Note {
             return Err(Declined::at(
                 line,
@@ -1722,6 +1774,24 @@ fn note_head(text: &str, line: usize) -> Result<NoteHead, Declined> {
         label,
         one_line,
     })
+}
+
+/// How deep in braces `text`, a line of JSON, leaves it, from `depth`;
+/// braces in strings do not count.
+fn braces(text: &str, mut depth: usize) -> usize {
+    let mut quoted = false;
+    let mut escaped = false;
+    for c in text.chars() {
+        match c {
+            _ if escaped => escaped = false,
+            '\\' if quoted => escaped = true,
+            '"' => quoted = !quoted,
+            '{' | '[' if !quoted => depth += 1,
+            '}' | ']' if !quoted => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    depth
 }
 
 fn refused(text: &str) -> Option<&str> {

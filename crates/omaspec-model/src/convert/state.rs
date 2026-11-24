@@ -139,7 +139,9 @@ impl ToMermaid {
     /// which is left out, takes none.
     fn name_all(&mut self, container: &Container, taken: &mut HashSet<String>) {
         for node in &container.nodes {
-            if !node.key.is_empty() && node.kind != Kind::Note && !self.ids.contains_key(&node.key)
+            if !node.key.is_empty()
+                && !matches!(node.kind, Kind::Note | Kind::Data)
+                && !self.ids.contains_key(&node.key)
             {
                 let id = match is_plain(&node.key) && !taken.contains(&node.key) {
                     true => node.key.clone(),
@@ -251,6 +253,13 @@ impl ToMermaid {
                 self.notice(
                     Some(node.line),
                     "Mermaid has no note of its own, beside no state; this one is left out",
+                );
+                return Ok(());
+            }
+            Kind::Data => {
+                self.notice(
+                    Some(node.line),
+                    "Mermaid has no data among the states; this `json` element is left out",
                 );
                 return Ok(());
             }

@@ -55,7 +55,7 @@ impl Reader {
                     continue;
                 }
                 // Words beside the machine, no state of it.
-                NodeKind::Note => continue,
+                NodeKind::Note | NodeKind::Data => continue,
                 NodeKind::State => Kind::State,
                 NodeKind::Start => Kind::Start,
                 NodeKind::End => Kind::End,
@@ -149,6 +149,9 @@ mod tests {
         let (_, hidden) =
             read_placed("@startuml\n[*] --> Idle\nIdle -[hidden]-> Later\n@enduml\n").unwrap();
         assert_eq!(hidden.len(), 1);
+        // Data among the states is no state of the machine.
+        let m = read("@startuml\n[*] --> A\njson data {\n \"a\": 1\n}\n@enduml\n").unwrap();
+        assert!(m.states.iter().all(|s| s.name != "data"), "{:?}", m.states);
         // An activity in the old syntax, drawn as states, is no machine.
         assert!(
             read_placed("@startuml\n(*) --> \"First\"\n\"First\" --> (*)\n@enduml\n").is_none()

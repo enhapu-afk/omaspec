@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="229" height="525" viewBox="0 0 229 525">
 <g transform="translate(10,10)">
 <g>
-<rect x="33.73" y="54" width="107.84" height="212.87" rx="8" ry="8" fill="#E6F3F8" stroke="#00008B" stroke-width="1"/>
+<rect x="33.73" y="54" width="107.84" height="212.87" rx="8" ry="8" fill="#ADD8E6" stroke="#00008B" stroke-width="1"/>
 <line x1="33.73" y1="86.97" x2="141.57" y2="86.97" fill="none" stroke="#00008B" stroke-width="1"/>
 <ellipse cx="87.65" cy="105.97" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="45.73" y="148.97" width="83.84" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>

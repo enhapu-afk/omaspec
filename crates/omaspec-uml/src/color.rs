@@ -112,6 +112,12 @@ impl Inline {
     pub fn read(word: &str) -> Result<Inline, String> {
         let mut style = Inline::default();
         let color = |value: &str| parse(value).map(|_| value.to_owned());
+        // A fill may run from one color into another; whoever draws it says
+        // whether it can.
+        let fill = |value: &str| match parse_gradient(value) {
+            Some(Ok(_)) => Ok(value.to_owned()),
+            _ => color(value),
+        };
         for (index, part) in word
             .strip_prefix('#')
             .unwrap_or(word)
@@ -123,12 +129,11 @@ impl Inline {
                 _ if part.is_empty() => {}
                 Some(("line", value)) => style.line = Some(color(value)?),
                 Some(("text", value)) => style.text = Some(color(value)?),
-                Some(("back", value)) => style.fill = Some(color(value)?),
+                Some(("back", value)) => style.fill = Some(fill(value)?),
                 None if part == "line.dashed" => style.dash = Some(InlineDash::Dashed),
                 None if part == "line.dotted" => style.dash = Some(InlineDash::Dotted),
                 None if part == "line.bold" => style.bold = true,
-                // A gradient says so as a color does.
-                None if index == 0 && !part.contains('.') => style.fill = Some(color(part)?),
+                None if index == 0 && !part.contains('.') => style.fill = Some(fill(part)?),
                 _ => return Err(format!("`{part}` in a style is not supported yet")),
             }
         }
@@ -136,8 +141,76 @@ impl Inline {
     }
 }
 
+/// A fill that runs from one color into another, as PlantUML writes it:
+/// `#red-green` from the top down, `#red|green` from the left across,
+/// `#red/green` from the top left down to the right, `#red\green` from the
+/// bottom left up to the right.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Gradient {
+    pub from: Color,
+    pub to: Color,
+    pub way: Way,
+}
+
+/// Which way a [`Gradient`] runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Way {
+    Down,
+    Across,
+    Falling,
+    Rising,
+}
+
+impl Way {
+    /// Where it starts and ends in the box it fills, each a share of its
+    /// width and its height, as SVG's `x1`, `y1`, `x2` and `y2` take them.
+    pub fn ends(self) -> (f32, f32, f32, f32) {
+        match self {
+            Way::Down => (0.5, 0.0, 0.5, 1.0),
+            Way::Across => (0.0, 0.5, 1.0, 0.5),
+            Way::Falling => (0.0, 0.0, 1.0, 1.0),
+            Way::Rising => (0.0, 1.0, 1.0, 0.0),
+        }
+    }
+}
+
+/// `value` as a gradient (`#red-green`); `None` when it is none, an error
+/// when one of its colors is none PlantUML knows or is transparent.
+pub fn parse_gradient(value: &str) -> Option<Result<Gradient, String>> {
+    let v = value.trim();
+    if css_function(v).is_some() {
+        return None;
+    }
+    let bare = v.strip_prefix('#').unwrap_or(v);
+    let (at, mark) = bare
+        .char_indices()
+        .find(|(_, c)| matches!(c, '-' | '|' | '/' | '\\'))?;
+    let way = match mark {
+        '-' => Way::Down,
+        '|' => Way::Across,
+        '/' => Way::Falling,
+        _ => Way::Rising,
+    };
+    let one = |part: &str| -> Result<Color, String> {
+        let part = part.trim();
+        match parse(part) {
+            Ok(Some(color)) => Ok(color),
+            Ok(None) => Err(format!("a gradient (`{v}`) cannot run into transparent")),
+            Err(_) => Err(format!("`{part}` in the gradient `{v}` is no color")),
+        }
+    };
+    Some((|| {
+        Ok(Gradient {
+            from: one(&bare[..at])?,
+            to: one(bare[at + 1..].trim_start_matches('#'))?,
+            way,
+        })
+    })())
+}
+
 /// `value` as a paint (`transparent` is none). An error names what is not
-/// understood; gradients (`#red/blue`) are not supported yet.
+/// understood; a gradient (`#red/blue`) is read by [`parse_gradient`],
+/// where a drawer fills with one.
 ///
 /// Opacity is dropped, except a fully transparent ink, which is none.
 /// Callers that mix a highlight onto a background use [`parse_ink`].
@@ -499,6 +572,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn gradients_run_the_way_their_mark_says() {
+        let red = Color(255, 0, 0);
+        let green = Color(0, 128, 0);
+        for (value, way) in [
+            ("#red-green", Way::Down),
+            ("red|green", Way::Across),
+            ("#red/#green", Way::Falling),
+            ("#red\\green", Way::Rising),
+        ] {
+            let g = parse_gradient(value).unwrap().unwrap();
+            assert_eq!((g.from, g.to, g.way), (red, green, way), "{value}");
+        }
+        assert_eq!(Way::Down.ends(), (0.5, 0.0, 0.5, 1.0));
+        assert!(parse_gradient("#red").is_none());
+        assert!(parse_gradient("rgb(1,2,3)").is_none());
+        assert!(parse_gradient("#red-nocolor").unwrap().is_err());
+        assert!(parse_gradient("#red-transparent").unwrap().is_err());
+        // A plain color still names a gradient as what it does not read.
+        assert!(parse("#red/blue").unwrap_err().contains("gradients"));
+    }
+
+    #[test]
     fn an_inline_style_names_fill_line_and_text() {
         let style = Inline::read("#pink;line:red;line.bold;text:red").unwrap();
         assert_eq!(
@@ -516,11 +611,10 @@ mod tests {
         assert_eq!(style.fill.as_deref(), Some("aliceblue"));
         assert!(Inline::written("#line.bold") && Inline::written("#pink;text:red"));
         assert!(!Inline::written("#pink") && !Inline::written("##[dashed]blue"));
-        assert!(
-            Inline::read("#red|green;line:blue")
-                .unwrap_err()
-                .contains("gradients")
-        );
+        // A fill may be a gradient, which its drawer reads.
+        let style = Inline::read("#red|green;line:blue").unwrap();
+        assert_eq!(style.fill.as_deref(), Some("red|green"));
+        assert!(Inline::read("#red|nocolor;line:blue").is_err());
         assert!(
             Inline::read("#line.wavy")
                 .unwrap_err()

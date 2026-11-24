@@ -269,6 +269,17 @@ impl Skin {
                 key = format!("state{rest}");
             }
             let value = p.value.trim();
+            // A style for a stereotype (`.foo { state { … } }`) says so
+            // before the name, `class=foo|StateBackgroundColor`: the look of
+            // the states of that stereotype, as `BackgroundColor<<foo>>` is.
+            if let Some((only, name)) = p.key.split_once('|') {
+                let class = only.strip_prefix("class=").filter(|c| !c.contains('&'));
+                let Some(class) = class else {
+                    return Err(p.unsupported());
+                };
+                stereotyped.push((normalize_key(name), class.to_ascii_lowercase(), p));
+                continue;
+            }
             if let Some((key, stereotype)) = key.split_once("<<") {
                 let stereotype = stereotype.trim_end_matches(">>").trim().to_owned();
                 stereotyped.push((key.to_owned(), stereotype, p));
@@ -421,6 +432,10 @@ impl Skin {
                 "stateborderthickness" => look.thickness = p.number(0.0, 20.0)?,
                 "statefontcolor" => look.font.color = p.solid()?,
                 "statefontsize" => look.font.size = p.number(4.0, 100.0)?,
+                "statefontstyle" => {
+                    let (bold, italic) = font_style(&p.value).ok_or_else(|| p.unsupported())?;
+                    (look.font.bold, look.font.italic) = (bold, italic);
+                }
                 _ => return Err(p.unsupported()),
             }
         }
@@ -474,7 +489,8 @@ pub const STYLE: &[Element] = &[
             Prop::FontStyle,
             Prop::RoundCorner,
         ],
-    ),
+    )
+    .varied(),
     Element::keys(&["element", "stateDiagram", "state", "group"], &[]),
     Element::keys(&["element", "stateDiagram", "circle", "start"], &[]),
     Element::keys(&["element", "stateDiagram", "circle", "stop"], &[]),
@@ -574,8 +590,18 @@ mod tests {
         assert_eq!(s.stereotyped(None).state, s.state);
         assert_eq!(s.stereotyped(Some("sub")).state, s.state);
         // What is not drawn for a stereotype yet declines.
-        assert!(skin(&[("stateFontStyle<<phase>>", "bold")]).is_err());
         assert!(skin(&[("stateRoundCorner<<phase>>", "5")]).is_err());
+        let bold = skin(&[("stateFontStyle<<phase>>", "bold")]).unwrap();
+        assert!(bold.stereotyped(Some("phase")).state.font.bold);
+        // A style for a stereotype is the same (`.foo { state { … } }`).
+        let s = skin(&[("class=foo|StateBackGroundColor", "lightblue")]).unwrap();
+        assert_eq!(s.stereotyped(Some("Foo")).state.fill, Some(blue));
+        assert!(skin(&[("class=foo&depth=2|StateBackGroundColor", "red")]).is_err());
+        let svg = crate::render(
+            "@startuml\n<style>\n.foo {\n  state,stateBody {\n    BackGroundColor lightblue;\n  }\n}\n</style>\nstate Main <<foo>> {\n  state Sub\n}\nstate Other\n@enduml\n",
+        )
+        .unwrap();
+        assert_eq!(svg.matches("fill=\"#ADD8E6\"").count(), 1, "{svg}");
     }
 
     #[test]

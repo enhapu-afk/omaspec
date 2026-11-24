@@ -53,11 +53,8 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       PlantUML (`#A80036`), in the lifeline's color here; in the themes'
       colors it wants a color of their own.
 
-### Step 2: the state diagram (32 of 36)
+### Step 2: the state diagram (36 of 36)
 
-- [ ] The four left: gradients in a state's color (`#red-green`), a style
-      for a stereotype (`.foo { state { … } }`), a `json` element among
-      the states.
 - [ ] Drawn but different: one dash (`A -> B`) lays its states beside
       each other in PlantUML; here it is a line down as `-->` is.
 
@@ -109,7 +106,8 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       emoji (`<:1f600:>`), `<math>` and `<latex>` in text.
 - [ ] Styles of lines (19): `#line:red;line.bold;text:red`, `[thickness=n]`,
       `[#a;#b;#c]`, `line.dashed:blue`.
-- [ ] Gradients (16): `#red-green`, `#red/white`, `Lavender/LightBlue`.
+- [ ] Gradients (16) in the diagrams beyond the state diagram, which
+      draws them (`Canvas::gradient`): `#red/white`, `Lavender/LightBlue`.
 - [ ] `json` and `map` elements in other diagrams (18).
 - [ ] Sprites (13): hex without a size, SVG sprites, a sprite as a
       stereotype, `listsprite`.

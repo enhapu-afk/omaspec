@@ -211,7 +211,7 @@ fn mark_container(container: &mut Container, marks: &Marks) {
     for node in &mut container.nodes {
         let named = !matches!(
             node.kind,
-            Kind::Start | Kind::End | Kind::Region | Kind::Note
+            Kind::Start | Kind::End | Kind::Region | Kind::Note | Kind::Data
         );
         match marks.states.get(&node.key).filter(|_| named) {
             // Whatever border the source gives it: only the dash says
@@ -369,7 +369,7 @@ fn path_of(container: &Container, name: &str) -> Option<Vec<usize>> {
         if node.key == name
             && !matches!(
                 node.kind,
-                Kind::Start | Kind::End | Kind::Region | Kind::Note
+                Kind::Start | Kind::End | Kind::Region | Kind::Note | Kind::Data
             )
         {
             return Some(vec![index]);

@@ -321,6 +321,23 @@ is open and the reasoning around it.
       it colors an action. A fork's join bar spans a flow that ends
       before it, so the line on from its middle starts on it.
 
+- [x] The last four of the state diagram (2026-11-24). A state's color
+      may run from one into another as PlantUML writes it, `#red-green`
+      down, `#red|green` across, `#red/green` and `#red\green` aslant, in
+      `#…;line:…` too (`color::parse_gradient`): the canvas fills with it
+      while it is set (`Canvas::gradient`) and defines each gradient once,
+      by an id its colors and its way name, so a picture inside another
+      defines the same; a composite takes one, its border keeps its own
+      color. A style for a stereotype (`.foo { state { BackGroundColor …
+      } }`) is the look of that stereotype's states, as
+      `BackgroundColor<<foo>>` is, its font style too, and a stereotype's
+      fill on a composite stays as written rather than stepping toward the
+      paper. `json name { … }` among the states is data (`Kind::Data`,
+      `state/draw/data.rs`): its name in a band over its value, drawn
+      nested as a table by the JSON drawer; no state of the machine, left
+      out of a conversion to Mermaid, and a line to it declines. The
+      guide: the state diagram 36 of 36, 553 of 897 in all.
+
 ### Step 3: the activity diagram
 
 - [x] A loop that starts with an action (2026-11-22): `repeat :text;`, on

@@ -91,6 +91,7 @@ pub(super) fn layout_regions(
                 title_shift: 0.0,
                 sideways: false,
                 name_at: None,
+                gradient: None,
             },
         });
     }

@@ -326,6 +326,9 @@ pub enum Kind {
     /// A note of its own (`note "…" as N1`), laid out as a box among the
     /// states; its words are its label. No state of the machine.
     Note,
+    /// Data among the states (`json name { … }`): its name over its value
+    /// as a table, which its label holds as JSON. No state of the machine.
+    Data,
     /// Where a transition enters the state around it (`<<entryPoint>>`,
     /// drawn as `<<inputPin>>` and `<<expansionInput>>` draw it too): on
     /// that state's border, its one way leading on inside.

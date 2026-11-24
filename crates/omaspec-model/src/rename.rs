@@ -184,7 +184,8 @@ fn note_named(piece: &Piece, wanted: &str) -> bool {
     use omaspec_uml::state::{Container, Kind};
     fn any(container: &Container, wanted: &str) -> bool {
         container.nodes.iter().any(|node| {
-            (node.kind == Kind::Note && key(&node.key) == wanted) || any(&node.children, wanted)
+            (matches!(node.kind, Kind::Note | Kind::Data) && key(&node.key) == wanted)
+                || any(&node.children, wanted)
         })
     }
     piece.language == omaspec_core::Language::PlantUml

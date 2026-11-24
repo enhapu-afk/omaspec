@@ -24,6 +24,7 @@ mod actions;
 #[cfg(test)]
 mod bars;
 mod choices;
+mod data;
 mod nest;
 mod open;
 mod points;
@@ -186,8 +187,8 @@ fn chart_node(
     map: &mut Map,
 ) {
     let shape = match node.kind {
-        // Words beside the machine, no place of it.
-        Kind::Note => return,
+        // Words and data beside the machine, no place of it.
+        Kind::Note | Kind::Data => return,
         Kind::State => Shape::State,
         Kind::Start => Shape::Start,
         Kind::End => Shape::End,
@@ -278,6 +279,9 @@ struct Item {
     /// Where a point's name stands, once a free spot is found for it
     /// ([`points::place_names`]); else where [`point_name`] puts it first.
     name_at: Option<(f32, f32)>,
+    /// Its fill runs from one color into another (`#red-green`); `fill`
+    /// is the first.
+    gradient: Option<color::Gradient>,
 }
 
 /// How large an entry or an exit point is, or a cell of an expansion's
@@ -332,8 +336,10 @@ fn measure_node(
     if node.composite {
         // A state that holds others is a frame around them: its fill
         // steps toward the paper, so the states inside stand out on it. A
-        // color written on the state stays as written.
-        let fill = if node.fill.is_none() && !node.children.nodes.is_empty() {
+        // color written on the state, or for its stereotype, stays as
+        // written.
+        let own = node.fill.is_some() || skin.state.fill != every.state.fill;
+        let fill = if !own && !node.children.nodes.is_empty() {
             fill.map(|color| color.mix(skin.background.unwrap_or(Color::WHITE), FRAME_LIGHT))
         } else {
             fill
@@ -374,6 +380,7 @@ fn measure_node(
                 title_shift: 0.0,
                 sideways: false,
                 name_at: None,
+                gradient: gradient_of(node)?,
             },
         });
     }
@@ -439,6 +446,7 @@ fn measure_node(
             };
             (width, height, title, Vec::new())
         }
+        Kind::Data => data::measure(node, skin, family)?,
         // Its words are its own line's, or its block's.
         Kind::Note => {
             let text = node.label.measure_written(skin.note.font, family)?;
@@ -470,6 +478,7 @@ fn measure_node(
             title_shift: 0.0,
             sideways: direction == Direction::Right,
             name_at: None,
+            gradient: gradient_of(node)?,
         },
     })
 }
@@ -479,11 +488,21 @@ fn flat(kind: Kind) -> bool {
     matches!(kind, Kind::State | Kind::Fork | Kind::Join | Kind::Region)
 }
 
+/// The gradient written on the state (`#red-green`), if its color is one.
+fn gradient_of(node: &Node) -> Result<Option<color::Gradient>, Declined> {
+    node.fill
+        .as_deref()
+        .and_then(color::parse_gradient)
+        .transpose()
+        .map_err(|err| Declined::at(node.line, err))
+}
+
 pub(super) fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color), Declined> {
-    // A color written on the state. Start, end and bars use it when it is
-    // there; otherwise they use the border, not the pale state fill, so
-    // they stay visible on the background.
+    // A color written on the state, a gradient's first. Start, end and
+    // bars use it when it is there; otherwise they use the border, not the
+    // pale state fill, so they stay visible on the background.
     let own = match &node.fill {
+        Some(_) if let Some(g) = gradient_of(node)? => Some(g.from),
         Some(value) => color::parse(value).map_err(|err| Declined::at(node.line, err))?,
         None => None,
     };
@@ -1127,7 +1146,9 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<
 
 fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     canvas.linked(node.item.link.as_ref(), &[Layer::Frames], |canvas| {
-        paint_outline(canvas, skin, node);
+        canvas.gradient(node.item.gradient, |canvas| {
+            paint_outline(canvas, skin, node)
+        });
     });
 }
 
@@ -1231,6 +1252,7 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
             let rect = (rect.x, rect.y, rect.w, rect.h);
             note_shape(canvas, skin, Layer::Frames, rect);
         }
+        Kind::Data => data::paint_outline(canvas, node),
         Kind::Entry | Kind::Exit => paint_point(canvas, node),
         Kind::Region => {}
     }
@@ -1528,6 +1550,7 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
         }
         // An activity's test, to the left above its diamond.
         Kind::Choice => actions::paint_test(canvas, node),
+        Kind::Data => data::paint_words(canvas, node),
         Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
     }
 }
@@ -2914,11 +2937,59 @@ mod tests {
     }
 
     #[test]
-    fn a_gradient_names_its_line() {
-        let (_, lines) = crate::source::body("@startuml\nstate A #red/blue\n@enduml\n").unwrap();
-        let diagram = parse(&lines).unwrap();
-        let err = draw(&diagram).unwrap_err();
+    fn json_among_the_states_is_a_table_under_its_name() {
+        let source = "@startuml\nstate A\njson data {\n   \"fruit\":\"Apple\",\n   \"color\": [\"Red\", \"Green\"],\n   \"note\": \"a } in words\"\n}\nA --> B\n@enduml\n";
+        let svg = crate::render(source).unwrap();
+        for words in [
+            ">data</tspan>",
+            ">fruit</tspan>",
+            ">Apple</tspan>",
+            ">Green</tspan>",
+            ">a } in words</tspan>",
+        ] {
+            assert!(svg.contains(words), "{words}: {svg}");
+        }
+        // No state of the machine, and no line to it.
+        let (_, lines) = crate::source::body(source).unwrap();
+        let d = parse(&lines).unwrap();
+        assert_eq!(d.root.nodes[1].kind, Kind::Data);
+        assert_eq!(d.root.nodes[1].key, "data");
+        let err =
+            crate::render("@startuml\n[*] --> A\njson data {\n \"a\": 1\n}\nA --> data\n@enduml\n")
+                .unwrap_err();
+        assert_eq!(err.line, Some(5));
+        assert!(err.reason.contains("is data"), "{}", err.reason);
+        let err =
+            crate::render("@startuml\n[*] --> A\njson data {\n \"a\": 1\n@enduml\n").unwrap_err();
+        assert!(err.reason.contains("closes it"), "{}", err.reason);
+    }
+
+    #[test]
+    fn a_gradient_fills_a_state_and_names_its_line() {
+        let drawn = |source: &str| {
+            let (_, lines) = crate::source::body(source).unwrap();
+            draw(&parse(&lines).unwrap())
+        };
+        // Defined once, in the picture's own definitions, and filled with;
+        // the border keeps its color, a composite takes one too.
+        let svg = drawn(
+            "@startuml\nstate A #red/blue\nstate B #red/blue\nstate C #red-green;line:00FFFF {\n  state D\n}\n@enduml\n",
+        )
+        .unwrap();
+        assert_eq!(svg.matches("<linearGradient").count(), 2, "{svg}");
+        let id = "omaspec-gradient-ff0000-0000ff-falling";
+        assert_eq!(
+            svg.matches(&format!("fill=\"url(#{id})\"")).count(),
+            2,
+            "{svg}"
+        );
+        assert!(
+            svg.contains("x1=\"0.5\" y1=\"0\" x2=\"0.5\" y2=\"1\""),
+            "{svg}"
+        );
+        assert!(svg.contains("stroke=\"#00FFFF\""), "{svg}");
+        let err = drawn("@startuml\nstate A #red/nocolor\n@enduml\n").unwrap_err();
         assert_eq!(err.line, Some(1));
-        assert!(err.reason.contains("gradient"), "{}", err.reason);
+        assert!(err.reason.contains("nocolor"), "{}", err.reason);
     }
 }

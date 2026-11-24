@@ -120,6 +120,10 @@ pub struct Canvas {
     across: Option<(f32, f32)>,
     /// The faces the skin gives its elements ([`Self::faces`]).
     faces: Vec<String>,
+    /// The gradient a fill takes while one is set ([`Self::gradient`]).
+    gradient: Option<String>,
+    /// Every gradient filled with, each once, by its id.
+    gradients: Vec<(String, crate::color::Gradient)>,
     /// The words drawn for a line, each where it stands.
     ties: Vec<crate::map::Tied>,
     /// Words are being drawn again ([`Self::echo`]), and where such were.
@@ -184,6 +188,8 @@ impl Canvas {
             tie: None,
             across: None,
             faces: Vec::new(),
+            gradient: None,
+            gradients: Vec::new(),
             ties: Vec::new(),
             echo: false,
             echoes: Vec::new(),
@@ -425,6 +431,9 @@ impl Canvas {
     fn paint(&self, fill: Paint, stroke: Option<Stroke>) -> String {
         let mut out = String::new();
         match fill {
+            Some(_) if let Some(id) = &self.gradient => {
+                let _ = write!(out, r#" fill="url(#{id})""#);
+            }
             Some(c) => {
                 let _ = write!(out, r#" fill="{}""#, self.color(c));
             }
@@ -503,6 +512,35 @@ impl Canvas {
     /// counting, also where the same words are drawn for something else.
     pub fn tie(&mut self, line: Option<usize>) -> Option<usize> {
         std::mem::replace(&mut self.tie, line)
+    }
+
+    /// Draws with `paint`, a shape's fill running as `gradient` says where
+    /// there is one (`#red-green`); its border and the rest keep their
+    /// colors. The picture defines each gradient once, by an id its colors
+    /// and its way name, so pictures inside others define the same.
+    pub fn gradient<T>(
+        &mut self,
+        gradient: Option<crate::color::Gradient>,
+        paint: impl FnOnce(&mut Canvas) -> T,
+    ) -> T {
+        let Some(g) = gradient else {
+            return paint(self);
+        };
+        let (from, to) = (self.color(g.from), self.color(g.to));
+        let id = format!(
+            "omaspec-gradient-{}-{}-{:?}",
+            from.to_string().trim_start_matches('#'),
+            to.to_string().trim_start_matches('#'),
+            g.way
+        )
+        .to_ascii_lowercase();
+        if !self.gradients.iter().any(|(known, _)| *known == id) {
+            self.gradients.push((id.clone(), g));
+        }
+        let before = self.gradient.replace(id);
+        let out = paint(self);
+        self.gradient = before;
+        out
     }
 
     /// The faces the skin gives its elements, by their place in it
@@ -1436,6 +1474,23 @@ impl Canvas {
                 out,
                 r#"<defs><filter id="{GRAY}" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="0"/></filter></defs>"#
             );
+        }
+        if !self.gradients.is_empty() {
+            out.push_str("<defs>");
+            for (id, g) in &self.gradients {
+                let (x1, y1, x2, y2) = g.way.ends();
+                let _ = write!(
+                    out,
+                    r#"<linearGradient id="{id}" x1="{}" y1="{}" x2="{}" y2="{}"><stop offset="0" stop-color="{}"/><stop offset="1" stop-color="{}"/></linearGradient>"#,
+                    n(x1),
+                    n(y1),
+                    n(x2),
+                    n(y2),
+                    self.color(g.from),
+                    self.color(g.to)
+                );
+            }
+            out.push_str("</defs>");
         }
         if let Some(bg) = background {
             let _ = write!(
