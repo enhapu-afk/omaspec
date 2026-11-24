@@ -129,6 +129,17 @@ is open and the reasoning around it.
       two lines); MCP `lint` says what a `fix` is. In a scenario a `group
       Name {` ends with `end`, as PlantUML reads it, and is no longer told
       unclosed.
+- [x] Agents in the gallery (2026-11-24): *An agent's life cycle*
+      (`agent.puml`), one agent on a task that waits for a person in
+      `Approval <<decide>>` before a tool that changes something, and *A
+      tool call* (`tool-call.mmd`), a scenario in Mermaid whose messages to
+      the agent are held against that life cycle in PlantUML: a message it
+      does not take there is a finding. Beside *Agents at work*, 49
+      examples now. The guide's *The loops between an agent and a person*
+      says how an agent uses Omaspec in each of the four loops, with a
+      block for a project's own `AGENTS.md`; this repository's `AGENTS.md`
+      says how they hold on Omaspec's own work (`arrival.puml` and its
+      traces, a commit that changes a machine, the rules of findings).
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

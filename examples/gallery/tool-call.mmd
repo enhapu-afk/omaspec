@@ -1,0 +1,27 @@
+---
+title: A tool call
+---
+%% An agent checks a diagram with Omaspec and asks a person before it
+%% changes the file. What the agent gets is held against its life cycle
+%% (agent.puml), in the other language.
+sequenceDiagram
+  actor Person
+  participant Agent
+  participant Omaspec
+  Person->>Agent: task
+  Agent->>Agent: picks a tool
+  Agent->>Omaspec: lint door.puml
+  Omaspec-->>Agent: 2 findings, each with its fix
+  Agent->>Agent: wants a change
+  Agent->>Person: make the 2 fixes?
+  alt yes
+    Person->>Agent: approved
+    Agent->>Omaspec: lint --fix door.puml
+    Omaspec-->>Agent: fixed 2
+    Agent->>Agent: answers
+    Agent-->>Person: door.puml is clean
+  else no
+    Person->>Agent: denied
+    Agent->>Agent: answers
+    Agent-->>Person: left as it was
+  end

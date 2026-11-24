@@ -116,6 +116,25 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
   map with `Canvas::place`, which hands these to the pane: a click and
   the caret's light take tied words by their line, not by counting.
 
+## Omaspec on its own work
+
+The loops between an agent and a person (docs/adr/0036, the guide's *AI
+agents*) hold here too:
+
+- The contract: `crates/omaspec-app/src/paper/arrival.puml` is how a pane
+  arrives (docs/adr/0030). `OMASPEC_ARRIVAL_TRACES` writes each pane's way
+  through it while `paper::` tests run; `omaspec trace` holds that against
+  it, `omaspec coverage --traces` says what no test takes. Code that
+  deviates is fixed, or the machine is changed with the person's consent.
+- Review by behavior: a commit that changes a state machine or a scenario
+  (the gallery, `examples/door`, `examples/drone`, `arrival.puml`) says
+  what `omaspec diff FILE` reports, not only what lines changed.
+- Findings: `omaspec lint --fix` on the diagrams changed, then `omaspec
+  lint --json` on them (the examples are held clean by `examples_are_clean`
+  in `tests/cli.rs`); a finding without a fix is asked about, not silenced.
+- A new kind of finding is a rule in `omaspec_core::lint::RULES`, with its
+  fix where one is sure and an example in `omaspec-model/tests/fixes.rs`.
+
 ## Omarchy facts the code relies on
 
 - Active theme: `~/.local/state/omarchy/current/theme/colors.toml`, name in

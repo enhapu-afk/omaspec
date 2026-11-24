@@ -147,6 +147,18 @@ pub static EXAMPLES: &[Example] = &[
         "A workflow of agents with two places a person decides: follow a run as it is written with preview --follow."
     ),
     example!(
+        "agent.puml",
+        Behavior,
+        "An agent's life cycle",
+        "One agent on a task, waiting for a person before it changes something; the tool call is checked against it."
+    ),
+    example!(
+        "tool-call.mmd",
+        Behavior,
+        "A tool call",
+        "A scenario in Mermaid held against the agent's life cycle in PlantUML: each message the agent gets is an event there."
+    ),
+    example!(
         "tea.puml",
         Behavior,
         "Tea, the old way",

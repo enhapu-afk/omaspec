@@ -33,7 +33,10 @@ pub fn is_state(lines: &[Line]) -> bool {
 }
 
 fn marks_state(text: &str) -> bool {
-    if text.contains("[*]") || keyword(text, "state").is_some() {
+    // A start or an end at an arrow, not in its label: `A --> B : x[*]`
+    // is a message, as PlantUML reads it.
+    let ends = text.split(':').next().unwrap_or(text);
+    if ends.contains("[*]") || keyword(text, "state").is_some() {
         return true;
     }
     if squeezed_eq(text, "hideemptydescription") {

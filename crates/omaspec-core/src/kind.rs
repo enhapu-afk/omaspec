@@ -370,6 +370,12 @@ mod tests {
             puml("@startuml\n!$start = \"[*]\"\n$start --> Idle\n@enduml"),
             Kind::State
         );
+        // A `[*]` in a message's label marks no state diagram, as PlantUML
+        // reads it.
+        assert_eq!(
+            puml("@startuml\nClosed --> Open : open[*]\n@enduml"),
+            Kind::Sequence
+        );
     }
 
     #[test]

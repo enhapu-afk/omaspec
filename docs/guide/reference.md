@@ -454,8 +454,8 @@ class, component and deployment diagrams and in Mermaid flowcharts. Why:
 Ctrl+Shift+E (or *Examples* on an empty page) lays the examples that come with Omaspec
 out as tiles: a coffee machine's states, a pizza night's scenario, a first day at work in
 swimlanes, a washing machine's timing, a bookshop's classes, a garden year as a mind map,
-a treehouse as a Gantt chart, a network, a wireframe, a grammar, charts of numbers and
-more, 41 in PlantUML and Mermaid. Seven are complex (an
+a treehouse as a Gantt chart, a network, a wireframe, a grammar, charts of numbers,
+agents at work with the places a person decides, and more, 49 in PlantUML and Mermaid. Seven are complex (an
 elevator, a checkout, an incident in three lanes, a delivery pipeline, a library system
 and more) and have a *complex* filter of their own.
 
@@ -900,6 +900,53 @@ claude mcp add omaspec -- omaspec mcp   # Claude Code
 Other clients take the same command in their server list, for example
 `{"mcpServers": {"omaspec": {"command": "omaspec", "args": ["mcp"]}}}`. Relative paths
 are read from the folder the client starts the server in.
+
+### The loops between an agent and a person
+
+An agent works with Omaspec as a person does, by the command line or by MCP; the four
+loops below are where the two meet ([ADR 0036](../adr/0036-between-agents-and-people.md)).
+The gallery shows them: *Agents at work* is an orchestrator's workflow with the places a
+person decides, *An agent's life cycle* one agent that waits for a person before it changes
+something, and *A tool call* a scenario in Mermaid held against that life cycle in PlantUML.
+
+1. **The diagram is the contract.** The person writes or approves a state machine, a
+   scenario or a workflow; the agent implements it and lets the system write what it does
+   as a trace, one JSON line an event ([docs/trace.md](../trace.md), `omaspec trace
+   --schema`). `omaspec trace run.jsonl --json` (MCP `trace`) holds the trace against the
+   machines of the project, and each deviation comes back as a task: what the diagram
+   expected and what happened, on its line of the diagram and of the trace. The agent fixes
+   the code, or proposes the transition the diagram lacks; `omaspec coverage` says what no
+   trace has taken yet.
+2. **A run, live.** An orchestrator, or a hook of the agent's client, appends a line for
+   each step to a file. `omaspec preview flow.puml --follow run.jsonl` shows each agent or
+   task where it stands, filled where it waits for a person (`<<decide>>`), red where it
+   deviates; `omaspec trace run.jsonl --follow --json` says each finding the moment its line
+   is written, for the orchestrator to act on.
+3. **Review by behavior.** Before it hands its work over, the agent runs `omaspec diff .
+   --rev main --markdown` (MCP `diff` with `markdown`) and puts what came, changed and went
+   into the description of its pull request, each state machine that changed drawn below.
+   [docs/ci](../ci/README.md) posts the same as a comment on each push. The person reviews
+   the behavior, not the lines.
+4. **Findings it acts on alone.** `omaspec lint --json` and MCP `lint` give each finding its
+   code, its line and, where it is sure, its fix; `omaspec lint --fix` makes them. What is
+   left asks the writer (which state a machine starts in, which of two states an event
+   leads to), and there the agent asks the person, as *A tool call* does.
+
+For a project's own `AGENTS.md` (or `CLAUDE.md`), so that an agent working in it takes
+these loops up:
+
+```markdown
+## Diagrams (Omaspec)
+
+- The state machines and scenarios in this repository are the contract: the code
+  follows them. Change one only with the person's consent, and say so in the pull request.
+- After changing a diagram: `omaspec lint --fix FILE`, then `omaspec lint --json FILE`.
+  A finding left without a fix is a question for the person.
+- The tests write a trace of what the system did (`omaspec trace --schema`), and
+  `omaspec trace run.jsonl --json` reports no deviation. A deviation is a task: fix the
+  code, or propose the transition the diagram lacks.
+- Before a pull request: `omaspec diff . --rev main --markdown` into its description.
+```
 
 ### Findings by their code
 

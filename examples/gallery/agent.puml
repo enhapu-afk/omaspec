@@ -1,0 +1,25 @@
+@startuml
+title An agent's life cycle
+' One agent, one task at a time. Before a tool that changes something it
+' waits for a person in Approval (<<decide>>). tool-call.mmd is held
+' against it: each message the agent gets is an event here.
+skinparam state {
+  BackgroundColor<<decide>> #FFF1C2
+  BorderColor<<decide>> #8B6508
+}
+[*] --> Idle
+Idle --> Working : task
+state Working {
+  [*] --> Thinking
+  Thinking --> Calling : picks a tool
+  Calling --> Thinking
+  Thinking --> [*] : answers
+  Thinking --> Approval : wants a change
+  Approval --> Calling : approved
+  Approval --> Thinking : denied
+  state Approval <<decide>>
+}
+Working --> Idle
+Working --> Failed : out of budget
+Failed --> [*]
+@enduml
