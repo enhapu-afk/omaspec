@@ -106,7 +106,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "lint",
             "title": "Check diagrams",
-            "description": "Checks PlantUML and Mermaid diagrams for syntax problems, likely typos and contradictions in a specification. A state diagram is checked as a state machine: states no path reaches, states nothing leaves, one event leading to two states. A sequence diagram is checked against the state machines of its project: each message a participant receives must be an event its machine takes, in order. Give a file, a Markdown document (each `plantuml` and `mermaid` block in it, lines the document's), a folder (every diagram and document in it, checked against the folder's state machines) or the code. Errors are contradictions or broken syntax; warnings may be meant and say how to make them explicit. A finding that can be put right in one sure way carries its `fix`: `line` (from 1), how many lines it takes out there (`remove`) and the lines it puts in (`insert`); applied, the finding is gone. Apply the fixes from the last line up.",
+            "description": "Checks PlantUML and Mermaid diagrams for syntax problems, likely typos and contradictions in a specification. A state diagram is checked as a state machine: states no path reaches, states nothing leaves, one event leading to two states. A sequence diagram is checked against the state machines of its project: each message a participant receives must be an event its machine takes, in order. Give a file, a Markdown document (each `plantuml` and `mermaid` block in it, lines the document's), a folder (every diagram and document in it, checked against the folder's state machines) or the code. Errors are contradictions or broken syntax; warnings may be meant and say how to make them explicit. A finding that can be put right in one sure way carries its `fix`: `line` (from 1), how many lines it takes out there (`remove`) and the lines it puts in (`insert`); applied, the finding is gone. Make the fixes from the last line up, several at one line in the order the findings come.",
             "inputSchema": schema(&[
                 ("path", json!({
                     "type": "string",
@@ -1088,7 +1088,7 @@ fn diff(args: &Args) -> Result<Answer> {
     if args.flag("markdown")?.unwrap_or(false) {
         let new_name = name(&new);
         let picture = crate::diff_markdown::picture(
-            (&old.text, language(&old, lang)),
+            Some((&old.text, language(&old, lang))),
             (&new.text, language(&new, lang)),
             &changes,
         );
@@ -1554,7 +1554,7 @@ mod tests {
         );
         let markdown = marked["structuredContent"]["markdown"].as_str().unwrap();
         assert!(
-            markdown.starts_with("### Behavior changes from <old code>"),
+            markdown.starts_with("### Behavior changes from \\<old code\\>"),
             "{markdown}"
         );
         assert!(markdown.contains("class Jammed omaspecCame"), "{markdown}");

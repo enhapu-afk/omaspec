@@ -6,6 +6,10 @@
 //! in a comment where no picture of one's own can be put: the states that
 //! came in green, those that changed in amber. What only lines can say (a
 //! transition that came or went) stays in the list.
+//!
+//! What the diagrams say is written so that it stays words: no mention of
+//! a person or a team (`@name`), no reference to an issue, no fence it
+//! could close.
 
 use omaspec_core::Language;
 use omaspec_model::{Change, ChangeKind, Machine};
@@ -22,7 +26,7 @@ pub(crate) struct Section<'a> {
 
 /// The comment: a heading, a line that counts, and each section.
 pub(crate) fn comment(since: &str, sections: &[Section]) -> String {
-    let mut out = format!("### Behavior changes {since}\n\n");
+    let mut out = format!("### Behavior changes {}\n\n", words(since));
     if sections.is_empty() {
         out.push_str("No diagram changed in its behavior.\n");
         return out;
@@ -47,7 +51,7 @@ pub(crate) fn comment(since: &str, sections: &[Section]) -> String {
     }
     out.push_str(&format!("{}.\n", parts.join(" · ")));
     for section in sections {
-        out.push_str(&format!("\n#### `{}`\n\n", section.new));
+        out.push_str(&format!("\n#### {}\n\n", code(section.new)));
         for change in section.changes {
             let at = match (change.new_line, change.old_line) {
                 (Some(line), _) => format!("{}:{}", section.new, line + 1),
@@ -61,16 +65,18 @@ pub(crate) fn comment(since: &str, sections: &[Section]) -> String {
                 (kind, _) => kind.name().to_owned(),
             };
             out.push_str(&format!(
-                "- **{kind}** {} (`{at}`)\n",
-                escaped(&change.message)
+                "- **{kind}** {} ({})\n",
+                words(&change.message),
+                code(&at)
             ));
         }
         if let Some(picture) = &section.picture {
-            out.push_str(
-                "\n<details><summary>The machine now: what came in green, what changed in amber</summary>\n\n```mermaid\n",
-            );
-            out.push_str(picture.trim_end());
-            out.push_str("\n```\n\n</details>\n");
+            // Longer than any run of backticks inside, so none ends it.
+            let fence = "`".repeat(longest_run(picture, '`').max(2) + 1);
+            out.push_str(&format!(
+                "\n<details><summary>The machine now: what came in green, what changed in amber</summary>\n\n{fence}mermaid\n{}\n{fence}\n\n</details>\n",
+                picture.trim_end()
+            ));
         }
     }
     out
@@ -84,29 +90,79 @@ fn severity_name(severity: omaspec_core::lint::Severity) -> &'static str {
     }
 }
 
-/// `text` as words in a Markdown list: what would start markup or HTML is
-/// written as itself.
-fn escaped(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for c in text.chars() {
-        if matches!(c, '\\' | '`' | '*' | '_' | '<' | '>' | '[' | ']' | '|') {
-            out.push('\\');
-        }
-        out.push(c);
+/// `text` as words on one line of a Markdown list: what would start
+/// markup, HTML or an entity is written as itself, and a word that GitHub
+/// would take for a mention (`@team`) or a reference (`#12`) stands in
+/// code, where it takes neither.
+fn words(text: &str) -> String {
+    let words: Vec<String> = text
+        .split_whitespace()
+        .map(|word| {
+            if word.contains(['@', '#']) {
+                return code(word);
+            }
+            let mut out = String::with_capacity(word.len());
+            for c in word.chars() {
+                if matches!(
+                    c,
+                    '\\' | '`' | '*' | '_' | '<' | '>' | '[' | ']' | '|' | '&' | '!' | '~'
+                ) {
+                    out.push('\\');
+                }
+                out.push(c);
+            }
+            out
+        })
+        .collect();
+    words.join(" ")
+}
+
+/// `text` as code on one line, in more backticks than any run of them in
+/// it.
+fn code(text: &str) -> String {
+    let text = text.replace(['\n', '\r'], " ");
+    let ticks = "`".repeat(longest_run(&text, '`') + 1);
+    // A backtick at an edge needs a space between it and the fence.
+    let pad = if text.starts_with('`') || text.ends_with('`') {
+        " "
+    } else {
+        ""
+    };
+    format!("{ticks}{pad}{text}{pad}{ticks}")
+}
+
+/// The longest run of `c` in `text`.
+fn longest_run(text: &str, c: char) -> usize {
+    let (mut longest, mut run) = (0, 0);
+    for d in text.chars() {
+        run = if d == c { run + 1 } else { 0 };
+        longest = longest.max(run);
     }
-    out
+    longest
 }
 
 /// The new version of a state machine as Mermaid, the states `changes`
-/// brought or changed colored; `None` for what is no state machine, or
-/// what Mermaid cannot say.
+/// brought or changed colored; every state where there was no machine
+/// before (`old` none, or no machine). `None` for what is no state
+/// machine, or what Mermaid cannot say.
 pub(crate) fn picture(
-    (old, old_lang): (&str, Language),
+    old: Option<(&str, Language)>,
     (new, new_lang): (&str, Language),
     changes: &[Change],
 ) -> Option<String> {
-    let (a, b) = (Machine::read(old, old_lang)?, Machine::read(new, new_lang)?);
-    let marks = crate::diff_picture::marks(&a, &b, changes);
+    let b = Machine::read(new, new_lang)?;
+    let marks: Vec<(String, Mark)> = match old.and_then(|(text, lang)| Machine::read(text, lang)) {
+        Some(a) => crate::diff_picture::marks(&a, &b, changes)
+            .states
+            .into_iter()
+            .collect(),
+        None => b
+            .states
+            .iter()
+            .filter(|s| s.kind == omaspec_model::Kind::State && !s.name.is_empty())
+            .map(|s| (s.name.clone(), Mark::Added))
+            .collect(),
+    };
     let mermaid = match new_lang {
         Language::Mermaid => new.to_owned(),
         Language::PlantUml => {
@@ -131,7 +187,6 @@ pub(crate) fn picture(
             .map(|s| s.name.clone())
     };
     let mut marked: Vec<(String, &'static str)> = marks
-        .states
         .iter()
         .filter_map(|(name, mark)| {
             let class = match mark {
@@ -176,7 +231,7 @@ mod tests {
         )
         .unwrap();
         let picture = picture(
-            (OLD, Language::PlantUml),
+            Some((OLD, Language::PlantUml)),
             (NEW, Language::PlantUml),
             &changes,
         );
@@ -208,6 +263,43 @@ mod tests {
             none.contains("No diagram changed in its behavior."),
             "{none}"
         );
-        assert_eq!(escaped("a <b> *c*"), "a \\<b\\> \\*c\\*");
+        assert_eq!(words("a <b> *c*"), "a \\<b\\> \\*c\\*");
+        // A machine new in the change: every state came.
+        let new = super::picture(None, (OLD, Language::PlantUml), &[]).expect("a picture");
+        assert!(new.contains("class Closed omaspecCame"), "{new}");
+        assert!(new.contains("class Open omaspecCame"), "{new}");
+    }
+
+    /// What a diagram says stays words: no mention, no reference, no
+    /// fence it closes, no name that leaves its code.
+    #[test]
+    fn what_a_diagram_says_cannot_write_the_comment() {
+        assert_eq!(
+            words("ask @security-team about #12 & <b>"),
+            "ask `@security-team` about `#12` \\& \\<b\\>"
+        );
+        assert_eq!(code("a`b.mmd"), "``a`b.mmd``");
+        assert_eq!(code("`x`"), "`` `x` ``");
+        let mermaid = "stateDiagram-v2\n    %% ```\n    [*] --> A\n    A --> [*]\n";
+        let changes = omaspec_model::diff(
+            "stateDiagram-v2\n    [*] --> A\n",
+            Language::Mermaid,
+            mermaid,
+            Language::Mermaid,
+            &omaspec_model::Specs::default(),
+        )
+        .unwrap();
+        let drawn = super::picture(None, (mermaid, Language::Mermaid), &changes).unwrap();
+        let comment = comment(
+            "since main",
+            &[Section {
+                old: "m.mmd",
+                new: "m.mmd",
+                changes: &changes,
+                picture: Some(drawn),
+            }],
+        );
+        assert!(comment.contains("\n````mermaid\n"), "{comment}");
+        assert!(comment.contains("\n````\n\n</details>"), "{comment}");
     }
 }

@@ -117,7 +117,7 @@ impl Finding {
 }
 
 pub use fix::{Fix, fix_all};
-use fix::{closed, kind_meant, nested, renamed, text_end};
+use fix::{closed, diagram_end, kind_meant, nested, renamed};
 pub use rules::{Fixes, RULES, Rule, rule_of, share};
 pub use task::{Expected, Happened, Offer, Place, Task};
 
@@ -564,7 +564,6 @@ fn plantuml_syntax(lines: &[&str], sequence: bool) -> Vec<Finding> {
             close(&mut starts, |k| k == kind);
         }
     }
-    let end = text_end(lines);
     for (row, kind) in starts {
         findings.push(
             Finding::new(
@@ -575,7 +574,7 @@ fn plantuml_syntax(lines: &[&str], sequence: bool) -> Vec<Finding> {
             )
             .with(Fix::insert(
                 format!("Add @end{kind} at the end"),
-                end,
+                diagram_end(lines, row),
                 format!("@end{kind}"),
             )),
         );
@@ -749,12 +748,12 @@ fn sequence(names: &[Mention], lines: &[&str], findings: &mut Vec<Finding>) {
                         crate::lines_away(d.line, decls[first].line)
                     ),
                 );
-                // A second that says no more than the first goes.
+                // A second line that says no more than the first goes.
                 let text = |line: usize| lines.get(line).map(|l| l.trim());
+                let again = d.line != decls[first].line && text(d.line) == text(decls[first].line);
                 findings.push(
                     found.with(
-                        (text(d.line) == text(decls[first].line))
-                            .then(|| Fix::remove("Take out the second declaration", d.line)),
+                        again.then(|| Fix::remove("Take out the second declaration", d.line)),
                     ),
                 );
             }

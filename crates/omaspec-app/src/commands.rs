@@ -131,17 +131,18 @@ pub fn lint(
                 .clone()
                 .context("--fix needs files, not standard input")?;
             // Again, while fixes bring more: a name misspelled on several
-            // lines is found on the next one once the first is fixed. A
-            // fix that brings its finding back ends it.
-            let (mut done, mut passes) = (0, 0);
+            // lines is found on the next one once the first is fixed, so
+            // at most as many times as there are lines. A text met before
+            // ends it: fixes that undo one another.
             let text = input.text.clone();
-            while passes < 8 {
+            let mut seen = std::collections::HashSet::from([text.clone()]);
+            let mut done = 0;
+            for _ in 0..=text.lines().count() {
                 let (fixed, made) = omaspec_core::lint::fix_all(&input.text, &findings);
-                if made == 0 || fixed == input.text {
+                if made == 0 || !seen.insert(fixed.clone()) {
                     break;
                 }
                 done += made;
-                passes += 1;
                 input.text = fixed;
                 findings = projects.findings(&input, forced, project);
             }
@@ -398,7 +399,7 @@ pub fn diff(
     let mut out = stdout();
     if markdown {
         let picture = crate::diff_markdown::picture(
-            (&old.text, language(&old, forced)),
+            Some((&old.text, language(&old, forced))),
             (&new.text, language(&new, forced)),
             &changes,
         );

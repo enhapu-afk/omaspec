@@ -131,14 +131,27 @@ pub(super) fn renamed(line: &str, name: &str, with: &str) -> Option<String> {
 }
 
 /// Where a block opened on `row` is closed by a fix: before the `@end…`
-/// that ends its diagram, else after the last line, where PlantUML and
-/// Mermaid end it now.
+/// that ends its diagram, or the `@start…` of the next one where its own
+/// end is missing, else after the last line, where PlantUML and Mermaid
+/// end it now.
 fn closing_line(lines: &[&str], row: usize) -> usize {
+    first_after(lines, row, re!(r"(?i)^@(end|start)"))
+}
+
+/// Where a diagram started on `row` without its `@end…` gets one: before
+/// the next diagram, else after the last line.
+pub(super) fn diagram_end(lines: &[&str], row: usize) -> usize {
+    first_after(lines, row, re!(r"(?i)^@start"))
+}
+
+/// The first line after `row` that `pattern` finds, trimmed; else the
+/// line after the last.
+fn first_after(lines: &[&str], row: usize, pattern: &regex::Regex) -> usize {
     lines
         .iter()
         .enumerate()
         .skip(row + 1)
-        .find(|(_, l)| re!(r"(?i)^@end").is_match(l.trim()))
+        .find(|(_, l)| pattern.is_match(l.trim()))
         .map_or_else(|| text_end(lines), |(i, _)| i)
 }
 
@@ -190,10 +203,11 @@ pub(super) fn kind_meant(header: &str) -> Option<(String, &'static str)> {
 }
 
 /// The blocks left open in a diagram lie one inside another and all
-/// close where it ends: each one's fix closes them all, the innermost
-/// first, so a fix made alone leaves no block open inside the one it
-/// closed, and made together they are one. A block with no sure closer
-/// (a `repeat`) leaves those around it unfixed.
+/// close where it ends: the outermost one's fix closes them all, the
+/// innermost first, so no block is left open inside the one it closes;
+/// those inside carry none, so that each fix a reader makes is made once.
+/// A block with no sure closer (a `repeat`) leaves those around it
+/// unfixed.
 pub(super) fn nested(findings: &mut [super::Finding]) {
     let mut ends: Vec<usize> = findings
         .iter()
@@ -231,7 +245,10 @@ pub(super) fn nested(findings: &mut [super::Finding]) {
                 insert,
             };
             for &i in inner {
-                findings[i].fix = Some(fix.clone());
+                findings[i].fix = None;
+            }
+            if let Some(&outermost) = inner.last() {
+                findings[outermost].fix = Some(fix);
             }
         }
         for &i in outer {

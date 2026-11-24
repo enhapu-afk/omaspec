@@ -8,6 +8,12 @@ use omaspec_core::lint::{Finding, RULES, Severity, fix_all, rule_of, share};
 /// For each rule whose findings carry a fix, diagrams that bring one.
 const EXAMPLES: &[(&str, Language, &str)] = &[
     ("missing-end", PlantUml, "@startuml\nA -> B : hi\n"),
+    // The first of two diagrams ends before the second, its block too.
+    (
+        "missing-end",
+        PlantUml,
+        "@startuml\nA -> B : hi\nalt ok\n  B -> A : yes\n@startuml\nC -> D : hi\n@enduml\n",
+    ),
     (
         "unclosed-block",
         PlantUml,
@@ -113,6 +119,17 @@ const EXAMPLES: &[(&str, Language, &str)] = &[
     ("not-mermaid-js", Mermaid, "flowchart TD\n  A[a|b] --> B\n"),
 ];
 
+/// The fixes made as a reader of `lint --json` or MCP `lint` is told to:
+/// from the last line up, several at one line in the order of their
+/// findings, each as it comes.
+fn by_hand(text: &str, findings: &[Finding]) -> String {
+    let mut fixes: Vec<_> = findings.iter().filter_map(|f| f.fix.as_ref()).collect();
+    fixes.sort_by_key(|f| std::cmp::Reverse(f.line));
+    fixes
+        .iter()
+        .fold(text.to_owned(), |text, fix| fix.apply(&text))
+}
+
 fn count(findings: &[Finding], code: &str) -> usize {
     findings.iter().filter(|f| f.code == code).count()
 }
@@ -156,6 +173,11 @@ fn each_fix_makes_its_finding_go_away() {
         }
         let (all, made) = fix_all(text, &before);
         assert!(made > 0, "{code}");
+        assert_eq!(
+            by_hand(text, &before),
+            all,
+            "{code}: made by hand otherwise"
+        );
         let after = omaspec_model::findings(&all, lang);
         assert_eq!(
             count(&after, code),

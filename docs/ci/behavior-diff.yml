@@ -37,9 +37,11 @@ jobs:
       # 0: no diagram changed in its behavior; 1: one did; else it failed.
       - name: What changed in the behavior
         id: diff
+        env:
+          BASE: ${{ github.base_ref }}
         run: |
           set +e
-          omaspec diff . --rev "origin/${{ github.base_ref }}" --markdown > "$RUNNER_TEMP/behavior.md"
+          omaspec diff . --rev "origin/$BASE" --markdown > "$RUNNER_TEMP/behavior.md"
           code=$?
           set -e
           case "$code" in
@@ -47,12 +49,26 @@ jobs:
             1) echo "changed=true" >> "$GITHUB_OUTPUT" ;;
             *) exit "$code" ;;
           esac
-      # One comment, written again on each push.
+      # One comment, found by its first line and written again on each
+      # push; where a later push leaves no diagram changed in its behavior
+      # it says so. The job's summary shows the same, also for a pull
+      # request from a fork, whose token may not comment.
       - name: Comment
-        if: steps.diff.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
+          CHANGED: ${{ steps.diff.outputs.changed }}
+          FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
-          gh pr comment "$PR" --body-file "$RUNNER_TEMP/behavior.md" --edit-last \
-            || gh pr comment "$PR" --body-file "$RUNNER_TEMP/behavior.md"
+          cat "$RUNNER_TEMP/behavior.md" >> "$GITHUB_STEP_SUMMARY"
+          [ "$FORK" = true ] && exit 0
+          marker='<!-- omaspec: behavior changes -->'
+          { echo "$marker"; cat "$RUNNER_TEMP/behavior.md"; } > "$RUNNER_TEMP/comment.md"
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | tail -n 1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" \
+              -F body=@"$RUNNER_TEMP/comment.md" > /dev/null
+          elif [ "$CHANGED" = true ]; then
+            gh pr comment "$PR" --body-file "$RUNNER_TEMP/comment.md"
+          fi

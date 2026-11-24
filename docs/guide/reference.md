@@ -583,7 +583,8 @@ the writer's. The card under the pointer names it; Ctrl+. (*Fix the finding at t
 caret*) makes the fix of the caret's line, *Fix every finding that has a fix* makes all of
 them in one undo step, and `omaspec lint --fix` does that in the files, again while the
 fixes bring more (a name misspelled on two lines). `lint --json` and the MCP tool `lint`
-give each fix as the lines it takes out and puts in; [the codes](#findings-by-their-code)
+give each fix as the lines it takes out and puts in, to be made from the last line up and
+several at one line in the order of their findings; [the codes](#findings-by-their-code)
 say which rules carry one.
 
 *Prettify the diagram* writes a state machine or a scenario evenly: one space around each

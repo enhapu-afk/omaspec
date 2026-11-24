@@ -55,9 +55,10 @@ pub fn diff(
             .iter()
             .map(|d| {
                 let (old_name, new_name) = names(d);
-                let picture = text_of(&old, d.old_file.as_deref())
-                    .zip(text_of(&new, d.new_file.as_deref()))
-                    .and_then(|(a, b)| crate::diff_markdown::picture(a, b, &d.changes));
+                let picture = text_of(&new, d.new_file.as_deref()).and_then(|b| {
+                    let a = text_of(&old, d.old_file.as_deref());
+                    crate::diff_markdown::picture(a, b, &d.changes)
+                });
                 crate::diff_markdown::Section {
                     old: old_name,
                     new: new_name,

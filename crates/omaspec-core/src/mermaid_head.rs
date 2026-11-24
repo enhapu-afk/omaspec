@@ -151,7 +151,12 @@ pub fn misspelled(header: &str) -> Option<(String, &'static str)> {
     let word = kind_of(header)?;
     let (_, written) = KINDS.iter().find(|(w, _)| *w == word)?;
     let token = first_word(header);
-    (!written.contains(&token.as_str())).then(|| (token, written[0]))
+    // `StateDiagram-v2` is `stateDiagram-v2`, not the older `stateDiagram`.
+    let meant = written
+        .iter()
+        .find(|w| w.eq_ignore_ascii_case(&token))
+        .unwrap_or(&written[0]);
+    (!written.contains(&token.as_str())).then_some((token, *meant))
 }
 
 /// The first word of `header`, as mmdr reads the line.
@@ -326,6 +331,15 @@ mod tests {
             Some(("XYChart-beta".to_owned(), "xychart-beta"))
         );
         assert_eq!(misspelled("xychart"), None);
+        // The form written, in mermaid.js's case: not the older kind.
+        assert_eq!(
+            misspelled("StateDiagram-v2"),
+            Some(("StateDiagram-v2".to_owned(), "stateDiagram-v2"))
+        );
+        assert_eq!(
+            misspelled("flowchart-ELK TD"),
+            Some(("flowchart-ELK".to_owned(), "flowchart-elk"))
+        );
         assert_eq!(
             misspelled("flowchart_x LR"),
             Some(("flowchart_x".to_owned(), "flowchart"))
