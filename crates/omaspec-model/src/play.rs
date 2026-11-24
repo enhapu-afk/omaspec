@@ -217,6 +217,21 @@ mod tests {
         assert_eq!(back.taken.len(), 1);
     }
 
+    /// A state is a halt, so regions side by side whose states go on
+    /// without an event make a place of each meeting of theirs: three
+    /// regions of three such states stay well within what a graph visits
+    /// (and a trace follows, `MAX_WAYS`).
+    #[test]
+    fn regions_of_halts_stay_within_what_is_visited() {
+        let source = "@startuml\n[*] --> P\nstate P {\n  [*] --> A1\n  A1 --> A2\n  A2 --> A3\n  A3 --> [*]\n  --\n  [*] --> B1\n  B1 --> B2\n  B2 --> B3\n  B3 --> [*]\n  --\n  [*] --> C1\n  C1 --> C2\n  C2 --> C3\n  C3 --> [*]\n}\nP --> Done\n@enduml\n";
+        let m = Machine::read(source, Language::PlantUml).unwrap();
+        let graph = Graph::of(&m).unwrap();
+        // Four places in each region; all three at their end is Done.
+        assert_eq!(graph.runs.len(), 4 * 4 * 4);
+        assert!(graph.runs.len() < VISITED);
+        assert!(graph.options.iter().flatten().all(|way| way.next.is_some()));
+    }
+
     /// The arms of a fork set off at once; what follows them waits for the
     /// longest and the gap.
     #[test]

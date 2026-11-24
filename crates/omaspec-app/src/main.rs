@@ -459,13 +459,16 @@ enum Command {
         output: PathBuf,
         /// The events to take, in order, with commas between them. An
         /// event with a comma in its name takes `\,` or double quotes round
-        /// it: `--events 'start,"hello, world"'`.
+        /// it: `--events 'start,"hello, world"'`. A state's way without an
+        /// event is `go on`, or `go on B` where several lead on; where it is
+        /// the one way on to the next event named, it is taken by itself.
         #[arg(long)]
         events: Vec<String>,
         /// How many steps at most, a scenario's notes of their own counted.
-        /// Without it a state machine takes 8, or as many as `--events`
-        /// names; a scenario every message and note and a git graph every
-        /// commit, up to 50 messages or commits, and says where it stopped.
+        /// Without it a state machine takes 8, or what `--events` names and
+        /// the ways without an event on the way; a scenario every message
+        /// and note and a git graph every commit, up to 50 messages or
+        /// commits, and says where it stopped.
         #[arg(long)]
         steps: Option<usize>,
         /// The picture's width in pixels; its height follows the diagram.

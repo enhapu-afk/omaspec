@@ -124,6 +124,8 @@ impl Folder {
 
 impl Includes for Folder {
     fn read(&self, path: &str, from: Option<&str>) -> Result<Included, String> {
+        // The engine's preprocessor says this before it asks; a reader
+        // called by itself says the same.
         if path.starts_with('<') {
             return Err(omaspec_uml::library_missing(path));
         }

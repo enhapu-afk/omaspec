@@ -1808,6 +1808,22 @@ is open and the reasoning around it.
       lint leaves alone only what includes files: a hint that only the
       Java PlantUML draws the diagram, a failure with `--strict`. C4 and
       ArchiMate, which Omaspec draws, are taken out before.
+- [x] What the review of the halts and the standard library found
+      (2026-11-24). `play --events` names a way without an event `go on`,
+      or `go on B` where several lead on, and takes the one way on by
+      itself on the way to the next event named, as a system takes it
+      without logging it, so `--events start,stop` plays through
+      `Running --> Stopping` again; where several lead on, the error
+      tells them apart, and a guard is never taken by itself. Ways
+      without an event in a row past 64 go round, and say so; an event
+      named after the machine ended is said, not left out, and without
+      `--steps` the events named bound the play, not 8. Lint takes a
+      quoted path of the library too. Without the diagram's folder an
+      include asks for it before its words are worked out. A state's
+      halt asks first whether it is composite, the cheap question. Three
+      regions of three states without events make 64 places, well within
+      what a play visits. The landing page's coffee machine and the
+      README's play are drawn again by the halts.
 
 ## Next
 

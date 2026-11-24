@@ -63,8 +63,9 @@ pub struct Moving {
     /// The events to take, in order; empty takes the first offered.
     pub events: Vec<String>,
     /// How many steps at most; `None` takes [`MACHINE_STEPS`] in a state
-    /// machine, or as many as `events` names, and every message or commit
-    /// of a scenario or a git graph up to [`SCENARIO_STEPS`].
+    /// machine, or what `events` names with the ways without an event on
+    /// the way, and every message or commit of a scenario or a git graph
+    /// up to [`SCENARIO_STEPS`].
     pub steps: Option<usize>,
     /// The picture's width in pixels, the height following the diagram;
     /// `None` takes twice the diagram's size, up to [`WIDEST`].
@@ -124,12 +125,15 @@ pub struct Moving {
 }
 
 impl Moving {
-    /// The steps a state machine's play takes: `--steps`, else
-    /// [`MACHINE_STEPS`] or as many as `--events` names, so none of them
-    /// is left out without a word.
+    /// The steps a state machine's play takes at most: `--steps`, else
+    /// [`MACHINE_STEPS`], or without a bound where `--events` names them,
+    /// which end the play, so none of them is left out without a word.
     fn machine_steps(&self) -> usize {
-        self.steps
-            .unwrap_or_else(|| MACHINE_STEPS.max(self.events.len()))
+        match self.steps {
+            Some(steps) => steps,
+            None if self.events.is_empty() => MACHINE_STEPS,
+            None => usize::MAX,
+        }
     }
 
     /// The diagram's text: the one given, else the file's.
@@ -647,6 +651,7 @@ impl Stage {
         self.step(moving);
         let mut taken = Vec::new();
         let mut walked = Vec::new();
+        let mut script = Script::default();
         // Where a scenario stood when the play stopped, of all its steps;
         // its notes of their own are steps too, and the default counts
         // its messages (REQ-106).
@@ -699,7 +704,7 @@ impl Stage {
             if step >= args.machine_steps() || ended || options.is_empty() {
                 break;
             }
-            let Some(choice) = choose(&options, &args.events, step, &walked)? else {
+            let Some(choice) = script.pick(&options, &args.events, step, &walked)? else {
                 break;
             };
             walked.push(options[choice].clone());
@@ -911,50 +916,143 @@ fn click_on(paper: &paper::Paper, link: &omaspec_render::Link) -> Option<iced::P
         })
 }
 
+/// How a way without an event is offered and named in `--events`: `go
+/// on`, or `go on B` where several lead on (REQ-114).
+const GO_ON: &str = "go on";
+
+/// Ways without an event a play takes in a row on the way to the next
+/// event `--events` names, at most: past them that event is not offered.
+const MOST_GONE_ON: usize = 64;
+
+/// What [`choose`] picked: the option, and whether it is the event
+/// `--events` names, or a way without an event on the way to it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Pick {
+    option: usize,
+    named: bool,
+}
+
+/// Where a play stands in `--events`: the next event to take, and the
+/// ways without an event taken in a row on the way to it.
+#[derive(Debug, Default)]
+struct Script {
+    next: usize,
+    gone_on: usize,
+}
+
+impl Script {
+    /// The option step `step` takes ([`choose`]), past the event named
+    /// when it is the one; `None` ends the play. Ways without an event in
+    /// a row past [`MOST_GONE_ON`] go round: the event is not offered.
+    fn pick(
+        &mut self,
+        options: &[(String, String)],
+        events: &[String],
+        step: usize,
+        walked: &[(String, String)],
+    ) -> Result<Option<usize>> {
+        let Some(pick) = choose(options, events, self.next, step, walked)? else {
+            return Ok(None);
+        };
+        if pick.named {
+            self.next += 1;
+            self.gone_on = 0;
+        } else if let Some(wanted) = events.get(self.next) {
+            self.gone_on += 1;
+            if self.gone_on > MOST_GONE_ON {
+                bail!(
+                    "step {}: {} is not offered: the machine goes round without an event",
+                    step + 1,
+                    wanted.trim()
+                );
+            }
+        }
+        Ok(Some(pick.option))
+    }
+
+    /// The event the play ended before, by the step it would have been.
+    fn left<'e>(&self, events: &'e [String]) -> Option<&'e str> {
+        events.get(self.next).map(|e| e.trim())
+    }
+}
+
 /// The event of an option's label, without its guard and its action:
 /// `start [tank empty] / beep` offers `start`, `power on` is `power on`.
-/// The option step `step` takes: the event `--events` names there, by
-/// its label or by its event alone; without `--events`, the first way not
-/// `walked` yet, else the first, so a play does not circle while others
-/// wait. `None` ends the play: the events are all taken.
+/// The option step `step` takes, for the event `next` of `--events`: that
+/// event, by its label or by its event alone, a way without an event by
+/// `go on` or `go on B`; where it is not offered, the one way without an
+/// event there, on the way to it, as a system takes one without logging
+/// it. Without `--events`, the first way not `walked` yet, else the first,
+/// so a play does not circle while others wait. `None` ends the play: the
+/// events are all taken.
 fn choose(
     options: &[(String, String)],
     events: &[String],
+    next: usize,
     step: usize,
     walked: &[(String, String)],
-) -> Result<Option<usize>> {
-    let Some(wanted) = events.get(step) else {
-        return Ok(events.is_empty().then(|| {
-            options
+) -> Result<Option<Pick>> {
+    let Some(wanted) = events.get(next) else {
+        return Ok(events.is_empty().then(|| Pick {
+            option: options
                 .iter()
                 .position(|option| !walked.contains(option))
-                .unwrap_or(0)
+                .unwrap_or(0),
+            named: false,
         }));
     };
-    options
+    let wanted = wanted.trim();
+    let gone_on = |label: &str| event_of(label) == GO_ON;
+    let named = options
         .iter()
-        .position(|(label, _)| label.trim() == wanted.trim())
+        .position(|(label, _)| label.trim() == wanted)
         .or_else(|| {
             options
                 .iter()
-                .position(|(label, _)| event_of(label) == wanted.trim())
+                .position(|(label, _)| event_of(label) == wanted)
         })
-        .map(Some)
-        .with_context(|| {
-            let cut = cut_at_comma(options.iter().map(|(label, _)| label.as_str()), wanted)
-                .map(|hint| format!(" ({hint})"))
-                .unwrap_or_default();
-            format!(
-                "step {}: {} is not offered here; the machine offers {}{cut}",
-                step + 1,
-                wanted,
-                options
-                    .iter()
-                    .map(|(label, _)| label.trim())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
+        .or_else(|| {
+            options
+                .iter()
+                .position(|(label, to)| gone_on(label) && format!("{GO_ON} {to}") == wanted)
+        });
+    if let Some(option) = named {
+        return Ok(Some(Pick {
+            option,
+            named: true,
+        }));
+    }
+    let mut on = options
+        .iter()
+        .enumerate()
+        .filter(|(_, (label, _))| gone_on(label));
+    let several = match (on.next(), on.next()) {
+        (Some((option, _)), None) => {
+            return Ok(Some(Pick {
+                option,
+                named: false,
+            }));
+        }
+        (Some(_), Some(_)) => true,
+        _ => false,
+    };
+    let cut = cut_at_comma(options.iter().map(|(label, _)| label.as_str()), wanted)
+        .map(|hint| format!(" ({hint})"))
+        .unwrap_or_default();
+    // Several ways without an event are told apart by where they lead.
+    let offered: Vec<String> = options
+        .iter()
+        .map(|(label, to)| match several && gone_on(label) {
+            true => format!("{GO_ON} {to}"),
+            false => label.trim().to_owned(),
         })
+        .collect();
+    bail!(
+        "step {}: {} is not offered here; the machine offers {}{cut}",
+        step + 1,
+        wanted,
+        offered.join(", ")
+    )
 }
 
 /// What a scenario's play says that stopped at `at` of its `of` messages
@@ -996,21 +1094,26 @@ fn rehearse(args: &Moving) -> Result<()> {
     };
     let mut walked = Vec::new();
     let mut before: Vec<(String, String)> = Vec::new();
-    for step in 0..args.machine_steps() {
+    let mut script = Script::default();
+    let mut steps = 0;
+    while steps < args.machine_steps() {
         let ways = run.options(&machine);
         if run.ended(&machine) || ways.is_empty() {
             break;
         }
+        let step = steps;
+        steps += 1;
         let options: Vec<(String, String)> = ways.iter().map(|&way| machine.option(way)).collect();
-        let choice = match choose(&options, &args.events, step, &walked) {
+        let next = script.next;
+        let choice = match script.pick(&options, &args.events, step, &walked) {
             Ok(choice) => choice,
             // The step before took an event that, with this one after a
             // comma, names another it offered: `hello, world` cut in two.
             Err(err) => {
-                let joined = step
+                let joined = next
                     .checked_sub(1)
                     .and_then(|first| args.events.get(first))
-                    .zip(args.events.get(step))
+                    .zip(args.events.get(next))
                     .map(|(first, then)| format!("{first},{then}"));
                 let hint = joined.and_then(|joined| {
                     before
@@ -1020,7 +1123,7 @@ fn rehearse(args: &Moving) -> Result<()> {
                         .map(|label| {
                             format!(
                                 "the step before took {}, cut from {}: an event with a comma in its name is written {}",
-                                args.events[step - 1].trim(),
+                                args.events[next - 1].trim(),
                                 event_of(label),
                                 written(event_of(label))
                             )
@@ -1038,6 +1141,17 @@ fn rehearse(args: &Moving) -> Result<()> {
         walked.push(options[choice].clone());
         before = options;
         let _ = run.take(&machine, ways[choice]);
+    }
+    // An event named after the machine stopped is not left out without a
+    // word, as one cut off by `--steps` is.
+    if let Some(wanted) = script.left(&args.events)
+        && steps < args.machine_steps()
+    {
+        let why = match run.ended(&machine) {
+            true => "the machine has ended",
+            false => "the machine offers nothing more",
+        };
+        bail!("step {}: {wanted} is not offered: {why}", steps + 1);
     }
     Ok(())
 }
@@ -1762,19 +1876,62 @@ mod tests {
                 .collect()
         };
         let walked = options(&["nap"]);
+        let option = |options: &[(String, String)], events: &[String], next: usize, walked| {
+            choose(options, events, next, 3, walked)
+                .unwrap()
+                .map(|pick| pick.option)
+        };
         assert_eq!(
-            choose(&options(&["nap", "hungry"]), &[], 3, &walked).unwrap(),
+            option(&options(&["nap", "hungry"]), &[], 0, &walked),
             Some(1)
         );
         // All walked: the first again.
-        assert_eq!(
-            choose(&options(&["nap"]), &[], 3, &walked).unwrap(),
-            Some(0)
-        );
+        assert_eq!(option(&options(&["nap"]), &[], 0, &walked), Some(0));
         // Events asked for: past their end the play ends.
         let asked = vec!["nap".to_owned()];
-        assert_eq!(choose(&options(&["nap"]), &asked, 0, &[]).unwrap(), Some(0));
-        assert_eq!(choose(&options(&["nap"]), &asked, 1, &[]).unwrap(), None);
+        assert_eq!(option(&options(&["nap"]), &asked, 0, &[]), Some(0));
+        assert_eq!(option(&options(&["nap"]), &asked, 1, &[]), None);
+    }
+
+    /// REQ-114: a state's way without an event is `go on`, taken by
+    /// itself where it is the one way on to the event named, and named
+    /// `go on B` where several lead on.
+    #[test]
+    fn a_way_without_an_event_is_taken_on_the_way_to_the_next() {
+        let way = |label: &str, to: &str| (label.to_owned(), to.to_owned());
+        let asked = |events: &[&str]| events.iter().map(|e| (*e).to_owned()).collect::<Vec<_>>();
+        let one = [way("start", "Running"), way("go on", "end")];
+        let pick = |options: &[(String, String)], events: &[&str]| {
+            choose(options, &asked(events), 0, 0, &[])
+        };
+        let named = Pick {
+            option: 1,
+            named: true,
+        };
+        assert_eq!(pick(&one, &["go on"]).unwrap(), Some(named));
+        assert_eq!(pick(&one, &["go on end"]).unwrap(), Some(named));
+        // Not offered: the one way on is taken, the event still to come.
+        let on = Pick {
+            option: 1,
+            named: false,
+        };
+        assert_eq!(pick(&one, &["stop"]).unwrap(), Some(on));
+        // Of several, none is guessed; the error tells them apart.
+        let two = [way("go on", "A"), way("go on / beep", "B")];
+        assert_eq!(
+            pick(&two, &["go on B"]).unwrap(),
+            Some(Pick {
+                option: 1,
+                named: true
+            })
+        );
+        assert_eq!(
+            pick(&two, &["stop"]).unwrap_err().to_string(),
+            "step 1: stop is not offered here; the machine offers go on A, go on B"
+        );
+        // A guard is the writer's to pick, never taken by itself.
+        let guarded = [way("[full]", "Done")];
+        assert!(pick(&guarded, &["stop"]).is_err());
     }
 
     #[test]
@@ -1829,6 +1986,26 @@ mod tests {
             rehearse(&moving(&wrong)).unwrap_err().to_string(),
             "step 10: fly is not offered here; the machine offers close"
         );
+        // An event named after the machine ended is said, not left out.
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> Idle\nIdle --> Running : start\nRunning --> Stopping\nStopping --> Idle : stop\nIdle --> [*]\n@enduml\n",
+        )
+        .unwrap();
+        // Running's way without an event is taken on the way to stop.
+        rehearse(&moving(&["start", "stop", "start"])).unwrap();
+        rehearse(&moving(&["start", "go on", "stop"])).unwrap();
+        assert_eq!(
+            rehearse(&moving(&["go on", "start"]))
+                .unwrap_err()
+                .to_string(),
+            "step 2: start is not offered: the machine has ended"
+        );
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )
+        .unwrap();
         // The play itself says so too, and writes nothing.
         assert!(play(&moving(&["open", "fly"])).is_err());
         assert!(!work.join("never.gif").exists());
@@ -1869,11 +2046,13 @@ mod tests {
             ("back".to_owned(), "A".to_owned()),
         ];
         assert_eq!(
-            choose(&options, &ok(&[r"hello\, world"]), 0, &[]).unwrap(),
+            choose(&options, &ok(&[r"hello\, world"]), 0, 0, &[])
+                .unwrap()
+                .map(|pick| pick.option),
             Some(0)
         );
         let err = |events: &[&str]| {
-            choose(&options, &ok(events), 0, &[])
+            choose(&options, &ok(events), 0, 0, &[])
                 .unwrap_err()
                 .to_string()
         };

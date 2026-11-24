@@ -234,7 +234,8 @@ impl Run {
             // all ended goes on by itself, by its one way without an event.
             // With several, or entered as a whole, the writer picks.
             Kind::State => {
-                self.finished(m, tr.from)
+                m.is_composite(tr.from)
+                    && self.finished(m, tr.from)
                     && m.transitions
                         .iter()
                         .filter(|u| u.from == tr.from && u.trigger.events.is_empty())

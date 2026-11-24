@@ -654,6 +654,18 @@ impl Machine<'_> {
         frame: &mut Frame,
         out: &mut Out,
     ) -> Result<(), Declined> {
+        // The standard library is not there, with a folder or without;
+        // without one nothing else is read, nor worked out.
+        let written = unquote(rest.trim());
+        if written.starts_with('<') {
+            return Err(fail(line.no, library_missing(written)));
+        }
+        let Some(includes) = self.includes else {
+            return Err(fail(
+                line.no,
+                format!("`!{word}` needs the diagram's folder; save the diagram first"),
+            ));
+        };
         let expanded = self.expand(rest, line.no, frame, 0)?;
         let target = unquote(&expanded);
         if target.is_empty() {
@@ -670,12 +682,6 @@ impl Machine<'_> {
                 format!("including one diagram of a file (`!{part}`) is not supported yet"),
             ));
         }
-        let Some(includes) = self.includes else {
-            return Err(fail(
-                line.no,
-                format!("`!{word}` needs the diagram's folder; save the diagram first"),
-            ));
-        };
         let from = self.files.last().map(String::as_str);
         let file = includes
             .read(target, from)

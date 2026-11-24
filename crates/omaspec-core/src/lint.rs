@@ -297,9 +297,14 @@ fn own(code: &str, lines: &[&str], findings: &mut Vec<Finding>) {
 pub fn drawing(code: &str) -> Option<Finding> {
     let files = code.lines().any(|line| {
         let line = line.trim_start();
+        // Quoted too, as the preprocessor unquotes it.
         let library = line
             .split_once(char::is_whitespace)
-            .is_some_and(|(_, path)| path.trim_start().starts_with('<'));
+            .is_some_and(|(_, path)| {
+                path.trim_start()
+                    .trim_start_matches(['"', '\''])
+                    .starts_with('<')
+            });
         (line.starts_with("!include") || line.starts_with("!import")) && !library
     });
     if files {
@@ -1090,6 +1095,12 @@ mod tests {
                 && f.message.contains("standard library")),
             "{:?}",
             drawing(aws)
+        );
+        let quoted = "@startuml\n!include \"<awslib/AWSCommon>\"\nA -> B\n@enduml\n";
+        assert!(
+            drawing(quoted).is_some_and(|f| only_java(&f)),
+            "{:?}",
+            drawing(quoted)
         );
         let c4 = "@startuml\n!include <C4/C4_Container>\nPerson(u, \"User\")\n@enduml\n";
         assert!(drawing(c4).is_none(), "{:?}", drawing(c4));
