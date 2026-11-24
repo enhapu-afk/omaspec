@@ -1,6 +1,6 @@
 //! Activity diagrams in PlantUML's new syntax: actions, `if`, `while`,
-//! `repeat`, `fork` and `split`, partitions, notes, arrow labels and
-//! swimlanes.
+//! `repeat`, `fork` and `split`, partitions, notes, arrow labels,
+//! swimlanes, and `label` and `goto`.
 //!
 //! The tree is nested the way the source is: a flow is a list of steps,
 //! and a step that branches holds flows of its own. Every step keeps the
@@ -9,6 +9,7 @@
 mod branch;
 mod column;
 mod draw;
+mod goto;
 mod layout;
 mod parse;
 mod parts;
@@ -77,6 +78,16 @@ pub enum Node {
     End,
     /// `kill` and `detach`: the flow stops without a symbol.
     Detach,
+    /// `label name`: a point in the flow, where the step after it is
+    /// entered, that a `goto` leads to.
+    Label {
+        name: String,
+    },
+    /// `goto name`: the flow stops here and goes on at the label of that
+    /// name, by a line of its own.
+    Goto {
+        name: String,
+    },
     /// `:text;`
     Action {
         text: Text,

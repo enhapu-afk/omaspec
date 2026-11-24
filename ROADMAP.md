@@ -65,9 +65,7 @@ kind of element (`ParticipantFontName`).
       (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
       `json` element among the states waits on step 7.
 
-### Step 3: the activity diagram (61 of 62; the legacy syntax 0 of 13)
-
-- [ ] `label` and `goto`.
+### Step 3: the activity diagram (62 of 62; the legacy syntax 0 of 13)
 - [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
       tree where it fits it and laid out on the graph engine where it does
       not; two examples in other chapters use it too.

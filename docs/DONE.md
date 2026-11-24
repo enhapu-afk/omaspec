@@ -540,6 +540,20 @@ is open and the reasoning around it.
       bracket again, and the words of an action over several lines as its
       words, not as lines of their own.
 
+- [x] `label` and `goto` (2026-11-24): a label marks the point halfway
+      along the line into the step after it (or on from where its flow
+      ends), and a goto stops its flow, as `detach` does, and goes on by a
+      line of its own with its head on that point. As PlantUML aligns
+      them, a label in another branch above its goto comes down to it: the
+      diagram is laid out once more with room before that label
+      (`activity/goto.rs`), so the line comes straight across, as in the
+      guide's example with its labels "only for alignment". A goto back up
+      its own flow, which PlantUML 1.2026.8 leaves as a stub, goes up
+      outside everything on its own side. A goto first in its flow takes
+      on the line into it, which ends with no head there. A goto to no
+      label, or a label without a name of one word, declines on its line.
+      The guide: the activity diagram 62 of 62.
+
 ### Step 5: what every diagram shares
 
 - [x] Creole's rules, headings and the rest of its inline markup

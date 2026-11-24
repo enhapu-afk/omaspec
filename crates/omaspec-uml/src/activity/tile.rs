@@ -232,6 +232,17 @@ impl Edge {
     }
 }
 
+/// The labels and gotos of a tile ([`super::goto`]).
+#[derive(Debug, Default)]
+pub struct Jumps {
+    /// Where each `label` stands: halfway along the line into the step
+    /// after it, or along the line on from where its flow ends.
+    pub marks: Vec<(String, Pt)>,
+    /// Where each `goto` leaves its flow, the label it leads to and its
+    /// line.
+    pub gotos: Vec<(String, Pt, usize)>,
+}
+
 /// A step or a flow, laid out.
 pub struct Tile {
     pub shapes: Vec<Shape>,
@@ -249,6 +260,12 @@ pub struct Tile {
     pub empty: bool,
     /// Left, top, right, bottom.
     pub bounds: (f32, f32, f32, f32),
+    /// Its labels and gotos, boxed: few tiles have any, and a tile is held
+    /// on the stack at every level of a nesting.
+    pub jumps: Option<Box<Jumps>>,
+    /// The line into it goes on through it, so it ends with no head: a
+    /// `goto` first in its flow, the room before a label.
+    pub through: bool,
 }
 
 impl Tile {
@@ -262,6 +279,8 @@ impl Tile {
             arrow_out: None,
             empty: false,
             bounds: (entry.x, entry.y, entry.x, entry.y),
+            jumps: None,
+            through: false,
         };
         tile.measure();
         tile
@@ -298,6 +317,13 @@ impl Tile {
         if let Some(p) = &mut self.exit {
             p.x += dx;
             p.y += dy;
+        }
+        if let Some(jumps) = &mut self.jumps {
+            let marks = jumps.marks.iter_mut().map(|(_, p)| p);
+            for p in marks.chain(jumps.gotos.iter_mut().map(|(_, p, _)| p)) {
+                p.x += dx;
+                p.y += dy;
+            }
         }
         let b = &mut self.bounds;
         *b = (b.0 + dx, b.1 + dy, b.2 + dx, b.3 + dy);
@@ -341,6 +367,11 @@ impl Tile {
         self.exit = Some(out);
     }
 
+    /// Its labels and gotos, made where it has none yet.
+    pub fn jumps(&mut self) -> &mut Jumps {
+        self.jumps.get_or_insert_default()
+    }
+
     /// Moves it so its left edge is at `x` and its top at `y`.
     pub fn place(&mut self, x: f32, y: f32) {
         self.translate(x - self.bounds.0, y - self.bounds.1);
@@ -354,6 +385,11 @@ impl Tile {
         let (l, t, r, b) = other.bounds;
         self.shapes.extend(other.shapes);
         self.edges.extend(other.edges);
+        if let Some(other) = other.jumps {
+            let jumps = self.jumps();
+            jumps.marks.extend(other.marks);
+            jumps.gotos.extend(other.gotos);
+        }
         let s = &mut self.bounds;
         *s = (s.0.min(l), s.1.min(t), s.2.max(r), s.3.max(b));
     }

@@ -40,6 +40,9 @@ pub(super) const CLEAR: f32 = 10.0;
 pub struct Layout<'a> {
     pub skin: &'a Skin,
     pub family: Family,
+    /// Room a label takes before the step after it, to stand as low as a
+    /// `goto` that leads to it ([`super::goto`]).
+    pub spacers: std::collections::HashMap<String, f32>,
 }
 
 impl Layout<'_> {
@@ -111,8 +114,17 @@ impl Layout<'_> {
     pub fn flow(&self, flow: &Flow, lane: usize) -> Result<Tile, Declined> {
         let mut tile: Option<Tile> = None;
         let mut before: Option<&Node> = None;
+        // Labels that wait for the step after them, where they stand.
+        let mut labels: Vec<String> = Vec::new();
         for step in &flow.steps {
+            if let Node::Label { name } = &step.node {
+                labels.push(name.clone());
+                continue;
+            }
             let mut next = self.step(step)?;
+            if !labels.is_empty() {
+                self.labelled(&mut tile, &mut next, &mut labels, step.lane)?;
+            }
             tile = Some(match tile {
                 None => {
                     next.arrow_in = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
@@ -134,10 +146,10 @@ impl Layout<'_> {
                             }
                         }
                     }
-                    // `kill`, `detach`: the flow ends at the step before it,
-                    // with no arrow on, as PlantUML draws it.
-                    if matches!(step.node, Node::Detach) {
-                        prev.exit = None;
+                    // `kill`, `detach`, `goto`: the flow ends at the step
+                    // before it.
+                    if matches!(step.node, Node::Goto { .. } | Node::Detach) {
+                        Self::stop(&mut prev, &mut next, step);
                         prev
                     } else {
                         self.join(prev, next, arrow.as_deref())?
@@ -156,6 +168,14 @@ impl Layout<'_> {
             empty.empty = true;
             empty
         });
+        // Labels last in the flow stand on the line where it goes on.
+        if !labels.is_empty() {
+            let end = tile.exit.unwrap_or(tile.entry);
+            let below = pt(end.x, end.y + GAP / 2.0, end.lane);
+            tile.jumps()
+                .marks
+                .extend(labels.drain(..).map(|name| (name, below)));
+        }
         // A `while` that ends a branch whose last arrow is hidden goes on
         // by no way out either.
         let last = flow.steps.last().map(|step| &step.node);
@@ -176,8 +196,60 @@ impl Layout<'_> {
         Ok(tile)
     }
 
+    /// `labels`, which stand halfway along the line into `next`, the step
+    /// after them, marked on it; before it, below `tile`, the room a label
+    /// takes to come down to its goto ([`super::goto`]). Apart from
+    /// [`Self::flow`], whose frame is on the stack at every level of a
+    /// nesting.
+    #[inline(never)]
+    fn labelled(
+        &self,
+        tile: &mut Option<Tile>,
+        next: &mut Tile,
+        labels: &mut Vec<String>,
+        lane: usize,
+    ) -> Result<(), Declined> {
+        let room = labels
+            .iter()
+            .filter_map(|name| self.spacers.get(name))
+            .fold(0.0, |a: f32, b| a.max(*b));
+        let entry = next.entry;
+        let above = pt(entry.x, entry.y - GAP / 2.0, entry.lane);
+        next.jumps()
+            .marks
+            .extend(labels.drain(..).map(|name| (name, above)));
+        if room > 0.0 {
+            let spacer = self.spacer(room, lane);
+            *tile = Some(match tile.take() {
+                None => spacer,
+                Some(prev) => self.join(prev, spacer, None)?,
+            });
+        }
+        Ok(())
+    }
+
+    /// The flow of `prev` stops at `step`, a `kill`, `detach` or `goto`,
+    /// with no arrow on, as PlantUML draws it; a goto goes on from there
+    /// to its label. Labels before it, which `next` holds, stand where
+    /// the flow stops.
+    #[inline(never)]
+    fn stop(prev: &mut Tile, next: &mut Tile, step: &Step) {
+        let out = prev.exit.take();
+        let at = match out {
+            Some(out) => pt(out.x, out.y + GAP / 2.0, out.lane),
+            None => pt(prev.entry.x, prev.bounds.3 + GAP / 2.0, prev.entry.lane),
+        };
+        if let Some(jumps) = next.jumps.take() {
+            let marks = jumps.marks.into_iter().map(|(name, _)| (name, at));
+            prev.jumps().marks.extend(marks);
+        }
+        if let (Node::Goto { name }, Some(out)) = (&step.node, out) {
+            prev.jumps().gotos.push((name.clone(), out, step.line));
+        }
+    }
+
     /// `next` below `prev`, joined by an arrow if `prev` goes on.
-    fn join(
+    pub(super) fn join(
         &self,
         mut prev: Tile,
         mut next: Tile,
@@ -237,7 +309,7 @@ impl Layout<'_> {
                 }
                 points.push(entry);
                 prev.edges
-                    .push(Edge::new(points, true, self.stroke(arrow)?).by(arrow));
+                    .push(Edge::new(points, !next.through, self.stroke(arrow)?).by(arrow));
                 prev.shapes.extend(self.beside(label, out.x, y, out.lane));
             }
             None => next.translate(prev.entry.x - next.entry.x, bottom + GAP - top),
@@ -280,7 +352,18 @@ impl Layout<'_> {
                 20.0,
                 false,
             ),
-            Node::Detach => Tile::new(Vec::new(), Vec::new(), pt(0.0, 0.0, lane), None),
+            Node::Detach | Node::Label { .. } => {
+                Tile::new(Vec::new(), Vec::new(), pt(0.0, 0.0, lane), None)
+            }
+            // First in its flow, a `goto` leaves where the flow starts:
+            // the line into it goes on as its own.
+            Node::Goto { name } => {
+                let mut tile = Tile::new(Vec::new(), Vec::new(), pt(0.0, 0.0, lane), None);
+                let entry = tile.entry;
+                tile.jumps().gotos.push((name.clone(), entry, step.line));
+                tile.through = true;
+                tile
+            }
             Node::Connector { text, color } => {
                 let block = self.measure(text, self.skin.activity.font)?;
                 let d = (block.width.max(block.height) + 10.0).max(CONNECTOR);
@@ -502,7 +585,9 @@ impl Layout<'_> {
         let above = (tile.entry.y - tile.bounds.1).max(0.0);
         let y = tile.entry.y - above - label.height - 2.0;
         shapes.extend(self.beside(label, last.x, y, tile.entry.lane));
-        Ok(Some(Edge::new(points, true, self.stroke(arrow)?).by(arrow)))
+        Ok(Some(
+            Edge::new(points, !tile.through, self.stroke(arrow)?).by(arrow),
+        ))
     }
 
     /// `while`: the diamond, the flow below it, the way back on the right,

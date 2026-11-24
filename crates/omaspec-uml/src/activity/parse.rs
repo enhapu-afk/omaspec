@@ -133,10 +133,8 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
 const MAX_DEPTH: usize = 100;
 
 /// Keywords of PlantUML that Omaspec does not draw yet.
-const NOT_YET: [&str; 13] = [
+const NOT_YET: [&str; 11] = [
     "break",
-    "goto",
-    "label",
     "floating",
     "swimlane",
     "skin",
@@ -457,6 +455,33 @@ impl Parser {
             return self
                 .end_parallel_with(Parallel::Fork, Some(label), no)
                 .map(|()| at + 1);
+        }
+        // `label name` and `goto name`, a name of one word.
+        for (key, goto) in [("label", false), ("goto", true)] {
+            let Some(rest) = word(text, key) else {
+                continue;
+            };
+            let name = rest.trim().trim_end_matches(';').trim_end();
+            if name.is_empty() || name.contains(char::is_whitespace) {
+                return Err(Declined::at(
+                    no,
+                    format!("`{key}` takes a name of one word, as `{key} again`"),
+                ));
+            }
+            let name = name.to_owned();
+            if goto {
+                self.add(Node::Goto { name }, no)?;
+            } else {
+                // A label is no step: a note before it and an arrow
+                // before it are the next step's.
+                self.push(Step {
+                    node: Node::Label { name },
+                    lane: self.lane,
+                    arrow: None,
+                    line: no,
+                });
+            }
+            return Ok(at + 1);
         }
         if let Some(found) = NOT_YET.iter().find(|w| {
             starts_with_ci(text, w)
@@ -1473,6 +1498,8 @@ mod tests {
                     Node::Stop => "stop".into(),
                     Node::End => "end".into(),
                     Node::Detach => "detach".into(),
+                    Node::Label { name } => format!("label {name}"),
+                    Node::Goto { name } => format!("goto {name}"),
                     Node::Connector { text, .. } => format!("({})", text.value),
                     Node::Switch { test, cases } => format!(
                         "switch({})[{}]",

@@ -50,8 +50,9 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let layout = Layout {
         skin: &skin,
         family,
+        spacers: Default::default(),
     };
-    let tile = layout.flow(&d.flow, 0)?;
+    let tile = layout.whole(&d.flow)?;
     let titles = d
         .lanes
         .iter()
