@@ -26,6 +26,42 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
       the snapshot at 22 % (`snapshot_focus_small`) shows it whole.
       What the window shows is left to see.
 
+## Between agents and people (2026-11-24)
+
+[0036](docs/adr/0036-between-agents-and-people.md): an agent is a user of
+Omaspec beside the person, and the loops between them come first. Each
+item says how it is checked.
+
+- [ ] **The trace as a contract.** The JSON Lines a system writes for
+      `omaspec trace` written down as a format of its own (`docs/trace.md`)
+      with a version and a JSON Schema (`omaspec trace --schema`), and how
+      an agent emits it while it implements a machine. A finding comes back
+      as a task: what the diagram expected, what happened, the line of the
+      diagram and of the trace, in `--json` and in MCP `trace`. Checked: an
+      agent given only the schema and a machine writes a trace `trace`
+      reads; every finding of the trace tests names both lines.
+- [ ] **A run, live.** `omaspec trace FILE --follow run.jsonl` and the
+      preview follow a trace as it grows: each object lit where it stands,
+      a finding the moment it happens, a state marked as waiting for a
+      person (`<<decide>>`) shown as such. For an orchestrator's workflow
+      or an agent client's hook writing the file. Checked: a test appends
+      to a file and the picture moves within a frame of the line; a gallery
+      example of an orchestrator's workflow with two places a person
+      decides.
+- [ ] **Review by behavior in a pull request.** `omaspec diff` as a
+      Markdown comment with its picture beside it (`--markdown`), for a CI
+      step to post; the same through MCP `diff` for an agent before it
+      hands over. Checked: the workflow in `docs/ci/` on a branch that
+      changes a machine.
+- [ ] **Findings with their fix.** Every lint rule that can say its fix
+      says it (`fix` in `--json` and MCP `lint`); the share of rules with
+      one is measured and kept here. Checked: each fix applied makes its
+      finding go away (a test over every rule).
+- [ ] **Agents in the gallery.** An agent's life cycle (a state machine),
+      a tool call as a scenario, an orchestrator's workflow with the
+      places a person decides; `AGENTS.md` and the guide say how an agent
+      uses Omaspec in each loop.
+
 ## PlantUML's guide, drawn natively (2026-11-21)
 
 PlantUML's *Language Reference Guide* (1.2025.0) holds 929 examples.
@@ -35,7 +71,11 @@ rest decline with their line and reason and want the Java PlantUML. This
 plan closes the gaps: the three diagrams first, as the premise above says,
 then the other UML diagrams, then what every diagram shares, then the
 other kinds. It widens [0007](docs/adr/0007-behavior-specifications.md):
-in the end every kind the guide shows is drawn natively.
+in the end every kind the guide shows is drawn natively. Since
+[0036](docs/adr/0036-between-agents-and-people.md) (2026-11-24) step 4
+takes only use case, class and component first, which agents write most
+to explain code; the rest of steps 4 to 7 waits for the loops between
+agents and people.
 
 The yardstick: `OMASPEC_GUIDE=guide.pdf cargo test --release -p
 omaspec-render --test guide -- --nocapture` cuts the examples out of a copy
