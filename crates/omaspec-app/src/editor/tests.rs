@@ -3703,6 +3703,52 @@ fn a_play_lights_each_state_in_its_own_shape() {
 /// Writes headless screenshots of a play when OMASPEC_SNAPSHOT_DIR
 /// is set: a state machine at rest, a light on its way and arriving,
 /// a scenario half unfolded.
+/// A trace followed live on an agents' workflow: each object a pill with
+/// its name beside its state, past three a pill that counts the rest, one
+/// whose last line deviates in red (docs/adr/0036).
+#[test]
+fn snapshot_live() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("live");
+    let flow = "@startuml\ntitle Agents at work\n[*] --> Planning\nPlanning --> Coding : plan ready\nCoding --> Review : pushed\nReview --> Coding : changes asked\nReview --> Merging : approved\nMerging --> [*] : merged\n@enduml\n";
+    let file = work.join("flow.puml");
+    std::fs::write(&file, flow).unwrap();
+    let line = |object: &str, event: &str| {
+        format!("{{\"object\":\"{object}\",\"machine\":\"flow\",\"event\":\"{event}\"}}\n")
+    };
+    let mut trace = String::new();
+    for (object, events) in [
+        ("planner", &[][..]),
+        ("coder-1", &["plan ready"][..]),
+        ("coder-2", &["plan ready"]),
+        ("coder-3", &["plan ready"]),
+        ("coder-4", &["plan ready"]),
+        ("coder-5", &["plan ready"]),
+        ("pr-42", &["plan ready", "pushed"]),
+        ("bot", &["plan ready", "pushed", "approved", "approved"]),
+    ] {
+        trace.push_str(&format!(
+            "{{\"object\":\"{object}\",\"machine\":\"flow\",\"state\":\"Planning\"}}\n"
+        ));
+        for event in events {
+            trace.push_str(&line(object, event));
+        }
+    }
+    let run = work.join("run.jsonl");
+    std::fs::write(&run, trace).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, flow, Language::PlantUml);
+    app.doc_mut()
+        .paper
+        .start_live(run.clone(), "flow.puml")
+        .unwrap();
+    app.doc_mut().paper.freeze_play(Duration::from_secs(3));
+    shoot(&mut app, &dir, "live");
+}
+
 #[test]
 fn snapshot_play() {
     let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {

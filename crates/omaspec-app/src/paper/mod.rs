@@ -963,6 +963,43 @@ impl Paper {
         Ok(())
     }
 
+    /// Follows the trace in the file `path` on the state machine on
+    /// screen, the diagram `file`, while it is written (docs/adr/0036).
+    /// Says why not, if it cannot.
+    pub fn start_live(&mut self, path: std::path::PathBuf, file: &str) -> Result<(), String> {
+        let diagram = self.diagram.as_ref().ok_or("no diagram yet")?;
+        tabled(diagram)?;
+        let mut play = Play::live(
+            &diagram.source,
+            diagram.language,
+            &diagram.drawn.map,
+            file,
+            path,
+            crate::clock::now(),
+        )?;
+        play.shape(&diagram.drawn.tree);
+        self.play = Some(play);
+        self.leaving = None;
+        self.set_breath(None);
+        Ok(())
+    }
+
+    /// The file of the trace the play follows while it is written.
+    pub fn following(&self) -> Option<&std::path::Path> {
+        self.play
+            .as_ref()
+            .filter(|_| self.leaving.is_none())?
+            .following()
+    }
+
+    /// Reads what the trace the play follows says since; whether it moved.
+    pub fn follow_more(&mut self) -> bool {
+        match self.play.as_mut().filter(|_| self.leaving.is_none()) {
+            Some(play) => play.follow_more(crate::clock::now()),
+            None => false,
+        }
+    }
+
     /// Plays `object`'s way through the state machine on screen, followed
     /// already (a scenario's participant beside it, `name` the scenario).
     /// Says why not, if it cannot.

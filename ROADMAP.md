@@ -32,9 +32,10 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
 Omaspec beside the person, and the loops between them come first. Each
 item says how it is checked.
 
-- [ ] **A run, live.** The preview follows a trace as it grows
-      (`omaspec trace run.jsonl --follow` does on the command line since
-      2026-11-24): each object lit where it stands,
+- [ ] **A run, live.** The editor follows a trace as it grows, as the
+      preview does since 2026-11-24 (`omaspec preview FILE --follow
+      run.jsonl`, and `omaspec trace run.jsonl --follow` on the command
+      line): each object lit where it stands,
       a finding the moment it happens, a state marked as waiting for a
       person (`<<decide>>`) shown as such. For an orchestrator's workflow
       or an agent client's hook writing the file. Checked: a test appends

@@ -448,6 +448,12 @@ enum Command {
         file: PathBuf,
         #[command(flatten)]
         lang: LangArg,
+        /// Follow a trace while it is written, on the state machine shown:
+        /// each object a pill with its name beside the state it is in, a
+        /// light along each transition a new line takes, in red where it
+        /// deviates (docs/trace.md). Esc stops following.
+        #[arg(long, value_name = "TRACE")]
+        follow: Option<PathBuf>,
     },
     /// Write a play of a state machine or a scenario, a fold or a zoom into
     /// a project's map as a picture that moves: a GIF, or in full color an
@@ -1023,7 +1029,7 @@ fn main() -> ExitCode {
             lang,
             project,
         }) => commands::inspect(file, lang.get(), project.as_deref()),
-        Some(Command::Preview { file, lang }) => preview(&file, lang.get()),
+        Some(Command::Preview { file, lang, follow }) => preview(&file, lang.get(), follow),
         Some(Command::Play {
             file,
             output,
@@ -1165,8 +1171,15 @@ fn main() -> ExitCode {
     }
 }
 
-fn preview(file: &std::path::Path, lang: Option<Language>) -> anyhow::Result<ExitCode> {
+fn preview(
+    file: &std::path::Path,
+    lang: Option<Language>,
+    follow: Option<PathBuf>,
+) -> anyhow::Result<ExitCode> {
     let path = preview::check(file)?;
-    preview::run(path, lang).map_err(|e| anyhow::anyhow!("the preview window failed: {e}"))?;
+    // Followed by its own path, as the window's watcher names it.
+    let follow = follow.map(|trace| std::path::absolute(&trace).unwrap_or(trace));
+    preview::run(path, lang, follow)
+        .map_err(|e| anyhow::anyhow!("the preview window failed: {e}"))?;
     Ok(ExitCode::SUCCESS)
 }

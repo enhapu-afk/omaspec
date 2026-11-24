@@ -32,8 +32,10 @@ pub(super) fn key(key: &Key, mods: Modifiers) -> Option<Command> {
 
 /// The keys of the play that runs, a recorded trace or not, for the status
 /// bar.
-pub(super) fn keys(tracing: bool) -> &'static str {
-    if tracing {
+pub(super) fn keys(tracing: bool, following: bool) -> &'static str {
+    if following {
+        "following a trace as it is written: Esc stops"
+    } else if tracing {
         "playing a trace: Space next line, ← back, Esc stops"
     } else {
         "playing: 1–9 a step, Space next, ← back, Esc stops"

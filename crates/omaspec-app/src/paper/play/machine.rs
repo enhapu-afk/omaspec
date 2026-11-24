@@ -47,6 +47,8 @@ pub(super) enum Driver {
     Writer(Box<Writer>),
     /// A recorded trace, line by line.
     Trace(Box<TraceRun>),
+    /// A trace followed while it is written.
+    Live(Box<LiveRun>),
 }
 
 pub(super) struct Writer {
@@ -160,10 +162,42 @@ impl MachinePlay {
         }
     }
 
+    /// Reads what the followed trace's file says since: runs along the
+    /// transitions its new lines take, or shows at once where a burst of
+    /// them leads; whether anything came.
+    pub(super) fn follow_more(&mut self, now: Instant) -> bool {
+        let Driver::Live(live) = &mut self.driver else {
+            return false;
+        };
+        let Some(came) = live.read_more() else {
+            return false;
+        };
+        let lit = live.lit();
+        if came.run {
+            for step in &came.steps {
+                self.schedule(&step.taken, now);
+                let deviates = step
+                    .finding
+                    .as_ref()
+                    .is_some_and(|f| f.severity == Severity::Error);
+                if deviates {
+                    self.flashes.retain(|&at| at + FLASH > now);
+                    self.flashes.push(self.free_at.max(now));
+                }
+            }
+            self.aim(&lit, now);
+        } else {
+            self.show(&lit, now);
+        }
+        true
+    }
+
     pub(super) fn ask(&mut self, ask: Ask, now: Instant) {
         match self.driver {
             Driver::Writer(_) => self.ask_writer(ask, now),
             Driver::Trace(_) => self.ask_trace(ask, now),
+            // What is written moves it; there is nothing to ask.
+            Driver::Live(_) => {}
         }
     }
 
@@ -365,6 +399,39 @@ impl MachinePlay {
         let names = |states: &[usize]| m.shown_at(states);
         let writer = match &self.driver {
             Driver::Writer(writer) => writer,
+            Driver::Live(live) => {
+                let (last, finding) = (live.last(), live.wrong());
+                // The pills say who stands where; the head counts them.
+                let object = match (live.objects.len(), live.deviating()) {
+                    (1, 0) => format!("live · {}", live.objects[0].0),
+                    (1, _) => format!("live · {} deviates", live.objects[0].0),
+                    (n, 0) => format!("live · {n} objects"),
+                    (n, 1) => format!("live · {n} objects · 1 deviates"),
+                    (n, d) => format!("live · {n} objects · {d} deviate"),
+                };
+                let said = last.map_or_else(String::new, |(step, object)| {
+                    match (&step.event, &step.state) {
+                        (Some(event), Some(state)) => format!("{object}: {event} → {state}"),
+                        (Some(event), None) => format!("{object}: {event}"),
+                        (None, Some(state)) => format!("{object}: in {state}"),
+                        (None, None) => object.to_owned(),
+                    }
+                });
+                let at = names(&live.lit());
+                return Offer::Trace {
+                    name: live.name.clone(),
+                    object,
+                    played: live.lines,
+                    of: live.lines,
+                    line: last.map(|(s, _)| s.line + 1),
+                    time: last.and_then(|(s, _)| s.time.clone()),
+                    said,
+                    at,
+                    finding,
+                    beside: false,
+                    live: true,
+                };
+            }
             Driver::Trace(trace) => {
                 let step = trace
                     .played
@@ -389,6 +456,7 @@ impl MachinePlay {
                         .and_then(|s| s.finding.as_ref())
                         .map(|f| (f.severity, f.message.clone())),
                     beside: trace.beside,
+                    live: false,
                 };
             }
         };
@@ -510,7 +578,7 @@ impl MachinePlay {
         // Where the writer's pointer rests: the way an option goes.
         let hover = match &self.driver {
             Driver::Writer(writer) => writer.hover,
-            Driver::Trace(_) => None,
+            Driver::Trace(_) | Driver::Live(_) => None,
         };
         if let Some(points) = hover.and_then(|t| self.placed.routes[t].as_ref()) {
             let path = polyline(points.iter().map(|&p| view.point(p)));
@@ -556,6 +624,14 @@ impl MachinePlay {
         }
         for travel in &self.shown {
             self.draw_travel(frame, look, view, travel, now);
+        }
+        // Who stands where, in a trace followed live.
+        if let Driver::Live(live) = &self.driver {
+            for (state, names) in live.standing() {
+                if let Some(spot) = &self.placed.states[state] {
+                    pills(frame, look, (view.place)(spot.rect), &names);
+                }
+            }
         }
     }
 

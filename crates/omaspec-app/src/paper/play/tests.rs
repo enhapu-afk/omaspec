@@ -295,6 +295,7 @@ fn a_machine_beside_its_scenario_flashes_where_it_cannot_follow() {
         veil: Color::BLACK,
         light: Color::WHITE,
         wrong: Color::from_rgb8(0xf7, 0x76, 0x8e),
+        font: iced::Font::MONOSPACE,
     };
     assert_eq!(scenario.color(0, &look), look.accent);
     assert_eq!(scenario.color(1, &look), look.wrong);
@@ -563,6 +564,7 @@ fn a_box_under_a_scenario_s_veil_keeps_its_color() {
             veil: Color::from_rgb8(0x1a, 0x1b, 0x26),
             light: Color::WHITE,
             wrong: Color::from_rgb8(0xf7, 0x76, 0x8e),
+            font: iced::Font::MONOSPACE,
         };
         play.draw_under(frame, &look, &view, now);
     };
@@ -683,4 +685,104 @@ fn a_git_graph_plays_commit_by_commit_along_its_time() {
             _ => assert!(scenario.clear.is_some_and(|at| at < highest), "{head}"),
         }
     }
+}
+
+/// A trace followed while it is written: what is written by now stands at
+/// once, each object a pill beside its state; a line half written waits
+/// for its end; an object whose last line deviates stands in red; a file
+/// written anew is followed from its start (docs/adr/0036).
+#[test]
+fn a_trace_followed_live_moves_as_it_is_written() {
+    use std::io::Write;
+    let source =
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let dir = std::env::temp_dir().join(format!("omaspec-live-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("run.jsonl");
+    let line = |object: &str, event: &str| {
+        format!("{{\"object\":\"{object}\",\"machine\":\"door\",\"event\":\"{event}\"}}\n")
+    };
+    std::fs::write(&path, line("front", "open")).unwrap();
+    let append = |text: &str| {
+        let mut file = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap();
+        file.write_all(text.as_bytes()).unwrap();
+    };
+    let t0 = Instant::now();
+    let mut play = Play::live(
+        source,
+        Language::PlantUml,
+        &map,
+        "door.puml",
+        path.clone(),
+        t0,
+    )
+    .unwrap();
+    let standing = |play: &Play| -> Vec<(String, Vec<(String, bool)>)> {
+        let Play::Machine(machine) = play else {
+            panic!("a machine");
+        };
+        let Driver::Live(live) = &machine.driver else {
+            panic!("live");
+        };
+        live.standing()
+            .into_iter()
+            .map(|(state, names)| (machine.machine.states[state].name.clone(), names))
+            .collect()
+    };
+    let at = |state: &str, names: &[(&str, bool)]| {
+        (
+            state.to_owned(),
+            names
+                .iter()
+                .map(|(n, w)| ((*n).to_owned(), *w))
+                .collect::<Vec<_>>(),
+        )
+    };
+    assert_eq!(play.following(), Some(path.as_path()));
+    assert_eq!(standing(&play), [at("Open", &[("front", false)])]);
+    // A second object, and a line half written that waits for its end.
+    append(&line("back", "open"));
+    append("{\"object\":\"front\",");
+    assert!(play.follow_more(t0));
+    assert_eq!(
+        standing(&play),
+        [at("Open", &[("front", false), ("back", false)])]
+    );
+    append("\"machine\":\"door\",\"event\":\"open\"}\n");
+    assert!(play.follow_more(t0));
+    // The front door cannot open again: it stands in red where it was.
+    assert_eq!(
+        standing(&play),
+        [at("Open", &[("front", true), ("back", false)])]
+    );
+    assert!(!play.follow_more(t0), "nothing new");
+    let Offer::Trace {
+        live,
+        object,
+        at: lit,
+        finding,
+        played,
+        ..
+    } = play.offer()
+    else {
+        panic!("a trace");
+    };
+    assert!(live);
+    assert_eq!(object, "live · 2 objects · 1 deviates");
+    assert_eq!(played, 3);
+    assert_eq!(lit, "Open");
+    assert_eq!(finding.map(|(s, _)| s), Some(Severity::Error));
+    // Written anew, shorter: followed from its start.
+    std::fs::write(
+        &path,
+        format!("{}{}", line("back", "open"), line("back", "close")),
+    )
+    .unwrap();
+    assert!(play.follow_more(t0));
+    assert_eq!(standing(&play), [at("Closed", &[("back", false)])]);
+    let _ = std::fs::remove_dir_all(&dir);
 }

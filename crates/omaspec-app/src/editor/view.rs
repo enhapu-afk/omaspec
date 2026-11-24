@@ -1143,9 +1143,11 @@ impl App {
     /// notice, else the keys of the play that runs; gone once it stops.
     pub(super) fn note(&self) -> Option<&str> {
         let paper = &self.doc().paper;
-        self.notice
-            .as_deref()
-            .or_else(|| paper.playing().then(|| super::play::keys(paper.tracing())))
+        self.notice.as_deref().or_else(|| {
+            paper
+                .playing()
+                .then(|| super::play::keys(paper.tracing(), paper.following().is_some()))
+        })
     }
 
     /// One line of pills, in the shape of the play bar: the language and

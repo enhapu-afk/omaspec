@@ -40,6 +40,19 @@ is open and the reasoning around it.
       start, and standard input until it ends. The check reads a line at
       a time (`omaspec_model::TraceChecking`), so a long run costs no
       more than its lines.
+- [x] A run followed on its machine (2026-11-24): `omaspec preview
+      flow.puml --follow run.jsonl` follows a trace as it is written
+      (`paper/play/live.rs`, a third driver of a machine's play beside the
+      writer and a recorded trace). Each object stands as a pill with its
+      name beside the state it is in, past three a pill counts the rest; a
+      light runs along each transition a new line takes, a burst of more
+      than eight is shown where it leads; an object whose last line
+      deviates stands in red and the bar says why (`live · 8 objects · 1
+      deviates`, the file's line, the last step). The window's watcher
+      says when the file changed; a line half written waits for its end, a
+      file written anew is followed from its start, and the play starts
+      again after each change to the machine. Esc stops following.
+      `snapshot_live` draws an agents' workflow with eight objects.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

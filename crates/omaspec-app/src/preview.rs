@@ -24,6 +24,15 @@ use crate::paper::{self, Ask, Paper, Status};
 use crate::ui;
 use crate::worker::{self, Alarm, Worker};
 
+/// Whether `a` and `b` name one file, as the watcher may name it otherwise.
+fn same(a: &std::path::Path, b: &std::path::Path) -> bool {
+    a == b
+        || std::fs::canonicalize(a)
+            .ok()
+            .zip(std::fs::canonicalize(b).ok())
+            .is_some_and(|(a, b)| a == b)
+}
+
 /// Editors write a file in several steps; read it once they are done.
 const FILE_SETTLE: Duration = Duration::from_millis(50);
 /// A theme switch replaces several files.
@@ -33,9 +42,9 @@ const KEY_ZOOM: f32 = 1.25;
 /// The status bar's note while a play runs.
 const PLAY_KEYS: &str = "playing: 1–9 a step, Space next, Backspace back, Esc stops";
 
-pub fn run(path: PathBuf, forced: Option<Language>) -> iced::Result {
+pub fn run(path: PathBuf, forced: Option<Language>, trace: Option<PathBuf>) -> iced::Result {
     iced::application(
-        move || Preview::new(path.clone(), forced),
+        move || Preview::new(path.clone(), forced, trace.clone()),
         Preview::update,
         Preview::view,
     )
@@ -82,10 +91,16 @@ struct Preview {
     /// The index of the project whose map is shown: a change in it draws
     /// the map again, and only the files that changed are read.
     index: Option<Index>,
+    /// The trace followed while it is written (`--follow`), until Esc.
+    trace: Option<PathBuf>,
 }
 
 impl Preview {
-    fn new(path: PathBuf, forced: Option<Language>) -> (Self, Task<Message>) {
+    fn new(
+        path: PathBuf,
+        forced: Option<Language>,
+        trace: Option<PathBuf>,
+    ) -> (Self, Task<Message>) {
         let omarchy = Omarchy::load_current();
         let palette = omarchy.palette.legible();
         let theme_name = omarchy.name.unwrap_or_else(|| "built-in".into());
@@ -106,6 +121,7 @@ impl Preview {
             folder: String::new(),
             back: Vec::new(),
             index: None,
+            trace,
         };
         let scale = window::latest()
             .and_then(window::scale_factor)
@@ -129,7 +145,12 @@ impl Preview {
                 font_dir: ui::fontconfig_dir(),
             })
             .map(Message::Worker),
-            worker::watch(vec![self.path.clone()]).map(Message::Worker),
+            worker::watch(
+                std::iter::once(self.path.clone())
+                    .chain(self.trace.clone())
+                    .collect(),
+            )
+            .map(Message::Worker),
             worker::watch_projects(self.index.as_ref().map(Index::dirs).unwrap_or_default())
                 .map(Message::Worker),
             keyboard::listen().map(Message::Key),
@@ -189,6 +210,12 @@ impl Preview {
                 self.worker = Some(worker);
                 self.request_render();
             }
+            // What the trace followed says since moves the play.
+            worker::Event::FileChanged(path)
+                if self.trace.as_ref().is_some_and(|t| same(t, &path)) =>
+            {
+                self.paper.follow_more();
+            }
             worker::Event::FileChanged(_) | worker::Event::ProjectChanged => {
                 self.after(Alarm::File, FILE_SETTLE);
             }
@@ -209,7 +236,16 @@ impl Preview {
             }
             worker::Event::Rendered(answer) => {
                 self.notice = None;
-                return self.paper.rendered(*answer).map(Message::Paper);
+                let task = self.paper.rendered(*answer).map(Message::Paper);
+                // The trace to follow plays as soon as the machine is drawn,
+                // and again after each change to it.
+                if let Some(trace) = self.trace.clone()
+                    && self.paper.following().is_none()
+                    && let Err(why) = self.paper.start_live(trace, &self.name)
+                {
+                    self.notice = Some(format!("not following the trace: {why}"));
+                }
+                return task;
             }
         }
         Task::none()
@@ -371,7 +407,13 @@ impl Preview {
             Key::Named(Named::Space | Named::Enter) if playing => paper.update(step(Ask::Next)),
             Key::Named(Named::Backspace) if playing => paper.update(step(Ask::Back)),
             Key::Named(Named::Home) if playing => paper.update(step(Ask::Restart)),
-            Key::Named(Named::Escape) if playing => paper.update(paper::Message::StopPlay),
+            Key::Named(Named::Escape) if playing => {
+                // Esc ends following the trace too.
+                if paper.following().is_some() {
+                    self.trace = None;
+                }
+                paper.update(paper::Message::StopPlay)
+            }
             Key::Character("+" | "=") => paper.zoom(KEY_ZOOM),
             Key::Character("-") => paper.zoom(1.0 / KEY_ZOOM),
             Key::Character("0") => paper.actual_size(),
@@ -515,7 +557,7 @@ mod tests {
     /// A preview with `drawn` on screen, on a screen with scale factor 2
     /// like the headless snapshot.
     fn showing(drawn: Drawn) -> Preview {
-        let (mut p, _) = Preview::new(PathBuf::from("/tmp/flow.mmd"), None);
+        let (mut p, _) = Preview::new(PathBuf::from("/tmp/flow.mmd"), None, None);
         let _ = p.update(Message::ScaleFactor(2.0));
         let _ = p.update(Message::Paper(paper::Message::Viewport(Size::new(
             900.0, 520.0,
@@ -633,7 +675,7 @@ mod tests {
     #[test]
     fn p_plays_a_state_machine() {
         let source = "stateDiagram-v2\n[*] --> Idle\nIdle --> Busy : go\nBusy --> Idle : done\n";
-        let (mut p, _) = Preview::new(PathBuf::from("/tmp/machine.mmd"), None);
+        let (mut p, _) = Preview::new(PathBuf::from("/tmp/machine.mmd"), None, None);
         let _ = p.update(Message::Paper(paper::Message::Viewport(Size::new(
             900.0, 520.0,
         ))));

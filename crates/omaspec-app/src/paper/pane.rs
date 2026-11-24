@@ -335,6 +335,7 @@ impl Paper {
                         },
                         light: ui::color(p.bright_foreground),
                         wrong: ui::color(p.red),
+                        font,
                     },
                     over,
                     at: self.clock,

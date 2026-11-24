@@ -26,6 +26,7 @@ use omaspec_render::Map;
 use omaspec_uml::graph::Rect;
 
 mod draw;
+mod live;
 mod machine;
 mod scenario;
 #[cfg(test)]
@@ -33,6 +34,8 @@ mod tests;
 
 use draw::*;
 pub(super) use draw::{Glow, with_alpha};
+use live::LiveRun;
+use live::pills;
 pub use machine::MachinePlay;
 use machine::{Driver, TraceRun, Writer};
 pub use scenario::ScenarioPlay;
@@ -143,6 +146,48 @@ impl Play {
             return Err(format!("{name} has no line of {object}"));
         }
         Play::followed(map, spec.machine, followed, name, object, false, now)
+    }
+
+    /// The trace in the file `path` followed while it is written, on the
+    /// state machine `source` (the diagram `file`), drawn as `map`: what is
+    /// written by now stands at once, what comes runs along its way.
+    pub fn live(
+        source: &str,
+        language: Language,
+        map: &Map,
+        file: &str,
+        path: std::path::PathBuf,
+        now: Instant,
+    ) -> Result<Play, String> {
+        let spec = Spec::read(source, language, file)
+            .ok_or("only a state machine can follow a trace, and this diagram is none")?;
+        let placed = placed(&spec.machine, map)?;
+        let machine = spec.machine.clone();
+        let mut live = LiveRun::new(path, spec);
+        let _ = live.read_more();
+        let lit = live.lit();
+        let mut play = MachinePlay::new(machine, placed, Driver::Live(Box::new(live)), now);
+        play.aim(&lit, now);
+        Ok(Play::Machine(Box::new(play)))
+    }
+
+    /// The file of the trace it follows while it is written.
+    pub fn following(&self) -> Option<&std::path::Path> {
+        match self {
+            Play::Machine(play) => match &play.driver {
+                Driver::Live(live) => Some(&live.path),
+                _ => None,
+            },
+            Play::Scenario(_) => None,
+        }
+    }
+
+    /// Reads what the trace it follows says since; whether anything came.
+    pub fn follow_more(&mut self, now: Instant) -> bool {
+        match self {
+            Play::Machine(play) => play.follow_more(now),
+            Play::Scenario(_) => false,
+        }
     }
 
     /// A play of `object`'s way through `machine`, drawn as `map`, line by
@@ -348,6 +393,8 @@ pub struct Look {
     /// What deviates: a message its receiver's machine cannot take, a
     /// state that flashes as it cannot follow.
     pub wrong: Color,
+    /// The words it writes on the picture: the names of who stands where.
+    pub font: iced::Font,
 }
 
 impl Look {
@@ -358,6 +405,7 @@ impl Look {
             veil: with_alpha(self.veil, share),
             light: with_alpha(self.light, share),
             wrong: with_alpha(self.wrong, share),
+            font: self.font,
         }
     }
 }
@@ -459,5 +507,7 @@ pub enum Offer {
         finding: Option<(Severity, String)>,
         /// Played beside a scenario, which steps it: nothing to press.
         beside: bool,
+        /// Followed while it is written: what is written moves it.
+        live: bool,
     },
 }

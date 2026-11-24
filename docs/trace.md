@@ -92,6 +92,12 @@ written anew is followed from its start again; it runs until it is
 stopped. `tail -f`-like on standard input too (`--follow -`), until the
 input ends, with the exit code of a whole check.
 
+`omaspec preview flow.puml --follow run.jsonl` shows the same on the
+machine, for the person watching: each object a pill with its name beside
+the state it is in, past three a pill that counts the rest; a light runs
+along each transition a new line takes; an object whose last line
+deviates stands in red, and the bar says why. Esc stops following.
+
 ## Writing one
 
 Append a line where the system takes an event, and flush it, so a run that

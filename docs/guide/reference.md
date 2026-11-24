@@ -640,6 +640,7 @@ or a `git checkout` shows on its maps and links at once.
 
 ```bash
 omaspec preview flow.puml   # a window that renders again on every save
+omaspec preview flow.puml --follow run.jsonl   # and follows a trace on its machine as it is written: who stands where
 ```
 
 Edit in Neovim (or anything else) and keep the preview tiled next to it. Errors show in
@@ -708,7 +709,10 @@ time and the states it could be in. Many objects can share one machine
 `omaspec trace --schema` prints the JSON Schema of a line, and with `--json` (and through
 MCP) a deviation carries a task, what happened and what the machine expected there with the
 lines of the diagram, for an agent to fix the code or propose the transition; `--follow`
-says each finding the moment its line is written, while the system or its agents run. In the editor, *Play a recorded trace* (command menu) plays it in
+says each finding the moment its line is written, while the system or its agents run, and
+`omaspec preview flow.puml --follow run.jsonl` shows it on the machine: each object a pill with
+its name beside the state it is in (past three, one that counts the rest), a light along each
+transition a new line takes, in red where an object's last line deviates. In the editor, *Play a recorded trace* (command menu) plays it in
 the diagram, line by line with Space: the bar shows the time and the event, the states
 light up, and where the trace deviates the bar turns red and says why.
 [examples/player.jsonl](../../examples/player.jsonl) is an evening of the media player.

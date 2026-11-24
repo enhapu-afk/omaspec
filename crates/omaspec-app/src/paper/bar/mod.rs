@@ -153,9 +153,12 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             at,
             finding,
             beside,
+            live,
         } => {
             let third = (inside / 3.0 / (13.0 * CHAR)) as usize;
-            let (head, color) = if at.is_empty() {
+            let (head, color) = if *live {
+                (format!("● {object}"), accent)
+            } else if at.is_empty() {
                 (format!("○ {object}: not followed here"), muted)
             } else {
                 (format!("● {object}: {at}"), accent)
@@ -167,17 +170,27 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                 let event =
                     said.chars().count() + time.as_ref().map_or(0, |t| t.chars().count() + 2);
                 cut(&head, row.saturating_sub(event + 3).max(row / 2))
+            } else if *live {
+                // Nothing to step: the head has the room of the tools.
+                cut(&head, third * 3 / 2)
             } else {
                 cut(&head, third)
             };
-            let place = match line {
-                Some(line) => format!("{name}:{line} · {played} / {of}"),
-                None => format!("{name} · {played} / {of}"),
+            // Followed live, it is where the file has got to.
+            let place = match (line, *live) {
+                (Some(line), true) => format!("{name}:{line}"),
+                (None, true) => format!("{name} · waiting for its first line"),
+                (Some(line), false) => format!("{name}:{line} · {played} / {of}"),
+                (None, false) => format!("{name} · {played} / {of}"),
             };
             let place = cut(&place, third);
             // Beside a scenario, which steps it: where it is, nothing to press.
             let used = if *beside {
                 width_of(head.chars().count(), 13.0) + 2.0 * GAP
+            } else if *live {
+                width_of(head.chars().count() + place.chars().count(), 13.0)
+                    + tool_width("✕")
+                    + 3.0 * GAP
             } else {
                 width_of(head.chars().count() + place.chars().count(), 13.0)
                     + tool_width("‹ back")
@@ -201,7 +214,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                     words(cut(&said, room), ui::color(p.bright_foreground)).into(),
                 ]);
             }
-            if !*beside {
+            if !*beside && !*live {
                 tools.push(tool("‹ back", (*played > 0).then_some(Ask::Back), p, font));
                 tools.push(chip_next((*played < *of).then_some(Ask::Next), p, font));
                 tools.push(tool(
