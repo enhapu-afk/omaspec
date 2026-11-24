@@ -275,7 +275,22 @@ impl Skin {
             if let Some((only, name)) = p.key.split_once('|') {
                 let class = only.strip_prefix("class=").filter(|c| !c.contains('&'));
                 let Some(class) = class else {
-                    return Err(p.unsupported());
+                    let only = only
+                        .replace("class=", ".")
+                        .replace("depth=", ":depth(")
+                        .replace('&', " ");
+                    let only = if only.contains(":depth(") {
+                        format!("{only})")
+                    } else {
+                        only
+                    };
+                    return Err(Declined::at(
+                        p.line,
+                        format!(
+                            "`{}` for `{only}` is not supported for states yet",
+                            p.written()
+                        ),
+                    ));
                 };
                 stereotyped.push((normalize_key(name), class.to_ascii_lowercase(), p));
                 continue;
@@ -436,7 +451,15 @@ impl Skin {
                     let (bold, italic) = font_style(&p.value).ok_or_else(|| p.unsupported())?;
                     (look.font.bold, look.font.italic) = (bold, italic);
                 }
-                _ => return Err(p.unsupported()),
+                _ => {
+                    return Err(Declined::at(
+                        p.line,
+                        format!(
+                            "`{}` for the states of a stereotype is not supported yet",
+                            p.written()
+                        ),
+                    ));
+                }
             }
         }
         Ok(skin)
@@ -596,7 +619,14 @@ mod tests {
         // A style for a stereotype is the same (`.foo { state { … } }`).
         let s = skin(&[("class=foo|StateBackGroundColor", "lightblue")]).unwrap();
         assert_eq!(s.stereotyped(Some("Foo")).state.fill, Some(blue));
-        assert!(skin(&[("class=foo&depth=2|StateBackGroundColor", "red")]).is_err());
+        let err = skin(&[("class=foo&depth=2|StateBackGroundColor", "red")]).unwrap_err();
+        assert!(err.reason.contains("`.foo :depth(2)`"), "{}", err.reason);
+        let err = skin(&[("class=foo|StateRoundCorner", "5")]).unwrap_err();
+        assert!(
+            err.reason.contains("states of a stereotype"),
+            "{}",
+            err.reason
+        );
         let svg = crate::render(
             "@startuml\n<style>\n.foo {\n  state,stateBody {\n    BackGroundColor lightblue;\n  }\n}\n</style>\nstate Main <<foo>> {\n  state Sub\n}\nstate Other\n@enduml\n",
         )

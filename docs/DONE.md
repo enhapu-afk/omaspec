@@ -338,6 +338,22 @@ is open and the reasoning around it.
       out of a conversion to Mermaid, and a line to it declines. The
       guide: the state diagram 36 of 36, 553 of 897 in all.
 
+- [x] What the review of the gradients, the styles for stereotypes and
+      the data found (2026-11-24). Data is drawn through the JSON drawer's
+      picture itself (`embedded::picture_or_why`), not as words with
+      `{{json`: JSON that does not read declines on its line with what the
+      drawer says, objects closed on one line draw, and the table takes
+      the state's fill, lines and words, so a dark look reaches it. A line
+      `json : words` describes a state named so; the name of data is kept
+      as written, and a line, a note or words for it decline saying it is
+      no state. A composite holding only data is refused in a conversion
+      to Mermaid, as one holding only notes is. A gradient inside a note's
+      picture keeps its id, and that picture's paper is left out past its
+      definitions. In a dark look a gradient of the file's turns as a
+      ground does, both its colors (`repaint`, `legible`). A typo in a
+      gradient says so, and a style for a depth or a property a
+      stereotype's states do not take names them.
+
 ### Step 3: the activity diagram
 
 - [x] A loop that starts with an action (2026-11-22): `repeat :text;`, on

@@ -1,7 +1,8 @@
 //! Data among the states (`json name { … }`), as PlantUML draws it: a
 //! box with its name in a band over its value, a JSON value drawn nested,
 //! as a table (`skinparam jsonLayout nested`), by the engine's own JSON
-//! drawer inside the box.
+//! drawer inside the box, in the state's look. Data it cannot draw
+//! declines on its line, with what the JSON drawer says of it.
 
 use super::super::Node;
 use super::super::skin::Skin;
@@ -21,11 +22,26 @@ pub(super) fn measure(
     let name = text::block(&node.key, skin.state.font, family)
         .map_err(fail)?
         .written_on(node.line);
-    let source = format!(
-        "{{{{json\nskinparam jsonLayout nested\n{}\n}}}}",
-        node.label.value
-    );
-    let table = text::block(&source, skin.state.font, family).map_err(fail)?;
+    // Its value as the JSON drawer draws one nested, in the state's look,
+    // or why not.
+    let look = &skin.state;
+    let mut lines = vec![
+        "skinparam jsonLayout nested".to_owned(),
+        "<style>".to_owned(),
+        "jsonDiagram {".to_owned(),
+        "  node {".to_owned(),
+        format!("    LineColor {}", look.border),
+        format!("    FontColor {}", look.font.color),
+    ];
+    if let Some(fill) = look.fill {
+        lines.push(format!("    BackGroundColor {fill}"));
+    }
+    lines.extend(["  }".to_owned(), "}".to_owned(), "</style>".to_owned()]);
+    lines.extend(node.label.value.lines().map(str::to_owned));
+    let lines: Vec<&str> = lines.iter().map(String::as_str).collect();
+    let table = crate::embedded::picture_or_why("json", &lines)
+        .map_err(|why| fail(format!("the data of `{}` is not drawn: {why}", node.key)))?;
+    let table = text::picture_block(table, skin.state.font, family);
     // The table keeps the room around it its own picture has.
     let width = (name.width + 2.0 * PAD_X).max(table.width);
     let height = name.height + PAD_Y + table.height;

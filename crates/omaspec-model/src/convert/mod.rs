@@ -153,6 +153,10 @@ mod tests {
         let classes = "@startuml\nclass A\nclass B\nA --> B\n@enduml\n";
         let err = convert(classes, Language::PlantUml, Language::Mermaid).unwrap_err();
         assert!(err.reason.contains("not a class diagram"), "{err:?}");
+        // A composite holding only data, which Mermaid leaves out.
+        let data = "@startuml\n[*] --> Outer\nstate Outer {\n state Inner {\n  json d {\n   \"a\": 1\n  }\n }\n}\n@enduml\n";
+        let err = convert(data, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert!(err.reason.contains("empty state"), "{err:?}");
         let mermaid = "stateDiagram-v2\n[*] --> A\n";
         let err = convert(mermaid, Language::Mermaid, Language::Mermaid).unwrap_err();
         assert_eq!(err.reason, "The diagram is Mermaid already");

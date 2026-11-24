@@ -326,7 +326,13 @@ impl ToMermaid {
         };
         if node.composite {
             // Empty as Mermaid gets it: the notes of their own are left out.
-            if depth > 1 && node.children.nodes.iter().all(|n| n.kind == Kind::Note) {
+            if depth > 1
+                && node
+                    .children
+                    .nodes
+                    .iter()
+                    .all(|n| matches!(n.kind, Kind::Note | Kind::Data))
+            {
                 return Err(refused(
                     Some(node.line),
                     "Mermaid draws an empty state inside another one at the top",

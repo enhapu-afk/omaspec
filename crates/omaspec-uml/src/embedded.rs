@@ -168,6 +168,26 @@ pub(crate) fn picture(kind: &str, lines: &[&str]) -> Option<Arc<Embedded>> {
     picture
 }
 
+/// A diagram of `kind` drawn from `lines` as [`picture`] draws it, also
+/// outside a drawing, or why it is not: what the engine says of it, or
+/// that it lies too deep inside others.
+pub(crate) fn picture_or_why(kind: &str, lines: &[&str]) -> Result<Arc<Embedded>, String> {
+    let outside = STATE.with_borrow(|state| state.skin.is_none());
+    let drawn = match outside {
+        true => within(Vec::new(), || picture(kind, lines)),
+        false => picture(kind, lines),
+    };
+    drawn.ok_or_else(|| {
+        if STATE.with_borrow(|state| state.depth) >= DEEPEST {
+            return "a diagram this deep inside others is not drawn".to_owned();
+        }
+        match crate::render(&source(kind, &[], lines)) {
+            Err(declined) => declined.reason,
+            Ok(_) => "it cannot be drawn here".to_owned(),
+        }
+    })
+}
+
 /// The source of the diagram of `kind` in `lines`, after `skin`.
 fn source(kind: &str, skin: &[String], lines: &[&str]) -> String {
     let name = if kind.is_empty() { "uml" } else { kind };
@@ -198,12 +218,22 @@ fn unwrapped(svg: &str) -> Option<Embedded> {
         return None;
     };
     let mut body = svg[open + 1..].strip_suffix("</svg>")?;
-    // The background is the page's; here the note's is.
+    // The background is the page's; here the note's is. Definitions may
+    // stand before it.
+    let mut kept = String::new();
+    while body.starts_with("<defs>")
+        && let Some(end) = body.find("</defs>")
+    {
+        kept.push_str(&body[..end + 7]);
+        body = &body[end + 7..];
+    }
     if body.starts_with(r#"<rect x="0" y="0""#)
         && let Some(end) = body.find("/>")
     {
         body = &body[end + 2..];
     }
+    let body = format!("{kept}{body}");
+    let body = body.as_str();
     Some(Embedded {
         body: without_ids(body),
         view: (vw, vh),
@@ -213,13 +243,20 @@ fn unwrapped(svg: &str) -> Option<Embedded> {
 }
 
 /// `body` without its `id` attributes: the outer picture's groups have
-/// the same names, and the pane finds its lines and parts by them.
+/// the same names, and the pane finds its lines and parts by them. A
+/// gradient keeps its id, which its colors and its way name, so it is the
+/// same wherever it is defined.
 fn without_ids(body: &str) -> String {
     let mut out = String::with_capacity(body.len());
     let mut rest = body;
     while let Some(at) = rest.find(r#" id=""#) {
         out.push_str(&rest[..at]);
         let after = &rest[at + 5..];
+        if after.starts_with("omaspec-gradient-") {
+            out.push_str(r#" id=""#);
+            rest = after;
+            continue;
+        }
         match after.find('"') {
             Some(end) => rest = &after[end + 1..],
             None => {

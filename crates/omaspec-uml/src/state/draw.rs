@@ -2962,6 +2962,46 @@ mod tests {
         let err =
             crate::render("@startuml\n[*] --> A\njson data {\n \"a\": 1\n@enduml\n").unwrap_err();
         assert!(err.reason.contains("closes it"), "{}", err.reason);
+        // Found in review (2026-11-24): data that does not read declines on
+        // its line; objects closed on one line draw; a state named `json`
+        // keeps its words; the table takes the state's look; the name is
+        // kept as written.
+        let err = crate::render("@startuml\n[*] --> A\njson data {\n \"a\": ,\n}\n@enduml\n")
+            .unwrap_err();
+        assert_eq!(err.line, Some(2));
+        assert!(err.reason.contains("the data of `data`"), "{}", err.reason);
+        let svg = crate::render(
+            "@startuml\n[*] --> A\njson data {\n  \"a\": {\"b\": {\n    \"c\": 1\n  }}\n}\n@enduml\n",
+        )
+        .unwrap();
+        assert!(
+            svg.contains(">c</tspan>") && !svg.contains("{{json"),
+            "{svg}"
+        );
+        let svg = crate::render("@startuml\n[*] --> json\njson : parses JSON\n@enduml\n").unwrap();
+        assert!(svg.contains(">parses JSON</tspan>"), "{svg}");
+        let svg = crate::render(
+            "@startuml\nskinparam stateBackgroundColor #123456\nskinparam stateFontColor #FEDCBA\n[*] --> A\njson data {\n \"fruit\": \"Apple\"\n}\n@enduml\n",
+        )
+        .unwrap();
+        assert!(!svg.contains("#F1F1F1"), "{svg}");
+        assert!(svg.contains(">Apple</tspan>"), "{svg}");
+        let (_, lines) = crate::source::body(source).unwrap();
+        let d = parse(&lines).unwrap();
+        assert!(
+            d.names.iter().any(|m| m.name == "data" && m.declares),
+            "{:?}",
+            d.names
+        );
+        let err = crate::render(
+            "@startuml\n[*] --> A\njson data {\n \"a\": 1\n}\nnote left of data : hi\n@enduml\n",
+        )
+        .unwrap_err();
+        assert!(
+            err.reason.contains("is data, not a state"),
+            "{}",
+            err.reason
+        );
     }
 
     #[test]
@@ -2991,5 +3031,23 @@ mod tests {
         let err = drawn("@startuml\nstate A #red/nocolor\n@enduml\n").unwrap_err();
         assert_eq!(err.line, Some(1));
         assert!(err.reason.contains("nocolor"), "{}", err.reason);
+        let err =
+            crate::render("@startuml\nstate A #red|nocolor;line:blue\n@enduml\n").unwrap_err();
+        assert!(
+            err.reason.contains("`nocolor` in the gradient"),
+            "{}",
+            err.reason
+        );
+        // Inside a note's picture the gradient is defined, and the inner
+        // picture's paper is left out (found in review).
+        let svg = crate::render(
+            "@startuml\nskinparam backgroundColor #EEEEEE\nAlice -> Bob : hi\nnote over Alice\n{{\nstate A #red-green\n}}\nend note\n@enduml\n",
+        )
+        .unwrap();
+        let id = "omaspec-gradient-ff0000-008000-down";
+        assert!(svg.contains(&format!("id=\"{id}\"")), "{svg}");
+        assert!(svg.contains(&format!("url(#{id})")), "{svg}");
+        let inner = &svg[svg.find("<svg x=").unwrap()..];
+        assert!(!inner.contains("fill=\"#EEEEEE\""), "{inner}");
     }
 }

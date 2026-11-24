@@ -681,6 +681,28 @@ pub fn as_data<T>(draw: impl FnOnce() -> T) -> T {
     read_as(Reading::Data, draw)
 }
 
+/// A picture of a diagram, `diagram`, as a block of one line, standing on
+/// its baseline as a diagram inside text does.
+pub(crate) fn picture_block(
+    diagram: std::sync::Arc<crate::embedded::Embedded>,
+    font: Font,
+    family: Family,
+) -> Block {
+    let icon = Icon {
+        width: diagram.width,
+        height: diagram.height,
+        color: None,
+        picture: Picture::Diagram(diagram),
+    };
+    let piece = Piece {
+        text: String::new(),
+        style: Style::from(font),
+        link: None,
+        icon: Some(icon),
+    };
+    stack(vec![line_of(vec![piece], font.size, family)])
+}
+
 /// Lines of styled pieces, measured as they are: no markup is read. An
 /// empty line is as tall as `font`.
 pub fn styled(lines: Vec<Vec<(String, Style)>>, font: Font, family: Family) -> Block {

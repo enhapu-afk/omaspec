@@ -63,7 +63,10 @@ pub fn repair(svg: &str, look: &Look) -> String {
             _ => {}
         }
     }
-    if grounds.is_empty() && words.is_empty() && lines.is_empty() {
+    // A gradient of the file's on the paper's side is turned as a ground
+    // under the look's words is: words on it are not measured.
+    let stops = stops(svg, look);
+    if grounds.is_empty() && words.is_empty() && lines.is_empty() && stops.is_empty() {
         return svg.to_owned();
     }
     // Every text on a ground that turns, so the ground reads under all.
@@ -102,11 +105,35 @@ pub fn repair(svg: &str, look: &Look) -> String {
             *fill = reading(look, *ground, &inks_on, TEXT);
         }
     }
+    for stop in stops {
+        fills.entry(stop).or_insert_with(|| look.turn(stop));
+    }
     let strokes: HashMap<Color, Color> = lines
         .iter()
         .map(|&ink| (ink, reading(look, ink, &[look.paper()], LINE)))
         .collect();
     recolored(svg, &fills, &inks, &strokes)
+}
+
+/// The colors of the file's gradients in `svg` that stand on the side of
+/// the file's paper, where the look's words would not read on them.
+fn stops(svg: &str, look: &Look) -> HashSet<Color> {
+    let dark = look.paper().is_dark();
+    let mut out = HashSet::new();
+    let mut rest = svg;
+    while let Some(open) = rest.find("<stop ") {
+        let close = rest[open..]
+            .find('>')
+            .map_or(rest.len(), |at| open + at + 1);
+        if let Some(color) = value(&rest[open..close], "stop-color")
+            && look.owns(color)
+            && color.is_dark() != dark
+        {
+            out.insert(color);
+        }
+        rest = &rest[close..];
+    }
+    out
 }
 
 /// Whether `svg` holds a color of the file's that may not read:
@@ -122,7 +149,8 @@ fn suspect(svg: &str, look: &Look) -> bool {
             .map_or(rest.len(), |at| open + at + 1);
         let tag = &rest[open..close];
         let words = tag.starts_with("<text") || tag.starts_with("<tspan");
-        for (name, ground) in [("fill", !words), ("stroke", false)] {
+        // A gradient's stops are grounds as a fill is.
+        for (name, ground) in [("fill", !words), ("stroke", false), ("stop-color", true)] {
             if let Some(color) = value(tag, name)
                 && look.owns(color)
                 && (color.is_dark() == dark) != ground
@@ -187,6 +215,10 @@ fn recolored(
             .unwrap_or_default();
         let words = matches!(name, "text" | "tspan");
         let tag = attribute(tag, "fill", if words { inks } else { fills });
+        let tag = match name {
+            "stop" => attribute(&tag, "stop-color", fills),
+            _ => tag,
+        };
         out.push_str(&attribute(&tag, "stroke", strokes));
         rest = &rest[close..];
     }
@@ -254,6 +286,18 @@ mod tests {
         }
         // Without a look, as written.
         assert!(drawn(BOX).contains("#ADD8E6"));
+    }
+
+    /// A gradient of the file's turns as a ground does (found in review,
+    /// 2026-11-24).
+    #[test]
+    fn a_light_gradient_of_the_file_s_turns_dark() {
+        let code =
+            "@startuml\nstate Pink #pink\nstate Grad #pink-lightyellow\nPink --> Grad\n@enduml\n";
+        let svg = drawn(&dark(code));
+        assert!(!svg.contains("stop-color=\"#FFC0CB\""), "{svg}");
+        assert!(!svg.contains("stop-color=\"#FFFFE0\""), "{svg}");
+        assert!(svg.contains("<stop "), "{svg}");
     }
 
     #[test]

@@ -253,7 +253,8 @@ impl Parser {
             self.arrow(arrow?, no)?;
             return Ok(at + 1);
         }
-        if let Some(rest) = keyword(text, "json") {
+        // `json name {`; `json : words` describes a state named so.
+        if let Some(rest) = keyword(text, "json").filter(|rest| rest.trim_end().ends_with('{')) {
             return self.json(lines, at, rest);
         }
         if let Some(word) = refused(text) {
@@ -689,6 +690,8 @@ impl Parser {
             value.push_str(line.text);
             next += 1;
         }
+        self.written
+            .push(crate::Mention::declared(name, "", no).within(&self.place));
         let mut node = plain_node(name, "", no);
         node.kind = Kind::Data;
         node.label = Text {
@@ -706,7 +709,10 @@ impl Parser {
         if node.kind == Kind::Data {
             return Err(Declined::at(
                 line,
-                format!("`{}` is data; a line to it is not supported yet", node.key),
+                format!(
+                    "`{}` is data, not a state: a line, a note or words for it are not supported yet",
+                    node.key
+                ),
             ));
         }
         if node.kind == Kind::Note {

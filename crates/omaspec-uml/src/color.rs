@@ -116,7 +116,8 @@ impl Inline {
         // whether it can.
         let fill = |value: &str| match parse_gradient(value) {
             Some(Ok(_)) => Ok(value.to_owned()),
-            _ => color(value),
+            Some(Err(err)) => Err(err),
+            None => color(value),
         };
         for (index, part) in word
             .strip_prefix('#')

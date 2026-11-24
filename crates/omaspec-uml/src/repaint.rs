@@ -169,6 +169,20 @@ fn written(line: &str) -> Vec<Color> {
             && let Some(color) = parse(&format!("#{word}"))
         {
             out.push(color);
+            // The color a gradient runs into (`#pink-lightyellow`).
+            let after = &line[at + 1 + word.len()..];
+            if let Some(rest) = after.strip_prefix(['-', '|', '/', '\\']) {
+                let next: String = rest
+                    .trim_start_matches('#')
+                    .chars()
+                    .take_while(char::is_ascii_alphanumeric)
+                    .collect();
+                if !next.is_empty()
+                    && let Some(color) = parse(&format!("#{next}"))
+                {
+                    out.push(color);
+                }
+            }
         }
     }
     let lower = line.to_ascii_lowercase();
