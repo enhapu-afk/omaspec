@@ -7,10 +7,12 @@
 //! `<&name{scale=2}>` or `<&name,scale=2>`, its color `<#red&name>` or
 //! `<&name,color=red>`. The icon stands on the baseline, as tall as a
 //! capital of the text at scale 1. A name Open Iconic does not have is
-//! drawn as nothing, as PlantUML draws it; lint names it.
+//! drawn as nothing, as PlantUML draws it; lint names it. A picture file
+//! (`<img:logo.png>`, [`raster`]) stands on the baseline in its own size.
 
 pub(crate) mod archimate;
 mod open_iconic;
+pub(crate) mod raster;
 pub(crate) mod sprite;
 
 use crate::color::{self, Color};
@@ -41,6 +43,8 @@ pub enum Picture {
     Arrow(char),
     /// A diagram inside the text (`{{` to `}}`), as the engine drew it.
     Diagram(std::sync::Arc<crate::embedded::Embedded>),
+    /// A picture file (`<img:logo.png>`), embedded as it is.
+    Raster(std::sync::Arc<raster::Raster>),
 }
 
 /// The side of an Open Iconic icon in its own units.

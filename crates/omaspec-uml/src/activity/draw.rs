@@ -356,11 +356,13 @@ impl Painter<'_> {
                 let look = &skin.activity;
                 let stroke = Stroke::new(look.border, look.thickness);
                 action_shape(canvas, *shape, (x, y, *w, *h), skin.round, *fill, stroke);
-                canvas.text(
+                let side = room(*shape).1;
+                canvas.text_across(
                     Layer::Front,
                     text,
-                    (x + skin.padding + room(*shape).1, y + skin.padding),
+                    (x + skin.padding + side, y + skin.padding),
                     Align::Left,
+                    (x + side, x + w - side),
                 );
             }
             Shape::Diamond {
@@ -613,7 +615,13 @@ fn note(
         n(y + fold)
     );
     canvas.path(Layer::Front, &corner, (x, y, x + w, y + h), fill, stroke);
-    canvas.text(Layer::Front, text, (x + 6.0, y + 5.0), Align::Left);
+    canvas.text_across(
+        Layer::Front,
+        text,
+        (x + 6.0, y + 5.0),
+        Align::Left,
+        (x + 1.0, x + w - 1.0),
+    );
 }
 
 /// The outline of an action of `shape` in `(x, y, w, h)`.

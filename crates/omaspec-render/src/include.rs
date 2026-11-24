@@ -1,10 +1,12 @@
-//! The files `!include` reads: local ones inside the project folder; and
-//! where that folder is.
+//! The files `!include` reads, and the pictures text shows
+//! (`<img:logo.png>`): local ones inside the project folder; and where
+//! that folder is.
 //!
 //! A diagram from elsewhere must not pull private files into a picture that
 //! is shared later. So an included file has to lie inside the project
 //! folder once links are followed, outside hidden folders such as `.ssh`,
-//! be a regular file of at most 1 MB, and be text. URLs and PlantUML's
+//! be a regular file of at most 1 MB, and be text; a picture likewise, of
+//! at most 4 MB. URLs and PlantUML's
 //! standard library (`<C4/C4_Container>`) are not read: Omaspec reads
 //! nothing from the network and does not ship the library.
 
@@ -15,6 +17,8 @@ use omaspec_uml::{Included, Includes};
 
 /// A file may hold at most this many bytes.
 const MAX_FILE: u64 = 1 << 20;
+/// A picture may hold at most this many bytes.
+const MAX_PICTURE: u64 = 4 << 20;
 
 /// Where a diagram lives: its own folder, which `!include` paths start
 /// from, and the project folder, which no included file may leave.
@@ -77,13 +81,11 @@ impl Folder {
     }
 }
 
-impl Includes for Folder {
-    fn read(&self, path: &str, from: Option<&str>) -> Result<Included, String> {
-        if path.starts_with('<') {
-            return Err(format!(
-                "`{path}` is in PlantUML's standard library, which Omaspec does not have"
-            ));
-        }
+impl Folder {
+    /// The file `path` names, relative to the file `from` or to the
+    /// diagram, once it is known to lie inside the project folder, outside
+    /// hidden folders, and to be a regular file of at most `most` bytes.
+    fn locate(&self, path: &str, from: Option<&str>, most: u64) -> Result<PathBuf, String> {
         if path.contains("://") {
             return Err(format!(
                 "`{path}` is on the network, and Omaspec reads nothing from there"
@@ -113,15 +115,32 @@ impl Includes for Folder {
         if !meta.is_file() {
             return Err(format!("`{path}` is not a file"));
         }
-        if meta.len() > MAX_FILE {
-            return Err(format!("`{path}` is larger than 1 MB"));
+        if meta.len() > most {
+            return Err(format!("`{path}` is larger than {} MB", most >> 20));
         }
+        Ok(file)
+    }
+}
+
+impl Includes for Folder {
+    fn read(&self, path: &str, from: Option<&str>) -> Result<Included, String> {
+        if path.starts_with('<') {
+            return Err(format!(
+                "`{path}` is in PlantUML's standard library, which Omaspec does not have"
+            ));
+        }
+        let file = self.locate(path, from, MAX_FILE)?;
         let bytes = fs::read(&file).map_err(|e| format!("`{path}` cannot be read: {e}"))?;
         let text = String::from_utf8(bytes).map_err(|_| format!("`{path}` is not text"))?;
         Ok(Included {
             key: file.to_string_lossy().into_owned(),
             text,
         })
+    }
+
+    fn picture(&self, path: &str) -> Result<Vec<u8>, String> {
+        let file = self.locate(path, None, MAX_PICTURE)?;
+        fs::read(&file).map_err(|e| format!("`{path}` cannot be read: {e}"))
     }
 }
 
@@ -180,6 +199,20 @@ mod tests {
             ("https://example.com/x.puml", "network"),
         ] {
             let err = folder.read(path, None).unwrap_err();
+            assert!(err.contains(part), "{path}: {err}");
+        }
+        // Pictures by the same rules, bytes as they are.
+        let png = b"\x89PNG\r\n\x1a\n\xff";
+        fs::write(project.join("docs/logo.png"), png).unwrap();
+        fs::write(project.join(".private/logo.png"), png).unwrap();
+        assert_eq!(folder.picture("logo.png").unwrap(), png);
+        for (path, part) in [
+            ("../.private/logo.png", "hidden"),
+            ("../../outside.puml", "outside the project folder"),
+            ("gone.png", "not there"),
+            ("https://example.com/logo.png", "network"),
+        ] {
+            let err = folder.picture(path).unwrap_err();
             assert!(err.contains(part), "{path}: {err}");
         }
         // A file outside the editor's folder is its own project.

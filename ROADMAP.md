@@ -47,11 +47,10 @@ reaches all of its examples with step 5, which its examples use too.
 Stays with the Java PlantUML: the standard library (`!include <…>`, 29
 examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
 
-### Step 1: the sequence diagram (71 of 79)
+### Step 1: the sequence diagram (78 of 79)
 
-What the chapter declines still waits on step 5 (Creole's `<font color>`,
-rules and headings, wavy underlines, `<U+0025>`; a font name for one kind
-of element) and step 0 (a second `@startuml` line).
+What the chapter declines still waits on step 5: a font name for one
+kind of element (`ParticipantFontName`).
 
 - [ ] Drawn but different: the cross of a destroyed participant is red in
       PlantUML (`#A80036`), in the lifeline's color here; in the themes'
@@ -66,11 +65,9 @@ of element) and step 0 (a second `@startuml` line).
       (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
       `json` element among the states waits on step 7.
 
-### Step 3: the activity diagram (59 of 62; the legacy syntax 0 of 13)
+### Step 3: the activity diagram (61 of 62; the legacy syntax 0 of 13)
 
 - [ ] `label` and `goto`.
-- [ ] The two examples with a floating note or a note before its action
-      wait on Creole rules in a note (step 5).
 - [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
       tree where it fits it and laid out on the graph engine where it does
       not; two examples in other chapters use it too.
@@ -113,8 +110,7 @@ of element) and step 0 (a second `@startuml` line).
       (`BackgroundColor<<Foo>>`), `monochrome reverse`, a font name for one
       kind of element (`ParticipantFontName`, `ActorFontName`): the face
       measured and written for its words alone.
-- [ ] Creole (30): rules (`----`, `....`, `====`, `____`), `<code>`,
-      `~~wavy~~`, `<back:color>`, `<font color|size|name>`, `<U+221E>`,
+- [ ] Creole (21 of 44 in its chapter): `<code>`, `<sub>`, `<sup>`,
       emoji (`<:1f600:>`), `<math>` and `<latex>` in text.
 - [ ] Styles of lines (19): `#line:red;line.bold;text:red`, `[thickness=n]`,
       `[#a;#b;#c]`, `line.dashed:blue`.

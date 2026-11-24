@@ -989,7 +989,13 @@ angles. `skinparam componentStyle` (`uml2`, `uml1`, `rectangle`) and `packageSty
 (`rectangle`, `folder`, `frame`, `node`, `cloud`, `database`) draw as in PlantUML, and a
 member's visibility may stand before its marks (`+{static} count`). A diagram inside a
 diagram, between a line `{{` (or `{{wbs`, `{{json`, …) and a line `}}` in a note or a
-legend, is drawn as a picture there, in the outer diagram's look. `hide`, `show`,
+legend, is drawn as a picture there, in the outer diagram's look. Words take PlantUML's
+Creole: rules across their box (`----`, `====`, `____`, `....`, `--title--`), headings
+(`= Big` to `==== Small`), `<font color=red size=20>`, `<back:yellow>`, `<U+221E>`,
+wavy underlines (`~~waved~~`, `<w:red>`) and lines in a color of their own (`<u:red>`). A
+picture in the words (`<img:logo.png>`, `{scale=0.5}`) is read as an `!include` is, from
+inside the project folder, and embedded in the picture; one Omaspec cannot read says so in
+its place. `hide`, `show`,
 `remove` and `restore` work as in PlantUML, wherever they stand, the last line about a box
 deciding: a part of the boxes (`hide members`, `hide private fields`, `show Foo methods`,
 `hide <<Entity>> stereotype`), a box (`hide Foo`, `hide <<Entity>>`, `hide class`), the

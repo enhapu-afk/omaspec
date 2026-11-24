@@ -288,7 +288,7 @@ impl Diagram {
                 .label
                 .as_ref()
                 .filter(|label| !label.is_empty())
-                .map(|label| text_at(&format!("--{label}--"), crate::NO_LINE)),
+                .map(|label| text_at(&format!("<s>{label}</s>"), crate::NO_LINE)),
             color: Some(MISSED.to_owned()),
             dash: Dash::Dashed,
             bold: false,

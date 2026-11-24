@@ -1487,11 +1487,12 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
                 Align::Center,
             );
         }
-        Kind::Note => canvas.text(
+        Kind::Note => canvas.text_across(
             Layer::Front,
             &node.item.title,
             (node.rect.x + NOTE_PAD, node.rect.y + NOTE_PAD),
             Align::Left,
+            (node.rect.x + 1.0, node.rect.x + node.rect.w - 1.0),
         ),
         Kind::Entry | Kind::Exit => {
             let at = point_name(node);

@@ -3033,7 +3033,13 @@ impl<'a> Drawer<'a> {
         };
         let (stereo_top, label_top) = self.stacked(col, text_top);
         stereotype(canvas, col, middle, stereo_top);
-        canvas.text(Layer::Front, &col.label, (middle, label_top), Align::Center);
+        canvas.text_across(
+            Layer::Front,
+            &col.label,
+            (middle, label_top),
+            Align::Center,
+            (left, left + w),
+        );
         (named(middle, label_top, col), look.fill)
     }
 
@@ -3204,7 +3210,13 @@ fn draw_note(
             x + 6.0
         }
     };
-    canvas.text(Layer::Front, text, (text_x, y + 5.0), Align::Left);
+    canvas.text_across(
+        Layer::Front,
+        text,
+        (text_x, y + 5.0),
+        Align::Left,
+        (x + 1.0, x + w - 1.0),
+    );
 }
 
 /// The icons of actor, boundary, control, entity and database, with their
@@ -4105,13 +4117,11 @@ mod tests {
     #[test]
     fn declines_what_it_cannot_draw() {
         for (source, line, part) in [
-            ("A -> B : <img:x.png>", Some(0), "<img:x.png>"),
             ("participant A #red/blue", Some(0), "gradients"),
             ("title alone", None, "nothing but its title"),
             ("skinparam shadowing false", None, "the diagram is empty"),
             ("", None, "the diagram is empty"),
             ("== Part ==", None, "needs a participant"),
-            ("note over A\n== head\nend note", Some(1), "headings"),
         ] {
             let err = crate::render(source).unwrap_err();
             assert_eq!(err.line, line, "{source}: {err:?}");

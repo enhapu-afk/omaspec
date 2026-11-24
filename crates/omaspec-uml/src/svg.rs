@@ -116,6 +116,8 @@ pub struct Canvas {
     groups: usize,
     /// The line of the source whose words are being drawn ([`Self::tie`]).
     tie: Option<usize>,
+    /// Where a rule in the words drawn reaches ([`Self::across`]).
+    across: Option<(f32, f32)>,
     /// The words drawn for a line, each where it stands.
     ties: Vec<crate::map::Tied>,
     /// Words are being drawn again ([`Self::echo`]), and where such were.
@@ -178,6 +180,7 @@ impl Canvas {
             links: Vec::new(),
             groups: 0,
             tie: None,
+            across: None,
             ties: Vec::new(),
             echo: false,
             echoes: Vec::new(),
@@ -499,6 +502,16 @@ impl Canvas {
         std::mem::replace(&mut self.tie, line)
     }
 
+    /// From here on, a rule in the words drawn (`----`, [`Rule`]) reaches
+    /// from `x0` to `x1` of `span`, the edges of the box they are written
+    /// in, as PlantUML draws it; for `None`, across the words. Returns what
+    /// was set before.
+    ///
+    /// [`Rule`]: crate::text::Rule
+    pub fn across(&mut self, span: Option<(f32, f32)>) -> Option<(f32, f32)> {
+        std::mem::replace(&mut self.across, span)
+    }
+
     /// From here on, while `on`, the words drawn repeat what is drawn
     /// already: a drawer says so where it draws one thing twice, as a
     /// lifeline's foot after its head. The map tells them
@@ -807,10 +820,12 @@ impl Canvas {
         }
         out.push('>');
         let mut top = y;
-        // Icons stand beside the words, drawn after the text element, and
-        // so do the lines under words with an emoji ([`Rule`]).
-        let mut icons: Vec<(f32, f32, Icon, Color)> = Vec::new();
-        let mut rules: Vec<Rule> = Vec::new();
+        let mut beside = Beside::default();
+        let block_left = match align {
+            Align::Left => x,
+            Align::Center => x - block.width / 2.0,
+            Align::Right => x - block.width,
+        };
         for line in &block.lines {
             let left = match align {
                 Align::Left => x,
@@ -822,7 +837,53 @@ impl Canvas {
             };
             self.grow(left, top);
             self.grow(left + line.width, top + line.height);
-            if let Some(row) = &line.table {
+            if let Some((rule, color)) = line.rule {
+                let (from, to) = self
+                    .across
+                    .unwrap_or((block_left, block_left + block.width));
+                self.grow(from, top);
+                self.grow(to, top + line.height);
+                let words: f32 = line.runs.iter().map(|run| run.width).sum();
+                let middle = if line.runs.is_empty() {
+                    top + line.height / 2.0
+                } else {
+                    let size = line.runs.iter().map(|r| r.style.size).fold(0.0, f32::max);
+                    top + line.ascent - size * 0.3
+                };
+                let start = (from + to) / 2.0 - words / 2.0;
+                let gap = if line.runs.is_empty() { 0.0 } else { 3.0 };
+                let mut stretch = |a: f32, b: f32| {
+                    if b - a <= 0.0 {
+                        return;
+                    }
+                    let mut push = |y: f32, width: f32, kind: Mark| {
+                        beside.rules.push(Rule {
+                            from: a,
+                            to: b,
+                            y,
+                            width,
+                            color,
+                            kind,
+                        })
+                    };
+                    match rule {
+                        crate::text::Rule::Single => push(middle, 1.0, Mark::Line),
+                        crate::text::Rule::Dotted => push(middle, 1.0, Mark::Dots),
+                        crate::text::Rule::Strong => push(middle, 2.0, Mark::Line),
+                        crate::text::Rule::Double => {
+                            push(middle - 1.0, 1.0, Mark::Line);
+                            push(middle + 1.0, 1.0, Mark::Line);
+                        }
+                    }
+                };
+                if line.runs.is_empty() {
+                    stretch(from, to);
+                } else {
+                    stretch(from, start - gap);
+                    stretch(start + words + gap, to);
+                    self.write_line(&mut out, line, start, top + line.ascent, &mut beside);
+                }
+            } else if let Some(row) = &line.table {
                 self.table_grid(layer, line, row, left, top);
                 for cell in &row.cells {
                     let mut cell_top = top;
@@ -832,35 +893,52 @@ impl Canvas {
                             inner,
                             left + cell.left + TABLE_PAD,
                             cell_top + inner.ascent,
-                            &mut icons,
-                            &mut rules,
+                            &mut beside,
                         );
                         cell_top += inner.height;
                     }
                 }
             } else {
-                self.write_line(
-                    &mut out,
-                    line,
-                    left,
-                    top + line.ascent,
-                    &mut icons,
-                    &mut rules,
-                );
+                self.write_line(&mut out, line, left, top + line.ascent, &mut beside);
             }
             top += line.height;
         }
         out.push_str("</text>");
+        let Beside {
+            icons,
+            rules,
+            backs,
+        } = beside;
         for rule in rules {
+            let d = match rule.kind {
+                Mark::Wave => wave_path(rule.from, rule.to, rule.y, rule.width),
+                _ => format!("M{} {}H{}", n(rule.from), n(rule.y), n(rule.to)),
+            };
             let _ = write!(
                 out,
-                r#"<path d="M{} {}H{}" stroke="{}" stroke-width="{}"/>"#,
-                n(rule.from),
-                n(rule.y),
-                n(rule.to),
+                r#"<path d="{d}" fill="none" stroke="{}" stroke-width="{}"{}/>"#,
                 self.color(rule.color),
-                n(rule.width)
+                n(rule.width),
+                match rule.kind {
+                    Mark::Dots => r#" stroke-dasharray="1 2""#,
+                    _ => "",
+                }
             );
+        }
+        if !backs.is_empty() {
+            let mut behind = String::new();
+            for (bx, by, bw, bh, color) in backs {
+                let _ = write!(
+                    behind,
+                    r#"<rect x="{}" y="{}" width="{}" height="{}" fill="{}"/>"#,
+                    n(bx),
+                    n(by),
+                    n(bw),
+                    n(bh),
+                    self.color(color)
+                );
+            }
+            out.insert_str(0, &behind);
         }
         for (x, baseline, icon, color) in icons {
             let _ = write!(out, r#"<g id="{ICON}">"#);
@@ -868,6 +946,21 @@ impl Canvas {
             out.push_str("</g>");
         }
         self.at(layer).push_str(&out);
+    }
+
+    /// [`Self::text`] in a box from `x0` to `x1` of `span`: a rule among
+    /// the words (`----`) reaches its edges ([`Self::across`]).
+    pub fn text_across(
+        &mut self,
+        layer: Layer,
+        block: &Block,
+        at: (f32, f32),
+        align: Align,
+        span: (f32, f32),
+    ) {
+        let before = self.across(Some(span));
+        self.text(layer, block, at, align);
+        self.across(before);
     }
 
     /// `block` turned about `(x, y)` by `degrees`, clockwise as SVG turns
@@ -942,6 +1035,18 @@ impl Canvas {
     fn icon(&self, out: &mut String, icon: &Icon, (x, baseline): (f32, f32), color: Color) {
         let fill = self.color(icon.color.unwrap_or(color));
         match &icon.picture {
+            Picture::Raster(raster) => {
+                let _ = write!(
+                    out,
+                    r#"<image x="{}" y="{}" width="{}" height="{}" preserveAspectRatio="none" href="data:{};base64,{}"/>"#,
+                    n(x),
+                    n(baseline - icon.height),
+                    n(icon.width),
+                    n(icon.height),
+                    raster.mime,
+                    raster.data
+                );
+            }
             Picture::Diagram(diagram) => {
                 let _ = write!(
                     out,
@@ -1096,16 +1201,15 @@ impl Canvas {
     }
 
     /// One line of `out`'s `<text>`, its first run anchored at `x` and
-    /// `baseline`; its icons go to `icons`, with where they stand, and the
-    /// words after one start where it ends.
+    /// `baseline`; its icons, lines and backgrounds go `beside` it, with
+    /// where they stand, and the words after an icon start where it ends.
     fn write_line(
         &self,
         out: &mut String,
         line: &Line,
         x: f32,
         baseline: f32,
-        icons: &mut Vec<(f32, f32, Icon, Color)>,
-        rules: &mut Vec<Rule>,
+        beside: &mut Beside,
     ) {
         let mut at = x;
         let mut placed = false;
@@ -1118,10 +1222,16 @@ impl Canvas {
         for run in runs.iter() {
             let s = &run.style;
             if let Some(icon) = &run.icon {
-                icons.push((at, baseline, icon.clone(), s.color));
+                beside.icons.push((at, baseline, icon.clone(), s.color));
                 at += run.width;
                 placed = false;
                 continue;
+            }
+            if let Some(back) = s.back {
+                let top = baseline - s.size * 0.928;
+                beside
+                    .backs
+                    .push((at, top, run.width, s.size * 1.164, back));
             }
             if let Some(link) = &run.link {
                 open_link(out, link);
@@ -1153,31 +1263,46 @@ impl Canvas {
             // Words with an emoji among them are underlined or struck by
             // lines of their own: a viewer draws a piece's decoration where
             // its face asks, and the emoji face's steps under the emoji,
-            // even with one span around the pieces.
-            let ruled = decoration.is_some() && pieces.len() > 1;
+            // even with one span around the pieces. So are words whose
+            // lines have a color of their own (`<u:red>`).
+            let ruled = decoration.is_some() && (pieces.len() > 1 || s.lines.is_some());
+            let width = (s.size * 0.07).max(0.6);
+            let (from, to, color) = (at, at + run.width, s.lines.unwrap_or(s.color));
             if ruled {
-                let width = (s.size * 0.07).max(0.6);
-                let (from, to, color) = (at, at + run.width, s.color);
                 if s.underline {
                     let y = baseline + s.size * 0.12;
-                    rules.push(Rule {
+                    beside.rules.push(Rule {
                         from,
                         to,
                         y,
                         width,
                         color,
+                        kind: Mark::Line,
                     });
                 }
                 if s.strike {
                     let y = baseline - s.size * 0.28;
-                    rules.push(Rule {
+                    beside.rules.push(Rule {
                         from,
                         to,
                         y,
                         width,
                         color,
+                        kind: Mark::Line,
                     });
                 }
+            }
+            // A wavy underline is a line of its own: viewers differ on
+            // `text-decoration-style`, and resvg draws none.
+            if s.wave {
+                beside.rules.push(Rule {
+                    from,
+                    to,
+                    y: baseline + s.size * 0.16,
+                    width,
+                    color,
+                    kind: Mark::Wave,
+                });
             }
             for (words, width, picture) in pieces {
                 out.push_str("<tspan");
@@ -1198,6 +1323,8 @@ impl Canvas {
                     cut(out);
                     if s.mono {
                         let _ = write!(out, r#" font-family="{MONO_FACES}""#);
+                    } else if let Some(face) = s.face.filter(|face| *face != self.family) {
+                        let _ = write!(out, r#" font-family="{}""#, family_faces(face));
                     }
                 }
                 if let Some(decoration) = decoration.filter(|_| !ruled) {
@@ -1732,14 +1859,69 @@ pub const SERIF_FACES: &str =
     "Times New Roman, Liberation Serif, Tinos, Times, Nimbus Roman, serif";
 /// [`faces`] for the generic monospace.
 pub const MONO_FACES: &str = "Courier New, Liberation Mono, Cousine, Nimbus Mono PS, monospace";
-/// A line under words with an emoji, or through them, from `from` to `to`
-/// at `y`.
+/// What is drawn beside a block's words, outside its `<text>`: icons, and
+/// the lines under words with an emoji ([`Rule`]), after it; what is
+/// behind words (`<back:…>`) before it.
+#[derive(Default)]
+struct Beside {
+    icons: Vec<(f32, f32, Icon, Color)>,
+    rules: Vec<Rule>,
+    backs: Vec<(f32, f32, f32, f32, Color)>,
+}
+
+/// A line under words with an emoji, or through them, or a Creole rule,
+/// from `from` to `to` at `y`.
 struct Rule {
     from: f32,
     to: f32,
     y: f32,
     width: f32,
     color: Color,
+    kind: Mark,
+}
+
+/// How a [`Rule`] is drawn.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mark {
+    Line,
+    Dots,
+    /// A wavy underline.
+    Wave,
+}
+
+/// A wave from `from` to `to` about `y`, as high as fits a line `width`
+/// thick under words.
+fn wave_path(from: f32, to: f32, y: f32, width: f32) -> String {
+    let step = (width * 3.5).max(2.0);
+    let high = (width * 1.6).max(0.8);
+    let mut d = format!("M{} {}", n(from), n(y));
+    let mut x = from;
+    let mut up = true;
+    while x < to {
+        let next = (x + step).min(to);
+        let peak = if up { y - high } else { y + high };
+        let _ = write!(
+            d,
+            "Q{} {} {} {}",
+            n((x + next) / 2.0),
+            n(peak),
+            n(next),
+            n(y)
+        );
+        x = next;
+        up = !up;
+    }
+    d
+}
+
+/// The faces written for words in `family` amid others.
+fn family_faces(family: Family) -> &'static str {
+    match family {
+        Family::Inter => INTER_FACES,
+        Family::Sans => SANS_FACES,
+        Family::Serif => SERIF_FACES,
+        Family::Mono => MONO_FACES,
+    }
 }
 
 /// The filter that grays words with an emoji in monochrome.

@@ -540,6 +540,39 @@ is open and the reasoning around it.
       bracket again, and the words of an action over several lines as its
       words, not as lines of their own.
 
+### Step 5: what every diagram shares
+
+- [x] Creole's rules, headings and the rest of its inline markup
+      (2026-11-24). A line of `----`, `====`, `____` or `....` (two of a
+      mark are enough) is a rule, single, double, strong or dotted, and
+      words between two marks on either side (`--title--`, `== Title ==`)
+      stand in its middle; a rule reaches across the box the words are
+      written in, edge to edge, in a note, a participant's head, an action
+      and a state's note (`Canvas::text_across`), elsewhere across the
+      words. `= Heading` to `==== Heading` (a space not needed) are
+      headings, four, two and one points larger and bold, the fourth in
+      italics, as PlantUML sets them. Inside a line: `<font color=red
+      size=20>` (values quoted or not), `<font:monospaced>` a face by the
+      family whose metrics fit it, `<back:yellow>` behind the words,
+      `<U+221E>` a character by its code, `~~waved~~`, `<w>` and
+      `<w:red>` a wavy underline drawn as a path of its own, and
+      `<u:red>`, `<s:red>`, `<strike:red>` lines in a color of their own.
+      A pair of toggles with nothing between (`----` amid words) marks
+      nothing. A value of data (`@startjson`) reads the markup inside its
+      lines alone, as PlantUML does: `----` there is words. A picture file
+      (`<img:logo.png>`, `<img logo.png>`, `{scale=0.5}`) is read as an
+      `!include` is, inside the project folder, outside hidden folders, at
+      most 4 MB (`Includes::picture`), before the diagram is parsed and
+      drawn, and embedded as it is, PNG, JPEG, GIF or WebP; one that
+      cannot be read says so in its place, `(cannot read logo.png)`, as
+      PlantUML says it cannot decode it. Mermaid's words take none of
+      Creole's rules, headings and wavy lines (`omaspec_uml::as_mermaid`,
+      around every Mermaid drawer), and a `~` in a Mermaid state's words
+      is a tilde; a struck ghost in a diff's picture is struck with
+      `<s>`, since a line of `--unlock--` is a rule. The guide: 528 of 897, the
+      sequence diagram 78 of 79, the activity diagram 61 of 62, Creole's
+      own chapter 21 of 44.
+
 ## Phase 0: foundation and spikes
 
 - [x] Workspace, MIT license, `AGENTS.md`, CI (fmt, clippy, test, cargo-deny)

@@ -134,6 +134,7 @@ pub enum Diagram {
 
 pub use preprocess::{Included, Includes};
 pub use source::{Line, front_title};
+pub use text::as_mermaid;
 
 /// Parses `source`, or declines. The preprocessor runs first; `!include`
 /// declines, since nothing says where the diagram is.
@@ -376,7 +377,7 @@ pub fn render_marked(
     includes: Option<&dyn Includes>,
     marks: &state::Marks,
 ) -> Result<(String, map::Map), Declined> {
-    match parse_with(source, includes)? {
+    icons::raster::within(source, includes, || match parse_with(source, includes)? {
         Diagram::State(mut d) => {
             d.fold(&fold::read(source));
             d.frame.parts = fold::parts(source);
@@ -388,7 +389,7 @@ pub fn render_marked(
             reason: "only a state diagram has transitions to mark".to_owned(),
             refused: false,
         }),
-    }
+    })
 }
 
 /// The state machine `source` as `table`, its state-event matrix, drawn
@@ -399,7 +400,7 @@ pub fn render_table(
     includes: Option<&dyn Includes>,
     table: &table::Table,
 ) -> Result<(String, map::Map), Declined> {
-    match parse_with(source, includes)? {
+    icons::raster::within(source, includes, || match parse_with(source, includes)? {
         Diagram::State(d) => {
             embedded::within(embedded::skin_of(&d.frame), || state::draw_table(&d, table))
         }
@@ -408,7 +409,7 @@ pub fn render_table(
             reason: "only a state diagram has a table of states and events".to_owned(),
             refused: false,
         }),
-    }
+    })
 }
 
 /// Draws the state machine `source` as its life cycle on a ring, reading
@@ -417,7 +418,7 @@ pub fn render_orbit(
     source: &str,
     includes: Option<&dyn Includes>,
 ) -> Result<(String, map::Map), Declined> {
-    match parse_with(source, includes)? {
+    icons::raster::within(source, includes, || match parse_with(source, includes)? {
         Diagram::State(mut d) => {
             // What recorded traces cover, marked on the ring as in the
             // diagram.
@@ -431,7 +432,7 @@ pub fn render_orbit(
             reason: "only a state diagram has a life cycle to draw on a ring".to_owned(),
             refused: false,
         }),
-    }
+    })
 }
 
 /// Draws `source` as SVG, reading its `!include`s through `includes`, and
@@ -441,8 +442,10 @@ pub fn render_mapped(
     source: &str,
     includes: Option<&dyn Includes>,
 ) -> Result<(String, map::Map), Declined> {
-    let diagram = parse_with(source, includes)?;
-    embedded::within(skin_of(&diagram), || draw_mapped(diagram, source))
+    icons::raster::within(source, includes, || {
+        let diagram = parse_with(source, includes)?;
+        embedded::within(skin_of(&diagram), || draw_mapped(diagram, source))
+    })
 }
 
 /// The skinparams of `diagram` as lines, for the diagrams inside it.
@@ -601,6 +604,41 @@ mod tests {
         let lines: Vec<usize> = seq.messages.iter().map(|m| m.line).collect();
         assert_eq!(lines, [1, 2]);
         assert!(seq.messages[0].bottom <= seq.messages[1].top + 0.01);
+    }
+
+    /// Reads one picture, `logo.png`, a PNG of 40 by 30 pixels.
+    struct Logo;
+    impl Includes for Logo {
+        fn read(&self, path: &str, _: Option<&str>) -> Result<Included, String> {
+            Err(format!("`{path}` is not there"))
+        }
+        fn picture(&self, path: &str) -> Result<Vec<u8>, String> {
+            let mut png = b"\x89PNG\r\n\x1a\n\0\0\0\x0dIHDR".to_vec();
+            png.extend(40u32.to_be_bytes());
+            png.extend(30u32.to_be_bytes());
+            (path == "logo.png")
+                .then_some(png)
+                .ok_or_else(|| format!("`{path}` is not there"))
+        }
+    }
+
+    #[test]
+    fn a_picture_in_text_is_embedded_or_said_missing() {
+        let source = "@startuml\nA -> B : <img:logo.png> and <img gone.png{scale=2}>\n@enduml\n";
+        let (svg, _) = render_mapped(source, Some(&Logo)).unwrap();
+        assert_eq!(svg.matches("<image ").count(), 1, "{svg}");
+        assert!(
+            svg.contains(r#"width="40" height="30" preserveAspectRatio="none" href="data:image/png;base64,iVBORw0KGgo"#),
+            "{svg}"
+        );
+        assert!(svg.contains("(cannot read gone.png)"), "{svg}");
+        // Halved, and nothing read where nothing says where the diagram is.
+        let half = source.replace("logo.png>", "logo.png{scale=0.5}>");
+        let (svg, _) = render_mapped(&half, Some(&Logo)).unwrap();
+        assert!(svg.contains(r#"width="20" height="15""#), "{svg}");
+        let (svg, _) = render_mapped(source, None).unwrap();
+        assert!(!svg.contains("<image "), "{svg}");
+        assert!(svg.contains("(cannot read logo.png)"), "{svg}");
     }
 
     #[test]

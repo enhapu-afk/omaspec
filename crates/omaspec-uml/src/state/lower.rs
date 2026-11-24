@@ -385,8 +385,14 @@ fn markup(raw: &str) -> String {
     out
 }
 
-/// `c` as written: a character the engine reads as markup gets its `~`.
+/// `c` as written: a character the engine reads as markup gets its `~`,
+/// and a `~` is written by its code, which no `~` before it could start a
+/// wavy line with.
 fn escape(c: char, out: &mut String) {
+    if c == '~' {
+        out.push_str("<U+007E>");
+        return;
+    }
     if matches!(c, '*' | '/' | '"' | '-' | '_' | '<' | '[' | '\\') {
         out.push('~');
     }
@@ -533,6 +539,8 @@ mod tests {
         assert_eq!(markup("one<br/>two"), "one\ntwo");
         assert_eq!(markup("<b>bold</b> and <i>it</i>"), "**bold** and //it//");
         assert_eq!(markup("a -- b ** c // d"), "a ~-~- b ~*~* c ~/~/ d");
+        // A `~` is a tilde, not Creole's escape.
+        assert_eq!(markup("a~b"), "a<U+007E>b");
         assert_eq!(markup("#quot;hi#quot; &amp; #9829;"), "~\"hi~\" & ♥");
         assert_eq!(markup("<span class=\"x\">kept</span>"), "kept");
         assert_eq!(markup("a < b"), "a ~< b");

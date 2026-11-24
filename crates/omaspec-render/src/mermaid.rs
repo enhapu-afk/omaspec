@@ -253,7 +253,7 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
             return Err(Refused::Placed(at, said));
         }
         if let Some(native) = native(body)
-            && let Some((svg, map)) = (native.draw)(&input)
+            && let Some((svg, map)) = omaspec_uml::as_mermaid(|| (native.draw)(&input))
         {
             return Ok(Drawn {
                 svg,
@@ -1337,6 +1337,34 @@ mod tests {
             };
             assert_eq!(line, Some(at), "{text}");
             assert!(message.contains("`Order[Order parts]`"), "{message}");
+        }
+    }
+
+    /// Creole's rules, headings and wavy lines are PlantUML's: in
+    /// Mermaid's words they are drawn as they stand.
+    #[test]
+    fn mermaid_words_take_no_rules_headings_or_waves() {
+        for (text, kept) in [
+            (
+                "sequenceDiagram\n  A->>B: ----\n  B->>A: = head ~~w~~\n",
+                &[">----<", ">= head "][..],
+            ),
+            (
+                "classDiagram\n  class A {\n    = x\n  }\n  A --> B : ==t==\n",
+                &[">= x<", ">==t==<"][..],
+            ),
+            (
+                "pie\n  \"----\" : 1\n  \"= x\" : 2\n",
+                &[">----", ">= x"][..],
+            ),
+        ] {
+            let svg = render(text).unwrap();
+            for part in kept {
+                assert!(svg.contains(part), "{part} in {text}: {svg}");
+            }
+            // No dotted rule, and no wave (a path of curves).
+            assert!(!svg.contains("stroke-dasharray=\"1 2\""), "{svg}");
+            assert!(!svg.contains('Q'), "{svg}");
         }
     }
 

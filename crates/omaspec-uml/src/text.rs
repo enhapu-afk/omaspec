@@ -2,13 +2,18 @@
 //! from built-in font metrics, so no font file is read.
 //!
 //! Markup it draws: `\n`, `<b>`, `<i>`, `<u>`, `<s>`, `<color:…>`,
-//! `<size:…>`, `**bold**`, `//italic//`, `__underline__`, `--strike--`,
-//! `""mono""`, `~` to escape, Creole tables (`|= a |= b |` over
-//! `| 1 | 2 |`), links (`[[url]]`, `[[url label]]`, `[[url{tooltip}
-//! label]]`), underlined in the text's color, and icons (`<&heart>`,
-//! `<$sprite>`, [`crate::icons`]). Markup it knows but does not
-//! draw (images, lists, headings, rules, …) is an error naming it; anything
-//! else that looks like a tag is shown as written, as PlantUML does.
+//! `<size:…>`, `<font color=… size=…>`, `<font:face>`, `<back:…>`, lines
+//! in a color of their own (`<u:red>`, `<s:red>`), wavy underlines
+//! (`~~waved~~`, `<w>`, `<w:red>`), `<U+221E>`, `**bold**`, `//italic//`,
+//! `__underline__`, `--strike--`, `""mono""`, `~` to escape, headings
+//! (`= Big`, `== Smaller`, `===`, `====`), rules across the text's box
+//! (`----`, `====`, `____`, `....`, with words in their middle as
+//! `--title--`), lists, Creole tables (`|= a |= b |` over `| 1 | 2 |`),
+//! links (`[[url]]`, `[[url label]]`, `[[url{tooltip} label]]`),
+//! underlined in the text's color, and icons (`<&heart>`, `<$sprite>`,
+//! [`crate::icons`]). Markup it knows but does not draw (images, …) is an
+//! error naming it; anything else that looks like a tag is shown as
+//! written, as PlantUML does.
 
 use crate::color::{self, Color};
 pub use crate::icons::{Icon, Picture};
@@ -114,6 +119,16 @@ pub struct Style {
     pub strike: bool,
     pub mono: bool,
     pub color: Color,
+    /// A wavy line under the words (`~~waved~~`, `<w>`).
+    pub wave: bool,
+    /// The color of the lines under and through the words where they
+    /// have one of their own (`<u:red>`, `<s:green>`, `<w:#f0f>`).
+    pub lines: Option<Color>,
+    /// The color behind the words (`<back:yellow>`).
+    pub back: Option<Color>,
+    /// The face the words name (`<font:courier>`), by the family whose
+    /// metrics fit it.
+    pub face: Option<Family>,
 }
 
 impl From<Font> for Style {
@@ -126,6 +141,10 @@ impl From<Font> for Style {
             strike: false,
             mono: false,
             color: font.color,
+            wave: false,
+            lines: None,
+            back: None,
+            face: None,
         }
     }
 }
@@ -196,6 +215,32 @@ pub struct Line {
     /// How many lines of the source it stands for: one, or those of a
     /// diagram inside the text with its `{{` and `}}`.
     pub rows: usize,
+    /// A rule across the box the text is written in, in this color; its
+    /// runs, if any, are the words in its middle (`--title--`).
+    pub rule: Option<(Rule, Color)>,
+}
+
+/// A Creole rule: a line across the box the text is written in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Rule {
+    /// `----`
+    Single,
+    /// `====`
+    Double,
+    /// `____`
+    Strong,
+    /// `....`
+    Dotted,
+}
+
+impl Rule {
+    /// How tall a rule without words is.
+    pub fn height(self) -> f32 {
+        match self {
+            Rule::Single | Rule::Dotted => 4.0,
+            Rule::Double | Rule::Strong => 8.0,
+        }
+    }
 }
 
 /// Lines of text, measured.
@@ -349,9 +394,25 @@ fn with_markup(carried: &[String], line: &str) -> String {
 /// `<color:red>`), in the order they opened. A link's insides and an
 /// escaped mark (`~**`) open nothing.
 fn open_after(mut open: Vec<String>, text: &str) -> Vec<String> {
-    const TAGS: [&str; 6] = ["b", "i", "u", "s", "color", "size"];
+    const TAGS: [&str; 10] = [
+        "b", "i", "u", "s", "strike", "color", "size", "font", "back", "w",
+    ];
     let mut rest = text;
     while let Some(c) = rest.chars().next() {
+        // `~~waved~~` opens and closes as a toggle does.
+        if rest.starts_with("~~") {
+            let at = open.iter().rposition(|o| o == "~~");
+            if let Some(at) = at {
+                open.remove(at);
+                rest = &rest[2..];
+                continue;
+            }
+            if rest[2..].contains("~~") {
+                open.push("~~".to_owned());
+                rest = &rest[2..];
+                continue;
+            }
+        }
         if c == '~' {
             rest = &rest[1..];
             if let Some(next) = rest.chars().next() {
@@ -388,8 +449,11 @@ fn open_after(mut open: Vec<String>, text: &str) -> Vec<String> {
                 match closing {
                     Some(_) => {
                         let opened = |o: &String| {
-                            o.strip_prefix('<')
-                                .is_some_and(|t| t.to_ascii_lowercase().starts_with(&name))
+                            o.strip_prefix('<').is_some_and(|t| {
+                                let opened: String =
+                                    t.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
+                                opened.eq_ignore_ascii_case(&name)
+                            })
                         };
                         if let Some(at) = open.iter().rposition(opened) {
                             open.remove(at);
@@ -461,10 +525,24 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
             rows.push(line);
         } else {
             flush(&mut lines, &mut rows)?;
+            let creole = !MERMAID.get();
             for piece in split_lines(line) {
+                if let Some((rule, title)) = rule(piece).filter(|_| creole) {
+                    counts.clear();
+                    lines.push(ruled(rule, title, font, family)?);
+                    continue;
+                }
+                if let Some((level, words)) = heading(piece).filter(|_| creole) {
+                    counts.clear();
+                    lines.push(line_of(
+                        inline(words, heading_style(level, font))?,
+                        font.size,
+                        family,
+                    ));
+                    continue;
+                }
                 let Some((depth, numbered, words)) = list_item(piece) else {
                     counts.clear();
-                    check_block_markup(piece)?;
                     lines.push(line_of(
                         inline(piece, Style::from(font))?,
                         font.size,
@@ -493,6 +571,44 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
         }
     }
     flush(&mut lines, &mut rows)?;
+    Ok(stack(lines))
+}
+
+thread_local! {
+    /// The words drawn are Mermaid's ([`as_mermaid`]).
+    static MERMAID: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Runs `draw` with words read as Mermaid writes them. Creole's rules,
+/// headings and wavy lines are PlantUML's alone: a line of `----` or
+/// `= Title` is drawn as it stands, and `~~` draws no wavy line. The
+/// markup inside a line the engine reads as it does for PlantUML.
+pub fn as_mermaid<T>(draw: impl FnOnce() -> T) -> T {
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            MERMAID.set(self.0);
+        }
+    }
+    let _restore = Restore(MERMAID.replace(true));
+    draw()
+}
+
+/// `text` in `font` with the markup inside its lines alone, as PlantUML
+/// reads a value of data (`@startjson`): a line of `----` or `= Title` is
+/// written as it stands, not drawn as a rule or a heading.
+pub fn inline_lines(text: &str, font: Font, family: Family) -> Result<Block, String> {
+    let lines = text
+        .split('\n')
+        .flat_map(split_lines)
+        .map(|piece| {
+            Ok(line_of(
+                inline(piece, Style::from(font))?,
+                font.size,
+                family,
+            ))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     Ok(stack(lines))
 }
 
@@ -560,6 +676,7 @@ fn line_of(pieces: Vec<Piece>, size: f32, family: Family) -> Line {
         table: None,
         flush: false,
         rows: 1,
+        rule: None,
     }
 }
 
@@ -577,7 +694,11 @@ fn stack(lines: Vec<Line>) -> Block {
 /// The width of `text` in `style`. An emoji is one picture of the emoji
 /// face however many characters write it ([`emoji`]).
 pub fn measure(text: &str, style: &Style, family: Family) -> f32 {
-    let family = if style.mono { Family::Mono } else { family };
+    let family = if style.mono {
+        Family::Mono
+    } else {
+        style.face.unwrap_or(family)
+    };
     let letters =
         |text: &str| -> u32 { text.chars().map(|c| advance(c, family, style.bold)).sum() };
     let mut em = 0;
@@ -795,6 +916,7 @@ fn table_rows(raw: &[&str], font: Font, family: Family) -> Result<Vec<Line>, Str
             ascent: 0.0,
             flush: false,
             rows: 1,
+            rule: None,
             table: Some(TableRow {
                 cells,
                 color: font.color,
@@ -854,12 +976,84 @@ fn list_item(line: &str) -> Option<(usize, bool, &str)> {
     Some((depth, mark == '#', words.trim_start()))
 }
 
-/// Creole that works on whole lines: headings and rules. A table row and
-/// an item of a list do not come through here.
-fn check_block_markup(line: &str) -> Result<(), String> {
-    check_other_markup(line)
+/// A Creole rule, and the words in its middle (empty for none): a line of
+/// two or more of one mark (`--`, `====`, `____`, `....`), or words between
+/// two of them on each side (`--title--`, `== Title ==`), as PlantUML
+/// reads them.
+fn rule(line: &str) -> Option<(Rule, &str)> {
+    let t = line.trim();
+    let mark = t.chars().next()?;
+    let rule = match mark {
+        '-' => Rule::Single,
+        '=' => Rule::Double,
+        '_' => Rule::Strong,
+        '.' => Rule::Dotted,
+        _ => return None,
+    };
+    if t.len() >= 2 && t.chars().all(|c| c == mark) {
+        return Some((rule, ""));
+    }
+    let two = &t[..2.min(t.len())];
+    if two.len() == 2 && two.chars().all(|c| c == mark) && t.len() > 4 && t.ends_with(two) {
+        let title = t[2..t.len() - 2].trim();
+        if !title.is_empty() {
+            return Some((rule, title));
+        }
+    }
+    None
 }
 
+/// A Creole heading: how deep (`=` is 1, `====` is 4) and its words. A
+/// line of `=` alone is a rule ([`rule`]).
+fn heading(line: &str) -> Option<(usize, &str)> {
+    let t = line.trim_start();
+    let level = t.chars().take_while(|c| *c == '=').count();
+    let words = t[level..].trim();
+    (level > 0 && !words.is_empty()).then_some((level.min(4), words))
+}
+
+/// How a heading of `level` is set in `font`: larger and bold, the fourth
+/// in italics, as PlantUML sets them.
+fn heading_style(level: usize, font: Font) -> Style {
+    let mut style = Style::from(font);
+    match level {
+        1 => style.size += 4.0,
+        2 => style.size += 2.0,
+        3 => style.size += 1.0,
+        _ => {}
+    }
+    if level < 4 {
+        style.bold = true;
+    } else {
+        style.italic = true;
+    }
+    style
+}
+
+/// A rule's line, its words in its middle in `font`, with room for a
+/// stretch of the rule on either side of them.
+fn ruled(rule: Rule, title: &str, font: Font, family: Family) -> Result<Line, String> {
+    let mut line = if title.is_empty() {
+        let mut line = line_of(Vec::new(), font.size, family);
+        line.height = rule.height();
+        line.ascent = 0.0;
+        line
+    } else {
+        let mut line = line_of(inline(title, Style::from(font))?, font.size, family);
+        line.width += 2.0 * RULE_REACH;
+        line.height += 4.0;
+        line.ascent += 2.0;
+        line
+    };
+    line.rule = Some((rule, font.color));
+    Ok(line)
+}
+
+/// How far a rule reaches at least on either side of its words.
+pub const RULE_REACH: f32 = 12.0;
+
+/// Creole that works on whole lines, which a cell of a table does not
+/// take.
 fn check_other_markup(line: &str) -> Result<(), String> {
     let t = line.trim();
     let rule = |c: char| t.len() >= 4 && t.chars().all(|x| x == c);
@@ -879,9 +1073,7 @@ fn check_other_markup(line: &str) -> Result<(), String> {
 }
 
 /// Tags PlantUML knows that the engine does not draw.
-const UNSUPPORTED_TAGS: [&str; 11] = [
-    "img", "font", "back", "sub", "sup", "code", "latex", "math", "w", "wave", "plain",
-];
+const UNSUPPORTED_TAGS: [&str; 6] = ["sub", "sup", "code", "latex", "math", "plain"];
 
 /// The markers that switch a style on and off, in pairs.
 const TOGGLES: [(&str, Toggle); 5] = [
@@ -901,6 +1093,8 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
     let mut tags: Vec<(String, Style)> = Vec::new();
     // Markers that are open: the value they replaced.
     let mut open: [Option<bool>; 5] = [None; 5];
+    // A wavy underline open with `~~`: the style before it.
+    let mut waved: Option<Style> = None;
     let mut i = 0;
     let flush = |out: &mut Vec<Piece>, text: &mut String, style: Style| {
         if !text.is_empty() {
@@ -916,8 +1110,19 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
     while i < line.len() {
         let rest = &line[i..];
         let c = rest.chars().next().unwrap_or(' ');
-        if rest.starts_with("~~") && rest[2..].contains("~~") {
-            return Err("wavy underlines are not supported yet".into());
+        // `~~waved~~`; a `~~` that closes nothing is an escaped `~`.
+        if rest.starts_with("~~") && (waved.is_some() || rest[2..].contains("~~")) && !MERMAID.get()
+        {
+            flush(&mut out, &mut text, style);
+            match waved.take() {
+                Some(before) => style = before,
+                None => {
+                    waved = Some(style);
+                    style.wave = true;
+                }
+            }
+            i += 2;
+            continue;
         }
         if c == '~' {
             // The next character as written.
@@ -957,6 +1162,52 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
                 icon: None,
             });
             i += end + 4;
+            continue;
+        }
+        // A character by its code (`<U+221E>`).
+        if c == '<'
+            && let Some(close) = rest.find('>')
+            && let Some(code) = unicode(&rest[1..close])
+        {
+            text.push(code);
+            i += close + 1;
+            continue;
+        }
+        // A picture file (`<img:logo.png>`), or what says it cannot be
+        // drawn in its place.
+        if c == '<'
+            && let Some(close) = rest.find('>')
+            && let Some((path, scale)) = crate::icons::raster::tag(&rest[1..close])
+        {
+            flush(&mut out, &mut text, style);
+            match crate::icons::raster::find(path) {
+                Ok(raster) => out.push(Piece {
+                    text: String::new(),
+                    style,
+                    link: None,
+                    icon: Some(Icon {
+                        width: raster.width as f32 * scale,
+                        height: raster.height as f32 * scale,
+                        color: None,
+                        picture: Picture::Raster(raster),
+                    }),
+                }),
+                Err(unread) => {
+                    let mut said = style;
+                    said.mono = true;
+                    let why = match unread {
+                        crate::icons::raster::Unread::Missing => "cannot read",
+                        crate::icons::raster::Unread::Kind => "cannot draw",
+                    };
+                    out.push(Piece {
+                        text: format!("({why} {path})"),
+                        style: said,
+                        link: None,
+                        icon: None,
+                    });
+                }
+            }
+            i += close + 1;
             continue;
         }
         // An icon (`<&heart>`), drawn in the text's color.
@@ -1007,7 +1258,8 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
                 i += 2;
                 continue;
             }
-            if !url && rest[2..].contains(marker) {
+            // A pair with nothing between (`----`) marks nothing.
+            if !url && rest[2..].contains(marker) && !rest[2..].starts_with(marker) {
                 flush(&mut out, &mut text, style);
                 open[k] = Some(toggle.get(&style));
                 toggle.set(&mut style, true);
@@ -1080,15 +1332,21 @@ fn tag_change(tag: &str, style: Style) -> Result<Option<Tag>, String> {
     if let Some(name) = lower.strip_prefix('/') {
         let name = name.trim();
         return Ok(match name {
-            "b" | "i" | "u" | "s" | "strike" | "del" | "color" | "size" => {
+            "b" | "i" | "u" | "s" | "strike" | "del" | "color" | "size" | "font" | "back" | "w" => {
                 Some(Tag::Close(canonical(name).into()))
             }
             _ => None,
         });
     }
-    let (name, arg) = match lower.split_once([':', ' ']) {
+    let (name, arg) = match lower.split_once([':', ' ', '=']) {
         Some((name, arg)) => (name.trim(), Some(arg.trim())),
         None => (lower.as_str(), None),
+    };
+    // The value as written: color names ignore case, a face's name keeps it.
+    let value = || {
+        tag.trim()
+            .split_once([':', ' ', '='])
+            .map_or("", |(_, v)| v.trim())
     };
     let mut new = style;
     match (name, arg) {
@@ -1096,27 +1354,35 @@ fn tag_change(tag: &str, style: Style) -> Result<Option<Tag>, String> {
         ("i", None) => new.italic = true,
         ("u", None) => new.underline = true,
         ("s" | "strike" | "del", None) => new.strike = true,
-        ("color", Some(value)) => {
-            // Keep the case of the value; color names ignore it anyway.
-            let value = tag.split_once([':', ' ']).map_or(value, |(_, v)| v.trim());
-            match color::parse(value)? {
-                Some(c) => new.color = c,
-                None => return Err("transparent text is not supported".into()),
+        ("w", None) => new.wave = true,
+        ("u" | "s" | "strike" | "del" | "w", Some(_)) => {
+            match name {
+                "u" => new.underline = true,
+                "w" => new.wave = true,
+                _ => new.strike = true,
             }
+            new.lines = Some(opaque(value(), tag)?);
         }
-        ("size", Some(value)) => {
-            let size: f32 = value
-                .parse()
-                .map_err(|_| format!("`<size:{value}>` needs a number"))?;
-            if !(1.0..=200.0).contains(&size) {
-                return Err(format!("`<size:{value}>` is out of range"));
+        ("color", Some(_)) => new.color = opaque(value(), tag)?,
+        ("back", Some(_)) => new.back = Some(opaque(value(), tag)?),
+        ("size", Some(value)) => new.size = font_size(value, tag)?,
+        // `<font:monospaced>`: a face.
+        ("font", Some(_)) if tag.trim()[4..].trim_start().starts_with(':') => {
+            new.face = Some(Family::of(value()))
+        }
+        // `<font color=red size=20>`, a value quoted or not.
+        ("font", Some(_)) => {
+            for (key, value) in attributes(tag.trim()[4..].trim()) {
+                match key.to_ascii_lowercase().as_str() {
+                    "color" => new.color = opaque(&value, tag)?,
+                    "size" => new.size = font_size(&value, tag)?,
+                    "face" => new.face = Some(Family::of(&value)),
+                    _ => {}
+                }
             }
-            new.size = size;
         }
         _ => {
-            let unsupported = UNSUPPORTED_TAGS.contains(&name)
-                || lower.starts_with('$')
-                || lower.starts_with("u+");
+            let unsupported = UNSUPPORTED_TAGS.contains(&name) || lower.starts_with('$');
             if unsupported {
                 return Err(format!("`<{tag}>` is not supported yet"));
             }
@@ -1124,6 +1390,58 @@ fn tag_change(tag: &str, style: Style) -> Result<Option<Tag>, String> {
         }
     }
     Ok(Some(Tag::Open(canonical(name).into(), new)))
+}
+
+/// The color `value` of the tag `<tag>`, which may not be transparent.
+fn opaque(value: &str, tag: &str) -> Result<Color, String> {
+    match color::parse(value)? {
+        Some(c) => Ok(c),
+        None => Err(format!("`<{tag}>`: transparent text is not supported")),
+    }
+}
+
+/// The font size `value` of the tag `<tag>`.
+fn font_size(value: &str, tag: &str) -> Result<f32, String> {
+    let size: f32 = value
+        .trim_matches(['"', '\''])
+        .parse()
+        .map_err(|_| format!("`<{tag}>` needs a number"))?;
+    if !(1.0..=200.0).contains(&size) {
+        return Err(format!("`<{tag}>` is out of range"));
+    }
+    Ok(size)
+}
+
+/// The `key=value` pairs of an HTML-like tag, a value quoted or not.
+fn attributes(text: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let mut rest = text.trim();
+    while let Some(eq) = rest.find('=') {
+        let key = rest[..eq].trim().to_owned();
+        let after = rest[eq + 1..].trim_start();
+        let (value, next) = match after.chars().next() {
+            Some(q @ ('"' | '\'')) => match after[1..].find(q) {
+                Some(end) => (&after[1..1 + end], &after[2 + end..]),
+                None => (&after[1..], ""),
+            },
+            _ => {
+                let end = after.find(char::is_whitespace).unwrap_or(after.len());
+                (&after[..end], &after[end..])
+            }
+        };
+        out.push((key, value.to_owned()));
+        rest = next.trim_start();
+    }
+    out
+}
+
+/// The character a tag `<U+221E>` names, by its code in hex.
+fn unicode(tag: &str) -> Option<char> {
+    let hex = tag.strip_prefix("U+").or_else(|| tag.strip_prefix("u+"))?;
+    if hex.is_empty() || hex.len() > 6 {
+        return None;
+    }
+    u32::from_str_radix(hex, 16).ok().and_then(char::from_u32)
 }
 
 fn canonical(name: &str) -> &str {
@@ -1381,18 +1699,108 @@ mod tests {
     #[test]
     fn declines_what_it_cannot_draw() {
         for (text, part) in [
-            ("<img:x.png>", "<img:x.png>"),
             ("<$sprite>", "<$sprite>"),
             ("[[{tip} label]]", "no address"),
             ("[[\"a b label]]", "open quote"),
-            ("----", "rules"),
             ("<color:#red/blue>x", "gradients"),
-            ("<back:red>x", "<back:red>"),
-            ("<U+1F600>", "<U+1F600>"),
+            ("<back:#red/blue>x", "gradients"),
+            ("<font color=transparent>x", "transparent"),
+            ("<font size=0>x", "out of range"),
+            ("<sup>x</sup>", "<sup>"),
         ] {
             let err = block(text, font(), Family::Sans).unwrap_err();
             assert!(err.contains(part), "{text}: {err}");
         }
+    }
+
+    #[test]
+    fn rules_and_headings_are_lines_of_their_own() {
+        let b = block("a\n----\nb", font(), Family::Sans).unwrap();
+        assert_eq!(b.lines.len(), 3);
+        assert_eq!(b.lines[1].rule.map(|r| r.0), Some(Rule::Single));
+        assert!(b.lines[1].runs.is_empty());
+        assert_eq!(b.lines[1].height, Rule::Single.height());
+        for (text, rule, title) in [
+            ("====", Rule::Double, ""),
+            ("____", Rule::Strong, ""),
+            ("....", Rule::Dotted, ""),
+            ("--", Rule::Single, ""),
+            ("--Another title--", Rule::Single, "Another title"),
+            ("== Head ==", Rule::Double, "Head"),
+            ("..My title..", Rule::Dotted, "My title"),
+            ("__strong__", Rule::Strong, "strong"),
+        ] {
+            let b = block(text, font(), Family::Sans).unwrap();
+            let line = &b.lines[0];
+            assert_eq!(line.rule.map(|r| r.0), Some(rule), "{text}");
+            let words: String = line.runs.iter().map(|r| r.text.as_str()).collect();
+            assert_eq!(words, title, "{text}");
+            if !title.is_empty() {
+                // Room for a stretch of the rule on either side.
+                let w = measure(title, &Style::from(font()), Family::Sans);
+                assert!((line.width - w - 2.0 * RULE_REACH).abs() < 0.01, "{text}");
+            }
+        }
+        // Words between marks amid others stay words.
+        let b = block("a --struck-- b", font(), Family::Sans).unwrap();
+        assert!(b.lines[0].rule.is_none());
+        assert!(b.lines[0].runs.iter().any(|r| r.style.strike));
+        let size = font().size;
+        for (text, grown, bold, italic, words) in [
+            ("= Heading 1", 4.0, true, false, "Heading 1"),
+            ("=NoSpace", 4.0, true, false, "NoSpace"),
+            ("== Two", 2.0, true, false, "Two"),
+            ("==Title== after", 2.0, true, false, "Title== after"),
+            ("=== Three", 1.0, true, false, "Three"),
+            ("==== Four", 0.0, false, true, "Four"),
+        ] {
+            let b = block(text, font(), Family::Sans).unwrap();
+            let run = &b.lines[0].runs[0];
+            assert_eq!(run.text, words, "{text}");
+            assert_eq!(run.style.size, size + grown, "{text}");
+            assert_eq!((run.style.bold, run.style.italic), (bold, italic), "{text}");
+        }
+        // Data reads the markup inside a line alone.
+        let b = inline_lines("----\n= x\n**b**", font(), Family::Sans).unwrap();
+        assert!(b.lines.iter().all(|l| l.rule.is_none()));
+        assert_eq!(b.lines[1].runs[0].text, "= x");
+        assert!(b.lines[2].runs[0].style.bold);
+    }
+
+    #[test]
+    fn fonts_lines_and_backgrounds_of_their_own() {
+        let red = color::parse("red").unwrap().unwrap();
+        let blue = color::parse("blue").unwrap().unwrap();
+        let yellow = color::parse("yellow").unwrap().unwrap();
+        let runs = |text: &str| -> Vec<Run> {
+            block(text, font(), Family::Sans).unwrap().lines[0]
+                .runs
+                .clone()
+        };
+        let r = runs("<font color=red>r</font><font color=\"blue\" size='8'>b</font>x");
+        assert_eq!((r[0].text.as_str(), r[0].style.color), ("r", red));
+        assert_eq!((r[1].style.color, r[1].style.size), (blue, 8.0));
+        assert_eq!(r[2].style, Style::from(font()));
+        let r = runs("<font size=20>big</font>");
+        assert_eq!(r[0].style.size, 20.0);
+        let r = runs("<font:monospaced>m</font>");
+        assert_eq!(r[0].style.face, Some(Family::Mono));
+        assert_eq!(r[0].width, measure("m", &Style::from(font()), Family::Mono));
+        assert_eq!(runs("<U+0025>a<U+221E>")[0].text, "%a\u{221E}");
+        // A code that names no character is written as it stands.
+        assert_eq!(runs("<U+D800>")[0].text, "<U+D800>");
+        let r = runs("~~waved~~ <w:red>wr</w> <u:red>u</u> <s:blue>s</s>");
+        assert!(r[0].style.wave && r[0].style.lines.is_none());
+        assert!(r[2].style.wave && r[2].style.lines == Some(red));
+        assert!(r[4].style.underline && r[4].style.lines == Some(red));
+        assert!(r[6].style.strike && r[6].style.lines == Some(blue));
+        let r = runs("<back:yellow>on</back> off");
+        assert_eq!(r[0].style.back, Some(yellow));
+        assert_eq!(r[1].style.back, None);
+        // `~~` that closes nothing is an escaped `~`.
+        assert_eq!(runs("a ~~ b")[0].text, "a ~ b");
+        // What PlantUML shows as written.
+        assert_eq!(runs("<wave:blue>w</wave>")[0].text, "<wave:blue>w</wave>");
     }
 
     #[test]

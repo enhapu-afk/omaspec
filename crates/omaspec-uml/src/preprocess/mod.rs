@@ -47,6 +47,13 @@ pub trait Includes {
     /// file `from` (by its key) or, for `None`, to the diagram itself. The
     /// error says why it cannot be read.
     fn read(&self, path: &str, from: Option<&str>) -> Result<Included, String>;
+
+    /// The bytes of the picture file `path` names, as written in the text
+    /// (`<img:logo.png>`), relative to the diagram. The error says why it
+    /// cannot be read; without a reader of pictures none is read.
+    fn picture(&self, path: &str) -> Result<Vec<u8>, String> {
+        Err(format!("`{path}` is not read"))
+    }
 }
 
 /// A file read for `!include`.

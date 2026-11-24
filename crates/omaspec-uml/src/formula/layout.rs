@@ -690,12 +690,7 @@ pub(super) fn strut(face: Face) -> Pack {
 
 pub(super) fn run_style(size: f32, italic: bool) -> text::Style {
     text::Style {
-        size,
-        bold: false,
         italic,
-        underline: false,
-        strike: false,
-        mono: false,
-        color: Color::BLACK,
+        ..text::Style::from(text::Font::new(size, Color::BLACK))
     }
 }
