@@ -220,7 +220,7 @@ fn read(root: &Path, path: &Path, name: &str, stamp: Stamp) -> Indexed {
             stamp,
             specs: markdown::blocks(&text)
                 .iter()
-                .filter_map(|b| Spec::read_in_document(&b.code, b.language, name))
+                .filter_map(|b| Spec::read_in_document(b, name))
                 .collect(),
             entry: None,
             document: Some(text),

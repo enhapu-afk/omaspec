@@ -356,6 +356,36 @@ impl<'a> Object<'a> {
         out
     }
 
+    /// Where `entry` leaves the object by its machine, for the task of a
+    /// line that names a state the machine has not: the ways it can be
+    /// in, past the line's event where that takes; from the start before
+    /// its first line; any state while it is not followed.
+    fn ways_after(&self, m: &Machine, entry: &Entry) -> Vec<Run> {
+        let ways: Vec<Run> = match &self.track {
+            Track::Ways(ways) => ways.clone(),
+            Track::Fresh => Run::start(m).map(|(run, _)| vec![run]).unwrap_or_default(),
+            Track::Lost => Vec::new(),
+        };
+        let ways = match &entry.event {
+            Some(event) => {
+                let k = key(event_of(event));
+                let mut next = Vec::new();
+                for run in &ways {
+                    react(m, run, &k, &[], &[], &mut next);
+                }
+                match next.is_empty() {
+                    true => ways,
+                    false => next.into_iter().map(|(run, _)| run).collect(),
+                }
+            }
+            None => ways,
+        };
+        match ways.is_empty() {
+            true => (0..m.states.len()).filter_map(|s| Run::at(m, s)).collect(),
+            false => ways,
+        }
+    }
+
     /// Follows the object through `entry`, its next line.
     fn follow(&mut self, entry: &Entry) -> Outcome {
         let mut outcome = Outcome::default();
@@ -377,15 +407,12 @@ impl<'a> Object<'a> {
             state: entry.state.clone(),
             time: entry.time.clone(),
         };
-        let ask = |ways: &[Run]| task(m, file, &entry.object, happened(), ways);
+        let ask = |ways: &[Run]| task(self.spec, &entry.object, happened(), ways);
         let state = match &entry.state {
             Some(name) => match state_named(m, name) {
                 Some(state) => Some(state),
                 None => {
-                    let ways = match &self.track {
-                        Track::Ways(ways) => ways.clone(),
-                        Track::Fresh | Track::Lost => Vec::new(),
-                    };
+                    let ways = self.ways_after(m, entry);
                     outcome.deviation(
                         entry.line,
                         trace_has(format!(

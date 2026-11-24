@@ -22,6 +22,18 @@ is open and the reasoning around it.
       give it with lines counted from 1. A test holds every kind of
       deviation to a task whose lines lie in the diagram, each event's on
       the line that writes it.
+- [x] What the review of the folds and the trace's contract found
+      (2026-11-24). A task of a machine in a Markdown document tells the
+      document's lines, not the block's (`Spec::line_in_file`). A line
+      that names a state the machine lacks expects where its event leads,
+      where the machine starts before an object's first line, and any
+      state while the object is not followed, never nothing. The schema
+      wants an event or a state that is not null, and text with more
+      than spaces, as the check reads them. An open package keeps the
+      shoulder past its tab too; a folded subgraph counts no `~~~`, and a
+      line to a subgraph inside it ends on its box.
+
+## PlantUML's guide, drawn natively (2026-11-21)
 
 
 ### Step 0: the yardstick, and refusals that say why

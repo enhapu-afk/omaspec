@@ -135,4 +135,12 @@ fn a_flowchart_subgraph_folds_and_alike_lines_are_one() {
     let marked = "flowchart LR\n  subgraph B [\"`**Build**`\"]\n    L --> T\n  end\n  A --> L\n";
     let drawn = svg(marked, Language::Mermaid, &["B"]);
     assert!(drawn.contains("2 nodes · 1 link"), "{drawn}");
+    // A line `~~~` only places its ends, and is not counted.
+    let placed = "flowchart LR\n  subgraph B\n    L --> T\n    L ~~~ M\n  end\n  A --> L\n";
+    let drawn = svg(placed, Language::Mermaid, &["B"]);
+    assert!(drawn.contains("3 nodes · 1 link"), "{drawn}");
+    // A line to a subgraph inside the folded one ends on its box.
+    let nested = "flowchart LR\n  subgraph Outer\n    subgraph Inner\n      a --> b\n    end\n    c\n  end\n  X --> Inner\n";
+    let folded = draw(nested, Language::Mermaid, &["Outer"]);
+    assert_eq!(lines(&folded), [pair("X", "Outer")]);
 }

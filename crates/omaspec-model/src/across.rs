@@ -38,6 +38,9 @@ pub struct Spec {
     /// The file, as messages show it: its path in the project.
     pub file: String,
     pub machine: Machine,
+    /// For a machine in a Markdown document, the block it stands in, so
+    /// its lines are told as the document's ([`Spec::line_in_file`]).
+    pub(crate) block: Option<omaspec_core::markdown::Block>,
 }
 
 impl Spec {
@@ -49,19 +52,31 @@ impl Spec {
             names: omaspec_core::project::names(code, lang, file),
             file: file.to_owned(),
             machine,
+            block: None,
         })
     }
 
-    /// The state machine of a diagram in the Markdown document shown as
-    /// `file`: named by its `@startuml` name and its title only, as the
-    /// document's name is no machine's.
-    pub fn read_in_document(code: &str, lang: Language, file: &str) -> Option<Spec> {
+    /// The state machine of `block`, a diagram in the Markdown document
+    /// shown as `file`: named by its `@startuml` name and its title only,
+    /// as the document's name is no machine's.
+    pub fn read_in_document(block: &omaspec_core::markdown::Block, file: &str) -> Option<Spec> {
+        let (code, lang) = (block.code.as_str(), block.language);
         let machine = Machine::read(code, lang)?;
         Some(Spec {
             names: omaspec_core::project::names(code, lang, ""),
             file: file.to_owned(),
             machine,
+            block: Some(block.clone()),
         })
+    }
+
+    /// The line of [`Spec::file`] that the machine's `line` is: itself in
+    /// a diagram's file, the document's in a Markdown document.
+    pub fn line_in_file(&self, line: usize) -> usize {
+        match &self.block {
+            Some(block) => block.doc_line(line),
+            None => line,
+        }
     }
 }
 

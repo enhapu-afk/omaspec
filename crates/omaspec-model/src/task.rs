@@ -7,28 +7,24 @@
 
 use omaspec_core::lint::{Expected, Happened, Offer, Place, Task};
 
-use crate::{Kind, Machine, Run};
+use crate::{Kind, Machine, Run, Spec};
 
-/// The task of a deviation of `object` (by the machine `m` of `file`)
-/// where `happened`, while it could be in any of `ways`.
-pub(crate) fn task(
-    m: &Machine,
-    file: &str,
-    object: &str,
-    happened: Happened,
-    ways: &[Run],
-) -> Task {
+/// The task of a deviation of `object`, by the machine of `spec`, where
+/// `happened`, while it could be in any of `ways`. Its lines are the
+/// file's, a Markdown document's too.
+pub(crate) fn task(spec: &Spec, object: &str, happened: Happened, ways: &[Run]) -> Task {
     Task {
         object: object.to_owned(),
-        machine: file.to_owned(),
+        machine: spec.file.clone(),
         happened,
-        expected: expected(m, ways),
+        expected: expected(spec, ways),
     }
 }
 
 /// The states `ways` are in and the events they take, each once, in the
 /// order the ways give them.
-fn expected(m: &Machine, ways: &[Run]) -> Expected {
+fn expected(spec: &Spec, ways: &[Run]) -> Expected {
+    let m = &spec.machine;
     let mut out = Expected::default();
     for run in ways {
         for &s in run.active() {
@@ -37,7 +33,7 @@ fn expected(m: &Machine, ways: &[Run]) -> Expected {
             }
             let place = Place {
                 name: named(m, s),
-                line: m.states[s].line,
+                line: spec.line_in_file(m.states[s].line),
             };
             if !out.states.contains(&place) {
                 out.states.push(place);
@@ -49,7 +45,7 @@ fn expected(m: &Machine, ways: &[Run]) -> Expected {
                 let offer = Offer {
                     event: event.clone(),
                     to: named(m, tr.to),
-                    line: tr.line,
+                    line: spec.line_in_file(tr.line),
                 };
                 if !out.events.contains(&offer) {
                     out.events.push(offer);
@@ -92,6 +88,8 @@ mod tests {
             "{\"object\":\"Door\",\"event\":\"lock\",\"state\":\"Open\"}",
             // A state the machine does not have.
             "{\"object\":\"Door\",\"event\":\"open\"}\n{\"object\":\"Door\",\"state\":\"Ajar\"}",
+            // So on the first line, where it begins.
+            "{\"object\":\"Door\",\"state\":\"Ajar\"}",
         ] {
             let found = crate::check_trace(trace, &specs);
             let deviations: Vec<_> = found
@@ -117,5 +115,49 @@ mod tests {
                 }
             }
         }
+
+        // Past the line's event: where `close` leads, not where it came
+        // from.
+        let found = crate::check_trace(
+            "{\"object\":\"Door\",\"event\":\"open\"}\n{\"object\":\"Door\",\"event\":\"close\",\"state\":\"Ajar\"}",
+            &specs,
+        );
+        let task = found[0].task.as_deref().unwrap();
+        let states: Vec<&str> = task
+            .expected
+            .states
+            .iter()
+            .map(|p| p.name.as_str())
+            .collect();
+        assert_eq!(states, ["Closed"]);
+    }
+
+    /// A machine in a Markdown document tells the document's lines.
+    #[test]
+    fn a_document_s_machine_tells_the_document_s_lines() {
+        let doc = "# Door\n\nIt locks.\n\n```plantuml\n@startuml Door\n[*] --> Closed\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n```\n";
+        let blocks = omaspec_core::markdown::blocks(doc);
+        let spec = Spec::read_in_document(&blocks[0], "door.md").unwrap();
+        let specs = Specs::new(vec![spec]);
+        let mut trace = String::from("{\"object\":\"x\",\"machine\":\"door\",\"event\":\"lock\"}");
+        trace.push_str("\n{\"object\":\"x\",\"machine\":\"door\",\"event\":\"lock\"}");
+        let found = crate::check_trace(&trace, &specs);
+        let task = found
+            .iter()
+            .find_map(|f| f.task.as_deref())
+            .expect("a task");
+        let offer = &task.expected.events[0];
+        assert_eq!(offer.event, "unlock");
+        assert!(
+            doc.lines()
+                .nth(offer.line)
+                .unwrap()
+                .contains("Locked --> Closed : unlock")
+        );
+        let place = &task.expected.states[0];
+        assert!(
+            doc.lines().nth(place.line).unwrap().contains("Locked"),
+            "{place:?}"
+        );
     }
 }

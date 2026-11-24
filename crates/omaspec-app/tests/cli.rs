@@ -524,6 +524,12 @@ fn trace_holds_a_recording_against_the_machines_of_its_folder() {
     let schema: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(schema["$id"], "urn:omaspec:trace:1");
     assert_eq!(schema["required"], serde_json::json!(["object"]));
+    // An event or a state that is null counts as absent, as the check
+    // reads it: one of them must be there and not null.
+    assert_eq!(
+        schema["anyOf"][0]["properties"]["event"]["type"],
+        serde_json::json!(["string", "number"])
+    );
 
     // As a timing diagram: written as PlantUML, or drawn.
     let out = omaspec(&["trace", "--as", "timing", bad.to_str().unwrap()]);

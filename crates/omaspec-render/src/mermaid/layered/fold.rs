@@ -69,8 +69,10 @@ pub(super) fn fold(
                 && inner.nodes.iter().all(|n| sub.nodes.contains(n))
             {
                 gone.insert(other);
+                // A line to it ends on the box folded around it.
                 if let Some(inner_id) = &inner.id {
                     hidden.insert(inner_id.clone());
+                    redirect.insert(inner_id.clone(), id.clone());
                 }
             }
         }
@@ -92,10 +94,14 @@ pub(super) fn fold(
             .iter()
             .filter(|n| graph.nodes.contains_key(*n) && held(n))
             .count();
+        // A line `~~~` only places its ends: it is not drawn, nor counted.
         let links = graph
             .edges
             .iter()
-            .filter(|edge| held(&edge.from) && held(&edge.to))
+            .enumerate()
+            .filter(|(index, edge)| {
+                !fix.invisible.contains(index) && held(&edge.from) && held(&edge.to)
+            })
             .count();
         let order = sub
             .nodes

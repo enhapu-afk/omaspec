@@ -49,7 +49,7 @@ impl Specs {
                     .collect::<Vec<_>>(),
                 FileKind::Document => markdown::blocks(f.text)
                     .iter()
-                    .filter_map(|b| Spec::read_in_document(&b.code, b.language, f.path))
+                    .filter_map(|b| Spec::read_in_document(b, f.path))
                     .collect(),
                 FileKind::Trace => Vec::new(),
             })

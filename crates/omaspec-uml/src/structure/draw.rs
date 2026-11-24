@@ -645,7 +645,11 @@ fn frame_of(item: &Item, skin: &Skin) -> graph::Frame {
             COMP_PAD + STACK * 2.0,
             (header_w + COMP_PAD * 2.0).max(min_w) + STACK * 2.0,
         ),
-        Shape::Package | Shape::Folder => (COMP_PAD, COMP_PAD, (header_w + 28.0).max(min_w)),
+        Shape::Package | Shape::Folder => (
+            COMP_PAD,
+            COMP_PAD,
+            (header_w + PAD_X * 2.0 + SHOULDER).max(min_w),
+        ),
         Shape::Database | Shape::Storage => (
             COMP_PAD + CAP,
             COMP_PAD,
