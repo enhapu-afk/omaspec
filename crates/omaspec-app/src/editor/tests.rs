@@ -3700,6 +3700,63 @@ fn a_play_lights_each_state_in_its_own_shape() {
     }
 }
 
+/// *Follow a trace…* in the editor: the trace named, its file watched,
+/// a line written there moves the play, and stopping the play ends
+/// following (docs/adr/0036).
+#[test]
+fn the_editor_follows_a_trace_as_it_is_written() {
+    use std::io::Write;
+    let work = temp_dir("follow");
+    let flow = "@startuml\n[*] --> Coding\nCoding --> Review : pushed\nReview --> Coding : changes asked\nstate Review <<decide>>\n@enduml\n";
+    let file = work.join("flow.puml");
+    std::fs::write(&file, flow).unwrap();
+    let trace = work.join("run.jsonl");
+    std::fs::write(
+        &trace,
+        "{\"object\":\"pr-1\",\"machine\":\"flow\",\"state\":\"Coding\"}\n",
+    )
+    .unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, flow, Language::PlantUml);
+    // No dialog in a test: the bottom line asks.
+    let _ = app.update(Message::Command(Command::FollowTrace));
+    let _ = app.update(Message::PromptInput(trace.display().to_string()));
+    let _ = app.update(Message::PromptSubmit);
+    assert_eq!(
+        app.doc().paper.following(),
+        Some(trace.as_path()),
+        "{:?}",
+        app.notice
+    );
+    assert!(app.followed_files().any(|f| f == trace));
+    let lines = |app: &App| match app.doc().paper.offer() {
+        Some(paper::Offer::Trace {
+            live,
+            played,
+            object,
+            ..
+        }) => {
+            assert!(live);
+            (played, object)
+        }
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(lines(&app), (1, "live · pr-1".to_owned()));
+    // A line written there, and the watcher says so.
+    let mut out = std::fs::OpenOptions::new()
+        .append(true)
+        .open(&trace)
+        .unwrap();
+    out.write_all(b"{\"object\":\"pr-1\",\"machine\":\"flow\",\"event\":\"pushed\"}\n")
+        .unwrap();
+    drop(out);
+    let _ = app.update(Message::Worker(worker::Event::FileChanged(trace.clone())));
+    assert_eq!(lines(&app), (2, "live · pr-1 waits for you".to_owned()));
+    // Stopping the play ends following: nothing is watched for it.
+    let _ = app.update(Message::Command(Command::StopPlay));
+    assert!(app.followed_files().next().is_none());
+}
+
 /// A trace followed live on an agents' workflow: each object a pill with
 /// its name beside its state, past three a pill that counts the rest, one
 /// whose last line deviates in red (docs/adr/0036).

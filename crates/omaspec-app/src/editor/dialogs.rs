@@ -37,7 +37,7 @@ fn openable() -> Vec<(String, Vec<String>)> {
 impl App {
     /// Where a dialog opens when nothing else says: the sidebar's folder,
     /// else the one Omaspec was started in.
-    fn start_folder(&self) -> PathBuf {
+    pub(super) fn start_folder(&self) -> PathBuf {
         self.folder
             .clone()
             .or_else(|| std::env::current_dir().ok())

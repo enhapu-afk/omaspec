@@ -35,6 +35,11 @@ fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
             "file or folder to open",
             "Enter opens · Ctrl+P finds a file · Esc cancels",
         ),
+        Asking::FollowTrace => (
+            "Follow a trace",
+            "the trace (JSON Lines) to follow as it is written",
+            "Enter follows · Esc cancels",
+        ),
         Asking::NewProject { language, git } => (
             match (language, git) {
                 (Language::PlantUml, false) => "New PlantUML project",

@@ -77,6 +77,14 @@ is open and the reasoning around it.
       orchestrator's workflow with two such places, colored by a
       skinparam of the stereotype, and `agents.jsonl` a run of it to
       follow; `snapshot_live` draws that run.
+- [x] A run followed in the editor (2026-11-24): *Follow a trace…*
+      (Diagram, `editor/follow.rs`) asks for the trace in the desktop's
+      dialog, in the bottom line where there is none, and follows it on
+      the tab's machine as the preview's `--follow` does. The trace's
+      file is watched beside the diagrams; a change to the diagram plays
+      it again once drawn; Esc, F5 and the bar's ✕ end following.
+      `the_editor_follows_a_trace_as_it_is_written` names a trace, writes
+      a line to it, and the pill moves to where a person decides.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

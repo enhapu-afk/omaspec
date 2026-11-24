@@ -96,7 +96,8 @@ input ends, with the exit code of a whole check.
 machine, for the person watching: each object a pill with its name beside
 the state it is in, past three a pill that counts the rest; a light runs
 along each transition a new line takes; an object whose last line
-deviates stands in red, and the bar says why. Esc stops following.
+deviates stands in red, and the bar says why. Esc stops following. In
+the editor, *Follow a trace…* (Diagram) follows one on the tab's machine.
 
 A state where a person decides, not the system or its agents, is
 `state Review <<decide>>` in PlantUML and `class Review decide` in

@@ -40,6 +40,7 @@ impl Command {
             Command::Play
             | Command::Present
             | Command::PlayTrace
+            | Command::FollowTrace
             | Command::Coverage
             | Command::PlayAsk(_)
             | Command::StopPlay
@@ -138,6 +139,7 @@ impl Command {
             | Command::Present
             | Command::PresentFullScreen
             | Command::PlayTrace
+            | Command::FollowTrace
             | Command::Coverage
             | Command::PlayAsk(_)
             | Command::StopPlay

@@ -41,6 +41,7 @@ pub(crate) mod films;
 mod flight;
 mod fold;
 pub(crate) mod folder;
+mod follow;
 mod gallery;
 pub(crate) mod gifs;
 mod hand;
@@ -260,6 +261,8 @@ pub enum Message {
     SaveAsAnswered(u64, crate::file_dialog::Answer),
     /// The desktop's dialog answered which file (or, `true`, folder) to open.
     OpenAnswered(bool, crate::file_dialog::Answer),
+    /// The desktop's dialog answered which trace to follow on this tab.
+    FollowAnswered(u64, crate::file_dialog::Answer),
     /// The desktop's dialog answered the folder of a new project, of this
     /// language, with git or without.
     NewProjectAnswered(Language, bool, crate::file_dialog::Answer),
@@ -494,6 +497,9 @@ pub enum Command {
     PresentFullScreen,
     /// Plays a recorded trace of the state machine on screen.
     PlayTrace,
+    /// Follows a trace as it is written, on the state machine on screen
+    /// (docs/adr/0036).
+    FollowTrace,
     /// Draws what the recorded traces of the project take of the state
     /// machine on screen, or stops drawing it.
     Coverage,
@@ -763,6 +769,9 @@ struct App {
     alt_armed: bool,
     /// An example opened to be played: its tab plays once it is drawn.
     play_when_drawn: Option<u64>,
+    /// The trace each tab follows as it is written, by its key: watched,
+    /// and played again once the tab is drawn anew ([`follow`]).
+    traces: HashMap<u64, PathBuf>,
     /// The diagram takes the active Omarchy colors at render time. The
     /// file stays as it is.
     follow_theme: bool,
@@ -888,6 +897,7 @@ impl App {
             toolbar: session.toolbar,
             alt_armed: false,
             play_when_drawn: None,
+            traces: HashMap::new(),
             follow_theme: session.follow_theme,
             dialogs: cfg!(not(test)),
             pending: HashMap::new(),
@@ -1065,6 +1075,8 @@ impl App {
                 .filter_map(|d| self.project_of(d))
                 .map(|root| root.join(omaspec_core::project::FILE)),
         );
+        // The traces followed, beside the diagrams.
+        files.extend(self.followed_files());
         files.sort();
         files.dedup();
         let doc = self.doc();
@@ -1163,7 +1175,13 @@ impl App {
                 }
                 Task::none()
             }
-            Message::Paper(key, message) => self.paper_event(key, message),
+            Message::Paper(key, message) => {
+                // The bar's ✕ ends following the trace too.
+                if matches!(message, paper::Message::StopPlay) {
+                    self.stop_following(key);
+                }
+                self.paper_event(key, message)
+            }
             Message::Resized(event) => {
                 self.panes.resize(event.split, event.ratio);
                 Task::none()
@@ -1311,6 +1329,7 @@ impl App {
                 Some(Asking::Animation) => self.animation_submitted(),
                 Some(Asking::ExportProject) => self.export_project_submitted(),
                 Some(Asking::Rename) => self.rename_submitted(),
+                Some(Asking::FollowTrace) => self.follow_submitted(),
                 None => Task::none(),
             },
             Message::Past(key, found) => self.past(key, found),
@@ -1377,6 +1396,7 @@ impl App {
             }
             Message::SaveAsAnswered(key, answer) => self.save_as_answered(key, answer),
             Message::OpenAnswered(_, answer) => self.open_answered(answer),
+            Message::FollowAnswered(key, answer) => self.follow_answered(key, answer),
             Message::NewProjectAnswered(language, git, answer) => {
                 self.new_project_answered(language, git, answer)
             }
@@ -1534,6 +1554,10 @@ impl App {
                     } else {
                         task
                     };
+                    // A trace followed plays again on what is drawn anew.
+                    if drawn {
+                        self.follow_again(key);
+                    }
                     // An example opened to be played starts once it is drawn.
                     if self.play_when_drawn == Some(key) {
                         self.play_when_drawn = None;
@@ -1570,6 +1594,8 @@ impl App {
             worker::Event::Due(Alarm::Follow) => return self.followed(),
             worker::Event::Due(Alarm::Dive) => return self.dive_anyway(),
             worker::Event::Due(Alarm::Thumbs) => return self.draw_thumbs(),
+            // What a trace followed says since moves its play.
+            worker::Event::FileChanged(path) if self.follow_changed(&path) => {}
             worker::Event::FileChanged(path) => {
                 if !self.changed.contains(&path) {
                     self.changed.push(path);
@@ -2041,6 +2067,7 @@ impl App {
             Command::Present => self.toggle_present(),
             Command::PresentFullScreen => self.toggle_present_full(),
             Command::PlayTrace => self.open_traces(),
+            Command::FollowTrace => self.follow_trace_asking(),
             Command::Coverage => self.toggle_coverage(),
             Command::PlayAsk(ask) => {
                 let task = paper(self.doc_mut().paper.update(paper::Message::Play(ask)));
@@ -2053,6 +2080,7 @@ impl App {
             }
             Command::StopPlay => {
                 self.close_beside(key);
+                self.stop_following(key);
                 paper(self.doc_mut().paper.update(paper::Message::StopPlay))
             }
         }

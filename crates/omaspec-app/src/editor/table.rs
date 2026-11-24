@@ -246,6 +246,13 @@ pub const TABLE: &[Entry] = &[
         .menu(Diagram)
         .short("Play a recorded trace…"),
     cmd(
+        "Follow a trace as it is written: who stands where, live",
+        "",
+        Command::FollowTrace,
+    )
+    .menu(Diagram)
+    .short("Follow a trace…"),
+    cmd(
         "Coverage of the recorded traces: shown or hidden",
         "",
         Command::Coverage,

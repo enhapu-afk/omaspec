@@ -714,7 +714,8 @@ says each finding the moment its line is written, while the system or its agents
 its name beside the state it is in (past three, one that counts the rest), a light along each
 transition a new line takes, in red where an object's last line deviates; where a person decides
 (`state Review <<decide>>`, in Mermaid `class Review decide`) its pill is filled: it waits for
-them. In the editor, *Play a recorded trace* (command menu) plays it in
+them. In the editor, *Follow a trace…* (Diagram) does the same on the tab's machine, the trace
+chosen in the desktop's dialog; Esc or the bar's ✕ stops following. In the editor, *Play a recorded trace* (command menu) plays it in
 the diagram, line by line with Space: the bar shows the time and the event, the states
 light up, and where the trace deviates the bar turns red and says why.
 [examples/player.jsonl](../../examples/player.jsonl) is an evening of the media player.

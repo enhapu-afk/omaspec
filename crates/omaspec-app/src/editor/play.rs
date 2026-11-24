@@ -49,6 +49,7 @@ impl App {
         let key = self.doc().key;
         if self.doc().paper.playing() {
             self.close_beside(key);
+            self.stop_following(key);
             return self
                 .doc_mut()
                 .paper
