@@ -42,21 +42,47 @@ const MAX_WAYS: usize = 1000;
 /// The findings of `trace` against the project's state machines, in line
 /// order.
 pub fn check(trace: &str, specs: &Specs) -> Vec<Finding> {
-    let mut out = Vec::new();
-    // By object; `None` for one without a machine, reported once.
-    let mut objects: HashMap<String, Option<Object>> = HashMap::new();
-    for (line, text) in trace.lines().enumerate() {
+    let mut checking = Checking::new(specs);
+    trace.lines().flat_map(|text| checking.line(text)).collect()
+}
+
+/// A trace held against the project's state machines one line at a time,
+/// as it is written: what [`check`] finds, line by line (`omaspec trace
+/// --follow`).
+pub struct Checking<'a> {
+    specs: &'a Specs,
+    /// By object; `None` for one without a machine, reported once.
+    objects: HashMap<String, Option<Object<'a>>>,
+    /// The zero-based line the next one is.
+    line: usize,
+}
+
+impl<'a> Checking<'a> {
+    pub fn new(specs: &'a Specs) -> Self {
+        Checking {
+            specs,
+            objects: HashMap::new(),
+            line: 0,
+        }
+    }
+
+    /// The findings of the trace's next line, `text`, without its line end.
+    pub fn line(&mut self, text: &str) -> Vec<Finding> {
+        let line = self.line;
+        self.line += 1;
+        let mut out = Vec::new();
         if text.trim().is_empty() {
-            continue;
+            return out;
         }
         let entry = match entry(line, text) {
             Ok(entry) => entry,
             Err(why) => {
                 out.push(finding("trace-line", line, Severity::Error, why));
-                continue;
+                return out;
             }
         };
-        let object = objects.entry(entry.object.clone()).or_insert_with(|| {
+        let specs = self.specs;
+        let object = self.objects.entry(entry.object.clone()).or_insert_with(|| {
             let name = entry.machine.as_deref().unwrap_or(&entry.object);
             match machine_named(name, specs) {
                 Ok(spec) => Some(Object::new(spec)),
@@ -74,8 +100,8 @@ pub fn check(trace: &str, specs: &Specs) -> Vec<Finding> {
         if let Some(object) = object {
             out.extend(object.follow(&entry).findings);
         }
+        out
     }
-    out
 }
 
 /// One line of an object's trace, as a viewer plays it.

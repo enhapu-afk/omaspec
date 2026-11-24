@@ -32,6 +32,7 @@ mod sandbox;
 #[cfg(test)]
 mod scale;
 mod specs;
+mod trace_follow;
 mod trace_timing;
 mod ui;
 mod worker;
@@ -226,6 +227,12 @@ enum Command {
         /// agent that writes traces, and nothing else.
         #[arg(long, conflicts_with_all = ["files", "json", "strict", "project", "as_kind"])]
         schema: bool,
+        /// Follow one trace while it is written: each finding the moment
+        /// its line is complete, with --json one object a line. A file
+        /// not there yet is waited for; it runs until stopped. Standard
+        /// input until it ends.
+        #[arg(long, conflicts_with = "as_kind")]
+        follow: bool,
         /// Print the findings as JSON.
         #[arg(long)]
         json: bool,
@@ -903,6 +910,22 @@ fn main() -> ExitCode {
             print!("{}", omaspec_model::TRACE_SCHEMA);
             Ok(ExitCode::SUCCESS)
         }
+        Some(Command::Trace {
+            follow: true,
+            files,
+            json,
+            strict,
+            project,
+            ..
+        }) => match files.as_slice() {
+            [] | [_] => trace_follow::trace(
+                files.first().map(PathBuf::as_path),
+                json,
+                strict,
+                project.as_deref(),
+            ),
+            _ => Err(anyhow::anyhow!("--follow follows one trace")),
+        },
         Some(Command::Trace {
             files,
             json,

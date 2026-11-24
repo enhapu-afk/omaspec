@@ -32,6 +32,14 @@ is open and the reasoning around it.
       than spaces, as the check reads them. An open package keeps the
       shoulder past its tab too; a folded subgraph counts no `~~~`, and a
       line to a subgraph inside it ends on its box.
+- [x] A run followed on the command line (2026-11-24): `omaspec trace
+      run.jsonl --follow` holds a trace while it is written, each finding
+      the moment its line is complete, with `--json` one object a line
+      (`trace_follow.rs`). It waits for a file not there yet and for the
+      end of a line half written, follows a file written anew from its
+      start, and standard input until it ends. The check reads a line at
+      a time (`omaspec_model::TraceChecking`), so a long run costs no
+      more than its lines.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

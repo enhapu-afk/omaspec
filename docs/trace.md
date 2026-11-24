@@ -82,6 +82,16 @@ its object is followed from a line that gives its state;
 `trace-too-many-ways`, an object that could be in too many ways at once to
 follow.
 
+## Following a run
+
+`omaspec trace run.jsonl --follow` holds the trace while it is written:
+each finding the moment its line is complete, with `--json` one object a
+line, so an orchestrator or an agent reads them as they come. A file not
+there yet is waited for, a line half written waits for its end, a file
+written anew is followed from its start again; it runs until it is
+stopped. `tail -f`-like on standard input too (`--follow -`), until the
+input ends, with the exit code of a whole check.
+
 ## Writing one
 
 Append a line where the system takes an event, and flush it, so a run that

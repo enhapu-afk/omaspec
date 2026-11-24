@@ -452,6 +452,80 @@ fn lint_fails_on_errors_and_with_strict_on_warnings() {
     assert_eq!(json[0]["severity"], "error");
 }
 
+/// `trace --follow` says each finding the moment its line is complete,
+/// as JSON Lines with `--json`: a file not there yet is waited for, a
+/// line half written waits for its end (docs/adr/0036).
+#[test]
+fn trace_follows_a_trace_while_it_is_written() {
+    use std::io::{BufRead, BufReader, Write};
+    let dir = scratch("trace-follow");
+    fs::write(
+        dir.join("door.puml"),
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+    )
+    .unwrap();
+    let live = dir.join("live.jsonl");
+    let mut child = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+        .args(["trace", "--follow", "--json", live.to_str().unwrap()])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let (sent, said) = std::sync::mpsc::channel();
+    let out = child.stdout.take().unwrap();
+    std::thread::spawn(move || {
+        for line in BufReader::new(out).lines() {
+            let Ok(line) = line else { break };
+            if sent.send(line).is_err() {
+                break;
+            }
+        }
+    });
+    let next = || said.recv_timeout(std::time::Duration::from_secs(10));
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&live)
+        .unwrap();
+    // A line that holds, then one that deviates, its end written later.
+    file.write_all(b"{\"object\":\"Door\",\"event\":\"open\"}\n{\"object\":\"Door\",")
+        .unwrap();
+    file.flush().unwrap();
+    assert!(
+        said.recv_timeout(std::time::Duration::from_millis(600))
+            .is_err(),
+        "nothing yet"
+    );
+    file.write_all(b"\"event\":\"open\"}\n").unwrap();
+    file.flush().unwrap();
+    let json: serde_json::Value = serde_json::from_str(&next().unwrap()).unwrap();
+    assert_eq!(json["line"], 2);
+    assert_eq!(json["code"], "trace-deviation");
+    assert_eq!(json["task"]["expected"]["events"][0]["event"], "close");
+    let _ = child.kill();
+    let _ = child.wait();
+    // Standard input is followed until it ends.
+    let mut child = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+        .args(["trace", "--follow", "--project", dir.to_str().unwrap()])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"{\"object\":\"Door\",\"event\":\"close\"}\n")
+        .unwrap();
+    let out = child.wait_with_output().unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        stdout(&out).contains("<stdin>:1: error: Door does not take close here"),
+        "{}",
+        stdout(&out)
+    );
+}
+
 #[test]
 fn trace_holds_a_recording_against_the_machines_of_its_folder() {
     let dir = scratch("trace");

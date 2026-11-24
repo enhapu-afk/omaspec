@@ -707,7 +707,8 @@ time and the states it could be in. Many objects can share one machine
 (`"machine":"Door"`). The format is a contract of its own, [docs/trace.md](../trace.md):
 `omaspec trace --schema` prints the JSON Schema of a line, and with `--json` (and through
 MCP) a deviation carries a task, what happened and what the machine expected there with the
-lines of the diagram, for an agent to fix the code or propose the transition. In the editor, *Play a recorded trace* (command menu) plays it in
+lines of the diagram, for an agent to fix the code or propose the transition; `--follow`
+says each finding the moment its line is written, while the system or its agents run. In the editor, *Play a recorded trace* (command menu) plays it in
 the diagram, line by line with Space: the bar shows the time and the event, the states
 light up, and where the trace deviates the bar turns red and says why.
 [examples/player.jsonl](../../examples/player.jsonl) is an evening of the media player.
@@ -778,6 +779,7 @@ omaspec lint --project specs a.puml # sequences checked against the state machin
 omaspec lint --strict --json a.mmd  # warnings fail too, and a diagram only Java draws; JSON for scripts
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json (a deviation as a task)
 omaspec trace --schema              # the JSON Schema of a trace's line (docs/trace.md)
+omaspec trace run.jsonl --follow    # each finding the moment its line is written; --json one object a line
 omaspec trace run.jsonl --as timing -o run.svg   # the trace as a timing diagram; without -o its PlantUML source
 omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80
 omaspec coverage order.puml --traces week.jsonl --river -o river.svg  # as a trace river: each way as wide as taken, where traces left the machine in red
