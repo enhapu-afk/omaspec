@@ -637,7 +637,14 @@ impl ToPlantUml {
             }
             (None, None) => format!("state {name}"),
         };
-        // Where a person decides: PlantUML's `<<decide>>`.
+        // Where a person decides: PlantUML's `<<decide>>`, which a choice,
+        // a fork or a join, with a stereotype of its own, cannot take.
+        if decides && stereotype.is_some() {
+            self.notice(
+                Some(s.line),
+                format!("{name} is a {} in PlantUML, which takes no <<decide>>; the class decide is left out", stereotype.unwrap_or_default()),
+            );
+        }
         let head = match decides && stereotype.is_none() {
             true => format!("{head} <<decide>>"),
             false => head,
@@ -922,6 +929,16 @@ mod tests {
             back.notices
         );
         assert_eq!(decides(&back.code, Language::PlantUml), ["Review"]);
+        // A choice cannot take it, and says so.
+        let gate = "stateDiagram-v2\n    state Gate <<choice>>\n    [*] --> Gate\n    Gate --> A : [x]\n    Gate --> B : [y]\n    class Gate decide\n";
+        let back = both(gate, Language::Mermaid, Language::PlantUml).unwrap();
+        assert!(
+            back.notices
+                .iter()
+                .any(|n| n.message.contains("takes no <<decide>>")),
+            "{:?}",
+            back.notices
+        );
         // Another stereotype is still told it is left out.
         let other = puml.replace("<<decide>>", "<<phase>>");
         let mermaid = both(&other, Language::PlantUml, Language::Mermaid).unwrap();

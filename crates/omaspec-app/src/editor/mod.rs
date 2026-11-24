@@ -1329,7 +1329,7 @@ impl App {
                 Some(Asking::Animation) => self.animation_submitted(),
                 Some(Asking::ExportProject) => self.export_project_submitted(),
                 Some(Asking::Rename) => self.rename_submitted(),
-                Some(Asking::FollowTrace) => self.follow_submitted(),
+                Some(Asking::FollowTrace(key)) => self.follow_submitted(key),
                 None => Task::none(),
             },
             Message::Past(key, found) => self.past(key, found),
@@ -1512,6 +1512,10 @@ impl App {
                     }
                 } else if self.find(key).is_some() {
                     let drawn = answer.result.is_ok();
+                    // Whether it followed a trace before this drawing.
+                    let followed = self
+                        .find(key)
+                        .is_some_and(|doc| doc.paper.following().is_some());
                     // What the drawing says about the lines by hand; one
                     // that failed says nothing, and an answer older than
                     // the picture on screen is dropped.
@@ -1556,7 +1560,7 @@ impl App {
                     };
                     // A trace followed plays again on what is drawn anew.
                     if drawn {
-                        self.follow_again(key);
+                        self.follow_again(key, followed);
                     }
                     // An example opened to be played starts once it is drawn.
                     if self.play_when_drawn == Some(key) {

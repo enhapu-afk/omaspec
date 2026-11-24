@@ -178,6 +178,20 @@ impl Play {
         Ok(Play::Machine(Box::new(play)))
     }
 
+    /// Whether a play that follows a trace goes on over `source` drawn
+    /// anew: its machine the same but for where its lines stand, so the
+    /// trace is not read again for a comment or a color.
+    pub fn follows_on(&self, source: &str, language: Language) -> bool {
+        let Play::Machine(play) = self else {
+            return false;
+        };
+        if !matches!(play.driver, Driver::Live(_)) {
+            return false;
+        }
+        Machine::read(source, language)
+            .is_some_and(|machine| same_behavior(&play.machine, &machine))
+    }
+
     /// The file of the trace it follows while it is written.
     pub fn following(&self) -> Option<&std::path::Path> {
         match self {
@@ -439,6 +453,32 @@ impl Viewer<'_> {
         })
         .position()
     }
+}
+
+/// Whether `a` and `b` are one machine but for the lines they stand on.
+fn same_behavior(a: &Machine, b: &Machine) -> bool {
+    let states = |m: &Machine| {
+        m.states
+            .iter()
+            .map(|s| {
+                (
+                    s.name.clone(),
+                    s.label.clone(),
+                    s.kind,
+                    s.parent,
+                    s.region,
+                    s.decide,
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    let ways = |m: &Machine| {
+        m.transitions
+            .iter()
+            .map(|t| (t.from, t.to, t.trigger.clone()))
+            .collect::<Vec<_>>()
+    };
+    states(a) == states(b) && ways(a) == ways(b)
 }
 
 /// Where a machine's states and transitions are drawn, or why a play

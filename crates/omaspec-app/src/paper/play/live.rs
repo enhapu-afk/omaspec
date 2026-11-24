@@ -137,13 +137,12 @@ impl LiveRun {
         }
     }
 
-    /// Each state with objects in it, in the order of the states: their
-    /// names, and whether each one's last line deviates. An object that
-    /// may be in several states stands at the first; one not followed
-    /// stands nowhere.
-    pub(super) fn standing(&self) -> Vec<(usize, Vec<(String, bool)>)> {
+    /// Each state with objects in it, in the order of the states: who
+    /// stands there ([`Standing`]). An object that may be in several
+    /// states stands at the first; one not followed stands nowhere.
+    pub(super) fn standing(&self) -> Vec<(usize, Vec<Standing>)> {
         let m = self.machine();
-        let mut by_state: Vec<(usize, Vec<(String, bool)>)> = Vec::new();
+        let mut by_state: Vec<(usize, Vec<Standing>)> = Vec::new();
         for (object, followed) in self.followers.objects() {
             let Some(&state) = at(followed)
                 .iter()
@@ -151,7 +150,12 @@ impl LiveRun {
             else {
                 continue;
             };
-            let entry = (object.to_owned(), deviates(followed));
+            let wrong = deviates(followed);
+            let entry = Standing {
+                name: object.to_owned(),
+                wrong,
+                waits: !wrong && decides(m, state),
+            };
             match by_state.iter_mut().find(|(s, _)| *s == state) {
                 Some((_, names)) => names.push(entry),
                 None => by_state.push((state, vec![entry])),
@@ -184,15 +188,13 @@ impl LiveRun {
             .map(|f| (f.severity, f.message.clone()))
     }
 
-    /// Objects that stand where a person decides (`<<decide>>`), by
-    /// name, their last line as the machine allows.
-    pub(super) fn waiting(&self) -> Vec<&str> {
-        let m = self.machine();
-        self.followers
-            .objects()
-            .filter(|(_, f)| !deviates(f) && at(f).iter().any(|&s| m.states[s].decide))
-            .map(|(object, _)| object)
-            .collect()
+    /// Objects that wait where a person decides, as their pills say.
+    pub(super) fn waiting(&self) -> usize {
+        self.standing()
+            .iter()
+            .flat_map(|(_, names)| names)
+            .filter(|one| one.waits)
+            .count()
     }
 
     /// Objects whose last line deviates.
@@ -202,6 +204,21 @@ impl LiveRun {
             .filter(|(_, f)| deviates(f))
             .count()
     }
+}
+
+/// Who stands at a state: the object, whether its last line deviates, and
+/// whether it waits there for a person.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct Standing {
+    pub(super) name: String,
+    pub(super) wrong: bool,
+    pub(super) waits: bool,
+}
+
+/// Whether a person decides at `state`: it, or a state around it, is
+/// `<<decide>>`.
+fn decides(m: &Machine, state: usize) -> bool {
+    m.states[state].decide || m.ancestors(state).any(|s| m.states[s].decide)
 }
 
 /// Which file `meta` is, so one put in its place by name is told apart:
@@ -232,16 +249,15 @@ fn deviates(followed: &Followed) -> bool {
         .is_some_and(|f| f.severity == Severity::Error)
 }
 
-/// The pills of `names` beside the state drawn at `state` on screen: a
-/// name each, in the color of what deviates where its last line does,
-/// and past [`PILLS`] one that counts the rest. Where a person decides
-/// (`waits`), the pills are filled and say they wait: `‖ pr-42`.
+/// The pills of who stands beside the state drawn at `state` on screen:
+/// a name each, in the color of what deviates where its last line does,
+/// filled where it waits for a person (`‖ pr-42`), and past [`PILLS`] a
+/// plain one that counts the rest.
 pub(super) fn pills(
     frame: &mut iced::widget::canvas::Frame,
     look: &super::Look,
     state: iced::Rectangle,
-    names: &[(String, bool)],
-    waits: bool,
+    names: &[Standing],
 ) {
     use iced::widget::canvas::{Stroke, Text};
     use iced::{Point, Rectangle, alignment};
@@ -253,9 +269,9 @@ pub(super) fn pills(
     let shown = names
         .iter()
         .take(PILLS)
-        .map(|(name, wrong)| (name.clone(), *wrong));
-    let counted = (more > 0).then(|| (format!("+{more}"), false));
-    for (words, wrong) in shown.chain(counted) {
+        .map(|one| (one.name.clone(), one.wrong, one.waits));
+    let counted = (more > 0).then(|| (format!("+{more}"), false, false));
+    for (words, wrong, waits) in shown.chain(counted) {
         let color = if wrong { look.wrong } else { look.accent };
         let words = match waits {
             true => format!("‖ {words}"),

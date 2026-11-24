@@ -172,8 +172,10 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                 cut(&head, row.saturating_sub(event + 3).max(row / 2))
             } else if *live {
                 // Nothing to step: the head, which counts, has the room of
-                // the tools; what the last line said comes after.
-                cut(&head, third * 2)
+                // the tools but the close; what the last line said comes
+                // after.
+                let close = ((tool_width("✕") + 3.0 * GAP) / (13.0 * CHAR)).ceil() as usize;
+                cut(&head, (third * 2).saturating_sub(close))
             } else {
                 cut(&head, third)
             };

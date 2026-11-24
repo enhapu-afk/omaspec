@@ -34,8 +34,8 @@ pub(super) enum Asking {
     ExportProject,
     /// The new name of what the caret names ([`App::renaming`]).
     Rename,
-    /// The trace to follow as it is written ([`super::follow`]).
-    FollowTrace,
+    /// The trace to follow as it is written on this tab ([`super::follow`]).
+    FollowTrace(u64),
 }
 
 /// A question in the bottom line.
@@ -130,7 +130,7 @@ impl App {
                     folder.join(name).display().to_string()
                 }
             },
-            Asking::Open | Asking::FollowTrace => format!("{}/", folder.display()),
+            Asking::Open | Asking::FollowTrace(_) => format!("{}/", folder.display()),
             // Beside the project the sidebar is in, not inside it.
             Asking::NewProject { .. } => format!("{}/", self.project_base().display()),
             Asking::Export(format) => suggested_export(doc, &folder, format),

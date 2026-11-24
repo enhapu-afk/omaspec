@@ -111,6 +111,9 @@ impl App {
         let key = self.doc().key;
         let before = self.docs.len();
         self.docs.retain(|d| d.key == key || d.modified);
+        // The traces the closed tabs followed are watched no more.
+        let open: Vec<u64> = self.docs.iter().map(|d| d.key).collect();
+        self.traces.retain(|tab, _| open.contains(tab));
         let kept = self.docs.len() - 1;
         self.active = self.docs.iter().position(|d| d.key == key).unwrap_or(0);
         self.notice = Some(match (before - self.docs.len(), kept) {
@@ -234,6 +237,8 @@ impl App {
             .then(|| self.project_of(closed))
             .flatten();
         self.docs.remove(index);
+        // The trace it followed is watched no more.
+        self.traces.remove(&gone);
         if self.docs.is_empty() {
             let key = self.take_key();
             self.docs.push(Doc::untitled(key, self.forced, &self.look));

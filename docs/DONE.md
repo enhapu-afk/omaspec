@@ -85,6 +85,19 @@ is open and the reasoning around it.
       it again once drawn; Esc, F5 and the bar's ✕ end following.
       `the_editor_follows_a_trace_as_it_is_written` names a trace, writes
       a line to it, and the pill moves to where a person decides.
+- [x] What the review of the places a person decides and the editor's
+      following found (2026-11-24). An object waits where a person
+      decides at the state its pill stands at, or one around it
+      (`<<decide>>` on a composite state); one whose last line deviates
+      there does not wait, and the pill that counts the rest stays plain.
+      The editor plays a trace again only where the drawing itself ended
+      the play; one that ended otherwise (stopped, presented, another
+      play) ends following, and a closed tab's trace is watched no more.
+      A drawing whose machine is the same but for its lines (a comment, a
+      color) keeps the play, the trace not read again. The bottom line
+      follows on the tab it was asked for. The bar keeps room for its ✕.
+      A choice, a fork or a join with the class `decide` says that
+      PlantUML takes no `<<decide>>` there.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

@@ -18,7 +18,7 @@ impl App {
     pub(super) fn follow_trace_asking(&mut self) -> Task<Message> {
         let key = self.doc().key;
         if !self.dialogs {
-            return self.ask(Asking::FollowTrace);
+            return self.ask(Asking::FollowTrace(key));
         }
         let folder = self
             .doc()
@@ -45,7 +45,7 @@ impl App {
         match answer {
             Answer::Cancelled => Task::none(),
             Answer::Unavailable(why) => {
-                let task = self.ask(Asking::FollowTrace);
+                let task = self.ask(Asking::FollowTrace(key));
                 self.notice = Some(format!("no open dialog ({why}): name the trace here"));
                 task
             }
@@ -53,8 +53,9 @@ impl App {
         }
     }
 
-    /// Follows the trace the bottom line names.
-    pub(super) fn follow_submitted(&mut self) -> Task<Message> {
+    /// Follows the trace the bottom line names on tab `key`, the one it
+    /// was asked for.
+    pub(super) fn follow_submitted(&mut self, key: u64) -> Task<Message> {
         let Some(path) = self
             .prompt
             .as_ref()
@@ -64,7 +65,6 @@ impl App {
             return Task::none();
         };
         self.prompt = None;
-        let key = self.doc().key;
         self.follow_path(key, path)
     }
 
@@ -89,7 +89,8 @@ impl App {
         }
     }
 
-    /// Moves the plays that follow the file `path`; whether one does.
+    /// Moves the plays that follow the file `path`; whether one does. A
+    /// tab whose play ended since follows it no more.
     pub(super) fn follow_changed(&mut self, path: &Path) -> bool {
         let keys: Vec<u64> = self
             .traces
@@ -97,17 +98,26 @@ impl App {
             .filter(|(_, trace)| same(trace, path))
             .map(|(&key, _)| key)
             .collect();
-        for &key in &keys {
-            if let Some(doc) = self.docs.iter_mut().find(|doc| doc.key == key) {
-                doc.paper.follow_more();
+        let mut moved = false;
+        for key in keys {
+            match self.docs.iter_mut().find(|doc| doc.key == key) {
+                Some(doc) if doc.paper.following().is_some() => {
+                    doc.paper.follow_more();
+                    moved = true;
+                }
+                _ => {
+                    self.traces.remove(&key);
+                }
             }
         }
-        !keys.is_empty()
+        moved
     }
 
-    /// Starts following again on tab `key` once it is drawn anew, where a
-    /// change to the diagram ended the play.
-    pub(super) fn follow_again(&mut self, key: u64) {
+    /// Starts following again on tab `key` once it is drawn anew, where
+    /// this drawing, a change to the machine, ended the play (`followed`:
+    /// it followed before). A play that ended otherwise (stopped, a
+    /// presentation, another play) ended following too.
+    pub(super) fn follow_again(&mut self, key: u64, followed: bool) {
         let Some(path) = self.traces.get(&key).cloned() else {
             return;
         };
@@ -115,7 +125,11 @@ impl App {
             self.traces.remove(&key);
             return;
         };
-        if doc.paper.following().is_some() || doc.paper.playing() {
+        if doc.paper.following().is_some() {
+            return;
+        }
+        if !followed || doc.paper.playing() {
+            self.traces.remove(&key);
             return;
         }
         let name = doc.name();

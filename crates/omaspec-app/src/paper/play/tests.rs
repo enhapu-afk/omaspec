@@ -730,7 +730,12 @@ fn a_trace_followed_live_moves_as_it_is_written() {
         };
         live.standing()
             .into_iter()
-            .map(|(state, names)| (machine.machine.states[state].name.clone(), names))
+            .map(|(state, names)| {
+                (
+                    machine.machine.states[state].name.clone(),
+                    names.into_iter().map(|one| (one.name, one.wrong)).collect(),
+                )
+            })
             .collect()
     };
     let at = |state: &str, names: &[(&str, bool)]| {
@@ -848,7 +853,7 @@ fn an_object_where_a_person_decides_waits_for_them() {
     let Driver::Live(live) = &machine.driver else {
         panic!("live");
     };
-    assert_eq!(live.waiting(), ["pr-42"]);
+    assert_eq!(live.waiting(), 1);
     let review = machine
         .machine
         .states
@@ -860,5 +865,59 @@ fn an_object_where_a_person_decides_waits_for_them() {
         panic!("a trace");
     };
     assert_eq!(object, "live · 2 objects · 1 waits");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Inside a state where a person decides, an object waits too; one whose
+/// last line deviates there does not, and stands in red.
+#[test]
+fn an_object_waits_inside_where_a_person_decides_unless_it_deviates() {
+    let source = "@startuml\n[*] --> Coding\nCoding --> Review : pushed\nstate Review <<decide>> {\n  [*] --> Reading\n  Reading --> Asking : unclear\n}\nReview --> Coding : changes asked\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let dir = std::env::temp_dir().join(format!("omaspec-decide-in-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("run.jsonl");
+    let line = |object: &str, event: &str| {
+        format!("{{\"object\":\"{object}\",\"machine\":\"flow\",\"event\":\"{event}\"}}\n")
+    };
+    std::fs::write(
+        &path,
+        [
+            line("pr-1", "pushed"),
+            line("pr-2", "pushed"),
+            line("pr-2", "pushed"),
+        ]
+        .concat(),
+    )
+    .unwrap();
+    let play = Play::live(
+        source,
+        Language::PlantUml,
+        &map,
+        "flow.puml",
+        path,
+        Instant::now(),
+    )
+    .unwrap();
+    let Play::Machine(machine) = &play else {
+        panic!("a machine");
+    };
+    let Driver::Live(live) = &machine.driver else {
+        panic!("live");
+    };
+    let standing: Vec<(String, bool, bool)> = live
+        .standing()
+        .into_iter()
+        .flat_map(|(_, names)| names)
+        .map(|one| (one.name, one.wrong, one.waits))
+        .collect();
+    assert_eq!(
+        standing,
+        [
+            ("pr-1".to_owned(), false, true),
+            ("pr-2".to_owned(), true, false)
+        ]
+    );
+    assert_eq!(live.waiting(), 1);
     let _ = std::fs::remove_dir_all(&dir);
 }

@@ -3752,8 +3752,30 @@ fn the_editor_follows_a_trace_as_it_is_written() {
     drop(out);
     let _ = app.update(Message::Worker(worker::Event::FileChanged(trace.clone())));
     assert_eq!(lines(&app), (2, "live · pr-1 waits for you".to_owned()));
+    // A comment in the diagram keeps following, the trace not read again;
+    // a change to the machine ends this play.
+    let commented = flow.replace("@enduml", "' a note to self\n@enduml");
+    show(&mut app, &commented, Language::PlantUml);
+    assert_eq!(app.doc().paper.following(), Some(trace.as_path()));
+    assert_eq!(lines(&app).0, 2);
+    let changed = flow.replace("changes asked", "asked again");
+    show(&mut app, &changed, Language::PlantUml);
+    assert!(app.doc().paper.following().is_none());
+    show(&mut app, flow, Language::PlantUml);
+    let key = app.doc().key;
+    let _ = app.follow_path(key, trace.clone());
+    assert_eq!(app.doc().paper.following(), Some(trace.as_path()));
     // Stopping the play ends following: nothing is watched for it.
     let _ = app.update(Message::Command(Command::StopPlay));
+    assert!(app.followed_files().next().is_none());
+    // So does another play put in its place: its trace's next change
+    // finds it gone.
+    let _ = app.update(Message::Command(Command::FollowTrace));
+    let _ = app.update(Message::PromptInput(trace.display().to_string()));
+    let _ = app.update(Message::PromptSubmit);
+    assert!(app.followed_files().any(|f| f == trace));
+    app.doc_mut().paper.start_play().unwrap();
+    let _ = app.update(Message::Worker(worker::Event::FileChanged(trace.clone())));
     assert!(app.followed_files().next().is_none());
 }
 

@@ -427,7 +427,7 @@ impl MachinePlay {
                     (n, _) => format!("live · {n} objects"),
                 };
                 // Who waits the pills say; the head counts them.
-                match (live.waiting().len(), live.objects()) {
+                match (live.waiting(), live.objects()) {
                     (0, _) => {}
                     (1, 1) => head.push_str(" waits for you"),
                     (1, _) => head.push_str(" · 1 waits"),
@@ -669,8 +669,7 @@ impl MachinePlay {
         if let Driver::Live(live) = &self.driver {
             for (state, names) in live.standing() {
                 if let Some(spot) = &self.placed.states[state] {
-                    let waits = self.machine.states[state].decide;
-                    pills(frame, look, (view.place)(spot.rect), &names, waits);
+                    pills(frame, look, (view.place)(spot.rect), &names);
                 }
             }
         }

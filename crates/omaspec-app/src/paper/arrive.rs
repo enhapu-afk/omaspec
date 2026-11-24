@@ -66,7 +66,7 @@ impl Paper {
                 if let Some(play) = &mut self.play {
                     let same = self.diagram.as_ref().is_some_and(|d| {
                         d.source == answer.source && d.language == answer.language
-                    });
+                    }) || play.follows_on(&answer.source, answer.language);
                     if same {
                         play.remap(&drawn.map);
                         play.shape(&drawn.tree);
