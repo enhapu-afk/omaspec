@@ -3700,9 +3700,6 @@ fn a_play_lights_each_state_in_its_own_shape() {
     }
 }
 
-/// Writes headless screenshots of a play when OMASPEC_SNAPSHOT_DIR
-/// is set: a state machine at rest, a light on its way and arriving,
-/// a scenario half unfolded.
 /// A trace followed live on an agents' workflow: each object a pill with
 /// its name beside its state, past three a pill that counts the rest, one
 /// whose last line deviates in red (docs/adr/0036).
@@ -3749,6 +3746,9 @@ fn snapshot_live() {
     shoot(&mut app, &dir, "live");
 }
 
+/// Writes headless screenshots of a play when OMASPEC_SNAPSHOT_DIR
+/// is set: a state machine at rest, a light on its way and arriving,
+/// a scenario half unfolded.
 #[test]
 fn snapshot_play() {
     let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {

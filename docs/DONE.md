@@ -53,6 +53,19 @@ is open and the reasoning around it.
       file written anew is followed from its start, and the play starts
       again after each change to the machine. Esc stops following.
       `snapshot_live` draws an agents' workflow with eight objects.
+- [x] What the review of the trace followed live found (2026-11-24). The
+      preview follows each object a line at a time and keeps its last
+      step (`omaspec_model::TraceFollowers`), not the whole trace read
+      again at every write; both followers read bytes and cut them at the
+      ends of lines, so a letter written across two reads stays whole,
+      and start over where another file was put in its place by name,
+      longer or not (its inode). `trace --follow` reads a pipe as it
+      streams; the preview says it follows files only. Where an object
+      deviates, its state alone flashes, and a state another object still
+      stands in stays lit while one leaves it. The bar's ✕ and F5 end
+      following as Esc does, a link to another diagram ends it, and the
+      status line says only Esc stops. `--strict` fails a followed trace
+      as it fails a whole one (`commands::fails`).
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

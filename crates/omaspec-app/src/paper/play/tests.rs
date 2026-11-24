@@ -784,5 +784,37 @@ fn a_trace_followed_live_moves_as_it_is_written() {
     .unwrap();
     assert!(play.follow_more(t0));
     assert_eq!(standing(&play), [at("Closed", &[("back", false)])]);
+    // A letter written across two reads stays whole.
+    let whole = line("Prüfung", "open");
+    let cut = whole.find('ü').unwrap() + 1;
+    let write = |bytes: &[u8]| {
+        let mut file = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap();
+        file.write_all(bytes).unwrap();
+    };
+    write(&whole.as_bytes()[..cut]);
+    let _ = play.follow_more(t0);
+    write(&whole.as_bytes()[cut..]);
+    assert!(play.follow_more(t0));
+    assert_eq!(
+        standing(&play),
+        [
+            at("Closed", &[("back", false)]),
+            at("Open", &[("Prüfung", false)])
+        ]
+    );
+    // Another file put in its place by name, longer than this one: from
+    // its start too.
+    let other = dir.join("next.jsonl");
+    let longer: String = ["open", "close", "open", "close", "open"]
+        .iter()
+        .map(|event| line("side", event))
+        .collect();
+    std::fs::write(&other, longer).unwrap();
+    std::fs::rename(&other, &path).unwrap();
+    assert!(play.follow_more(t0));
+    assert_eq!(standing(&play), [at("Open", &[("side", false)])]);
     let _ = std::fs::remove_dir_all(&dir);
 }

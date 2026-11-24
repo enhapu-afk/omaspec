@@ -6,17 +6,19 @@
 //! [`PILLS`] objects in one state, a pill counts the rest.
 //!
 //! The file is read from where the last reading ended whenever the
-//! window hears it changed; a line half written waits for its end, a file
-//! written anew is followed from its start. The objects are followed as
-//! `omaspec trace` follows them ([`omaspec_model::follow_traces`]).
+//! window hears it changed, as bytes cut at the ends of lines, so a
+//! letter written across two reads stays whole; a line half written waits
+//! for its end. A file written anew, shorter or another file by the same
+//! name, is followed from its start. The objects are followed a line at a
+//! time as `omaspec trace` follows them ([`omaspec_model::TraceFollowers`]),
+//! each keeping its last step: a run of hours costs what its new lines do.
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::PathBuf;
 
 use omaspec_core::lint::Severity;
-use omaspec_model::{Followed, Kind, Machine, Spec, TraceStep};
+use omaspec_model::{Followed, Kind, Machine, Spec, TraceFollowers, TraceStep};
 
 /// Pills with names beside one state at most; one more counts the rest.
 pub(super) const PILLS: usize = 3;
@@ -30,23 +32,19 @@ pub(super) struct LiveRun {
     /// The trace's file name.
     pub(super) name: String,
     spec: Spec,
-    /// The trace's complete lines so far, and what of a line is written.
-    text: String,
-    rest: String,
-    /// The bytes of the file read.
+    followers: TraceFollowers,
+    /// What of a line is written, as bytes.
+    rest: Vec<u8>,
+    /// The bytes of the file read, and which file it was.
     read: u64,
-    /// Each object of the machine, followed through the lines so far, in
-    /// the order they first appear.
-    pub(super) objects: Vec<(String, Followed)>,
-    /// How many of each object's steps were shown.
-    shown: HashMap<String, usize>,
+    file: Option<u64>,
     pub(super) lines: usize,
 }
 
-/// What new lines did: their steps in line order, and whether they could
-/// be run along one by one.
+/// What new lines did: each one's object and step in line order, and
+/// whether they could be run along one by one.
 pub(super) struct Came {
-    pub(super) steps: Vec<TraceStep>,
+    pub(super) steps: Vec<(String, TraceStep)>,
     pub(super) run: bool,
 }
 
@@ -59,69 +57,63 @@ impl LiveRun {
         LiveRun {
             path,
             name,
+            followers: TraceFollowers::new(spec.clone()),
             spec,
-            text: String::new(),
-            rest: String::new(),
+            rest: Vec::new(),
             read: 0,
-            objects: Vec::new(),
-            shown: HashMap::new(),
+            file: None,
             lines: 0,
         }
     }
 
     pub(super) fn machine(&self) -> &Machine {
-        &self.spec.machine
+        self.followers.machine()
     }
 
     /// Reads what was written since; the steps of the lines it completes,
     /// or `None` when nothing came. A file written anew starts over.
     pub(super) fn read_more(&mut self) -> Option<Came> {
         let mut file = File::open(&self.path).ok()?;
-        let len = file.metadata().ok()?.len();
+        let meta = file.metadata().ok()?;
+        let len = meta.len();
+        let which = identity(&meta);
         let mut again = false;
-        if len < self.read {
-            self.text.clear();
+        if len < self.read || self.file.is_some_and(|was| was != which) {
+            self.followers = TraceFollowers::new(self.spec.clone());
             self.rest.clear();
             self.read = 0;
             self.lines = 0;
-            self.objects.clear();
-            self.shown.clear();
             again = true;
         }
+        self.file = Some(which);
         if len > self.read {
             file.seek(SeekFrom::Start(self.read)).ok()?;
-            let mut bytes = Vec::new();
-            file.take(len - self.read).read_to_end(&mut bytes).ok()?;
-            self.read += bytes.len() as u64;
-            self.rest.push_str(&String::from_utf8_lossy(&bytes));
+            let before = self.rest.len();
+            file.take(len - self.read)
+                .read_to_end(&mut self.rest)
+                .ok()?;
+            self.read += (self.rest.len() - before) as u64;
         }
-        let Some(end) = self.rest.rfind('\n') else {
-            return again.then(|| self.came());
-        };
-        let complete: String = self.rest.drain(..=end).collect();
-        self.lines += complete.lines().count();
-        self.text.push_str(&complete);
-        Some(self.came())
-    }
-
-    /// The steps not shown yet, in line order.
-    fn came(&mut self) -> Came {
-        self.objects = omaspec_model::follow_traces(&self.text, &self.spec);
-        let mut steps: Vec<TraceStep> = Vec::new();
-        for (object, followed) in &self.objects {
-            let shown = self.shown.entry(object.clone()).or_insert(0);
-            steps.extend(followed.steps.iter().skip(*shown).cloned());
-            *shown = followed.steps.len();
+        let mut steps = Vec::new();
+        while let Some(end) = self.rest.iter().position(|&b| b == b'\n') {
+            let line: Vec<u8> = self.rest.drain(..=end).collect();
+            let text = String::from_utf8_lossy(&line);
+            self.lines += 1;
+            if let Some(step) = self.followers.line(text.trim_end_matches(['\n', '\r'])) {
+                steps.push(step);
+            }
         }
-        steps.sort_by_key(|step| step.line);
+        if steps.is_empty() && !again {
+            return None;
+        }
         let run = steps.len() <= RUN_AT_MOST;
-        Came { steps, run }
+        Some(Came { steps, run })
     }
 
     /// Where every object can be by now: the states to light.
     pub(super) fn lit(&self) -> Vec<usize> {
         let mut lit: Vec<usize> = Vec::new();
-        for (_, followed) in &self.objects {
+        for (_, followed) in self.followers.objects() {
             for &state in at(followed) {
                 if !lit.contains(&state) {
                     lit.push(state);
@@ -131,6 +123,20 @@ impl LiveRun {
         lit
     }
 
+    /// How many objects it follows.
+    pub(super) fn objects(&self) -> usize {
+        self.followers.objects().count()
+    }
+
+    /// The one object it follows, when there is one.
+    pub(super) fn only(&self) -> Option<&str> {
+        let mut objects = self.followers.objects();
+        match (objects.next(), objects.next()) {
+            (Some((object, _)), None) => Some(object),
+            _ => None,
+        }
+    }
+
     /// Each state with objects in it, in the order of the states: their
     /// names, and whether each one's last line deviates. An object that
     /// may be in several states stands at the first; one not followed
@@ -138,14 +144,14 @@ impl LiveRun {
     pub(super) fn standing(&self) -> Vec<(usize, Vec<(String, bool)>)> {
         let m = self.machine();
         let mut by_state: Vec<(usize, Vec<(String, bool)>)> = Vec::new();
-        for (object, followed) in &self.objects {
+        for (object, followed) in self.followers.objects() {
             let Some(&state) = at(followed)
                 .iter()
                 .find(|&&s| matches!(m.states[s].kind, Kind::State | Kind::End))
             else {
                 continue;
             };
-            let entry = (object.clone(), deviates(followed));
+            let entry = (object.to_owned(), deviates(followed));
             match by_state.iter_mut().find(|(s, _)| *s == state) {
                 Some((_, names)) => names.push(entry),
                 None => by_state.push((state, vec![entry])),
@@ -157,16 +163,16 @@ impl LiveRun {
 
     /// The last line written of any object, and the object.
     pub(super) fn last(&self) -> Option<(&TraceStep, &str)> {
-        self.objects
-            .iter()
-            .filter_map(|(object, followed)| followed.steps.last().map(|s| (s, object.as_str())))
+        self.followers
+            .objects()
+            .filter_map(|(object, followed)| followed.steps.last().map(|s| (s, object)))
             .max_by_key(|(step, _)| step.line)
     }
 
     /// What deviates at the last line of an object, the latest of them.
     pub(super) fn wrong(&self) -> Option<(Severity, String)> {
-        self.objects
-            .iter()
+        self.followers
+            .objects()
             .filter_map(|(_, followed)| followed.steps.last())
             .filter(|step| {
                 step.finding
@@ -180,8 +186,23 @@ impl LiveRun {
 
     /// Objects whose last line deviates.
     pub(super) fn deviating(&self) -> usize {
-        self.objects.iter().filter(|(_, f)| deviates(f)).count()
+        self.followers
+            .objects()
+            .filter(|(_, f)| deviates(f))
+            .count()
     }
+}
+
+/// Which file `meta` is, so one put in its place by name is told apart:
+/// its inode where the system has them.
+#[cfg(unix)]
+fn identity(meta: &std::fs::Metadata) -> u64 {
+    std::os::unix::fs::MetadataExt::ino(meta)
+}
+
+#[cfg(not(unix))]
+fn identity(_: &std::fs::Metadata) -> u64 {
+    0
 }
 
 /// Where `followed` can be after its last line.

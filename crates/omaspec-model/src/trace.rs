@@ -52,7 +52,7 @@ pub fn check(trace: &str, specs: &Specs) -> Vec<Finding> {
 pub struct Checking<'a> {
     specs: &'a Specs,
     /// By object; `None` for one without a machine, reported once.
-    objects: HashMap<String, Option<Object<'a>>>,
+    objects: HashMap<String, Option<(&'a Spec, Object)>>,
     /// The zero-based line the next one is.
     line: usize,
 }
@@ -85,7 +85,7 @@ impl<'a> Checking<'a> {
         let object = self.objects.entry(entry.object.clone()).or_insert_with(|| {
             let name = entry.machine.as_deref().unwrap_or(&entry.object);
             match machine_named(name, specs) {
-                Ok(spec) => Some(Object::new(spec)),
+                Ok(spec) => Some((spec, Object::new(spec))),
                 Err(why) => {
                     out.push(finding(
                         "trace-unchecked",
@@ -97,8 +97,8 @@ impl<'a> Checking<'a> {
                 }
             }
         });
-        if let Some(object) = object {
-            out.extend(object.follow(&entry).findings);
+        if let Some((spec, object)) = object {
+            out.extend(object.follow(spec, &entry).findings);
         }
         out
     }
@@ -157,7 +157,7 @@ pub fn follow(trace: &str, spec: &Spec, object: &str) -> Followed {
             continue;
         };
         if entry.object == object {
-            one.take(entry);
+            one.take(spec, entry);
         }
     }
     one.followed
@@ -181,7 +181,7 @@ pub fn follow_all(trace: &str, spec: &Spec) -> Vec<(String, Followed)> {
             order.push(entry.object.clone());
             Following::new(spec)
         });
-        one.take(entry);
+        one.take(spec, entry);
     }
     order
         .into_iter()
@@ -195,15 +195,81 @@ pub fn follow_all(trace: &str, spec: &Spec) -> Vec<(String, Followed)> {
         .collect()
 }
 
+/// Every object of a trace that goes by a machine, followed line by line
+/// while the trace is written: what [`follow_all`] gives, a line at a
+/// time, each object keeping only its last step, so a run of hours stays
+/// as small as its objects (`omaspec preview --follow`).
+pub struct Followers {
+    spec: Spec,
+    names: Vec<String>,
+    /// The zero-based line the next one is.
+    line: usize,
+    order: Vec<String>,
+    each: HashMap<String, Following>,
+}
+
+impl Followers {
+    pub fn new(spec: Spec) -> Self {
+        let names = spec.names.iter().map(|n| key(n)).collect();
+        Followers {
+            spec,
+            names,
+            line: 0,
+            order: Vec::new(),
+            each: HashMap::new(),
+        }
+    }
+
+    pub fn machine(&self) -> &Machine {
+        &self.spec.machine
+    }
+
+    /// The step the trace's next line `text` takes, and its object; `None`
+    /// for a line that is no event or one of another machine's object.
+    pub fn line(&mut self, text: &str) -> Option<(String, TraceStep)> {
+        let line = self.line;
+        self.line += 1;
+        let entry = entry(line, text).ok()?;
+        if !self
+            .names
+            .contains(&key(entry.machine.as_deref().unwrap_or(&entry.object)))
+        {
+            return None;
+        }
+        let object = entry.object.clone();
+        let (each, order, spec) = (&mut self.each, &mut self.order, &self.spec);
+        let one = each.entry(object.clone()).or_insert_with(|| {
+            order.push(object.clone());
+            Following::new(spec)
+        });
+        one.take(spec, entry);
+        let steps = &mut one.followed.steps;
+        if steps.len() > 1 {
+            steps.drain(..steps.len() - 1);
+        }
+        Some((object, steps.last()?.clone()))
+    }
+
+    /// Each object in the order it first appears, as followed so far:
+    /// where it began, and its last step.
+    pub fn objects(&self) -> impl Iterator<Item = (&str, &Followed)> {
+        self.order.iter().filter_map(|object| {
+            self.each
+                .get(object)
+                .map(|one| (object.as_str(), &one.followed))
+        })
+    }
+}
+
 /// One object on its way through a machine, line by line.
-struct Following<'a> {
-    tracked: Object<'a>,
+struct Following {
+    tracked: Object,
     before: Vec<usize>,
     followed: Followed,
 }
 
-impl<'a> Following<'a> {
-    fn new(spec: &'a Spec) -> Self {
+impl Following {
+    fn new(spec: &Spec) -> Self {
         Following {
             tracked: Object::new(spec),
             before: Vec::new(),
@@ -212,8 +278,8 @@ impl<'a> Following<'a> {
     }
 
     /// Follows the object through `entry`, its next line.
-    fn take(&mut self, entry: Entry) {
-        let outcome = self.tracked.follow(&entry);
+    fn take(&mut self, spec: &Spec, entry: Entry) {
+        let outcome = self.tracked.follow(spec, &entry);
         if self.followed.steps.is_empty() {
             self.followed.start = self.tracked.started.clone();
             self.followed.begins = self.tracked.begins.clone();
@@ -298,8 +364,7 @@ fn machine_named<'a>(name: &str, specs: &'a Specs) -> Result<&'a Spec, String> {
 }
 
 /// An object of the trace, followed through its machine.
-struct Object<'a> {
-    spec: &'a Spec,
+struct Object {
     track: Track,
     /// Event key → the event as the machine writes it.
     written: HashMap<String, String>,
@@ -343,10 +408,9 @@ impl Outcome {
     }
 }
 
-impl<'a> Object<'a> {
-    fn new(spec: &'a Spec) -> Self {
+impl Object {
+    fn new(spec: &Spec) -> Self {
         Object {
-            spec,
             track: Track::Fresh,
             written: written(&spec.machine),
             started: Vec::new(),
@@ -413,10 +477,10 @@ impl<'a> Object<'a> {
     }
 
     /// Follows the object through `entry`, its next line.
-    fn follow(&mut self, entry: &Entry) -> Outcome {
+    fn follow(&mut self, spec: &Spec, entry: &Entry) -> Outcome {
         let mut outcome = Outcome::default();
-        let m = &self.spec.machine;
-        let file = &self.spec.file;
+        let m = &spec.machine;
+        let file = &spec.file;
         // A sentence about the object starts with its name, as the trace
         // writes it.
         let say = |body: String| match &entry.time {
@@ -433,7 +497,7 @@ impl<'a> Object<'a> {
             state: entry.state.clone(),
             time: entry.time.clone(),
         };
-        let ask = |ways: &[Run]| task(self.spec, &entry.object, happened(), ways);
+        let ask = |ways: &[Run]| task(spec, &entry.object, happened(), ways);
         let state = match &entry.state {
             Some(name) => match state_named(m, name) {
                 Some(state) => Some(state),
@@ -691,7 +755,7 @@ pub(crate) fn cover(trace: &str, spec: &Spec, cov: &mut crate::Coverage) {
         // Where it is before the line: where it leaves the machine, should
         // the line deviate.
         let before = object.at();
-        let outcome = object.follow(&entry);
+        let outcome = object.follow(spec, &entry);
         if fresh {
             for step in &object.started {
                 count(cov, step);

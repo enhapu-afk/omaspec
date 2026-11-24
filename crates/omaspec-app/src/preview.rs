@@ -41,6 +41,8 @@ const KEY_PAN: f32 = 80.0;
 const KEY_ZOOM: f32 = 1.25;
 /// The status bar's note while a play runs.
 const PLAY_KEYS: &str = "playing: 1–9 a step, Space next, Backspace back, Esc stops";
+/// While a trace is followed as it is written.
+const FOLLOW_KEYS: &str = "following a trace as it is written: Esc stops";
 
 pub fn run(path: PathBuf, forced: Option<Language>, trace: Option<PathBuf>) -> iced::Result {
     iced::application(
@@ -179,6 +181,10 @@ impl Preview {
             }
             Message::Paper(paper::Message::Follow(at)) => self.follow(at),
             Message::Paper(message) => {
+                // The bar's ✕ ends following the trace too.
+                if matches!(message, paper::Message::StopPlay) {
+                    self.stop_following();
+                }
                 let task = self.paper.update(message).map(Message::Paper);
                 // A container folded or unfolded: drawn again.
                 if self.paper.take_refold() {
@@ -344,12 +350,25 @@ impl Preview {
 
     /// Shows the file at `self.path`, fitted, as if the window had opened
     /// on it.
+    /// Ends following the trace, where the play that stops follows it:
+    /// a change to the diagram does not start it again.
+    fn stop_following(&mut self) {
+        if self.paper.following().is_some() {
+            self.trace = None;
+        }
+    }
+
     fn show_path(&mut self) {
+        // The trace is followed on the machine it was asked for, not on
+        // the diagrams a link leads to.
+        self.notice = self
+            .trace
+            .take()
+            .map(|_| "stopped following the trace: it belongs to the diagram before".to_owned());
         self.name = self.path.file_name().map_or_else(
             || self.path.display().to_string(),
             |n| n.to_string_lossy().into_owned(),
         );
-        self.notice = None;
         self.paper.view = paper::View::default();
         self.request_render();
     }
@@ -376,6 +395,10 @@ impl Preview {
         let step = |ask| paper::Message::Play(ask);
         let task = match key.as_ref() {
             Key::Named(Named::F5) | Key::Character("p") => {
+                // A play by hand ends following the trace, or comes after.
+                if paper.following().is_some() || !playing {
+                    self.trace = None;
+                }
                 if playing {
                     paper.update(paper::Message::StopPlay)
                 } else if paper.unfold_all() {
@@ -464,9 +487,13 @@ impl Preview {
 
     /// The notice, else the keys of the play that runs; gone once it stops.
     fn note(&self) -> Option<&str> {
+        let keys = match self.paper.following() {
+            Some(_) => FOLLOW_KEYS,
+            None => PLAY_KEYS,
+        };
         self.notice
             .as_deref()
-            .or(self.paper.playing().then_some(PLAY_KEYS))
+            .or(self.paper.playing().then_some(keys))
     }
 
     /// One line: file and language, the state (or an error, cut to fit),

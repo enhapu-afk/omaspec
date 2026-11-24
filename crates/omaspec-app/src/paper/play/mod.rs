@@ -161,6 +161,13 @@ impl Play {
     ) -> Result<Play, String> {
         let spec = Spec::read(source, language, file)
             .ok_or("only a state machine can follow a trace, and this diagram is none")?;
+        // A pipe is read as it streams, which a window must not wait for.
+        if std::fs::metadata(&path).is_ok_and(|meta| !meta.is_file()) {
+            return Err(format!(
+                "{} is no file: follow a file a trace is written to",
+                path.display()
+            ));
+        }
         let placed = placed(&spec.machine, map)?;
         let machine = spec.machine.clone();
         let mut live = LiveRun::new(path, spec);

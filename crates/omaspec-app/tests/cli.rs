@@ -524,6 +524,35 @@ fn trace_follows_a_trace_while_it_is_written() {
         "{}",
         stdout(&out)
     );
+    // What is no file, a pipe, is read as it streams, until it ends.
+    #[cfg(unix)]
+    {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+            .args([
+                "trace",
+                "--follow",
+                "/dev/stdin",
+                "--project",
+                dir.to_str().unwrap(),
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(b"{\"object\":\"Door\",\"event\":\"close\"}\n")
+            .unwrap();
+        let out = child.wait_with_output().unwrap();
+        assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
+        assert!(
+            stdout(&out).contains("/dev/stdin:1: error: Door does not take close here"),
+            "{}",
+            stdout(&out)
+        );
+    }
 }
 
 #[test]

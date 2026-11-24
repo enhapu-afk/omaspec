@@ -366,7 +366,7 @@ pub fn check_trace(trace: &str, specs: &Specs) -> Vec<Finding> {
     trace::check(trace, specs)
 }
 
-pub use trace::Checking as TraceChecking;
+pub use trace::{Checking as TraceChecking, Followers as TraceFollowers};
 
 /// The objects of a recorded trace that go by `spec`'s machine, in the
 /// order they first appear.

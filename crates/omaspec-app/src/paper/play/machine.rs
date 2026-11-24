@@ -40,6 +40,9 @@ pub struct MachinePlay {
     /// When a line it could not follow was played: the states it is in
     /// flash in the color of what deviates.
     pub(super) flashes: Vec<Instant>,
+    /// In a trace followed live, when an object's line deviated, and the
+    /// states it is in: they alone flash, not those of the others.
+    pub(super) marks: Vec<(Instant, Vec<usize>)>,
 }
 
 pub(super) enum Driver {
@@ -159,6 +162,7 @@ impl MachinePlay {
             lines: Vec::new(),
             focus: None,
             flashes: Vec::new(),
+            marks: Vec::new(),
         }
     }
 
@@ -174,15 +178,29 @@ impl MachinePlay {
         };
         let lit = live.lit();
         if came.run {
-            for step in &came.steps {
-                self.schedule(&step.taken, now);
+            for (_, step) in &came.steps {
+                // A state another object still stands in stays lit.
+                let held: Vec<Taken> = step
+                    .taken
+                    .iter()
+                    .map(|t| Taken {
+                        left: t
+                            .left
+                            .iter()
+                            .copied()
+                            .filter(|s| !lit.contains(s))
+                            .collect(),
+                        ..t.clone()
+                    })
+                    .collect();
+                self.schedule(&held, now);
                 let deviates = step
                     .finding
                     .as_ref()
                     .is_some_and(|f| f.severity == Severity::Error);
                 if deviates {
-                    self.flashes.retain(|&at| at + FLASH > now);
-                    self.flashes.push(self.free_at.max(now));
+                    self.marks.retain(|(at, _)| *at + FLASH > now);
+                    self.marks.push((self.free_at.max(now), step.at.clone()));
                 }
             }
             self.aim(&lit, now);
@@ -381,6 +399,7 @@ impl MachinePlay {
         // A flash where it could not follow runs to its end.
         self.flashes
             .iter()
+            .chain(self.marks.iter().map(|(at, _)| at))
             .map(|&at| at + FLASH)
             .fold(lights, Instant::max)
     }
@@ -402,12 +421,12 @@ impl MachinePlay {
             Driver::Live(live) => {
                 let (last, finding) = (live.last(), live.wrong());
                 // The pills say who stands where; the head counts them.
-                let object = match (live.objects.len(), live.deviating()) {
-                    (1, 0) => format!("live · {}", live.objects[0].0),
-                    (1, _) => format!("live · {} deviates", live.objects[0].0),
-                    (n, 0) => format!("live · {n} objects"),
-                    (n, 1) => format!("live · {n} objects · 1 deviates"),
-                    (n, d) => format!("live · {n} objects · {d} deviate"),
+                let object = match (live.objects(), live.deviating(), live.only()) {
+                    (1, 0, Some(only)) => format!("live · {only}"),
+                    (1, _, Some(only)) => format!("live · {only} deviates"),
+                    (n, 0, _) => format!("live · {n} objects"),
+                    (n, 1, _) => format!("live · {n} objects · 1 deviates"),
+                    (n, d, _) => format!("live · {n} objects · {d} deviate"),
                 };
                 let said = last.map_or_else(String::new, |(step, object)| {
                     match (&step.event, &step.state) {
@@ -620,6 +639,15 @@ impl MachinePlay {
                     &rounded(grow(view.paper, -3.0), 8.0),
                     soft(look.wrong, 3.0, flash),
                 );
+            }
+        }
+        // In a trace followed live, where an object deviated flashes.
+        for (at, states) in self.marks.iter().filter(|(at, _)| now >= *at) {
+            let flash = flashed(fraction(now - *at, FLASH));
+            for &state in states {
+                if let Some(spot) = self.placed.states.get(state).and_then(Option::as_ref) {
+                    self.glow(state, spot, view).draw(frame, look.wrong, flash);
+                }
             }
         }
         for travel in &self.shown {
