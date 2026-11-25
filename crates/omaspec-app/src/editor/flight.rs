@@ -265,6 +265,7 @@ mod tests {
             dives: dives.iter().map(|d| (*d).to_owned()).collect(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,

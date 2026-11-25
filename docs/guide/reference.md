@@ -832,6 +832,7 @@ omaspec play coffee.puml -o fold.gif --fold Brewing      # a container folding t
 omaspec play coffee.puml -o fold.html --fold Brewing,Ready   # the folds as one page in vectors, played by a browser: sharp at any size, some 120 KB
 omaspec play coffee.puml -o fold.webp --fold Brewing     # the same in full color at 60 frames a second, without loss: an animated WebP, or .png an animated PNG; some twice a GIF's size
 omaspec play odyssey.puml -o odyssey.gif --steps 12      # a diagram too large to read whole: the view follows each step near enough to read, and ends on the whole; --whole keeps it whole
+omaspec play door.puml -o door.gif --no-bar               # the diagram alone, without the bar under it; with it, the bar grows with a small diagram, as large as its words
 omaspec play omaspec-project.toml -o map.gif --dive Orders,Checkout   # the project's map zooming into these tiles and back out
 omaspec play omaspec-project.toml -o flight.gif --dive Day/Order/Payment   # a flight through the project: into the tile Day, on along its state Order into the diagram of that name, on into Payment, and back out step by step
 omaspec play omaspec-project.toml -o flight.html --dive Day/Order   # the same as a page in vectors: each diagram grows out of its tile or its state's box, without a GPU; flight.html#t=4 holds it still

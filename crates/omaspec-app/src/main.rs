@@ -605,6 +605,11 @@ enum Command {
         /// container, near enough to read, and ends on the whole.
         #[arg(long, conflicts_with = "dive")]
         whole: bool,
+        /// A play without its bar under it, where the machine is and what
+        /// it offers, or how far the scenario is: the diagram alone, its
+        /// lights saying it.
+        #[arg(long, conflicts_with_all = ["fold", "dive", "build", "lockstep", "history", "from", "traffic", "themes", "ink"])]
+        no_bar: bool,
         /// The colors: `built-in` for the palette Omaspec ships, or a
         /// theme's colors.toml; the active Omarchy theme without it.
         #[arg(long, value_name = "built-in|FILE")]
@@ -1073,6 +1078,7 @@ fn main() -> ExitCode {
             duration,
             hold,
             whole,
+            no_bar,
             theme,
             lang,
         }) => editor::moving::events(&events)
@@ -1089,6 +1095,7 @@ fn main() -> ExitCode {
                     dives: dive,
                     builds: build,
                     bare: no_code,
+                    no_bar,
                     lockstep,
                     history,
                     travel: from.map(|from| editor::moving::Travel { from, to }),

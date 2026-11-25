@@ -82,6 +82,9 @@ pub struct Moving {
     /// With `builds`: the diagram alone, its source not beside it
     /// (`--no-code`).
     pub bare: bool,
+    /// A play without its bar under it (`--no-bar`, REQ-128): the diagram
+    /// alone, its lights saying where the machine is.
+    pub no_bar: bool,
     /// Instead of a play of the diagram alone: a scenario played beside
     /// the state machines of its participants ([`super::lockstep`]).
     pub lockstep: bool,
@@ -194,6 +197,52 @@ const MARGIN: f32 = 40.0;
 /// How wide a picture is at most when no width is asked for.
 const WIDEST: f32 = 1200.0;
 pub(super) const BAR: f32 = 90.0;
+/// The narrowest a play's pane gets as it is drawn at a larger scale:
+/// room for its bar's options side by side.
+const NARROWEST_PANE: f32 = 320.0;
+/// The steps a play's scale goes up in.
+const SCALE_STEP: f32 = 0.25;
+/// How much of its size the diagram keeps at least as a play's bar grows
+/// with the scale, and takes more of the picture's height.
+const KEPT: f32 = 0.9;
+
+/// The pane of a picture `width` pixels wide drawn at `scale`, in its own
+/// pixels: the height from `drawn`, the diagram's size, with room for
+/// `bar`, the bar's in a pane so wide; a whole number of the picture's
+/// pixels high.
+fn pane_of(width: f32, scale: f32, drawn: Size, bar: impl Fn(f32) -> f32) -> Size {
+    let wide = width / scale;
+    let high = (wide * drawn.height / drawn.width.max(1.0) + bar(wide))
+        .clamp(wide * LEAST_HEIGHT, wide * MOST_HEIGHT);
+    Size::new(wide, (high * scale).round() / scale)
+}
+
+/// The scale a play is drawn at in a picture `width` pixels wide, and its
+/// pane at it: as a window at that scale draws it, the diagram of `drawn`
+/// size still fitting at 100 % or nearer, so the bar under it is as large
+/// as its words (REQ-128). The diagram keeps [`KEPT`] of the size it has
+/// at 1 at least, and the pane stays [`NARROWEST_PANE`] wide; a diagram
+/// that fits at less than 100 % is drawn at 1.
+fn staged(width: f32, drawn: Size, bar: impl Fn(f32) -> f32) -> (f32, Size) {
+    // The zoom the diagram fits at in the pane drawn at `scale`.
+    let zoom = |scale: f32| {
+        let pane = pane_of(width, scale, drawn, &bar);
+        let above = Size::new(pane.width, pane.height - bar(pane.width));
+        paper::View::fitted(drawn, above).zoom
+    };
+    let unscaled = zoom(1.0);
+    let fits = |scale: f32| {
+        let fit = zoom(scale);
+        width / scale >= NARROWEST_PANE
+            && fit >= paper::view::READ_ZOOM
+            && fit * scale >= unscaled * KEPT
+    };
+    let mut scale = 1.0;
+    while fits(scale + SCALE_STEP) {
+        scale += SCALE_STEP;
+    }
+    (scale, pane_of(width, scale, drawn, &bar))
+}
 
 /// Writes the play, or the fold; says what it wrote.
 pub fn play(args: &Moving) -> Result<String> {
@@ -544,15 +593,22 @@ impl Stage {
                 .clamp(320.0, WIDEST)
                 .round(),
         };
-        let bar = if args.folds.is_empty() && args.dives.is_empty() {
-            BAR + paper::play_bar_extra(&text, language, width)
-        } else {
-            0.0
+        let played = args.folds.is_empty() && args.dives.is_empty() && !args.no_bar;
+        let bar = |pane: f32| {
+            if played {
+                BAR + paper::play_bar_extra(&text, language, pane)
+            } else {
+                0.0
+            }
         };
-        let height = (width * drawn.height / drawn.width.max(1.0) + bar)
-            .clamp(width * LEAST_HEIGHT, width * MOST_HEIGHT)
-            .round();
-        let size = Size::new(width, height);
+        let (scale, size) = if played {
+            staged(width, drawn, bar)
+        } else {
+            (1.0, pane_of(width, 1.0, drawn, bar))
+        };
+        screen.scale = scale;
+        let scaled = app.doc_mut().paper.set_scale_factor(scale);
+        screen.run_task(&mut app, scaled.map(move |m| Message::Paper(key, m)));
         app.doc_mut().paper.view.fit = true;
         // Through the window, which draws the diagram of a tile in the
         // pane's size before its tab shows.
@@ -616,18 +672,21 @@ impl Stage {
     /// veil comes down with the start lit. The first frame kept is the
     /// play standing at its start (REQ-096); kept, the first frame was the
     /// picture as large as before the bar, cut at its top and not yet
-    /// veiled, brighter than the rest. `full` is the pane before the bar.
-    fn begun(&mut self, full: Size) {
+    /// veiled, brighter than the rest. `full` is the pane before the bar;
+    /// none where the play has none.
+    fn begun(&mut self, full: Option<Size>) {
         let (app, tick) = (&mut self.app, self.tick);
         // Until the pane has heard of the bar: it may tell its new height
         // a frame late.
-        self.screen.run_frames(
-            app,
-            FADE_IN_FRAMES,
-            tick,
-            |app| app.doc().paper.viewport() != full,
-            |_| {},
-        );
+        if let Some(full) = full {
+            self.screen.run_frames(
+                app,
+                FADE_IN_FRAMES,
+                tick,
+                |app| app.doc().paper.viewport() != full,
+                |_| {},
+            );
+        }
         let standing = |app: &App| {
             let paper = &app.doc().paper;
             !paper.play_moving(crate::clock::now()) && paper.fading().is_none()
@@ -641,6 +700,7 @@ impl Stage {
         let moving = |app: &App| !app.doc().paper.play_moving(crate::clock::now());
         // Where the whole is too large to read, the view follows each step.
         self.app.doc_mut().paper.follow_play = !args.whole;
+        self.app.doc_mut().paper.play_bar = !args.no_bar;
         let full = self.app.doc().paper.viewport();
         self.send(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
@@ -658,7 +718,7 @@ impl Stage {
             }
             bail!("{why}");
         }
-        self.begun(full);
+        self.begun((!args.no_bar).then_some(full));
         self.step(moving);
         let mut taken = Vec::new();
         let mut walked = Vec::new();
@@ -1521,6 +1581,7 @@ mod tests {
                 dives: Vec::new(),
                 builds: false,
                 bare: false,
+                no_bar: false,
                 lockstep: false,
                 history: false,
                 travel: None,
@@ -1581,6 +1642,7 @@ mod tests {
                 dives: Vec::new(),
                 builds: false,
                 bare: false,
+                no_bar: false,
                 lockstep: false,
                 history: false,
                 travel: None,
@@ -1642,6 +1704,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1693,6 +1756,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1776,6 +1840,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1837,6 +1902,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1927,6 +1993,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1989,6 +2056,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
                 lockstep: false,
                 history: false,
                 travel: None,
@@ -2036,6 +2104,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -2161,6 +2230,89 @@ mod tests {
         assert!(pick(&guarded, &["stop"]).is_err());
     }
 
+    /// A play's bar grows with the diagram it is under (REQ-128): a small
+    /// diagram drawn twice its size is drawn at a larger scale, so the
+    /// pane fits it at 100 % or nearer and its words and the bar's are as
+    /// large; the diagram keeps its size, near enough. One that fits at
+    /// less, and a picture too narrow for the bar, are drawn at 1.
+    #[test]
+    fn a_play_s_bar_grows_with_its_diagram() {
+        let bar = |_: f32| BAR;
+        let fit = |scale: f32, pane: Size, drawn: Size| {
+            paper::View::fitted(drawn, Size::new(pane.width, pane.height - BAR)).zoom * scale
+        };
+        let small = Size::new(250.0, 120.0);
+        let width = small.width * 2.0 + 2.0 * MARGIN;
+        let (scale, pane) = staged(width, small, bar);
+        assert!(scale > 1.0, "{scale}");
+        assert_eq!(pane.width * scale, width);
+        assert!(pane.width >= NARROWEST_PANE);
+        assert!(fit(scale, pane, small) / scale >= paper::view::READ_ZOOM);
+        let (_, unscaled) = (1.0, pane_of(width, 1.0, small, bar));
+        assert!(fit(scale, pane, small) >= KEPT * fit(1.0, unscaled, small));
+        // The picture's height is a whole number of pixels.
+        assert_eq!((pane.height * scale).fract(), 0.0);
+        let wide = Size::new(1223.0, 222.0);
+        assert_eq!(staged(WIDEST, wide, bar).0, 1.0);
+        assert_eq!(staged(NARROWEST_PANE, small, bar).0, 1.0);
+    }
+
+    /// Without its bar a play is the diagram alone: as wide, less high
+    /// (a diagram across, which the height's bound does not hold).
+    #[test]
+    fn a_play_without_its_bar_is_the_diagram_alone() {
+        let work = std::env::temp_dir().join(format!("omaspec-no-bar-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("door.puml");
+        std::fs::write(
+            &file,
+            "@startuml\nleft to right direction\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )
+        .unwrap();
+        let size = |no_bar: bool| {
+            let output = work.join(format!("{no_bar}.gif"));
+            play(&Moving {
+                file: file.clone(),
+                text: None,
+                output: output.clone(),
+                events: vec!["open".into()],
+                steps: Some(1),
+                width: Some(300),
+                fps: Some(5),
+                folds: Vec::new(),
+                dives: Vec::new(),
+                builds: false,
+                bare: false,
+                no_bar,
+                lockstep: false,
+                history: false,
+                travel: None,
+                traffic: Vec::new(),
+                themes: None,
+                ink: false,
+                look: None,
+                timing: Default::default(),
+                whole: false,
+                theme: Some("built-in".into()),
+                file_colors: false,
+                root: None,
+                forced: None,
+                renderer: Some("tiny-skia"),
+                quality: super::super::gifs::Quality::default(),
+            })
+            .unwrap();
+            let gif = std::fs::read(output).unwrap();
+            (
+                u16::from_le_bytes([gif[6], gif[7]]),
+                u16::from_le_bytes([gif[8], gif[9]]),
+            )
+        };
+        let (with, without) = (size(false), size(true));
+        assert_eq!(with.0, without.0);
+        assert!(without.1 < with.1, "{with:?} {without:?}");
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
     #[test]
     fn an_event_not_offered_stops_the_play_before_it_draws() {
         let work = std::env::temp_dir().join(format!("omaspec-rehearse-{}", std::process::id()));
@@ -2183,6 +2335,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -2317,6 +2470,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,

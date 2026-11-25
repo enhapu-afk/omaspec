@@ -282,6 +282,10 @@ pub struct Paper {
     /// is too large to; going back or again glides it out to the whole.
     /// `omaspec play` asks for it.
     pub follow_play: bool,
+    /// Whether a play has its bar at the pane's foot: where the machine is
+    /// and what it offers, how far a scenario is. `omaspec play --no-bar`
+    /// leaves it out (REQ-128).
+    pub play_bar: bool,
     /// When a stopped play began to fade away.
     leaving: Option<Instant>,
     /// The moment a play is drawn at, for pictures of one moment; `None`
@@ -365,6 +369,7 @@ impl Default for Paper {
             change: Change::Edit,
             play: None,
             follow_play: false,
+            play_bar: true,
             keep_bands: true,
             leaving: None,
             clock: None,

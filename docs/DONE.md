@@ -2035,6 +2035,15 @@ is open and the reasoning around it.
       diagram not drawn says why alone; `--no-code` with too narrow a
       `--width` names no source; `marker` points with `url(#…)` for
       `--id-prefix` too.
+- [x] A play's bar as large as the diagram's words (REQ-128,
+      2026-11-25): `omaspec play` draws the pane at the scale a window
+      would need to show the diagram at 100 % (in quarter steps,
+      `moving::staged`), so a small diagram drawn twice its size has its
+      bar and its options twice as large too; the diagram keeps nine
+      tenths of its size at least, the pane 320 pixels of its width, and
+      a diagram that fits at less is drawn at 1. `--no-bar` leaves the
+      bar out: the diagram alone, its lights saying where it is
+      (`Paper::play_bar`).
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

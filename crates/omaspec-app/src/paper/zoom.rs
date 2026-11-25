@@ -71,9 +71,13 @@ impl Paper {
             return Task::none();
         }
         let whole = View::fitted(self.diagram_size(), self.viewport);
-        let bar = self.play.as_ref().map_or(0.0, |play| {
-            super::bar::height(&play.offer(), self.viewport.width)
-        });
+        let bar = self
+            .play
+            .as_ref()
+            .filter(|_| self.play_bar)
+            .map_or(0.0, |play| {
+                super::bar::height(&play.offer(), self.viewport.width)
+            });
         let to = match area {
             Some(area) => View::following(
                 self.under_headings(area),

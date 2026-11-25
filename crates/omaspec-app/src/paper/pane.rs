@@ -365,6 +365,9 @@ impl Paper {
         ))
         .clip(true)
         .into();
+        if !self.play_bar {
+            return diagram;
+        }
         // The strip stays while the play fades, so the diagram does not
         // jump under it. Steps are ignored once it is leaving.
         column![

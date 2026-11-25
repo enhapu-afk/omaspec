@@ -599,6 +599,7 @@ mod tests {
             dives: Vec::new(),
             builds: true,
             bare: false,
+            no_bar: false,
             lockstep: false,
             history: false,
             travel: None,

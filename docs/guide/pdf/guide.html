@@ -419,7 +419,7 @@ table.cli td:first-child { font: 8.2pt var(--mono); color: var(--ink); white-spa
   <tr><td>play door.puml -o door.gif --duration 8 --hold 2</td><td>any film eight seconds long, its last state held two</td></tr>
   <tr><td>play omaspec-project.toml -o flight.html --dive Day/Order</td><td>a flight through the project, from the map down the links</td></tr>
 </table>
-<p>A diagram too large to read whole is followed step by step, near enough to read; <code>--whole</code> keeps it whole. <code>--width</code>, <code>--fps</code>, <code>--theme</code>, <code>--colors</code> and <code>--lossy</code> shape the file.</p>
+<p>A diagram too large to read whole is followed step by step, near enough to read; <code>--whole</code> keeps it whole. The bar under a play is as large as the diagram's words; <code>--no-bar</code> leaves it out. <code>--width</code>, <code>--fps</code>, <code>--theme</code>, <code>--colors</code> and <code>--lossy</code> shape the file.</p>
 
 <h2>A project to hand on</h2>
 <p><code>omaspec export DIR</code> writes every diagram as an SVG with its source, the map as <code>index.svg</code>, and all of it as a ZIP. Each tile and each state that opens a diagram links to that diagram's SVG, so a browser is enough to follow them.</p>
