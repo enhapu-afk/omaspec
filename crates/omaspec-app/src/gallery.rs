@@ -314,6 +314,12 @@ pub static EXAMPLES: &[Example] = &[
         "A Mermaid packet: a field over its bits, 32 to a row."
     ),
     example!(
+        "bakery.puml",
+        Data,
+        "A bakery's year",
+        "A PlantUML chart: bars stacked by what sold, the margin on a second axis."
+    ),
+    example!(
         "json-grammar.puml",
         Data,
         "JSON, rule by rule",

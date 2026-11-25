@@ -302,6 +302,10 @@ fn plantuml(
             capability_line(&mut b, row, l);
             continue;
         }
+        if block == "chart" {
+            chart_line(&mut b, row, l);
+            continue;
+        }
         match kind {
             Kind::Sequence => sequence_line(&mut b, row, l),
             Kind::Activity => activity_line(&mut b, row, l),
@@ -366,6 +370,27 @@ fn flow_line(b: &mut Builder, row: usize, l: &str) {
 
 /// A capability map's areas, and the capabilities under them by their
 /// stars, without the value after the last colon.
+/// A chart's axes by their titles, its series by their names (or their
+/// values, unnamed), its annotations by their words.
+fn chart_line(b: &mut Builder, row: usize, l: &str) {
+    let Some(c) =
+        re!(r"(?i)^(h-axis|v-axis|v2-axis|bar|line|area|scatter|annotation)(?:\s+(.*))?$")
+            .captures(l)
+    else {
+        return;
+    };
+    let word = c[1].to_ascii_lowercase();
+    let rest = c.get(2).map_or("", |rest| rest.as_str());
+    let shown = match re!(r#""([^"]*)""#).captures(rest) {
+        Some(named) => named[1].to_owned(),
+        None => match re!(r"\[[^\]]*\]").find(rest) {
+            Some(list) => list.as_str().to_owned(),
+            None => rest.trim().to_owned(),
+        },
+    };
+    b.add_at(row, &word, label(&shown), 0);
+}
+
 fn capability_line(b: &mut Builder, row: usize, l: &str) {
     let Some(c) = re!(r#"^(\*+)\s*(.+)$"#).captures(l) else {
         return;

@@ -392,8 +392,6 @@ what is plainly missing, then the larger pieces.
 Reproduced on `main` (9f7a72a), in the order they are taken: first what
 is lost without a word, then what misleads, then what is missing.
 
-- [ ] REQ-103: `@startchart` drawn natively; the Java PlantUML hangs or
-      crashes on it (plantuml/plantuml#3030, #3031).
 - [ ] REQ-105: marble diagrams of reactive streams
       (mermaid-js/mermaid#8864), a niche.
 

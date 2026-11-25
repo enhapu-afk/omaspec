@@ -2099,6 +2099,25 @@ is open and the reasoning around it.
       Omaspec's own room (`graph::Spacing`, which a drawer gives the
       layout through `Nested::spacing`; `graph::spaced`). Lint no longer
       warns of them.
+- [x] PlantUML's charts drawn natively (REQ-103, 2026-11-25):
+      `@startchart` in a module of its own (`omaspec_uml::plot`: read,
+      axis, look, draw, legend). Bars side by side or stacked, lines,
+      areas (stacked in the order written, as PlantUML stacks them) and
+      scatter points; `h-axis`, `v-axis` and `v2-axis` with titles,
+      categories or ranges, `spacing`, `ticks`, `label-top`,
+      `label-right` and `grid`; points `(x, y)` on a range; `orientation
+      horizontal`, drawn across, where the Java PlantUML stands the bars
+      upright; `legend`, `labels`, `annotation … <<arrow>>`; `<style>` on
+      `chartDiagram`, its parts and a series by its class (the markers'
+      shape, size and color, a bar's width, the legend's padding and
+      margin: new `style::Prop`s, which change nothing outside a chart).
+      What hangs or fails the Java PlantUML (plantuml/plantuml#3030,
+      #3031) is a mistake on its line: a number no chart can draw, an
+      axis from 5 to 5 or backwards, sums too large. A series without a
+      color takes the charts' palette, the axes follow the words' color
+      toward the page, so a chart reads on a dark theme. The outline
+      lists its axes, series and annotations; the gallery has a bakery's
+      year.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

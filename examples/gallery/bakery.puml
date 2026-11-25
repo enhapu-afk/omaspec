@@ -1,0 +1,15 @@
+@startchart
+' A PlantUML chart: bars stacked by what sold, the margin as a line on a
+' second axis, and a note where the year peaked.
+title A bakery's year
+h-axis [Q1, Q2, Q3, Q4]
+v-axis "Sales (thousands)" 0 --> 120 spacing 20 grid
+v2-axis "Margin %" 0 --> 40 spacing 10
+stackMode stacked
+bar "Bread" [32, 35, 30, 41]
+bar "Pastry" [18, 24, 27, 38]
+bar "Coffee" [10, 12, 15, 19]
+line "Margin" [22, 25, 24, 31] v2
+annotation "Christmas" at (Q4, 98) <<arrow>>
+legend bottom
+@endchart

@@ -1064,7 +1064,17 @@ topmost bar, and a group as a colored field. A Salt wireframe (`@startsalt`) is 
 buttons, fields, check boxes, radio buttons, lists, tabs, a menu bar and a tree, as
 PlantUML draws it. A grammar in EBNF (`@startebnf`) and a regular expression
 (`@startregex`) are railroads: a track for each rule, a choice branching below it, a
-repetition looping back over itself. A Ditaa drawing (`@startditaa`) is read on its grid
+repetition looping back over itself. A chart (`@startchart`) draws bars, lines, areas
+and scatter points over two axes as PlantUML reads them: `h-axis` and `v-axis` with a
+title, categories (`[Q1, Q2]`) or a range (`0 --> 100`), `spacing`, `ticks [0:"Poor"]`,
+`label-top`, `label-right` and `grid`; a `v2-axis` on the right for the series marked
+`v2`; points `[(1, 2), (3, 4)]` for a line or a scatter on a range; `stackMode stacked`,
+`orientation horizontal`, `legend left|right|top|bottom`, `labels`, and `annotation
+"text" at (Q4, 98) <<arrow>>`. Areas stack in the order written; a series without a color
+takes the charts' palette, and `<style>` reaches `chartDiagram` and its parts, a series
+by its class (`<<hot>>` under `.hot { MarkerColor … }`). A number no chart can draw
+(`Infinity`, `1e999`) and an axis from 5 to 5 are mistakes on their lines, where the Java
+PlantUML hangs or fails. A Ditaa drawing (`@startditaa`) is read on its grid
 of characters: boxes where `+`, `-` and `|` close a rectangle (`/` and `\` round a corner,
 `:` or `=` dash a side), lines with heads at `<`, `>`, `^` and `v`, the words where they
 were typed; a code in a box gives its color (`cBLU`, `c1AB`) or its shape (`{d}` a

@@ -15,6 +15,8 @@ pub enum Kind {
     Wbs,
     /// `@startgantt`.
     Gantt,
+    /// `@startchart`: bars, lines, areas and points over two axes.
+    Chart,
     /// `@startflow`, Omaspec's own signal-flow diagram.
     Flow,
     /// `@startstorymap`, Omaspec's own story map.
@@ -81,6 +83,7 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
                 "startmindmap" => Kind::MindMap,
                 "startwbs" => Kind::Wbs,
                 "startgantt" => Kind::Gantt,
+                "startchart" => Kind::Chart,
                 "startflow" => Kind::Flow,
                 "startstorymap" => Kind::StoryMap,
                 "startcapabilities" => Kind::Capabilities,

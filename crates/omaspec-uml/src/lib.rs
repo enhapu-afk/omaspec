@@ -43,6 +43,7 @@ mod metrics;
 pub mod network;
 mod own_skin;
 pub mod pie;
+pub mod plot;
 mod preprocess;
 pub mod railroad;
 pub mod repaint;
@@ -120,6 +121,8 @@ pub enum Diagram {
     Structure(structure::Diagram),
     Timing(timing::Diagram),
     Gantt(gantt::Diagram),
+    /// `@startchart`: boxed, as its axes make it the largest.
+    Chart(Box<plot::Diagram>),
     Flow(flow::Diagram),
     StoryMap(storymap::Diagram),
     Capabilities(capabilities::Diagram),
@@ -208,6 +211,7 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         source::Kind::MindMap => Diagram::MindMap(tree::parse_mindmap(&lines)?),
         source::Kind::Wbs => Diagram::Wbs(tree::parse_wbs(&lines)?),
         source::Kind::Gantt => Diagram::Gantt(gantt::parse(&lines)?),
+        source::Kind::Chart => Diagram::Chart(Box::new(plot::parse(&lines)?)),
         source::Kind::Flow => Diagram::Flow(flow::parse(&lines)?),
         source::Kind::StoryMap => Diagram::StoryMap(storymap::parse(&lines)?),
         source::Kind::Capabilities => Diagram::Capabilities(capabilities::parse(&lines)?),
@@ -469,6 +473,7 @@ fn skin_of(diagram: &Diagram) -> Vec<String> {
         Diagram::Structure(d) => &d.frame,
         Diagram::Timing(d) => &d.frame,
         Diagram::Gantt(d) => &d.frame,
+        Diagram::Chart(d) => &d.frame,
         Diagram::Flow(d) => &d.frame,
         Diagram::StoryMap(d) => &d.frame,
         Diagram::Capabilities(d) => &d.frame,
@@ -517,6 +522,7 @@ fn draw_mapped(diagram: Diagram, source: &str) -> Result<(String, map::Map), Dec
         }
         Diagram::Timing(d) => unmapped(timing::draw(&d)),
         Diagram::Gantt(d) => gantt::draw_mapped(&d),
+        Diagram::Chart(d) => unmapped(plot::draw(&d)),
         Diagram::Flow(d) => unmapped(flow::draw(&d)),
         Diagram::StoryMap(d) => storymap::draw_mapped(&d),
         Diagram::Capabilities(d) => capabilities::draw_mapped(&d),

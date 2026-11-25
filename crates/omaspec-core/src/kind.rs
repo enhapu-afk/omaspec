@@ -60,6 +60,7 @@ fn block_name(block: &str) -> Option<&'static str> {
         "mindmap" => "Mind map",
         "wbs" => "WBS",
         "gantt" => "Gantt chart",
+        "chart" => "Chart",
         "flow" => "Signal flow",
         "storymap" => "Story map",
         "capabilities" => "Capability map",

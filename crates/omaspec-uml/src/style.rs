@@ -30,12 +30,32 @@ pub enum Prop {
     RoundCorner,
     Shadowing,
     HorizontalAlignment,
-    /// One the engine does not draw yet: `Padding`, `MaximumWidth`, ….
+    /// A chart's: the shape of a scatter's points, their size and color,
+    /// and how much of its room a bar takes.
+    MarkerShape,
+    MarkerSize,
+    MarkerColor,
+    BarWidth,
+    Padding,
+    Margin,
+    /// One the engine does not draw yet: `MaximumWidth`, ….
     Other,
 }
 
-/// PlantUML's property names. Those of links (which decline elsewhere),
-/// of exported names and of charts change nothing in what is drawn here.
+impl Prop {
+    /// Whether only a chart draws it: elsewhere it changes nothing, as in
+    /// PlantUML.
+    fn of_charts(self) -> bool {
+        matches!(
+            self,
+            Prop::MarkerShape | Prop::MarkerSize | Prop::MarkerColor | Prop::BarWidth
+        )
+    }
+}
+
+/// PlantUML's property names. Those of links (which decline elsewhere) and
+/// of exported names change nothing in what is drawn here, nor do a
+/// chart's outside a chart ([`Prop::of_charts`]).
 const PROPS: [(&str, Option<Prop>); 30] = [
     ("Shadowing", Some(Prop::Shadowing)),
     ("FontName", Some(Prop::FontName)),
@@ -53,8 +73,8 @@ const PROPS: [(&str, Option<Prop>); 30] = [
     ("HeadColor", Some(Prop::Other)),
     ("LineColor", Some(Prop::LineColor)),
     ("LineStyle", Some(Prop::LineStyle)),
-    ("Padding", Some(Prop::Other)),
-    ("Margin", Some(Prop::Other)),
+    ("Padding", Some(Prop::Padding)),
+    ("Margin", Some(Prop::Margin)),
     ("MaximumWidth", Some(Prop::Other)),
     ("MinimumWidth", Some(Prop::Other)),
     ("ExportedName", None),
@@ -62,10 +82,10 @@ const PROPS: [(&str, Option<Prop>); 30] = [
     ("HorizontalAlignment", Some(Prop::HorizontalAlignment)),
     ("ShowStereotype", Some(Prop::Other)),
     ("ImagePosition", Some(Prop::Other)),
-    ("MarkerShape", None),
-    ("MarkerSize", None),
-    ("MarkerColor", None),
-    ("BarWidth", None),
+    ("MarkerShape", Some(Prop::MarkerShape)),
+    ("MarkerSize", Some(Prop::MarkerSize)),
+    ("MarkerColor", Some(Prop::MarkerColor)),
+    ("BarWidth", Some(Prop::BarWidth)),
     ("Width", None),
 ];
 
@@ -282,6 +302,12 @@ impl Element {
         Element { keys, ..self }
     }
 
+    /// The element, with skinparams of its own for what has no usual
+    /// name: a chart's markers, its bars' width, its legend's room.
+    pub const fn own(self, keys: &'static [(Prop, &'static str)]) -> Element {
+        Element { keys, ..self }
+    }
+
     /// The element, telling its boxes apart by stereotype and by depth.
     pub const fn varied(self) -> Element {
         Element {
@@ -309,8 +335,16 @@ impl Element {
             Prop::FontStyle => "FontStyle",
             Prop::RoundCorner => "RoundCorner",
             Prop::Shadowing => "Shadowing",
-            // No usual name: each element that aligns says how.
-            Prop::HorizontalAlignment | Prop::Other => return None,
+            // No usual name: each element that aligns or draws them says
+            // how.
+            Prop::HorizontalAlignment
+            | Prop::MarkerShape
+            | Prop::MarkerSize
+            | Prop::MarkerColor
+            | Prop::BarWidth
+            | Prop::Padding
+            | Prop::Margin
+            | Prop::Other => return None,
         };
         Some(format!("{}{usual}", self.prefix))
     }
@@ -585,7 +619,7 @@ pub fn skinparams(
                 taken = true;
             }
         }
-        if !taken && reached.iter().any(|e| e.named_by(&d.names)) {
+        if !taken && !d.prop.of_charts() && reached.iter().any(|e| e.named_by(&d.names)) {
             return Err(fail(format!("`{}` is not supported yet", d.written)));
         }
     }
