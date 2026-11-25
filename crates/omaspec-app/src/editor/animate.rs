@@ -233,6 +233,7 @@ impl App {
             events: Vec::new(),
             steps: Some(0),
             width: None,
+            size: None,
             fps: None,
             folds: vec![fold.clone()],
             dives: Vec::new(),

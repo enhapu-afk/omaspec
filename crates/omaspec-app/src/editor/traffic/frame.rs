@@ -77,6 +77,11 @@ pub(super) struct Stage {
 }
 
 impl Stage {
+    /// How high a frame is in pixels: the machine and its caption's band.
+    pub(super) fn height(&self) -> f32 {
+        self.view.3 * self.unit + CAPTION
+    }
+
     /// `svg` on a frame `width` pixels wide, else as large as fits a
     /// frame of [`ROOM`], in `colors`.
     pub(super) fn of(svg: &str, width: Option<f32>, colors: &Colors) -> Stage {

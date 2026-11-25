@@ -115,13 +115,17 @@ pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
             &app.palette,
         );
     }
-    let layout = Layout::of(&code, &picture, args.width, args.bare)?;
+    let high = |width: f32| {
+        Layout::of(&code, &picture, Some(width as u32), args.bare).map_or(0.0, |l| l.height)
+    };
+    let asked = args.asked_width(200, high)?.map(|width| width as u32);
+    let layout = Layout::of(&code, &picture, asked, args.bare)?;
 
     let delay = match film {
         Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
         Film::Apng | Film::Webp | Film::Page => 1,
     };
-    let mut frames = Frames::default();
+    let mut frames = Frames::within(args.size);
     let total = script.length();
     let count = (total * fps as f32).ceil() as usize + 1;
     for frame in 0..count {
@@ -594,6 +598,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(0),
             width: Some(700),
+            size: None,
             fps: Some(5),
             folds: Vec::new(),
             dives: Vec::new(),

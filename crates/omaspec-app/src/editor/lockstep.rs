@@ -182,18 +182,18 @@ impl Stage {
             )?;
             sizes.push(app.doc().paper.diagram_size());
         }
-        let width = match args.width {
-            Some(width) => width as f32,
-            None => natural(&sizes),
-        };
         let extra =
             |text: &str, language, width| BAR + paper::play_bar_extra(text, language, width);
         // A machine beside the scenario has a quiet bar: where it is and
         // what went wrong.
-        let (size, scenario, placed) = layout(width, &sizes, |index, width| match index {
+        let bars = |index: usize, width: f32| match index {
             0 => extra(text, language, width),
             _ => BAR + NOTE,
-        });
+        };
+        let width = args
+            .asked_width(400, |width| layout(width, &sizes, bars).0.height)?
+            .unwrap_or_else(|| natural(&sizes));
+        let (size, scenario, placed) = layout(width, &sizes, bars);
         for (index, &key) in keys.iter().enumerate() {
             app.active = index;
             app.doc_mut().paper.view.fit = true;
@@ -217,7 +217,7 @@ impl Stage {
         let mut stage = Stage {
             app,
             screen,
-            frames: super::gifs::Frames::default(),
+            frames: super::gifs::Frames::within(args.size),
             delay: match film {
                 Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
                 Film::Apng | Film::Webp | Film::Page => 1,
@@ -467,6 +467,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(100),
             width: Some(400),
+            size: None,
             fps: Some(4),
             folds: Vec::new(),
             dives: Vec::new(),

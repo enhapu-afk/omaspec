@@ -74,10 +74,11 @@ pub(super) fn sweep(args: &Moving, names: &[String], film: Film, fps: u32) -> Re
     let size = export::parse(&themed[0].svg)
         .map_err(|err| anyhow::anyhow!("{err}"))?
         .size();
-    let width = match args.width {
-        Some(width) => width as f32,
-        None => (size.width() * 1.6).clamp(NARROWEST, WIDEST).round(),
-    };
+    // The picture at a width, with the band that names its theme.
+    let tall = |width: f32| size.height() * width / size.width().max(1.0) + CAPTION;
+    let width = args
+        .asked_width(200, tall)?
+        .unwrap_or_else(|| (size.width() * 1.6).clamp(NARROWEST, WIDEST).round());
     let scale = width / size.width().max(1.0);
     let count = themed.len();
     // Only the theme shown, the one sweeping in and the first are held as
@@ -93,7 +94,7 @@ pub(super) fn sweep(args: &Moving, names: &[String], film: Film, fps: u32) -> Re
         Film::Apng | Film::Webp | Film::Page => 1,
     };
     let stay = stay(count);
-    let mut frames = Frames::default();
+    let mut frames = Frames::within(args.size);
     let sweeps = (SWEEP * fps as f32).ceil() as usize;
     // Each theme a while, then the next sweeps over it; the last sweeps
     // into the first, so the picture loops as one.
@@ -124,6 +125,8 @@ pub(super) fn sweep(args: &Moving, names: &[String], film: Film, fps: u32) -> Re
         fps,
         super::gifs::Rest::First,
     )?;
+    // The frame asked for, where it is larger than a theme's picture.
+    let (w, h) = frames.size().unwrap_or((w as usize, h as usize));
     let (bytes, count) = match film {
         Film::Gif => frames.encode(args.quality)?,
         Film::Apng => super::films::apng(&frames, fps)?,
@@ -423,6 +426,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(100),
             width: Some(300),
+            size: None,
             fps: Some(4),
             folds: Vec::new(),
             dives: Vec::new(),

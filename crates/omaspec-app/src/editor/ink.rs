@@ -166,13 +166,15 @@ pub(super) fn ink(args: &Moving, film: Film, fps: u32) -> Result<String> {
     // The film's height is between shares of its width, the picture amid
     // its paper: a diagram much taller or wider than a screen made a strip
     // (REQ-094).
-    let width = match args.width {
-        Some(width) => width as f32,
-        None => (size.width() * 1.6).clamp(NARROWEST, WIDEST).round(),
+    let tall = |width: f32| {
+        (width * size.height() / size.width().max(1.0))
+            .clamp(width * LEAST_HEIGHT, width * MOST_HEIGHT)
+            .round()
     };
-    let height = (width * size.height() / size.width().max(1.0))
-        .clamp(width * LEAST_HEIGHT, width * MOST_HEIGHT)
-        .round();
+    let width = args
+        .asked_width(200, tall)?
+        .unwrap_or_else(|| (size.width() * 1.6).clamp(NARROWEST, WIDEST).round());
+    let height = tall(width);
     let scale = (width / size.width().max(1.0)).min(height / size.height().max(1.0));
     let rasterized = |svg: &str| -> Result<tiny_skia::Pixmap> {
         let tree = export::parse(svg).map_err(|err| anyhow::anyhow!("{err}"))?;
@@ -198,7 +200,7 @@ pub(super) fn ink(args: &Moving, film: Film, fps: u32) -> Result<String> {
         Film::Apng | Film::Webp | Film::Page => (1, fps as f32),
     };
     let tick = f32::from(delay) / per_second;
-    let mut frames = Frames::default();
+    let mut frames = Frames::within(args.size);
     let push = |frames: &mut Frames, rgba: &[u8]| {
         frames.push(frame.0 as usize, frame.1 as usize, rgba, delay);
     };
@@ -658,6 +660,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(100),
             width: Some(300),
+            size: None,
             fps: Some(4),
             folds: Vec::new(),
             dives: Vec::new(),
@@ -718,6 +721,7 @@ mod tests {
                 events: Vec::new(),
                 steps: Some(100),
                 width: Some(300),
+                size: None,
                 fps: Some(10),
                 folds: Vec::new(),
                 dives: Vec::new(),

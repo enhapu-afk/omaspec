@@ -100,14 +100,45 @@ pub struct Frames {
     seen: HashMap<[u8; 3], u32>,
     /// A frame of another size than the first came.
     mixed: bool,
+    /// The frame each is set in (`--size WxH`), where one is asked for.
+    canvas: Option<(usize, usize)>,
+    /// A frame as it is set in the canvas, its buffer kept for the next.
+    placed: Vec<u8>,
 }
 
 impl Frames {
+    /// Frames each set in the middle of a frame `size` pixels large
+    /// (`--size WxH`), or kept as they come where it is `None`.
+    pub fn within(size: Option<(u32, u32)>) -> Self {
+        Self {
+            canvas: size.map(|(w, h)| (w as usize, h as usize)),
+            ..Self::default()
+        }
+    }
+
     /// Adds a frame `width` by `height` pixels (RGBA) that stays `stay`:
     /// hundredths of a second for a GIF ([`Self::encode`]), ticks for a
     /// picture in full color ([`super::films`]). One like the frame before
-    /// only makes that one stay longer.
+    /// only makes that one stay longer. In a canvas ([`Self::within`]) it
+    /// is set amid it first.
     pub fn push(&mut self, width: usize, height: usize, rgba: &[u8], stay: u16) {
+        match self.canvas {
+            Some(canvas)
+                if canvas != (width, height)
+                    && width * height > 0
+                    && rgba.len() == width * height * 4 =>
+            {
+                let mut placed = std::mem::take(&mut self.placed);
+                amid(&mut placed, canvas, (width, height), rgba);
+                self.keep(canvas.0, canvas.1, &placed, stay);
+                self.placed = placed;
+            }
+            _ => self.keep(width, height, rgba, stay),
+        }
+    }
+
+    /// Adds a frame as [`Self::push`] does, as it is.
+    fn keep(&mut self, width: usize, height: usize, rgba: &[u8], stay: u16) {
         if self.kept.is_empty() {
             (self.width, self.height) = (width, height);
         }
@@ -400,6 +431,43 @@ impl Frames {
     }
 }
 
+/// `rgba`, a picture `size` pixels large, in the middle of a frame
+/// `frame` large, written to `out`. What lies around it is the color of
+/// its top row: above and below it that of the column it stands in, beside
+/// it that of the corner, the paper a film's pictures have at their edges.
+/// What does not fit is cut off evenly on both sides.
+fn amid(out: &mut Vec<u8>, frame: (usize, usize), size: (usize, usize), rgba: &[u8]) {
+    // Where the picture starts in the frame, and how much of it is cut
+    // off before it.
+    let start = |frame: usize, picture: usize| {
+        (
+            frame.saturating_sub(picture) / 2,
+            picture.saturating_sub(frame) / 2,
+        )
+    };
+    let ((left, cut_x), (top, cut_y)) = (start(frame.0, size.0), start(frame.1, size.1));
+    let (wide, high) = (size.0.min(frame.0), size.1.min(frame.1));
+    let pixel = |x: usize, y: usize| &rgba[(y * size.0 + x) * 4..][..4];
+    let (first, last) = (pixel(0, 0), pixel(size.0 - 1, 0));
+    out.clear();
+    out.reserve(frame.0 * frame.1 * 4);
+    for y in 0..frame.1 {
+        let row = if (top..top + high).contains(&y) {
+            cut_y + y - top
+        } else {
+            0
+        };
+        for _ in 0..left {
+            out.extend_from_slice(first);
+        }
+        let at = (row * size.0 + cut_x) * 4;
+        out.extend_from_slice(&rgba[at..at + wide * 4]);
+        for _ in left + wide..frame.0 {
+            out.extend_from_slice(last);
+        }
+    }
+}
+
 /// The GIF of `frames` (RGBA, each with how long it stays, in hundredths
 /// of a second), looping, in `quality`; and how many frames it has.
 #[cfg(test)]
@@ -527,6 +595,41 @@ mod tests {
 
     fn stays(frames: &Frames) -> Vec<u16> {
         frames.kept.iter().map(|(_, stay)| *stay).collect()
+    }
+
+    /// `--size WxH`: a picture is set in the middle of its frame, the
+    /// paper of its top row around it; one too large is cut evenly.
+    #[test]
+    fn a_picture_stands_amid_the_frame_asked_for() {
+        // Two by two: a top row of paper, red then blue at its ends, and
+        // a diagram's pixel under it.
+        let (red, blue, ink) = ([200, 0, 0, 255], [0, 0, 200, 255], [9, 9, 9, 255]);
+        let picture = [red, blue, ink, ink].concat();
+        let mut out = Vec::new();
+        amid(&mut out, (4, 4), (2, 2), &picture);
+        let at = |x: usize, y: usize| <[u8; 4]>::try_from(&out[(y * 4 + x) * 4..][..4]).unwrap();
+        assert_eq!(out.len(), 4 * 4 * 4);
+        assert_eq!(
+            (at(1, 1), at(2, 1), at(1, 2), at(2, 2)),
+            (red, blue, ink, ink)
+        );
+        // Above and below, the top row's column; beside, its corners.
+        assert_eq!(
+            (at(1, 0), at(2, 3), at(0, 2), at(3, 2)),
+            (red, blue, red, blue)
+        );
+        // Too wide for its frame: its middle.
+        amid(
+            &mut out,
+            (1, 2),
+            (3, 2),
+            &[red, ink, blue, ink, ink, ink].concat(),
+        );
+        assert_eq!(out, [ink, ink].concat());
+        let mut frames = Frames::within(Some((4, 4)));
+        frames.push(2, 2, &picture, 5);
+        frames.push(4, 4, &picture.repeat(4), 5);
+        assert_eq!((frames.size(), frames.mixed), (Some((4, 4)), false));
     }
 
     /// A film that only moves, made longer with its end held as asked:

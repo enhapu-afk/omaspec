@@ -283,16 +283,22 @@ impl Stage {
             kept.push(version);
         }
         enough(args, kept.len(), passed)?;
-        let width = match args.width {
-            Some(width) => width as f32,
-            None => (most.width * 1.6 + 2.0 * GAP)
-                .clamp(NARROWEST, WIDEST)
-                .round(),
+        // The pane a picture `width` wide has for the diagram.
+        let pane_at = |width: f32| {
+            let inner = width - 2.0 * GAP;
+            (inner * most.height / most.width.max(1.0))
+                .clamp(inner * 0.4, inner * 1.2)
+                .round()
         };
+        let width = args
+            .asked_width(200, |width| pane_at(width) + CAPTION + 2.0 * GAP)?
+            .unwrap_or_else(|| {
+                (most.width * 1.6 + 2.0 * GAP)
+                    .clamp(NARROWEST, WIDEST)
+                    .round()
+            });
         let inner = width - 2.0 * GAP;
-        let pane = (inner * most.height / most.width.max(1.0))
-            .clamp(inner * 0.4, inner * 1.2)
-            .round();
+        let pane = pane_at(width);
         let height = pane + CAPTION + 2.0 * GAP;
         app.doc_mut().paper.view.fit = false;
         let at = Rectangle::new(iced::Point::new(GAP, GAP), Size::new(inner, pane));
@@ -321,7 +327,7 @@ impl Stage {
         Ok(Stage {
             app,
             screen,
-            frames: super::gifs::Frames::default(),
+            frames: super::gifs::Frames::within(args.size),
             delay: match film {
                 Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
                 Film::Apng | Film::Webp | Film::Page => 1,
@@ -766,6 +772,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(100),
             width: Some(320),
+            size: None,
             fps: Some(4),
             folds: Vec::new(),
             dives: Vec::new(),

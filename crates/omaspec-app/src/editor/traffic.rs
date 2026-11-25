@@ -191,12 +191,13 @@ pub(super) fn traffic(args: &Moving, film: Film, fps: u32) -> Result<String> {
             written.div_ceil(1024)
         ));
     }
-    let stage = frame::Stage::of(&rendered.svg, args.width.map(|w| w as f32), &colors);
+    let high = |width: f32| frame::Stage::of(&rendered.svg, Some(width), &colors).height();
+    let stage = frame::Stage::of(&rendered.svg, args.asked_width(200, high)?, &colors);
     let delay = match film {
         Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
         Film::Apng | Film::Webp | Film::Page => 1,
     };
-    let mut frames = Frames::default();
+    let mut frames = Frames::within(args.size);
     let count = (flow.length() * fps as f32).ceil() as usize + 1;
     for at in 0..count {
         let svg = stage.frame(&flow, at as f32 / fps as f32);
@@ -519,6 +520,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(100),
             width: Some(400),
+            size: None,
             fps: Some(4),
             folds: Vec::new(),
             dives: Vec::new(),

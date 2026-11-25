@@ -2058,6 +2058,13 @@ is open and the reasoning around it.
       requirement diagrams as high as their text. Each is a quarter
       higher now (`mermaid::TITLE_SCALE`), as the git graph's and the
       kanban board's were; the charts keep Mermaid's own sizes.
+- [x] A film of the size asked for (2026-11-25): `omaspec play --size
+      1080x1920` lays any film out as wide as the frame's height lets it
+      (`Moving::asked_width`, the widest width at which the film's own
+      height fits) and sets each frame in the middle of the frame, the
+      paper of its top row around it (`Frames::within`). A page, which
+      fits its window, declines it; a film too high even at its
+      narrowest says so.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

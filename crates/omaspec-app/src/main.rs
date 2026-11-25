@@ -501,6 +501,11 @@ enum Command {
         /// Without it, twice the diagram's size, up to 1200.
         #[arg(long)]
         width: Option<u32>,
+        /// The picture's width and height in pixels, as 1080x1920 for a
+        /// phone: the film as large as it fits, in its middle, the paper
+        /// around it. Not for a page, which fits its window.
+        #[arg(long, value_name = "WxH", value_parser = film_size, conflicts_with = "width")]
+        size: Option<(u32, u32)>,
         /// Frames per second: 20 without it and up to 50 in a GIF, 60 in
         /// full color.
         #[arg(long)]
@@ -885,6 +890,19 @@ impl LangArg {
     }
 }
 
+/// `--size WxH`: a width and a height in pixels, as `1080x1920`.
+fn film_size(value: &str) -> Result<(u32, u32), String> {
+    let (width, height) = value
+        .split_once(['x', 'X', '×'])
+        .ok_or_else(|| format!("{value}: a width and a height, as 1080x1920"))?;
+    let pixels = |n: &str| {
+        n.trim()
+            .parse::<u32>()
+            .map_err(|_| format!("{value}: a width and a height, as 1080x1920"))
+    };
+    Ok((pixels(width)?, pixels(height)?))
+}
+
 fn main() -> ExitCode {
     // A panic the engine catches and answers for (mmdr's, on a diagram
     // or a line it fails on) is said where it is answered, not here too.
@@ -1060,6 +1078,7 @@ fn main() -> ExitCode {
             events,
             steps,
             width,
+            size,
             fps,
             colors,
             lossy,
@@ -1090,6 +1109,7 @@ fn main() -> ExitCode {
                     events,
                     steps,
                     width,
+                    size,
                     fps,
                     folds: fold,
                     dives: dive,

@@ -70,6 +70,10 @@ pub struct Moving {
     /// The picture's width in pixels, the height following the diagram;
     /// `None` takes twice the diagram's size, up to [`WIDEST`].
     pub width: Option<u32>,
+    /// The picture's width and height in pixels (`--size WxH`): the film
+    /// laid out as wide as its height lets it ([`Moving::asked_width`]),
+    /// each frame in the middle ([`super::gifs::Frames::within`]).
+    pub size: Option<(u32, u32)>,
     /// Frames a second; `None` takes what the picture's kind usually has.
     pub fps: Option<u32>,
     /// The containers to fold and unfold instead of a play.
@@ -131,6 +135,35 @@ pub struct Moving {
 }
 
 impl Moving {
+    /// The width the film is laid out at where one is asked for:
+    /// `--width`, or the widest up to `--size`'s at which `high`, the
+    /// film's height in pixels at a width, fits its height, `least` the
+    /// narrowest the film takes. `None` where neither is asked for.
+    pub(super) fn asked_width(&self, least: u32, high: impl Fn(f32) -> f32) -> Result<Option<f32>> {
+        let Some((wide, tall)) = self.size else {
+            return Ok(self.width.map(|width| width as f32));
+        };
+        let fits = |width: u32| high(width as f32).round() <= tall as f32;
+        if fits(wide) {
+            return Ok(Some(wide as f32));
+        }
+        anyhow::ensure!(
+            fits(least),
+            "--size {wide}x{tall} is too low for this film: {least} pixels wide it is {} high",
+            high(least as f32).round()
+        );
+        let (mut fit, mut not) = (least, wide);
+        while not - fit > 1 {
+            let mid = fit + (not - fit) / 2;
+            if fits(mid) {
+                fit = mid;
+            } else {
+                not = mid;
+            }
+        }
+        Ok(Some(fit as f32))
+    }
+
     /// The steps a state machine's play takes at most: `--steps`, else
     /// [`MACHINE_STEPS`], or without a bound where `--events` names them,
     /// which end the play, so none of them is left out without a word.
@@ -266,6 +299,17 @@ pub fn play(args: &Moving) -> Result<String> {
             .is_none_or(|h| h.is_finite() && (0.0..=60.0).contains(&h)),
         "--hold takes 0 to 60 seconds"
     );
+    if let Some((wide, tall)) = args.size {
+        anyhow::ensure!(
+            film != Film::Page,
+            "a page fits its window: --size is for a GIF, a WebP or a PNG"
+        );
+        let least = if args.lockstep { 400 } else { 200 };
+        anyhow::ensure!(
+            (least..=4000).contains(&wide) && (200..=4000).contains(&tall),
+            "--size takes {least} to 4000 pixels across and 200 to 4000 down"
+        );
+    }
     anyhow::ensure!(
         film != Film::Page || args.ink || timing == super::gifs::Timing::default(),
         "a page plays at its own pace: --duration and --hold are for a GIF, a WebP or a PNG, and for ink"
@@ -587,12 +631,6 @@ impl Stage {
         // WIDEST; the height from the diagram, with room for the bar a play
         // has, in as many rows as its options will need.
         let drawn = app.doc().paper.diagram_size();
-        let width = match args.width {
-            Some(width) => width as f32,
-            None => (drawn.width * 2.0 + 2.0 * MARGIN)
-                .clamp(320.0, WIDEST)
-                .round(),
-        };
         let played = args.folds.is_empty() && args.dives.is_empty() && !args.no_bar;
         let bar = |pane: f32| {
             if played {
@@ -601,11 +639,25 @@ impl Stage {
                 0.0
             }
         };
-        let (scale, size) = if played {
-            staged(width, drawn, bar)
-        } else {
-            (1.0, pane_of(width, 1.0, drawn, bar))
+        // The scale a picture `width` wide is drawn at, and its pane.
+        let laid = |width: f32| {
+            if played {
+                staged(width, drawn, bar)
+            } else {
+                (1.0, pane_of(width, 1.0, drawn, bar))
+            }
         };
+        let width = args
+            .asked_width(200, |width| {
+                let (scale, size) = laid(width);
+                size.height * scale
+            })?
+            .unwrap_or_else(|| {
+                (drawn.width * 2.0 + 2.0 * MARGIN)
+                    .clamp(320.0, WIDEST)
+                    .round()
+            });
+        let (scale, size) = laid(width);
         screen.scale = scale;
         let scaled = app.doc_mut().paper.set_scale_factor(scale);
         screen.run_task(&mut app, scaled.map(move |m| Message::Paper(key, m)));
@@ -632,7 +684,7 @@ impl Stage {
         Ok(Self {
             app,
             screen,
-            frames: super::gifs::Frames::default(),
+            frames: super::gifs::Frames::within(args.size),
             delay: match film {
                 Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
                 Film::Apng | Film::Webp | Film::Page => 1,
@@ -1581,6 +1633,7 @@ mod tests {
                 events: vec!["open".into()],
                 steps: Some(1),
                 width: Some(200),
+                size: None,
                 fps: Some(5),
                 folds: Vec::new(),
                 dives: Vec::new(),
@@ -1642,6 +1695,7 @@ mod tests {
                 events: Vec::new(),
                 steps,
                 width: Some(200),
+                size: None,
                 fps: Some(4),
                 folds: Vec::new(),
                 dives: Vec::new(),
@@ -1704,6 +1758,7 @@ mod tests {
             events: Vec::new(),
             steps: None,
             width: Some(200),
+            size: None,
             fps: Some(10),
             folds: Vec::new(),
             dives: Vec::new(),
@@ -1756,6 +1811,7 @@ mod tests {
             events: vec!["open".into()],
             steps: Some(1),
             width: Some(200),
+            size: None,
             fps: Some(10),
             folds: Vec::new(),
             dives: Vec::new(),
@@ -1840,6 +1896,7 @@ mod tests {
             events: vec!["open".into(), "close".into()],
             steps: Some(2),
             width: Some(240),
+            size: None,
             fps: Some(10),
             folds: Vec::new(),
             dives: Vec::new(),
@@ -1902,6 +1959,7 @@ mod tests {
             events: vec!["open".into()],
             steps: Some(1),
             width: Some(300),
+            size: None,
             fps: None,
             folds: Vec::new(),
             dives: Vec::new(),
@@ -1993,6 +2051,7 @@ mod tests {
             events: vec!["open".into()],
             steps: Some(1),
             width: Some(200),
+            size: None,
             fps,
             folds: Vec::new(),
             dives: Vec::new(),
@@ -2056,6 +2115,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(0),
             width: Some(240),
+            size: None,
             fps: Some(10),
             folds: vec![fold.to_owned()],
             dives: Vec::new(),
@@ -2104,6 +2164,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(0),
             width: None,
+            size: None,
             fps: None,
             folds: folds.iter().map(|f| (*f).to_owned()).collect(),
             dives: Vec::new(),
@@ -2262,60 +2323,129 @@ mod tests {
         assert_eq!(staged(NARROWEST_PANE, small, bar).0, 1.0);
     }
 
+    /// A play of `file` as a GIF beside it, as the command line asks for
+    /// one without options, drawn without a GPU in the built-in colors.
+    fn moving_args(file: &std::path::Path) -> Moving {
+        Moving {
+            file: file.to_owned(),
+            text: None,
+            output: file.with_extension("gif"),
+            events: Vec::new(),
+            steps: None,
+            width: None,
+            size: None,
+            fps: None,
+            folds: Vec::new(),
+            dives: Vec::new(),
+            builds: false,
+            bare: false,
+            no_bar: false,
+            lockstep: false,
+            history: false,
+            travel: None,
+            traffic: Vec::new(),
+            themes: None,
+            ink: false,
+            look: None,
+            timing: Default::default(),
+            whole: false,
+            theme: Some("built-in".into()),
+            file_colors: false,
+            root: None,
+            forced: None,
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        }
+    }
+
+    /// A play of a door laid out across, `width` wide or in `size`, with
+    /// its bar or without, as a GIF in `work`: its width and height.
+    fn door_gif(
+        work: &std::path::Path,
+        width: Option<u32>,
+        size: Option<(u32, u32)>,
+        no_bar: bool,
+    ) -> Result<(u16, u16)> {
+        let file = work.join("door.puml");
+        std::fs::write(
+            &file,
+            "@startuml\nleft to right direction\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )?;
+        let output = work.join(format!("{width:?}-{size:?}-{no_bar}.gif"));
+        play(&Moving {
+            output: output.clone(),
+            events: vec!["open".into()],
+            steps: Some(1),
+            width,
+            size,
+            fps: Some(5),
+            no_bar,
+            ..moving_args(&file)
+        })?;
+        let gif = std::fs::read(output)?;
+        Ok((
+            u16::from_le_bytes([gif[6], gif[7]]),
+            u16::from_le_bytes([gif[8], gif[9]]),
+        ))
+    }
+
     /// Without its bar a play is the diagram alone: as wide, less high
     /// (a diagram across, which the height's bound does not hold).
     #[test]
     fn a_play_without_its_bar_is_the_diagram_alone() {
         let work = std::env::temp_dir().join(format!("omaspec-no-bar-{}", std::process::id()));
         std::fs::create_dir_all(&work).unwrap();
-        let file = work.join("door.puml");
-        std::fs::write(
-            &file,
-            "@startuml\nleft to right direction\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
-        )
-        .unwrap();
-        let size = |no_bar: bool| {
-            let output = work.join(format!("{no_bar}.gif"));
-            play(&Moving {
-                file: file.clone(),
-                text: None,
-                output: output.clone(),
-                events: vec!["open".into()],
-                steps: Some(1),
-                width: Some(300),
-                fps: Some(5),
-                folds: Vec::new(),
-                dives: Vec::new(),
-                builds: false,
-                bare: false,
-                no_bar,
-                lockstep: false,
-                history: false,
-                travel: None,
-                traffic: Vec::new(),
-                themes: None,
-                ink: false,
-                look: None,
-                timing: Default::default(),
-                whole: false,
-                theme: Some("built-in".into()),
-                file_colors: false,
-                root: None,
-                forced: None,
-                renderer: Some("tiny-skia"),
-                quality: super::super::gifs::Quality::default(),
-            })
-            .unwrap();
-            let gif = std::fs::read(output).unwrap();
-            (
-                u16::from_le_bytes([gif[6], gif[7]]),
-                u16::from_le_bytes([gif[8], gif[9]]),
-            )
-        };
-        let (with, without) = (size(false), size(true));
+        let with = door_gif(&work, Some(300), None, false).unwrap();
+        let without = door_gif(&work, Some(300), None, true).unwrap();
         assert_eq!(with.0, without.0);
         assert!(without.1 < with.1, "{with:?} {without:?}");
         let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// `--size WxH`: the film is as large as asked, a phone's frame high
+    /// above a diagram across, a frame low under it; a page says it fits
+    /// its window.
+    #[test]
+    fn a_film_is_the_size_asked_for() {
+        let work = std::env::temp_dir().join(format!("omaspec-size-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        for size in [(360, 640), (640, 260)] {
+            assert_eq!(
+                door_gif(&work, None, Some(size), false).unwrap(),
+                (size.0 as u16, size.1 as u16)
+            );
+        }
+        let args = Moving {
+            output: work.join("door.html"),
+            size: Some((800, 600)),
+            ..moving_args(&work.join("door.puml"))
+        };
+        let page = play(&args).unwrap_err();
+        assert!(page.to_string().contains("fits its window"), "{page}");
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// The width a film is laid out at for `--size`: the widest whose
+    /// height fits, the width asked for where it fits whole.
+    #[test]
+    fn a_film_is_as_wide_as_its_size_lets_it() {
+        let args = Moving {
+            size: Some((1000, 300)),
+            ..moving_args(std::path::Path::new("door.puml"))
+        };
+        // Half as high as wide, and a band of 40: 520 wide is 300 high.
+        let high = |width: f32| width / 2.0 + 40.0;
+        assert_eq!(args.asked_width(200, high).unwrap(), Some(520.0));
+        assert_eq!(args.asked_width(200, |_| 120.0).unwrap(), Some(1000.0));
+        // A film too high even at its narrowest says so.
+        let low = args.asked_width(200, |_| 400.0).unwrap_err();
+        assert!(low.to_string().contains("too low"), "{low}");
+        let wide = Moving {
+            width: Some(700),
+            size: None,
+            ..args
+        };
+        assert_eq!(wide.asked_width(200, high).unwrap(), Some(700.0));
     }
 
     #[test]
@@ -2335,6 +2465,7 @@ mod tests {
             events: events.iter().map(|e| (*e).to_owned()).collect(),
             steps: None,
             width: None,
+            size: None,
             fps: Some(10),
             folds: Vec::new(),
             dives: Vec::new(),
@@ -2470,6 +2601,7 @@ mod tests {
             events,
             steps: Some(4),
             width: None,
+            size: None,
             fps: None,
             folds: Vec::new(),
             dives: Vec::new(),

@@ -260,6 +260,7 @@ mod tests {
             events: Vec::new(),
             steps: Some(100),
             width: None,
+            size: None,
             fps: None,
             folds: Vec::new(),
             dives: dives.iter().map(|d| (*d).to_owned()).collect(),
