@@ -20,6 +20,8 @@ state Working {
   state Approval <<decide>>
 }
 Working --> Idle
-Working --> Failed : out of budget
-Failed --> [*]
+Working --> Paused : paused
+Paused --> Working : resumed
+Working --> Stopped : out of tokens
+Stopped --> [*]
 @enduml
