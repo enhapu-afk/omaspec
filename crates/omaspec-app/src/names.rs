@@ -11,7 +11,7 @@ use omaspec_core::{Language, detect, markdown};
 use omaspec_model::{File, FileKind, Ref, Specs};
 use serde_json::{Value, json};
 
-use crate::editor::folder::{MAX_FILES, scan_for, walked};
+use crate::editor::folder::{MAX_FILES, SKIPPED, scan_for, walked};
 use crate::specs::file_name;
 
 /// A diagram or a document may hold at most this many bytes, as for
@@ -65,32 +65,37 @@ pub fn diagram_files_at(root: &Path, rev: &str) -> Result<Vec<Owned>> {
 
 /// The folder's diagrams and documents as of `rev` and as they are now,
 /// for comparing the two: both by what git holds and sees, under the
-/// same rules; now without what git ignores there (a build, a fuzzer's
-/// corpus) or what lies in a submodule, which no commit holds.
+/// same rules (no link, none over [`MAX_FILE`], then the first
+/// [`MAX_FILES`] by their paths, a text not UTF-8 read as one); now
+/// without what git ignores there (a build, a fuzzer's corpus) or what
+/// lies in a submodule, which no commit holds.
 pub fn diagram_files_since(root: &Path, rev: &str) -> Result<(Vec<Owned>, Vec<Owned>)> {
     let old = diagram_files_at(root, rev)?;
-    let mut paths: Vec<String> = crate::git::files_now(root)?
-        .into_iter()
-        .filter(|path| walked(path) && is_diagram(path.rsplit('/').next().unwrap_or(path)))
-        .collect();
-    paths.sort_by(|a, b| Path::new(a).cmp(Path::new(b)));
-    paths.truncate(MAX_FILES);
     // A link is not followed, in the path or at its end, as the walk
     // follows none: what is read lies in the folder.
-    let inside = root.canonicalize()?;
+    let inside = root
+        .canonicalize()
+        .with_context(|| format!("cannot find {}", root.display()))?;
+    let mut paths: Vec<(String, PathBuf)> = crate::git::files_now(root, SKIPPED)?
+        .into_iter()
+        .filter(|(name, relative)| {
+            let path = root.join(relative);
+            walked(name)
+                && is_diagram(name.rsplit('/').next().unwrap_or(name))
+                && std::fs::symlink_metadata(&path)
+                    .is_ok_and(|m| m.is_file() && m.len() <= MAX_FILE)
+                && path
+                    .canonicalize()
+                    .is_ok_and(|p| p == inside.join(relative))
+        })
+        .collect();
+    paths.sort_by(|a, b| Path::new(&a.0).cmp(Path::new(&b.0)));
+    paths.truncate(MAX_FILES);
     let new = paths
         .into_iter()
-        .filter_map(|relative| {
-            let path = root.join(&relative);
-            let meta = std::fs::symlink_metadata(&path).ok()?;
-            let small = meta.is_file() && meta.len() <= MAX_FILE;
-            let real = path
-                .canonicalize()
-                .is_ok_and(|p| p == inside.join(&relative));
-            let text = (small && real)
-                .then(|| std::fs::read_to_string(&path).ok())
-                .flatten()?;
-            Some(owned(relative, text))
+        .filter_map(|(name, relative)| {
+            let bytes = std::fs::read(root.join(relative)).ok()?;
+            Some(owned(name, String::from_utf8_lossy(&bytes).into_owned()))
         })
         .collect();
     Ok((old, new))

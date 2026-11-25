@@ -376,6 +376,11 @@ mod tests {
             puml("@startuml\nClosed --> Open : open[*]\n@enduml"),
             Kind::Sequence
         );
+        // Nor in a note's words, nor in a description's.
+        assert_eq!(
+            puml("@startuml\nAlice -> Bob : hi\nhnote over Alice : back to [*]\n@enduml"),
+            Kind::Sequence
+        );
         // A colon in a quoted name is no label.
         assert_eq!(puml("@startuml\n\"a:b\" --> [*]\n@enduml"), Kind::State);
     }
