@@ -28,18 +28,11 @@ pub fn diff(
     json: bool,
     markdown: bool,
 ) -> Result<ExitCode> {
-    // A line of the old version is named by where that version is, as
-    // `omaspec diff FILE` names it: `door.puml@main:5`, `old/door.puml:5`.
-    let (old, new, since, (before, after)) = match folders {
+    let (old, new, since, at) = match folders {
         [dir] => {
             let rev = rev.unwrap_or("HEAD");
             let (old, new) = diagram_files_since(dir, rev)?;
-            (
-                old,
-                new,
-                format!("since {rev}"),
-                (String::new(), format!("@{rev}")),
-            )
+            (old, new, format!("since {rev}"), Where::Rev(rev))
         }
         [old, new] => {
             anyhow::ensure!(rev.is_none(), "--rev compares one folder with a commit");
@@ -47,30 +40,27 @@ pub fn diff(
                 diagram_files(old),
                 diagram_files(new),
                 format!("from {} to {}", old.display(), new.display()),
-                (format!("{}/", old.display()), String::new()),
+                Where::Folders(old, new),
             )
         }
         _ => anyhow::bail!("diff compares two versions"),
     };
     let diagrams = omaspec_model::diff_project(&files(&old), &files(&new));
-    let old_names: Vec<String> = diagrams
-        .iter()
-        .map(|d| format!("{before}{}{after}", names(d).0))
-        .collect();
+    let labels: Vec<(String, String)> = diagrams.iter().map(|d| labels(d, &at)).collect();
     let mut out = stdout();
     if markdown {
         // A diagram file's machine is drawn; one in a document is listed.
         let sections: Vec<crate::diff_markdown::Section> = diagrams
             .iter()
-            .zip(&old_names)
-            .map(|(d, old_name)| {
+            .zip(&labels)
+            .map(|(d, (old_name, new_name))| {
                 let picture = text_of(&new, d.new_file.as_deref()).and_then(|b| {
                     let a = text_of(&old, d.old_file.as_deref());
                     crate::diff_markdown::picture(a, b, &d.changes)
                 });
                 crate::diff_markdown::Section {
                     old: old_name,
-                    new: names(d).1,
+                    new: new_name,
                     changes: &d.changes,
                     picture,
                 }
@@ -78,12 +68,12 @@ pub fn diff(
             .collect();
         write!(out, "{}", crate::diff_markdown::comment(&since, &sections))?;
     } else if json {
-        serde_json::to_writer_pretty(&mut out, &report(&diagrams))?;
+        serde_json::to_writer_pretty(&mut out, &report(&diagrams, &labels))?;
         writeln!(out)?;
     } else {
-        for (d, old) in diagrams.iter().zip(&old_names) {
+        for (d, (old, new)) in diagrams.iter().zip(&labels) {
             for c in &d.changes {
-                writeln!(out, "{}", change_line(old, names(d).1, c))?;
+                writeln!(out, "{}", change_line(old, new, c))?;
             }
         }
         eprintln!("{}", summary(&diagrams, &since));
@@ -124,6 +114,39 @@ fn names(d: &DiagramChanges) -> (&str, &str) {
     (old, new)
 }
 
+/// Where the two versions of a project are, to name a file of each by.
+enum Where<'a> {
+    /// The project in a commit, and as it is.
+    Rev(&'a str),
+    /// Two folders.
+    Folders(&'a Path, &'a Path),
+}
+
+/// The diagram's file in the old version and in the new one, each named
+/// by where it is, as `omaspec diff FILE` names a file's versions:
+/// `door.puml@main` and `door.puml`, or `old/door.puml` and
+/// `new/door.puml`. A diagram that went is named by its old version.
+fn labels(d: &DiagramChanges, at: &Where) -> (String, String) {
+    let (old, new) = names(d);
+    let old = match at {
+        Where::Rev(rev) => format!("{old}@{rev}"),
+        Where::Folders(dir, _) => dir.join(old).display().to_string(),
+    };
+    let new = match (d.new_file.is_some(), at) {
+        (false, _) => old.clone(),
+        (true, Where::Rev(_)) => new.to_owned(),
+        (true, Where::Folders(_, dir)) => dir.join(new).display().to_string(),
+    };
+    (old, new)
+}
+
+/// [`labels`] for a commit of `omaspec log`: `door.puml@1a2b3c4^` and
+/// `door.puml@1a2b3c4`.
+fn commit_labels(d: &DiagramChanges, short: &str) -> (String, String) {
+    let (old, new) = names(d);
+    (format!("{old}@{short}^"), format!("{new}@{short}"))
+}
+
 #[derive(Serialize)]
 struct Report<'a> {
     same: bool,
@@ -139,18 +162,18 @@ struct Diagram<'a> {
     changes: Vec<ReportedChange<'a>>,
 }
 
-fn report(diagrams: &[DiagramChanges]) -> Report<'_> {
+/// The changes of `diagrams` for `--json`, each file named by its
+/// `labels`.
+fn report<'a>(diagrams: &'a [DiagramChanges], labels: &[(String, String)]) -> Report<'a> {
     Report {
         same: diagrams.is_empty(),
         diagrams: diagrams
             .iter()
-            .map(|d| {
-                let (old, new) = names(d);
-                Diagram {
-                    old: d.old_file.as_deref(),
-                    new: d.new_file.as_deref(),
-                    changes: reported_changes(old, new, &d.changes),
-                }
+            .zip(labels)
+            .map(|(d, (old, new))| Diagram {
+                old: d.old_file.as_deref(),
+                new: d.new_file.as_deref(),
+                changes: reported_changes(old, new, &d.changes),
             })
             .collect(),
     }
@@ -259,7 +282,12 @@ pub fn log(
                     "date": c.date,
                     "subject": c.subject,
                 });
-                if let Ok(serde_json::Value::Object(rest)) = serde_json::to_value(report(diagrams))
+                let labels: Vec<_> = diagrams
+                    .iter()
+                    .map(|d| commit_labels(d, &c.short))
+                    .collect();
+                if let Ok(serde_json::Value::Object(rest)) =
+                    serde_json::to_value(report(diagrams, &labels))
                 {
                     entry
                         .as_object_mut()
@@ -278,8 +306,7 @@ pub fn log(
                 writeln!(out, "    no change in behavior")?;
             }
             for d in diagrams {
-                let (old, new) = names(d);
-                let (old, new) = (format!("{old}@{}^", c.short), format!("{new}@{}", c.short));
+                let (old, new) = commit_labels(d, &c.short);
                 for change in &d.changes {
                     writeln!(out, "    {}", change_line(&old, &new, change))?;
                 }

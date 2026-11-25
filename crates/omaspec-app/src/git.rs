@@ -5,7 +5,7 @@
 //! and a revision is never taken for an option.
 
 use std::io::{BufRead, BufReader, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result};
@@ -286,9 +286,11 @@ fn blobs(dir: &Path, objects: &[&str], max: u64) -> Result<Vec<Option<String>>> 
 /// The files under `dir` that git sees now, by paths from there: those
 /// it tracks and those it would take, not what it ignores (a build, a
 /// fuzzer's corpus) nor what lies in a submodule, which no commit of this
-/// repository holds. No path is read as a pattern.
-pub fn files_now(dir: &Path) -> Result<Vec<String>> {
-    let out = git(dir)
+/// repository holds, nor what lies in a hidden folder or one named in
+/// `skipped`. Each as its name, `/` between folders, and its path.
+pub fn files_now(dir: &Path, skipped: &[&str]) -> Result<Vec<(String, PathBuf)>> {
+    let mut command = git(dir);
+    command
         .args([
             "ls-files",
             "-z",
@@ -296,22 +298,38 @@ pub fn files_now(dir: &Path) -> Result<Vec<String>> {
             "--others",
             "--exclude-standard",
         ])
-        .output()
-        .context("cannot run git")?;
+        .args(["--", ".", ":(exclude,glob)**/.*/**"])
+        .args(skipped.iter().map(|f| format!(":(exclude,glob)**/{f}/**")))
+        // The patterns above are patterns.
+        .env_remove("GIT_LITERAL_PATHSPECS");
+    let out = command.output().context("cannot run git")?;
     anyhow::ensure!(
         out.status.success(),
         "git: {}",
         String::from_utf8_lossy(&out.stderr).trim()
     );
-    let mut paths: Vec<String> = out
+    let mut paths: Vec<(String, PathBuf)> = out
         .stdout
         .split(|&b| b == 0)
         .filter(|p| !p.is_empty())
-        .map(|p| String::from_utf8_lossy(p).into_owned())
+        .map(|p| (String::from_utf8_lossy(p).into_owned(), path_of(p)))
         .collect();
     // A file in conflict is listed once for each side.
     paths.dedup();
     Ok(paths)
+}
+
+/// The path git names by `bytes`, which need not be UTF-8 on Unix.
+#[cfg(unix)]
+fn path_of(bytes: &[u8]) -> PathBuf {
+    use std::os::unix::ffi::OsStrExt;
+    PathBuf::from(std::ffi::OsStr::from_bytes(bytes))
+}
+
+/// The path git names by `bytes`, UTF-8 elsewhere.
+#[cfg(not(unix))]
+fn path_of(bytes: &[u8]) -> PathBuf {
+    PathBuf::from(String::from_utf8_lossy(bytes).into_owned())
 }
 
 /// The path of the folder `dir` from its repository's root, `/` after

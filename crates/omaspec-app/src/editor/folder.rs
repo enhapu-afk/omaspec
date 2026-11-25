@@ -23,7 +23,7 @@ const MAX_DEPTH: usize = 8;
 /// change elsewhere is found when the window gets the focus.
 const MAX_WATCHED: usize = 512;
 /// Folders that hold build output or dependencies, not diagrams.
-const SKIPPED: &[&str] = &["node_modules", "target", "__pycache__", "venv"];
+pub const SKIPPED: &[&str] = &["node_modules", "target", "__pycache__", "venv"];
 /// The sidebar shows at most this many children of one folder.
 pub const MAX_LISTED: usize = 1000;
 /// It tells the kind of this many diagrams of a folder, from the start of

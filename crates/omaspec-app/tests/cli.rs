@@ -3189,7 +3189,12 @@ fn diff_writes_a_pull_request_s_comment() {
     ]);
     assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
     let text = stdout(&out);
-    assert!(text.contains("#### `door.puml`"), "{text}");
+    // Each file by where it is, so it can be opened.
+    let door = new.join("door.puml");
+    assert!(
+        text.contains(&format!("#### `{}`", door.display())),
+        "{text}"
+    );
     assert!(text.contains("class Locked omaspecCame"), "{text}");
     // Nothing changed: said so, and the exit says it too.
     let out = omaspec(&["diff", &files[0], &files[0], "--markdown"]);
@@ -3229,9 +3234,18 @@ fn diff_writes_a_pull_request_s_comment() {
     git(&sub, &["init", "-q"]);
     git(&sub, &["add", "inner.puml"]);
     git(&sub, &["commit", "-qm", "inner"]);
+    // One that will go, and one whose name is not UTF-8, which stays.
+    fs::write(new.join("gone.puml"), lamp).unwrap();
+    #[cfg(unix)]
+    let latin = {
+        use std::os::unix::ffi::OsStrExt;
+        let name = std::ffi::OsStr::from_bytes(b"t\xe9st.puml");
+        fs::write(new.join(name), lamp).is_ok()
+    };
     git(&new, &["init", "-q"]);
-    git(&new, &["add", "door.puml", "sub"]);
+    git(&new, &["add", "."]);
     git(&new, &["commit", "-qm", "door"]);
+    fs::remove_file(new.join("gone.puml")).unwrap();
     // What went is named at its line in the commit.
     fs::write(
         new.join("door.puml"),
@@ -3257,12 +3271,28 @@ fn diff_writes_a_pull_request_s_comment() {
     assert!(!text.contains("corpus"), "{text}");
     assert!(!text.contains("inner"), "{text}");
     assert!(text.contains("(`door.puml@HEAD:5`)"), "{text}");
+    #[cfg(unix)]
+    if latin {
+        assert!(!text.contains("st.puml"), "{text}");
+    }
     let out = omaspec(&["diff", new.to_str().unwrap()]);
+    let text = stdout(&out);
     assert!(
-        stdout(&out)
-            .contains("door.puml@HEAD:5: removed: Transition removed: Closed to Locked on lock."),
-        "{}",
-        stdout(&out)
+        text.contains("door.puml@HEAD:5: removed: Transition removed: Closed to Locked on lock."),
+        "{text}"
+    );
+    assert!(text.contains("gone.puml@HEAD:1: removed: "), "{text}");
+    let out = omaspec(&["diff", new.to_str().unwrap(), "--json"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let door = json["diagrams"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["new"] == "door.puml")
+        .unwrap();
+    assert_eq!(
+        door["changes"][0]["old"]["file"], "door.puml@HEAD",
+        "{door}"
     );
 }
 

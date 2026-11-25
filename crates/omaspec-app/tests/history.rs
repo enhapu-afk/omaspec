@@ -150,8 +150,12 @@ fn two_folders_and_what_a_folder_does_not_take() {
     let (old_s, new_s) = (old.to_str().unwrap(), new.to_str().unwrap());
     let (code, out, err) = omaspec(&["diff", old_s, new_s]);
     assert_eq!(code, Some(1), "{err}");
+    // Each file by where it is, so it can be opened.
     assert!(
-        out.starts_with("door.puml:6: changed: Closed to Locked now happens on bolt, lock"),
+        out.starts_with(&format!(
+            "{}:6: changed: Closed to Locked now happens on bolt, lock",
+            new.join("door.puml").display()
+        )),
         "{out}"
     );
     assert!(
