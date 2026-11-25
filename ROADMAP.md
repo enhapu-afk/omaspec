@@ -357,7 +357,7 @@ findings with their fix; 1.2.1 with what running that review on Omaspec's
 own pull requests found.
 
 - [ ] The release's last steps: AUR `omaspec` and `omaspec-bin`, the
-      announcement. Both PKGBUILDs are at 1.2.0 with their checksums and
+      announcement. Both PKGBUILDs are at 1.2.1 with their checksums and
       build; they wait for an AUR account to be pushed with.
 
 ## After 1.0
