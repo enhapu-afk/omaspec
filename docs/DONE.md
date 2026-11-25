@@ -2093,6 +2093,12 @@ is open and the reasoning around it.
       lines at right angles as ELK does: lint no longer warns of them,
       but of a layout Mermaid does not know. The reference said the
       flowchart's spacing was carried out, which it is not (REQ-110).
+- [x] A Mermaid flowchart's spacing (REQ-110, the rest, 2026-11-25):
+      `flowchart.nodeSpacing` moves the boxes of a rank apart and
+      `rankSpacing` the ranks, as shares of Mermaid's 50, which is
+      Omaspec's own room (`graph::Spacing`, which a drawer gives the
+      layout through `Nested::spacing`; `graph::spaced`). Lint no longer
+      warns of them.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

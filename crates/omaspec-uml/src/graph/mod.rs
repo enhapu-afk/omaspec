@@ -224,7 +224,8 @@ pub struct Layout {
     pub unheld: Vec<(usize, hold::Unheld)>,
 }
 
-/// Room between two nodes of one rank.
+/// Room between two nodes of one rank, unless a drawer asks for other
+/// ([`Spacing`]).
 const CROSS_GAP: f32 = 44.0;
 /// Between two lines passing through a rank side by side.
 const DUMMY_GAP: f32 = 12.0;
@@ -238,8 +239,28 @@ const PORT_CORNER: f32 = 12.0;
 /// Passes that place where lines meet their boxes.
 const PORT_PASSES: usize = 3;
 /// Room between two ranks of boxes, before labels and tracks ask for
-/// more: half before the rank between them, half after.
+/// more: half before the rank between them, half after; unless a drawer
+/// asks for other ([`Spacing`]).
 const ALONG_PAD: f32 = 32.0;
+
+/// How far apart boxes stand before lines and labels ask for more: two
+/// of one rank across the flow, two ranks along it. A drawer asks for
+/// other room than the default where its diagram does (Mermaid's
+/// `nodeSpacing` and `rankSpacing`, REQ-110).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Spacing {
+    pub cross: f32,
+    pub along: f32,
+}
+
+impl Default for Spacing {
+    fn default() -> Self {
+        Spacing {
+            cross: CROSS_GAP,
+            along: ALONG_PAD,
+        }
+    }
+}
 /// Where a line bends, past the end of the rank it leaves.
 const JOG: f32 = 12.0;
 /// Between two lines running across one gap.
@@ -281,6 +302,27 @@ pub fn framed(
     edges: &[Edge],
     holds: &[hold::Hold],
     direction: Direction,
+) -> Layout {
+    spaced(
+        nodes,
+        frames,
+        within,
+        edges,
+        holds,
+        direction,
+        Spacing::default(),
+    )
+}
+
+/// [`framed`], the boxes as far apart as `spacing` asks.
+pub fn spaced(
+    nodes: &[Node],
+    frames: &[Frame],
+    within: &[Option<usize>],
+    edges: &[Edge],
+    holds: &[hold::Hold],
+    direction: Direction,
+    spacing: Spacing,
 ) -> Layout {
     let n = nodes.len();
     let mut same: Vec<(usize, hold::Same)> = Vec::new();
@@ -342,7 +384,7 @@ pub fn framed(
         ));
     }
     let kept: Vec<hold::Same> = same.iter().map(|(_, hold)| *hold).collect();
-    let mut laid = in_ranks(nodes, frames, within, &lines, &kept, direction);
+    let mut laid = in_ranks(nodes, frames, within, &lines, &kept, (direction, spacing));
     laid.routes.truncate(edges.len());
     unheld.extend(laid.unheld.iter().map(|&(at, why)| (same[at].0, why)));
     // A box held into another rank that the lines rank the other way.
@@ -384,7 +426,7 @@ fn in_ranks(
     within: &[Option<usize>],
     edges: &[Edge],
     holds: &[hold::Same],
-    direction: Direction,
+    (direction, spacing): (Direction, Spacing),
 ) -> Layout {
     let n = nodes.len();
     if n == 0 {
@@ -461,7 +503,7 @@ fn in_ranks(
             level[*index] = Some(Level {
                 after: hold.after == Some(true),
                 kept,
-                span: CROSS_GAP,
+                span: spacing.cross,
             });
         }
     }
@@ -484,7 +526,7 @@ fn in_ranks(
             Direction::Right => edge.label_height,
         };
         let marks = if edge.marked { 2.0 * LEVEL_MARK } else { 0.0 };
-        line.span = (label + 2.0 * LEVEL_END + marks).max(CROSS_GAP);
+        line.span = (label + 2.0 * LEVEL_END + marks).max(spacing.cross);
         let held = &mut roomy[edge.to];
         let side = if line.after {
             &mut held.before
@@ -492,7 +534,7 @@ fn in_ranks(
             &mut held.loop_extra
         };
         if line.kept {
-            *side += line.span - CROSS_GAP;
+            *side += line.span - spacing.cross;
         }
         inner[index] = Edge {
             from: usize::MAX,
@@ -521,6 +563,9 @@ fn in_ranks(
         frames: held,
         labels,
     } = slots_of(nodes, edges, &rank, &back, direction, nested);
+    for slot in &mut slots {
+        slot.gap = spacing.cross;
+    }
     let mut borders = Vec::new();
     let mut ports = Vec::new();
     let mut jogs = nest::Jogs::new();
@@ -595,7 +640,7 @@ fn in_ranks(
     } = tracks(
         &slots, edges, &chains, &ports, &first, &jogs, gap_count, &back,
     );
-    let mut gaps = doubled::rank_gaps(&counts, &into_box);
+    let mut gaps = doubled::rank_gaps(&counts, &into_box, spacing.along);
     // A gap a line arrives back up from bends its lines further down.
     for (gap, &arrives) in gaps.iter_mut().zip(&arrive) {
         if arrives {
@@ -1140,6 +1185,8 @@ struct Slot {
     /// Two such points of one end keep no room between them, so their
     /// lines run together into it, as they meet it.
     meets: Option<usize>,
+    /// The room it keeps to a box beside it in its rank ([`Spacing`]).
+    gap: f32,
 }
 
 impl Slot {
@@ -1156,6 +1203,7 @@ impl Slot {
             primary: 0.0,
             anchor,
             meets: None,
+            gap: CROSS_GAP,
         }
     }
 }
@@ -1708,7 +1756,7 @@ fn gap(slots: &[Slot], a: usize, b: usize) -> f32 {
     } else if slots[a].real.is_none() && slots[b].real.is_none() {
         DUMMY_GAP
     } else {
-        CROSS_GAP
+        slots[a].gap.max(slots[b].gap)
     }
 }
 

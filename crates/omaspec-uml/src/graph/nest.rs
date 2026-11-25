@@ -15,9 +15,7 @@
 
 use std::collections::HashMap;
 
-use super::{
-    CROSS_GAP, DUMMY_GAP, Direction, Edge, Frame, Name, PORT_STEP, Ports, Slot, TRACK, center,
-};
+use super::{DUMMY_GAP, Direction, Edge, Frame, Name, PORT_STEP, Ports, Slot, TRACK, center};
 
 /// The weight that holds a slot where it is while another rank moves.
 pub(super) const HELD: f32 = 50.0;
@@ -484,7 +482,7 @@ fn gap(slots: &[Slot], a: usize, b: usize, border: bool) -> f32 {
     } else if !border && (anchored || slots[a].real.is_none() && slots[b].real.is_none()) {
         DUMMY_GAP
     } else {
-        CROSS_GAP
+        slots[a].gap.max(slots[b].gap)
     }
 }
 

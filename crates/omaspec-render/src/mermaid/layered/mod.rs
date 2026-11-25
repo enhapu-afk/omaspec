@@ -82,6 +82,9 @@ pub struct Asked {
     /// The room around the diagram (`flowchart.diagramPadding`);
     /// Omaspec's own [`MARGIN`] where none is asked for.
     pub margin: Option<f32>,
+    /// How far apart the boxes stand (`flowchart.nodeSpacing` and
+    /// `rankSpacing`, REQ-110).
+    pub spacing: omaspec_uml::graph::Spacing,
 }
 
 #[cfg(test)]
@@ -93,6 +96,7 @@ impl Asked {
             curve: 0.0,
             padding: 1.0,
             margin: None,
+            spacing: omaspec_uml::graph::Spacing::default(),
         }
     }
 }
@@ -154,6 +158,7 @@ fn draw(
     }
     let palette = Palette {
         padding: asked.padding,
+        spacing: asked.spacing,
         ..palette(theme, source)?
     };
     let family = Family::of(&theme.font_family);

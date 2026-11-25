@@ -934,12 +934,18 @@ fn font_size(value: Option<&serde_json::Value>) -> Option<f32> {
 /// The room Mermaid keeps around a flowchart box's words by default
 /// (`flowchart.padding`): Omaspec's own room is that much.
 const MERMAID_PADDING: f32 = 15.0;
+/// How far apart Mermaid stands a flowchart's boxes by default, in a rank
+/// and between ranks (`nodeSpacing`, `rankSpacing`): Omaspec's own room
+/// is that much.
+const MERMAID_SPACING: f32 = 50.0;
 
 /// What a flowchart's configuration asks of its drawing (REQ-111): how far
 /// its corners curve (Mermaid's own default curves them; `"curve":
 /// "linear"` and the steps keep straight runs and right angles), the room
 /// around a box's words (`padding`, as a share of Mermaid's 15) and around
-/// the diagram (`diagramPadding`, in pixels).
+/// the diagram (`diagramPadding`, in pixels), and how far apart the boxes
+/// stand (`nodeSpacing` and `rankSpacing`, as shares of Mermaid's 50 of
+/// Omaspec's own room, REQ-110).
 fn flowchart_asked(init: Option<&serde_json::Value>) -> layered::Asked {
     let flowchart = init.and_then(|init| init.get("flowchart"));
     let curve = flowchart
@@ -954,6 +960,18 @@ fn flowchart_asked(init: Option<&serde_json::Value>) -> layered::Asked {
         padding: number("padding")
             .map_or(1.0, |padding| (padding / MERMAID_PADDING).clamp(0.0, 8.0)),
         margin: number("diagramPadding").map(|margin| margin.clamp(0.0, 400.0)),
+        spacing: {
+            let own = omaspec_uml::graph::Spacing::default();
+            let scaled = |key: &str, room: f32| {
+                number(key).map_or(room, |asked| {
+                    room * (asked / MERMAID_SPACING).clamp(0.0, 8.0)
+                })
+            };
+            omaspec_uml::graph::Spacing {
+                cross: scaled("nodeSpacing", own.cross),
+                along: scaled("rankSpacing", own.along),
+            }
+        },
     }
 }
 
@@ -1265,6 +1283,47 @@ mod tests {
             "{small:?} {large:?}"
         );
         assert_eq!(with("\"layout\": \"elk\""), plain);
+    }
+
+    /// A flowchart's `nodeSpacing` moves the boxes of a rank apart, its
+    /// `rankSpacing` the ranks (REQ-110); Mermaid's own 50 is Omaspec's own
+    /// room.
+    #[test]
+    fn a_flowchart_s_spacing_is_carried_out() {
+        let body = "flowchart TD\n  A --> B\n  A --> C\n";
+        let with = |init: &str| {
+            render(&format!(
+                "%%{{init: {{\"flowchart\": {{{init}}}}}}}%%\n{body}"
+            ))
+            .unwrap()
+        };
+        // The boxes, the paper's rectangle left out: x, y, width, height.
+        let boxes = |svg: &str| -> Vec<(f32, f32, f32, f32)> {
+            svg.split("<rect")
+                .skip(2)
+                .map(|rect| {
+                    let number = |name: &str| -> f32 {
+                        let at = rect.find(&format!(" {name}=\"")).unwrap() + name.len() + 3;
+                        rect[at..].split('"').next().unwrap().parse().unwrap()
+                    };
+                    (number("x"), number("y"), number("width"), number("height"))
+                })
+                .collect()
+        };
+        // Across between B and C, along between A and B.
+        let gaps = |svg: &str| {
+            let at = boxes(svg);
+            let (a, b, c) = (at[0], at[1], at[2]);
+            let (left, right) = if b.0 < c.0 { (b, c) } else { (c, b) };
+            (right.0 - left.0 - left.2, b.1 - a.1 - a.3)
+        };
+        let plain = render(body).unwrap();
+        assert_eq!(with("\"nodeSpacing\": 50, \"rankSpacing\": 50"), plain);
+        let (across, along) = gaps(&plain);
+        let (wide, _) = gaps(&with("\"nodeSpacing\": 150"));
+        assert!((wide - 3.0 * across).abs() < 1.0, "{across} {wide}");
+        let (_, deep) = gaps(&with("\"rankSpacing\": 150"));
+        assert!(deep > along + 40.0, "{along} {deep}");
     }
 
     #[test]

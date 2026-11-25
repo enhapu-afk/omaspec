@@ -8,7 +8,7 @@
 //! and the gaps make room for the lines that bend there ([`rank_gaps`]).
 
 use super::hold::{self, Same};
-use super::{ALONG_PAD, Direction, Edge, PORT_CORNER, Ports, Slot, TRACK, center, nest};
+use super::{Direction, Edge, PORT_CORNER, Ports, Slot, TRACK, center, nest};
 
 /// Between a label and its line, across the flow, by direction: beside a
 /// line running down, and above or below one running across.
@@ -462,11 +462,12 @@ pub(super) fn anchor_wants(slots: &[Slot], rows: &[Vec<usize>]) -> Vec<Vec<(usiz
 }
 
 /// The room after each rank, by how many lines bend there (`counts`): half
-/// of [`ALONG_PAD`], and a track more for each line past the first. Where
-/// one of them bends on its way into a box (`into_box`), after a rank
-/// between two ranks of boxes, the box keeps the other half from the last
-/// track too, for its arrow.
-pub(super) fn rank_gaps(counts: &[usize], into_box: &[bool]) -> Vec<f32> {
+/// of `pad` (the room between two ranks of boxes, [`super::ALONG_PAD`] unless a
+/// drawer asks for other), and a track more for each line past the first.
+/// Where one of them bends on its way into a box (`into_box`), after a
+/// rank between two ranks of boxes, the box keeps the other half from the
+/// last track too, for its arrow.
+pub(super) fn rank_gaps(counts: &[usize], into_box: &[bool], pad: f32) -> Vec<f32> {
     counts
         .iter()
         .zip(into_box)
@@ -474,9 +475,9 @@ pub(super) fn rank_gaps(counts: &[usize], into_box: &[bool]) -> Vec<f32> {
         .map(|(gap, (&count, &into_box))| {
             let tracks = count.saturating_sub(1) as f32 * TRACK;
             if gap % 2 == 1 && into_box {
-                ALONG_PAD + tracks
+                pad + tracks
             } else {
-                ALONG_PAD / 2.0 + tracks
+                pad / 2.0 + tracks
             }
         })
         .collect()
@@ -499,6 +500,7 @@ mod tests {
             primary,
             anchor: None,
             meets: None,
+            gap: super::super::CROSS_GAP,
         }
     }
 

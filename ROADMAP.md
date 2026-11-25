@@ -392,9 +392,6 @@ what is plainly missing, then the larger pieces.
 Reproduced on `main` (9f7a72a), in the order they are taken: first what
 is lost without a word, then what misleads, then what is missing.
 
-- [ ] REQ-110, the rest: `nodeSpacing` and `rankSpacing` carried out by
-      the graph engine, whose gaps are its own (`CROSS_GAP`, the ranks'
-      gaps); lint says they are not since 2026-11-23.
 - [ ] REQ-103: `@startchart` drawn natively; the Java PlantUML hangs or
       crashes on it (plantuml/plantuml#3030, #3031).
 - [ ] REQ-105: marble diagrams of reactive streams

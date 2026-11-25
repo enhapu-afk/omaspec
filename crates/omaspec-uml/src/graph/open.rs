@@ -18,7 +18,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::hold::{Held, Hold, Unheld};
-use super::{Direction, Edge, Frame, Layout, Node, Rect, framed, route, span};
+use super::{Direction, Edge, Frame, Layout, Node, Rect, route, span};
 use crate::text::Block;
 
 type Point = (f32, f32);
@@ -260,6 +260,11 @@ pub trait Nested {
     fn arrival(&self, _look: &Self::Look) -> u32 {
         0
     }
+    /// How far apart its boxes stand ([`super::Spacing`]); the layout's
+    /// own room by default.
+    fn spacing(&self) -> super::Spacing {
+        super::Spacing::default()
+    }
     /// How a line drawn as `look` leaves the box it starts at, where it
     /// has a head there ([`Edge::departure`]); 0 where it has none.
     fn departure(&self, _look: &Self::Look) -> u32 {
@@ -480,7 +485,15 @@ pub fn layout<C: Nested>(cx: &C, top: C::Container) -> Result<Scene<C::Item, C::
         direction: axis,
     };
     let laid = span::laid(&mut flat.nodes, &bars, |nodes| {
-        framed(nodes, &flat.frames, &flat.within, &flat.edges, &holds, axis)
+        super::spaced(
+            nodes,
+            &flat.frames,
+            &flat.within,
+            &flat.edges,
+            &holds,
+            axis,
+            cx.spacing(),
+        )
     });
     unheld.extend(laid.unheld.iter().map(|&(at, why)| (lines[at], why)));
     let mut scene = flat.assemble(cx, top, &mut Vec::new(), &laid);

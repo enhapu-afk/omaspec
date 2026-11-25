@@ -109,6 +109,10 @@ impl Nested for Charts<'_> {
         true
     }
 
+    fn spacing(&self) -> graph::Spacing {
+        self.palette.spacing
+    }
+
     fn flow(&self, spot: Spot) -> (graph::Direction, bool) {
         let (axis, flip) = axes(self.tree.flow(spot));
         (axis, !matches!(flip, Flip::No))

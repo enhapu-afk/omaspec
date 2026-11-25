@@ -12,6 +12,9 @@ pub(super) struct Palette {
     /// The room around a box's words, as a share of the drawer's own
     /// (`flowchart.padding`, REQ-111).
     pub padding: f32,
+    /// How far apart the boxes stand (`flowchart.nodeSpacing` and
+    /// `rankSpacing`, REQ-110).
+    pub spacing: omaspec_uml::graph::Spacing,
     pub fill: Paint,
     pub text: Color,
     pub border: Color,
@@ -69,6 +72,7 @@ pub(super) fn palette(theme: &Theme, source: &str) -> Option<Palette> {
     Some(Palette {
         size: theme.font_size.clamp(4.0, 96.0),
         padding: 1.0,
+        spacing: omaspec_uml::graph::Spacing::default(),
         fill: Some(fill),
         text,
         border,

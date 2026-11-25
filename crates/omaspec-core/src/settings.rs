@@ -407,10 +407,9 @@ const THEMES: [&str; 7] = [
 
 /// Whether Omaspec carries the setting at `path` out, or it changes no
 /// picture. The drawers' own list is `apply_init` in `omaspec-render`:
-/// a setting added there is added here. `flowchart.nodeSpacing` and
-/// `rankSpacing` reach mmdr's layout alone, which draws a flowchart only
-/// where Omaspec's own drawer declines it, so they are not (REQ-110).
-/// The layout a diagram asks for, ELK or dagre (`layout`,
+/// a setting added there is added here. A flowchart's spacing
+/// (`nodeSpacing`, `rankSpacing`) moves its boxes apart in Omaspec's own
+/// layout as in mmdr's (REQ-110). The layout a diagram asks for, ELK or dagre (`layout`,
 /// `flowchart.defaultRenderer`), is Omaspec's own: it lays out every
 /// diagram itself, in ranks with lines at right angles as ELK does
 /// (REQ-111).
@@ -429,7 +428,8 @@ fn heeded(path: &[String]) -> bool {
         }
         [
             "flowchart",
-            "curve" | "padding" | "diagramPadding" | "defaultRenderer",
+            "curve" | "padding" | "diagramPadding" | "defaultRenderer" | "nodeSpacing"
+            | "rankSpacing",
         ] => true,
         ["sequence", "mirrorActors"] => true,
         ["gitGraph", name] => omaspec_uml::gitgraph::SETTINGS.contains(name),
@@ -492,15 +492,6 @@ pub fn unheeded(code: &str) -> Vec<Finding> {
                 }
                 _ => continue,
             }
-        } else if matches!(
-            name.as_str(),
-            "flowchart.nodeSpacing" | "flowchart.rankSpacing"
-        ) {
-            // mmdr's layout takes them, where Omaspec's drawer leaves a
-            // flowchart to it, which it mostly does not.
-            format!(
-                "`{name}` is not carried out by Omaspec's own drawer, which draws a flowchart unless it leaves it to mmdr"
-            )
         } else {
             format!("`{name}` is not carried out: Omaspec draws the diagram without this setting")
         };
@@ -679,17 +670,9 @@ mod tests {
         let unknown = unheeded("---\nconfig:\n  layout: tidy\n---\nflowchart TD\n  A --> B\n");
         assert_eq!(unknown.len(), 1, "{unknown:?}");
         assert!(unknown[0].message.starts_with("`layout`") && unknown[0].line == 2);
-        // A flowchart's spacing reaches mmdr's layout alone, which Omaspec's
-        // drawer does not take (REQ-110); its curve it takes.
+        // A flowchart's spacing and its curve are carried out (REQ-110).
         let spaced = "%%{init: {\"flowchart\": {\"nodeSpacing\": 150, \"rankSpacing\": 150, \"curve\": \"basis\"}}}%%\nflowchart TD\n  A --> B\n";
-        let said: Vec<String> = unheeded(spaced).into_iter().map(|f| f.message).collect();
-        assert_eq!(
-            said,
-            [
-                "`flowchart.nodeSpacing` is not carried out by Omaspec's own drawer, which draws a flowchart unless it leaves it to mmdr",
-                "`flowchart.rankSpacing` is not carried out by Omaspec's own drawer, which draws a flowchart unless it leaves it to mmdr",
-            ]
-        );
+        assert!(unheeded(spaced).is_empty(), "{:?}", unheeded(spaced));
         // One nested without end is left to the drawer, which refuses it.
         let deep = format!(
             "%%{{init: {}1{}}}%%\nflowchart TD\n",
