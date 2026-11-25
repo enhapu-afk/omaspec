@@ -210,7 +210,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "inspect",
             "title": "Inspect a diagram",
-            "description": "Tells the language and kind of a diagram, its findings (as `lint`), its outline, and whether Omaspec draws it itself or leaves it to mmdr or the Java PlantUML, and why.",
+            "description": "Tells the language and kind of a diagram, its findings (as `lint`), its outline, and whether Omaspec draws it itself or leaves it to mmdr or the Java PlantUML, and why. A state machine comes with its states and transitions (`machine`: from, to, events, guard, action, line), a sequence diagram with its participants, messages and notes (`scenario`: from, to, text, reply, the groups it is in, line).",
             "inputSchema": schema(&[
                 ("path", path.clone()),
                 ("code", code.clone()),
@@ -1479,6 +1479,12 @@ mod tests {
         let data = &inspected["structuredContent"];
         assert_eq!(data["language"], "mermaid", "{data}");
         assert_eq!(data["native"], "understood", "{data}");
+        // Its messages, the second in its loop (REQ-107).
+        assert_eq!(
+            data["scenario"]["messages"][1],
+            json!({"from": "Bob", "to": "Alice", "text": "ping", "in": ["loop every minute"], "line": 4}),
+            "{data}"
+        );
         let outline = call("outline", json!({"code": code}));
         let entries = outline["structuredContent"]["outline"].as_array().unwrap();
         assert!(entries.iter().any(|e| e["line"] == 3), "{outline}");

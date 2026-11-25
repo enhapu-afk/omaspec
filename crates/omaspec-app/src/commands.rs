@@ -654,6 +654,11 @@ pub(crate) struct Inspection<'a> {
     /// is installed; the reason says which.
     #[serde(skip_serializing_if = "Option::is_none")]
     native: Option<Native>,
+    /// A state machine's states and transitions (`machine`), or a
+    /// sequence diagram's participants, messages and notes (`scenario`),
+    /// each on its line (REQ-107).
+    #[serde(flatten)]
+    pub(crate) behavior: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -756,6 +761,10 @@ pub(crate) fn inspection<'a>(
         outline_cut: outline_cut(&entries),
         outline: one_based(&entries),
         native: Some(native(code, lang)),
+        behavior: omaspec_model::inspected(code, lang)
+            .map(|(key, value)| (key.to_owned(), value))
+            .into_iter()
+            .collect(),
     }
 }
 

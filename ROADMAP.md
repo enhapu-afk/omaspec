@@ -392,8 +392,6 @@ what is plainly missing, then the larger pieces.
 Reproduced on `main` (9f7a72a), in the order they are taken: first what
 is lost without a word, then what misleads, then what is missing.
 
-- [ ] REQ-107: `inspect` of a sequence diagram with its messages and
-      notes, of a state machine with its transitions.
 - [ ] REQ-110, the rest: `nodeSpacing` and `rankSpacing` carried out by
       the graph engine, whose gaps are its own (`CROSS_GAP`, the ranks'
       gaps); lint says they are not since 2026-11-23.

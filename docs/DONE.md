@@ -2074,6 +2074,15 @@ is open and the reasoning around it.
       0022, point 7), and ends squeezed nearer than 8 units go onto the
       trunk however little they move, across the flow too. The keys of
       an arrival are half a hash, so an edge stays 40 bytes.
+- [x] `inspect` tells the behavior (REQ-107, 2026-11-25): beside the
+      outline, a state machine's states and transitions (`machine`:
+      from, to, events, guard, action, each state by its path as the
+      transitions name it) and a sequence diagram's participants,
+      messages and notes (`scenario`: from, to, text, reply, the groups a
+      message is in, as `alt else declined`), each on its line, one-based
+      as the outline's, a Mermaid body's own lines counted
+      (`omaspec_model::inspected`). The MCP server's `inspect` tells the
+      same, and so does a document's every diagram.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

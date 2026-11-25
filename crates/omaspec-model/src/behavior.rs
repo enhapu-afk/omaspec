@@ -86,7 +86,7 @@ fn machine_lines(m: &Machine, hidden: &[(usize, usize)]) -> Vec<String> {
 /// A state by the states around it: `On/region 2/Speaker` where `On`
 /// has more than one region, a start or an end as `[*]`, a history as
 /// `[H]` or `[H*]`.
-fn path(m: &Machine, s: usize) -> String {
+pub(crate) fn path(m: &Machine, s: usize) -> String {
     let own = |s: usize| {
         let state = &m.states[s];
         match state.kind {
@@ -220,7 +220,7 @@ fn scenario_lines(d: &sequence::Diagram) -> Vec<String> {
 }
 
 /// A label as text: line breaks as spaces, runs of spaces as one.
-fn plain(text: &str) -> String {
+pub(crate) fn plain(text: &str) -> String {
     text.replace("\\n", " ")
         .replace("<br/>", " ")
         .replace("<br>", " ")

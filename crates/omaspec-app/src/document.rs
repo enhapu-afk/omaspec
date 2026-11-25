@@ -276,6 +276,9 @@ pub(crate) fn inspect_document<'a>(
                     entry
                 })
                 .collect();
+            for value in inspection.behavior.values_mut() {
+                on_its_lines(value, &|line| piece.line(line - 1) + 1);
+            }
             Some(InDocument {
                 line: block.lines.start + 1,
                 inspection,
@@ -283,6 +286,29 @@ pub(crate) fn inspect_document<'a>(
         })
         .collect();
     Document { file, diagrams }
+}
+
+/// Every `line` in `value`, a diagram's behavior as `inspect` tells it
+/// (one-based in its own code), as `at` has it in the document.
+fn on_its_lines(value: &mut serde_json::Value, at: &dyn Fn(usize) -> usize) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, value) in map.iter_mut() {
+                match value.as_u64() {
+                    Some(line) if key == "line" && line > 0 => {
+                        *value = serde_json::json!(at(line as usize));
+                    }
+                    _ => on_its_lines(value, at),
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                on_its_lines(item, at);
+            }
+        }
+        _ => {}
+    }
 }
 
 #[cfg(test)]
@@ -316,5 +342,27 @@ mod tests {
         let single = super::pieces(&file, None);
         assert!(single[0].block.is_none());
         assert_eq!(single[0].image_path("png").unwrap(), Path::new("flow.png"));
+    }
+
+    /// A machine in a document tells its transitions on the document's
+    /// lines, as its outline does (REQ-107).
+    #[test]
+    fn a_document_s_machine_tells_its_transitions_on_its_lines() {
+        let input = Input {
+            path: Some(PathBuf::from("docs/README.md")),
+            text: "# Door\n\n```plantuml\n[*] --> Closed\nClosed --> Open : open\n```\n".into(),
+        };
+        let pieces = pieces(&input, None);
+        let findings = vec![Vec::new(); pieces.len()];
+        let document = inspect_document(&input, &pieces, &findings);
+        let machine = &document.diagrams[0].inspection.behavior["machine"];
+        let lines: Vec<&serde_json::Value> = machine["transitions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| &t["line"])
+            .collect();
+        assert_eq!(lines, [4, 5], "{machine}");
+        assert_eq!(machine["states"][0]["line"], 4, "{machine}");
     }
 }

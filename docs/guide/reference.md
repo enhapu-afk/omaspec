@@ -810,7 +810,7 @@ omaspec fmt --portable --write a.mmd # also written the way mermaid.js (GitHub) 
 omaspec fmt --pretty --write a.puml # also arrows and colons in a column, one space around them
 omaspec lint --fix diagrams/*.puml  # make the fixes findings carry, then report what is left
 omaspec outline flow.puml           # structure: participants, groups, lanes, states, …
-omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it
+omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it; a state machine's states and transitions (machine), a sequence diagram's participants, messages with the groups they are in, and notes (scenario), each on its line
 omaspec diff door.puml              # what changed in the behavior since the last commit; --rev, or two files
 omaspec diff . --rev v1.0           # the same for the whole project since a tag; or two folders
 omaspec diff . --rev origin/main --markdown   # as a pull request's comment, each changed machine drawn as Mermaid (docs/ci/)
