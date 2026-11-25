@@ -21,6 +21,11 @@ a comment posted before says so once a later push takes the change back.
 The job's summary shows the same, also for a pull request from a fork, on
 which GitHub's token may not comment.
 
+Omaspec's own pull requests get it too
+([behavior.yml](../../.github/workflows/behavior.yml)), with Omaspec built
+from the pull request, so that a change to `diff` is reviewed by itself; a
+test holds its steps to this file's.
+
 The same Markdown is what an agent can put in the description of a pull
 request it opens: `omaspec diff . --markdown` before it hands its work over.
 

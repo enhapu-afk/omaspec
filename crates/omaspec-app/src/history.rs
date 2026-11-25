@@ -18,7 +18,7 @@ use serde_json::json;
 
 use crate::commands::{ReportedChange, change_line, reported_changes, stdout};
 use crate::git::FileCommit;
-use crate::names::{MAX_FILE, Owned, diagram_files, diagram_files_at, owned};
+use crate::names::{MAX_FILE, Owned, diagram_files, diagram_files_at, diagram_files_since, owned};
 
 /// `omaspec diff` for folders: one compared with its version in git's
 /// `rev` (`HEAD` unless given), or two with each other.
@@ -31,11 +31,8 @@ pub fn diff(
     let (old, new, since) = match folders {
         [dir] => {
             let rev = rev.unwrap_or("HEAD");
-            (
-                diagram_files_at(dir, rev)?,
-                diagram_files(dir),
-                format!("since {rev}"),
-            )
+            let (old, new) = diagram_files_since(dir, rev)?;
+            (old, new, format!("since {rev}"))
         }
         [old, new] => {
             anyhow::ensure!(rev.is_none(), "--rev compares one folder with a commit");

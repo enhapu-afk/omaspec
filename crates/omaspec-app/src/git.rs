@@ -283,6 +283,40 @@ fn blobs(dir: &Path, objects: &[&str], max: u64) -> Result<Vec<Option<String>>> 
     Ok(found)
 }
 
+/// Which of `paths` (from `dir`, `/` between folders) git ignores there,
+/// by the repository's `.gitignore` files and excludes: what no commit
+/// holds. A file git tracks is never ignored.
+pub fn ignored(dir: &Path, paths: &[&str]) -> Result<std::collections::HashSet<String>> {
+    if paths.is_empty() {
+        return Ok(Default::default());
+    }
+    let mut child = git(dir)
+        .args(["check-ignore", "--stdin", "-z"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("cannot run git")?;
+    let mut stdin = child.stdin.take().context("no input to git")?;
+    let asked: Vec<u8> = paths.iter().flat_map(|p| p.bytes().chain([0])).collect();
+    // Written beside the reading, so neither waits on a full pipe.
+    let writer = std::thread::spawn(move || stdin.write_all(&asked));
+    let out = child.wait_with_output().context("cannot run git")?;
+    let _ = writer.join();
+    // 0: some are ignored; 1: none is.
+    anyhow::ensure!(
+        matches!(out.status.code(), Some(0 | 1)),
+        "git: {}",
+        String::from_utf8_lossy(&out.stderr).trim()
+    );
+    Ok(out
+        .stdout
+        .split(|&b| b == 0)
+        .filter(|p| !p.is_empty())
+        .map(|p| String::from_utf8_lossy(p).into_owned())
+        .collect())
+}
+
 /// The path of the folder `dir` from its repository's root, `/` after
 /// it: empty at the root.
 pub fn prefix(dir: &Path) -> Result<String> {

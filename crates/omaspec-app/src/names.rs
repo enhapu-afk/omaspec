@@ -63,6 +63,18 @@ pub fn diagram_files_at(root: &Path, rev: &str) -> Result<Vec<Owned>> {
         .collect())
 }
 
+/// The folder's diagrams and documents as of `rev` and as they are now,
+/// for comparing the two: now without what git ignores there, which no
+/// commit holds (a build's output, a fuzzer's corpus).
+pub fn diagram_files_since(root: &Path, rev: &str) -> Result<(Vec<Owned>, Vec<Owned>)> {
+    let old = diagram_files_at(root, rev)?;
+    let mut new = diagram_files(root);
+    let paths: Vec<&str> = new.iter().map(|f| f.path.as_str()).collect();
+    let ignored = crate::git::ignored(root, &paths)?;
+    new.retain(|f| !ignored.contains(&f.path));
+    Ok((old, new))
+}
+
 fn is_diagram(name: &str) -> bool {
     Language::from_file_name(name).is_some() || markdown::is_markdown(name)
 }

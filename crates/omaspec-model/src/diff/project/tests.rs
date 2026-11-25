@@ -101,6 +101,28 @@ fn a_scenario_that_did_not_change_tells_what_its_machine_no_longer_takes() {
 }
 
 #[test]
+fn a_scenario_omaspec_does_not_read_is_no_change_where_only_a_machine_changed() {
+    // ZenUML is a sequence diagram Omaspec draws but does not read as a
+    // scenario.
+    let zen =
+        "zenuml\n    title Paying\n    Shop.checkout(cart) {\n      Orders.save(order)\n    }\n";
+    let unlockable = DOOR.replace("Locked --> Closed : unlock\n", "");
+    let got = told(
+        &[("door.puml", DOOR), ("pay.mmd", zen)],
+        &[("door.puml", &unlockable), ("pay.mmd", zen)],
+    );
+    assert!(got.iter().all(|c| c.0 == "door.puml"), "{got:?}");
+    // Its text changed: that it cannot be compared is told.
+    let paid = zen.replace("Paying", "Paid");
+    let got = told(
+        &[("door.puml", DOOR), ("pay.mmd", zen)],
+        &[("door.puml", DOOR), ("pay.mmd", &paid)],
+    );
+    assert_eq!(got.len(), 1, "{got:?}");
+    assert!(got[0].2.contains("does not fully read"), "{got:?}");
+}
+
+#[test]
 fn a_moved_diagram_is_found_by_its_text_then_by_its_name() {
     let titled = LAMP.replace("stateDiagram-v2", "---\ntitle: Lamp\n---\nstateDiagram-v2");
     let dimmed = titled.replace(

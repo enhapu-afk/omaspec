@@ -325,6 +325,9 @@ impl Versions<'_> {
                 self.unmoved(&mut changes);
                 out.extend(changes.into_iter().map(|c| a.placed(b, c)));
             }
+            // A scenario as it was, checked again because a machine
+            // changed: what Omaspec does not read, it tells nothing of.
+            Err(_) if same_text => {}
             Err(reason) => out.push(change(
                 ChangeKind::Changed,
                 format!("{reason}."),

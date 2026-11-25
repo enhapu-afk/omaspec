@@ -774,7 +774,8 @@ ring* (View) shows every state machine so; a click lands on the line of a state 
 file with its last commit, by states, transitions and messages, not by lines; layout and
 colors do not count. Given a folder, it does so for the whole project: every diagram that
 changed in its behavior, came, went or moved, and every scenario that a changed machine
-no longer plays, as a changelog of the specification. With `-o door-diff.svg` a state
+no longer plays, as a changelog of the specification; what git ignores there, which no
+commit holds, is not read. With `-o door-diff.svg` a state
 machine's changes are drawn over its new version, for a review: what came in green, what
 changed in amber, a transition that went dashed in red with its label struck through.
 `omaspec log` tells it for one

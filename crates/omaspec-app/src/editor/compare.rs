@@ -547,8 +547,8 @@ fn project_diff(
     rev: &str,
     open: Vec<(String, String)>,
 ) -> Result<Vec<DiagramChanges>, String> {
-    let old = crate::names::diagram_files_at(root, rev).map_err(|e| format!("{e:#}"))?;
-    let mut new = crate::names::diagram_files(root);
+    let (old, mut new) =
+        crate::names::diagram_files_since(root, rev).map_err(|e| format!("{e:#}"))?;
     for (path, text) in open {
         if let Some(file) = new.iter_mut().find(|f| f.path == path) {
             *file = crate::names::owned(path, text);

@@ -128,7 +128,9 @@ agents*) hold here too:
   deviates is fixed, or the machine is changed with the person's consent.
 - Review by behavior: a commit that changes a state machine or a scenario
   (the gallery, `examples/door`, `examples/drone`, `arrival.puml`) says
-  what `omaspec diff FILE` reports, not only what lines changed.
+  what `omaspec diff FILE` reports, not only what lines changed; a pull
+  request gets it as a comment (`.github/workflows/behavior.yml`, the
+  steps of `docs/ci/behavior-diff.yml`).
 - Findings: `omaspec lint --fix` on the diagrams changed, then `omaspec
   lint --json` on them (the examples are held clean by `examples_are_clean`
   in `tests/cli.rs`); a finding without a fix is asked about, not silenced.

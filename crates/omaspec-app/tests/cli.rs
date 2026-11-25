@@ -3198,6 +3198,54 @@ fn diff_writes_a_pull_request_s_comment() {
     // Markdown or JSON, not both.
     let out = omaspec(&["diff", &files[0], &files[1], "--markdown", "--json"]);
     assert_eq!(out.status.code(), Some(2));
+
+    // A folder against its last commit: a diagram that came is told, one
+    // git ignores is not, as no commit holds it.
+    let git = |args: &[&str]| {
+        Command::new("git")
+            .arg("-C")
+            .arg(&new)
+            .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+            .args(args)
+            .output()
+            .is_ok_and(|o| o.status.success())
+    };
+    if !(git(&["init", "-q"])
+        && git(&["add", "door.puml"])
+        && git(&["commit", "-qm", "door", "--no-gpg-sign"]))
+    {
+        eprintln!("skipped: no git");
+        return;
+    }
+    let lamp = "@startuml\n[*] --> Off\nOff --> On : switch\nOn --> Off : switch\n@enduml\n";
+    fs::write(new.join(".gitignore"), "corpus/\n").unwrap();
+    fs::create_dir_all(new.join("corpus")).unwrap();
+    fs::write(new.join("corpus/seed.puml"), lamp).unwrap();
+    fs::write(new.join("lamp.puml"), lamp).unwrap();
+    let out = omaspec(&["diff", new.to_str().unwrap(), "--markdown"]);
+    assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
+    let text = stdout(&out);
+    assert!(text.contains("#### `lamp.puml`"), "{text}");
+    assert!(!text.contains("corpus"), "{text}");
+}
+
+/// Omaspec's own pull requests are commented on by the steps a project
+/// copies (docs/ci/behavior-diff.yml), only with Omaspec built from the
+/// pull request: what it runs on itself is what it hands out.
+#[test]
+fn the_workflow_omaspec_runs_is_the_one_it_hands_out() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let steps = |path: &str| {
+        let text = fs::read_to_string(root.join(path)).unwrap();
+        let from = text
+            .find("      # 0: no diagram changed in its behavior")
+            .unwrap_or_else(|| panic!("{path} has no step of the diff"));
+        text[from..].to_owned()
+    };
+    assert_eq!(
+        steps(".github/workflows/behavior.yml"),
+        steps("docs/ci/behavior-diff.yml")
+    );
 }
 
 #[test]
