@@ -353,7 +353,8 @@ diagrams drawn natively in every example of its guide (553 of 897 in all);
 each release's notes are in `docs/releases/`. 1.2.0 followed the same day
 with the loops between agents and people (the section above): the trace as
 a contract, a run followed live, a pull request reviewed by behavior, and
-findings with their fix.
+findings with their fix; 1.2.1 with what running that review on Omaspec's
+own pull requests found.
 
 - [ ] The release's last steps: AUR `omaspec` and `omaspec-bin`, the
       announcement. Both PKGBUILDs are at 1.2.0 with their checksums and

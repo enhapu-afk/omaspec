@@ -5,7 +5,8 @@
 # to review by behavior what an agent or a colleague changed.
 #
 # Copy it to .github/workflows/ in the repository whose diagrams it reads.
-# It takes Omaspec's latest release; `diff --markdown` came with 1.2.0.
+# It takes Omaspec's latest release; `diff --markdown` came with 1.2.0, and
+# reads a folder as git lists it since 1.2.1.
 name: Behavior changes
 
 # On each push to the pull request, not only while its files include a

@@ -4168,6 +4168,10 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       recording's clock (`docs/images/film.sh`, `editor/tests/film.rs`); the guide is a
       PDF of 47 pages whose examples the release build draws (`docs/guide/pdf/build.py`),
       to download from the page
+- [x] Release 1.2.1 (2026-11-25): what the review by behavior found on Omaspec's own
+      pull requests, the diff of a folder as git lists it, a line that went named in
+      the version it stood in, the comment's machine in full colors and its workflow
+      on each push; the guide drawn by 1.2.1
 - [x] Release 1.2.0 (2026-11-24): the loops between agents and people of
       [0036](adr/0036-between-agents-and-people.md), the trace as a contract, a run
       followed live, `diff --markdown` for a pull request and 13 of 36 rules with
