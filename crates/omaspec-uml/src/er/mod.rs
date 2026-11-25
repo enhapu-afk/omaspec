@@ -118,6 +118,8 @@ pub struct Look {
     /// Mermaid's `look: handDrawn`: shapes drawn by hand (docs/adr/0023).
     pub sketch: bool,
     pub font_size: f32,
+    /// The title's, a quarter above the text's as Mermaid's other titles.
+    pub title_size: f32,
     /// Theme text, before it is checked against a fill.
     pub preferred: Color,
     pub fill: Color,
@@ -133,6 +135,7 @@ impl Default for Look {
             font_name: crate::FACE.into(),
             sketch: false,
             font_size: 14.0,
+            title_size: 17.5,
             preferred: Color::BLACK,
             fill: Color::hex(0xECECFF),
             border: Color::hex(0x7B88A8),

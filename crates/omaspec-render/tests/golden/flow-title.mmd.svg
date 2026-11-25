@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="359" height="108" viewBox="0 0 359 108">
-<rect x="0" y="0" width="359" height="108" fill="#FFFFFF"/>
-<g transform="translate(10,36.3)">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="359" height="112" viewBox="0 0 359 112">
+<rect x="0" y="0" width="359" height="112" fill="#FFFFFF"/>
+<g transform="translate(10,40.37)">
 <g>
 <rect x="0" y="12.23" width="59.93" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <polygon points="173.2,0 221.8,30.37 173.2,60.75 124.6,30.37" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
@@ -33,7 +33,7 @@
 <tspan x="75.93" y="55.37" font-size="14" fill="#0F172A" textLength="16.67" lengthAdjust="spacing">no</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="132.96" y="-13.3" font-size="14" fill="#0F172A" font-weight="bold" textLength="72.52" lengthAdjust="spacing">Order flow</tspan>
+<tspan x="123.9" y="-14.13" font-size="17.5" fill="#0F172A" font-weight="bold" textLength="90.65" lengthAdjust="spacing">Order flow</tspan>
 </text>
 </g>
 </g>

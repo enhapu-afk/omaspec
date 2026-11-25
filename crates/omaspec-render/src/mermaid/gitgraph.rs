@@ -43,7 +43,7 @@ fn paint(diagram: &mut Diagram, theme: &Theme) -> Option<()> {
         font_name: font_name(&theme.font_family)?,
         sketch: false,
         label_size: theme.font_size,
-        title_size: theme.font_size * 1.25,
+        title_size: super::title_size(theme),
         ink: solid(&theme.text_color)?,
         background,
         lanes: lanes(theme)?,

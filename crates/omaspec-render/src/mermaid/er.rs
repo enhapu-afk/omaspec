@@ -36,6 +36,7 @@ fn paint(diagram: &mut er::Diagram, theme: &Theme) -> Option<()> {
         font_name: font_name(&theme.font_family)?,
         sketch: false,
         font_size: theme.font_size,
+        title_size: super::title_size(theme),
         preferred: solid(&theme.primary_text_color)?,
         fill: solid(&theme.primary_color)?,
         border: solid(&theme.primary_border_color)?,

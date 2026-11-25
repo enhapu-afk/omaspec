@@ -21,9 +21,9 @@ const LABEL_PAD: f32 = 2.0;
 const TITLE_GAP: f32 = 10.0;
 
 /// The front matter's `title`, centered above what `canvas` holds, in bold
-/// as the state diagrams draw theirs.
+/// as the state diagrams draw theirs, as large as theirs.
 pub(super) fn title(canvas: &mut Canvas, palette: &Palette, title: &str, family: Family) {
-    let font = Font::new(palette.size, palette.text).bold();
+    let font = Font::new(palette.size * crate::mermaid::TITLE_SCALE, palette.text).bold();
     let block = super::label::measure(title, font, family, None);
     let (left, right) = canvas.width_span();
     let at = (

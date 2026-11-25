@@ -2052,6 +2052,12 @@ is open and the reasoning around it.
       `Outline::every`), and lets each through in its own shape as far as
       its state, or one inside it, is lit. A note of its own and one on
       a transition stay under the veil.
+- [x] A Mermaid diagram's title above its text (2026-11-25): Mermaid sets
+      its titles 18 pixels high; Omaspec drew those of flowcharts, state,
+      class, sequence, ER, Gantt, journey, timeline, mind map and
+      requirement diagrams as high as their text. Each is a quarter
+      higher now (`mermaid::TITLE_SCALE`), as the git graph's and the
+      kanban board's were; the charts keep Mermaid's own sizes.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

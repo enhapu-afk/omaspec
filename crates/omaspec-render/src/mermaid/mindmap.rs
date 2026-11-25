@@ -42,6 +42,7 @@ fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
         add("defaultFontName", &name);
     }
     add("defaultFontSize", &plain_number(theme.font_size));
+    add("titleFontSize", &plain_number(super::title_size(theme)));
     add("defaultFontColor", &theme.primary_text_color);
     add("defaultTextAlignment", "center");
     add("backgroundColor", &theme.background);

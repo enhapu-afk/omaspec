@@ -56,7 +56,7 @@ pub(super) fn lay(diagram: &Diagram, family: Family) -> Result<Laid, Declined> {
     let paper = diagram.look.background.unwrap_or(Color::WHITE);
     let page_ink = readable(paper, diagram.look.preferred);
     let font = Font::new(diagram.look.font_size, page_ink);
-    let title_font = Font::new(diagram.look.font_size + 2.0, page_ink).bold();
+    let title_font = Font::new(diagram.look.title_size, page_ink).bold();
     let measured = diagram
         .entities
         .iter()

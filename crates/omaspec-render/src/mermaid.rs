@@ -758,6 +758,16 @@ fn sketch_param(source: &str) -> Option<omaspec_uml::sequence::Skinparam> {
     })
 }
 
+/// How much larger than its text a diagram's title is. Mermaid sets its
+/// titles 18 pixels high; a quarter above Omaspec's text of 14 is about
+/// that, and it grows with a `fontSize` of the file's own.
+const TITLE_SCALE: f32 = 1.25;
+
+/// How high the title of a diagram in `theme` is ([`TITLE_SCALE`]).
+fn title_size(theme: &Theme) -> f32 {
+    theme.font_size * TITLE_SCALE
+}
+
 /// A number as a skinparam takes it: no `.0` on a whole one.
 fn plain_number(value: f32) -> String {
     if value.is_finite() && value.fract() == 0.0 {
