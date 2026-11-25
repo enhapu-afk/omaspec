@@ -74,9 +74,9 @@ impl Paper {
         let bar = self
             .play
             .as_ref()
-            .filter(|_| self.play_bar)
-            .map_or(0.0, |play| {
-                super::bar::height(&play.offer(), self.viewport.width)
+            .zip(self.play_bar.tools())
+            .map_or(0.0, |(play, tools)| {
+                super::bar::height(&play.offer(), self.viewport.width, tools)
             });
         let to = match area {
             Some(area) => View::following(

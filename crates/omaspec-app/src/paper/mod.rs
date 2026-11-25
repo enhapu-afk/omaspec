@@ -227,6 +227,29 @@ pub enum Status {
     Unreadable(String),
 }
 
+/// What a play has at the pane's foot ([`Paper::play_bar`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayBar {
+    /// The bar with its tools: back, again and the close.
+    Shown,
+    /// The bar without them, as a film has it: nothing there is pressed,
+    /// and what it offers has their room.
+    Filmed,
+    /// No bar: `omaspec play --no-bar` (REQ-128).
+    Hidden,
+}
+
+impl PlayBar {
+    /// Whether the bar has its tools; none where there is no bar.
+    pub(crate) fn tools(self) -> Option<bool> {
+        match self {
+            Self::Shown => Some(true),
+            Self::Filmed => Some(false),
+            Self::Hidden => None,
+        }
+    }
+}
+
 pub struct Paper {
     pub diagram: Option<Diagram>,
     pub status: Status,
@@ -282,10 +305,9 @@ pub struct Paper {
     /// is too large to; going back or again glides it out to the whole.
     /// `omaspec play` asks for it.
     pub follow_play: bool,
-    /// Whether a play has its bar at the pane's foot: where the machine is
-    /// and what it offers, how far a scenario is. `omaspec play --no-bar`
-    /// leaves it out (REQ-128).
-    pub play_bar: bool,
+    /// What a play has at the pane's foot: where the machine is and what
+    /// it offers, how far a scenario is, with the tools or without.
+    pub play_bar: PlayBar,
     /// When a stopped play began to fade away.
     leaving: Option<Instant>,
     /// The moment a play is drawn at, for pictures of one moment; `None`
@@ -369,7 +391,7 @@ impl Default for Paper {
             change: Change::Edit,
             play: None,
             follow_play: false,
-            play_bar: true,
+            play_bar: PlayBar::Shown,
             keep_bands: true,
             leaving: None,
             clock: None,

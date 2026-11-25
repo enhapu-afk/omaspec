@@ -2043,7 +2043,9 @@ is open and the reasoning around it.
       tenths of its size at least, the pane 320 pixels of its width, and
       a diagram that fits at less is drawn at 1. `--no-bar` leaves the
       bar out: the diagram alone, its lights saying where it is
-      (`Paper::play_bar`).
+      (`Paper::play_bar`). A film's bar has no tools (back, again, the
+      close; `PlayBar::Filmed`): nothing in it is pressed, and the
+      options have their room.
 - [x] A note comes through the veil with its state (REQ-129,
       2026-11-25): a machine's play finds the notes on each state by
       their parts, named after the state's (`omaspec_uml::notes_part`,

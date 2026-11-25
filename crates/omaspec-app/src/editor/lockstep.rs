@@ -249,6 +249,10 @@ impl Stage {
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
         let scenario = self.scenario;
+        // Their bars have no tools: nothing in a film is pressed.
+        for key in std::iter::once(scenario).chain(self.machines.clone()) {
+            self.with(key, |paper| paper.play_bar = crate::paper::PlayBar::Filmed);
+        }
         let started = self.with(scenario, |paper| paper.start_play());
         if let Err(why) = started {
             bail!("the scenario cannot be played: {why}");

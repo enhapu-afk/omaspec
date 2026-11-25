@@ -365,14 +365,14 @@ impl Paper {
         ))
         .clip(true)
         .into();
-        if !self.play_bar {
+        let Some(tools) = self.play_bar.tools() else {
             return diagram;
-        }
+        };
         // The strip stays while the play fades, so the diagram does not
         // jump under it. Steps are ignored once it is leaving.
         column![
             diagram,
-            bar::play_bar(&play.offer(), p, font, self.viewport.width)
+            bar::play_bar(&play.offer(), p, font, self.viewport.width, tools)
         ]
         .into()
     }

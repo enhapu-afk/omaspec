@@ -11,6 +11,9 @@
 //! as the pane; where that does not either, the numbers take the rows
 //! they need, and one where even three would clip them. Else what does
 //! not fit is cut short with `…`.
+//!
+//! A film's bar has no tools: nothing there is pressed, and what it
+//! offers has their room.
 
 use std::sync::Arc;
 
@@ -32,9 +35,10 @@ const PAD_Y: f32 = 8.0;
 const AROUND_Y: f32 = 10.0;
 
 /// How high the bar for `offer` stands at the foot of a pane `pane` pixels
-/// wide, with the room around it: what a camera that follows the play
-/// keeps what it looks at above.
-pub fn height(offer: &Offer, pane: f32) -> f32 {
+/// wide, with its tools or without them (`tools`), and with the room
+/// around it: what a camera that follows the play keeps what it looks at
+/// above.
+pub fn height(offer: &Offer, pane: f32, tools: bool) -> f32 {
     let said = match offer {
         Offer::Machine {
             options,
@@ -48,6 +52,7 @@ pub fn height(offer: &Offer, pane: f32) -> f32 {
             let machine = machine_fit(
                 every,
                 pane,
+                tools,
                 (!*ended).then_some(at.as_str()),
                 (*can_go_back, *steps > 0 || *ended),
                 options,
@@ -62,8 +67,15 @@ pub fn height(offer: &Offer, pane: f32) -> f32 {
     said + 2.0 * (PAD_Y + AROUND_Y)
 }
 
-/// The bar for `offer`, in a pane `pane` pixels wide.
-pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Element<'a, Message> {
+/// The bar for `offer`, in a pane `pane` pixels wide, with its tools or
+/// without them (`tools`): the way back, again and out.
+pub fn play_bar<'a>(
+    offer: &Offer,
+    p: &Palette,
+    font: Font,
+    pane: f32,
+    tools: bool,
+) -> Element<'a, Message> {
     let accent = ui::color(p.accent);
     let muted = ui::color(p.dark_foreground);
     let words = move |s: String, color: iced::Color| {
@@ -82,7 +94,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
     let mut rows = 1;
     // The head in a row of its own, the tools beside it, the options below.
     let mut stacked = false;
-    let mut tools: Vec<Element<'a, Message>> = Vec::new();
+    let mut pressed: Vec<Element<'a, Message>> = Vec::new();
     // A trace's second line: what its line says is wrong, or that it is not.
     let mut note: Option<(Option<Severity>, String)> = None;
     match offer {
@@ -95,11 +107,12 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             can_go_back,
             every,
         } => {
-            let back = (*can_go_back).then_some(("↶ back", "↶", Ask::Back));
-            let again = (*steps > 0 || *ended).then_some(("⟲ again", "⟲", Ask::Restart));
+            let back = (tools && *can_go_back).then_some(("↶ back", "↶", Ask::Back));
+            let again = (tools && (*steps > 0 || *ended)).then_some(("⟲ again", "⟲", Ask::Restart));
             let machine = machine_fit(
                 every,
                 pane,
+                tools,
                 (!*ended).then_some(at.as_str()),
                 (back.is_some(), again.is_some()),
                 options,
@@ -109,7 +122,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             items.push(words(machine.head, accent).into());
             let fit = arranged(options, room, signs, rows);
             for (label, sign, ask) in back.into_iter().chain(again) {
-                tools.push(tool(
+                pressed.push(tool(
                     if fit.signs || stacked { sign } else { label },
                     Some(ask),
                     p,
@@ -138,9 +151,11 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
         }
         Offer::Scenario { at, of, .. } => {
             items.push(words(format!("● {at} / {of}"), accent).into());
-            tools.push(tool("‹ back", (*at > 0).then_some(Ask::Back), p, font));
-            tools.push(chip_next((*at < *of).then_some(Ask::Next), p, font));
-            tools.push(tool("⟲ again", (*at > 0).then_some(Ask::Restart), p, font));
+            if tools {
+                pressed.push(tool("‹ back", (*at > 0).then_some(Ask::Back), p, font));
+                pressed.push(chip_next((*at < *of).then_some(Ask::Next), p, font));
+                pressed.push(tool("⟲ again", (*at > 0).then_some(Ask::Restart), p, font));
+            }
         }
         Offer::Trace {
             name,
@@ -174,7 +189,11 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                 // Nothing to step: the head, which counts, has the room of
                 // the tools but the close; what the last line said comes
                 // after.
-                let close = ((tool_width("✕") + 3.0 * GAP) / (13.0 * CHAR)).ceil() as usize;
+                let close = if tools {
+                    ((tool_width("✕") + 3.0 * GAP) / (13.0 * CHAR)).ceil() as usize
+                } else {
+                    0
+                };
                 cut(&head, (third * 2).saturating_sub(close))
             } else {
                 cut(&head, third)
@@ -190,6 +209,8 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             // Beside a scenario, which steps it: where it is, nothing to press.
             let used = if *beside {
                 width_of(head.chars().count(), 13.0) + 2.0 * GAP
+            } else if !tools {
+                width_of(head.chars().count() + place.chars().count(), 13.0) + 2.0 * GAP
             } else if *live {
                 width_of(head.chars().count() + place.chars().count(), 13.0)
                     + tool_width("✕")
@@ -217,10 +238,10 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                     words(cut(&said, room), ui::color(p.bright_foreground)).into(),
                 ]);
             }
-            if !*beside && !*live {
-                tools.push(tool("‹ back", (*played > 0).then_some(Ask::Back), p, font));
-                tools.push(chip_next((*played < *of).then_some(Ask::Next), p, font));
-                tools.push(tool(
+            if tools && !*beside && !*live {
+                pressed.push(tool("‹ back", (*played > 0).then_some(Ask::Back), p, font));
+                pressed.push(chip_next((*played < *of).then_some(Ask::Next), p, font));
+                pressed.push(tool(
                     "⟲ again",
                     (*played > 0).then_some(Ask::Restart),
                     p,
@@ -239,8 +260,8 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
         .on_press(Message::StopPlay)
         .padding([3, 8])
         .style(move |_: &Theme, status| quiet(status, accent_rgb));
-    if !matches!(offer, Offer::Trace { beside: true, .. }) {
-        tools.push(close.into());
+    if tools && !matches!(offer, Offer::Trace { beside: true, .. }) {
+        pressed.push(close.into());
     }
     let fill = ui::color(p.dark_background);
     let wrong = note
@@ -267,7 +288,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
     let line: Element<'a, Message> = if stacked {
         // The head and the tools above, the options across the whole bar.
         items.push(Space::new().width(Length::Fill).into());
-        items.extend(tools);
+        items.extend(pressed);
         let top = container(row(items).spacing(GAP).align_y(iced::Alignment::Center))
             .height(ROW)
             .align_y(iced::Alignment::Center)
@@ -279,7 +300,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
         column![top, below].spacing(ROW_GAP).into()
     } else {
         items.push(offered.into());
-        items.extend(tools);
+        items.extend(pressed);
         container(row(items).spacing(GAP).align_y(iced::Alignment::Center))
             .height(rows_height(rows))
             .align_y(iced::Alignment::Center)
@@ -332,14 +353,14 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
         .into()
 }
 
-/// How much higher than a row the bar of a play of `source` is in a pane
-/// `pane` pixels wide: the rows its options will need, as the play finds
-/// them, so a recording leaves the room.
+/// How much higher than a row the bar of a film of `source` is in a pane
+/// `pane` pixels wide, without its tools: the rows its options will need,
+/// as the play finds them, so a recording leaves the room.
 pub fn extra_height(source: &str, language: omaspec_core::Language, pane: f32) -> f32 {
     let Some(every) = super::play::every_offer_of(source, language) else {
         return 0.0;
     };
-    extra_height_of(layout_of(&Arc::new(every), pane))
+    extra_height_of(layout_of(&Arc::new(every), pane, false))
 }
 
 /// An option of a playing machine: its number, its event, where it leads.

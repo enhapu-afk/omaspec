@@ -49,16 +49,22 @@ pub(super) fn rows_height(rows: usize) -> f32 {
     rows as f32 * ROW + rows.saturating_sub(1) as f32 * ROW_GAP
 }
 
-/// What the bar says first of a machine at `at`: its states, cut to a
-/// third of the room `inside`, or of a bar [`WIDEST`] wide where it is
-/// wider (what more it has is the options').
-pub(super) fn head_of(at: &str, inside: f32, stacked: bool) -> String {
-    let room = if stacked {
-        // A row of its own, but for its mark, the filler and the tools at
-        // its end by their signs, with a gap before each.
-        inside - width_of(2, 13.0) - tool_width("↶") - tool_width("⟲") - tool_width("✕") - 4.0 * GAP
+/// What the bar laid out as `layout` says first of a machine at `at`: its
+/// states, cut to a third of the room inside, or of a bar [`WIDEST`] wide
+/// where it is wider (what more it has is the options').
+pub(super) fn head_of(at: &str, layout: Layout) -> String {
+    let room = if layout.stacked {
+        // A row of its own, but for its mark and, where the bar has them,
+        // the filler and the tools at its end by their signs, with a gap
+        // before each.
+        let tools = if layout.tools {
+            tool_width("↶") + tool_width("⟲") + tool_width("✕") + 4.0 * GAP
+        } else {
+            0.0
+        };
+        layout.inside - width_of(2, 13.0) - tools
     } else {
-        inside.min(WIDEST - 2.0 * PADDING) / 3.0
+        layout.inside.min(WIDEST - 2.0 * PADDING) / 3.0
     };
     format!("● {}", cut(at, (room / (13.0 * CHAR)) as usize))
 }
@@ -76,18 +82,19 @@ pub(super) struct Machine {
 
 /// What the bar of a play of `every` place says at `at` (none once the
 /// machine has ended) with the tools `(back, again)` shown, in a pane
-/// `pane` pixels wide: its layout, its head, the room for `options` and
-/// their rows.
+/// `pane` pixels wide, with its tools or without them (`tools`): its
+/// layout, its head, the room for `options` and their rows.
 pub(super) fn machine_fit(
     every: &Arc<Vec<Offered>>,
     pane: f32,
+    tools: bool,
     at: Option<&str>,
     (back, again): (bool, bool),
     options: &[(String, String)],
 ) -> Machine {
-    let layout = layout_of(every, pane);
+    let layout = layout_of(every, pane, tools);
     let head = match at {
-        Some(at) => head_of(at, layout.inside, layout.stacked),
+        Some(at) => head_of(at, layout),
         None => "● ended".to_owned(),
     };
     let (room, signs) = room_for(&head, layout, back, again);
@@ -102,27 +109,32 @@ pub(super) fn machine_fit(
 }
 
 /// The room for a machine's options in `layout` beside `head` and the
-/// tools shown, and how much more the tools give when they show only their
-/// signs: the whole bar below a head in a row of its own.
+/// tools shown, where it has them, and how much more the tools give when
+/// they show only their signs: the whole bar below a head in a row of its
+/// own.
 pub(super) fn room_for(head: &str, layout: Layout, back: bool, again: bool) -> (f32, f32) {
     if layout.stacked {
         (layout.inside, 0.0)
     } else {
-        room_beside(head, back, again, layout.inside)
+        room_beside(head, layout.tools.then_some((back, again)), layout.inside)
     }
 }
 
-/// The room left for a machine's options beside `head`, the tools shown
-/// and the close, in a bar `inside` pixels wide inside; and how much more
-/// the tools give when they show only their signs.
-pub(super) fn room_beside(head: &str, back: bool, again: bool, inside: f32) -> (f32, f32) {
-    // The close, and the gap before it.
-    let mut used = tool_width("✕") + GAP;
+/// The room left for a machine's options beside `head` in a bar `inside`
+/// pixels wide inside, and how much more the tools give when they show
+/// only their signs. `tools` says which of back and again are shown
+/// beside the close; none where the bar has no tools, as a film's.
+pub(super) fn room_beside(head: &str, tools: Option<(bool, bool)>, inside: f32) -> (f32, f32) {
+    let mut used = 0.0;
     let mut signs = 0.0;
-    for (shown, label, sign) in [(back, "↶ back", "↶"), (again, "⟲ again", "⟲")] {
-        if shown {
-            used += tool_width(label) + GAP;
-            signs += tool_width(label) - tool_width(sign);
+    if let Some((back, again)) = tools {
+        // The close, and the gap before it.
+        used += tool_width("✕") + GAP;
+        for (shown, label, sign) in [(back, "↶ back", "↶"), (again, "⟲ again", "⟲")] {
+            if shown {
+                used += tool_width(label) + GAP;
+                signs += tool_width(label) - tool_width(sign);
+            }
         }
     }
     used += width_of(head.chars().count(), 13.0) + GAP;
@@ -130,25 +142,27 @@ pub(super) fn room_beside(head: &str, back: bool, again: bool, inside: f32) -> (
 }
 
 /// How the bar of a machine's play is laid out, for the play and a width
-/// ([`layout_of`]): the room inside, the rows of options, and whether the
-/// head stands in a row of its own above them, the tools beside it.
+/// ([`layout_of`]): the room inside, the rows of options, whether the
+/// head stands in a row of its own above them, the tools beside it, and
+/// whether it has its tools (a film's has none: nothing there is pressed).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct Layout {
     pub(super) inside: f32,
     pub(super) rows: usize,
     pub(super) stacked: bool,
+    pub(super) tools: bool,
 }
 
 /// The layout of the bar of a play whose machine can be in each of `every`
 /// place, in a pane `pane` pixels wide, with both tools shown as after a
-/// first step: as wide as [`WIDEST`] lets it where every place keeps its
+/// first step where it has its tools (`tools`): as wide as [`WIDEST`] lets it where every place keeps its
 /// labels there, else as wide as the pane; as many rows as the place that
 /// needs most. Where the head beside the options would still cut their
 /// labels or itself, as in a narrow pane, it stands in a row of its own,
 /// should that show more at the place that shows least (REQ-045). It
 /// depends on the play and the width alone, so it is worked out once for
 /// each and kept.
-pub(super) fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
+pub(super) fn layout_of(every: &Arc<Vec<Offered>>, pane: f32, tools: bool) -> Layout {
     // Each play by a weak hold on its places, which keeps their address
     // from going to another play's; a few, so the editor's play and that
     // of a diagram in its own window keep theirs.
@@ -159,7 +173,9 @@ pub(super) fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
     let width = pane.to_bits();
     let kept = KEPT.with_borrow(|kept| {
         kept.iter()
-            .find(|(play, at, _)| *at == width && play.ptr_eq(&Arc::downgrade(every)))
+            .find(|(play, at, layout)| {
+                *at == width && layout.tools == tools && play.ptr_eq(&Arc::downgrade(every))
+            })
             .map(|&(_, _, layout)| layout)
     });
     if let Some(layout) = kept {
@@ -175,8 +191,9 @@ pub(super) fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
                     inside,
                     rows: 1,
                     stacked,
+                    tools,
                 };
-                let (room, signs) = room_for(&head_of(at, inside, stacked), layout, true, true);
+                let (room, signs) = room_for(&head_of(at, layout), layout, true, true);
                 let (kept, rows) = rows_needed(options, room, signs);
                 (labels && kept, most.max(rows))
             })
@@ -189,12 +206,14 @@ pub(super) fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
             inside: narrow,
             rows,
             stacked: false,
+            tools,
         }
     } else {
         Layout {
             inside: wide,
             rows: needs(wide, false).1,
             stacked: false,
+            tools,
         }
     };
     // The labels cut, or the head: a row of its own may show more. Where
@@ -205,6 +224,7 @@ pub(super) fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
             inside: beside.inside,
             rows: needs(beside.inside, true).1,
             stacked: true,
+            tools,
         };
         let more = shown_by(every, above);
         if (more.0, more.1) > (shown.0, shown.1) {
@@ -232,7 +252,7 @@ pub(super) fn shown_by(every: &[Offered], layout: Layout) -> (Shown, usize, bool
     every.iter().fold(
         (Shown::Whole, 0, false),
         |(least, letters, cut_head), (at, options)| {
-            let head = head_of(at, layout.inside, layout.stacked);
+            let head = head_of(at, layout);
             let (room, signs) = room_for(&head, layout, true, true);
             let fit = arranged(options, room, signs, layout.rows);
             let words: usize = fit
@@ -607,7 +627,14 @@ mod tests {
             ("Rust 1.100", "Stable"),
         ]);
         let inside = 800.0 - 2.0 * MARGIN - 2.0 * PADDING;
-        let (room, signs) = room_beside(&head_of("Unstable", inside, false), true, true, inside);
+        let beside = Layout {
+            inside,
+            rows: 1,
+            stacked: false,
+            tools: true,
+        };
+        let head = head_of("Unstable", beside);
+        let (room, signs) = room_beside(&head, Some((true, true)), inside);
         assert_eq!(fitted(&unstable, room, signs, 1).shown, Shown::Numbers);
         assert_eq!(rows_needed(&unstable, room, signs), (true, 2));
         let fit = arranged(&unstable, room, signs, 2);
@@ -616,27 +643,67 @@ mod tests {
         assert_eq!(fit.options[5].0, "Rust 1.100");
         // At the start, without the tools, they fit in one; the bar keeps
         // the second row all the same.
-        let (first, signs_first) =
-            room_beside(&head_of("Unstable", inside, false), false, false, inside);
+        let (first, signs_first) = room_beside(&head, Some((false, false)), inside);
         assert!(fitted(&unstable, first, signs_first, 1).shown > Shown::Numbers);
         let reverted = options(&[("reverted", "Unstable")]);
         let attempt = ("Attempt 1".to_owned(), reverted.clone());
         let every = Arc::new(vec![("Unstable".to_owned(), unstable), attempt.clone()]);
-        let two = Layout {
-            inside,
-            rows: 2,
-            stacked: false,
-        };
-        assert_eq!(layout_of(&every, 800.0), two);
+        let two = Layout { rows: 2, ..beside };
+        assert_eq!(layout_of(&every, 800.0, true), two);
         // Kept for the play and the width; another play counts its own.
-        assert_eq!(layout_of(&every, 800.0), two);
+        assert_eq!(layout_of(&every, 800.0, true), two);
         // A state with one option in a bar of two rows shows it in one.
         assert_eq!(arranged(&reverted, room, signs, 2).per_row, 1);
         assert_eq!(
-            layout_of(&Arc::new(vec![attempt]), 800.0),
+            layout_of(&Arc::new(vec![attempt]), 800.0, true),
             Layout { rows: 1, ..two }
         );
         assert_eq!(rows_height(2), 2.0 * ROW + ROW_GAP);
+    }
+
+    /// A film's bar has no tools: nothing in it is pressed. The six options
+    /// of `Unstable` that beside back, again and the close took a second
+    /// row keep their labels in one, the head beside them as before.
+    #[test]
+    fn a_film_s_bar_gives_its_tools_room_to_the_options() {
+        let unstable = options(&[
+            ("try 1", "Attempt 1"),
+            ("try 2", "Attempt 2"),
+            ("try 3", "Attempt 3"),
+            ("try 4", "Attempt 4"),
+            ("try 5", "Attempt 5"),
+            ("Rust 1.100", "Stable"),
+        ]);
+        let every = Arc::new(vec![("Unstable".to_owned(), unstable.clone())]);
+        let shown = layout_of(&every, 800.0, true);
+        let filmed = layout_of(&every, 800.0, false);
+        assert_eq!((shown.rows, filmed.rows), (2, 1));
+        assert!(!filmed.tools && !filmed.stacked, "{filmed:?}");
+        let head = head_of("Unstable", filmed);
+        assert_eq!(head, head_of("Unstable", shown));
+        let (room, signs) = room_for(&head, filmed, true, true);
+        let tools = tool_width("↶ back") + tool_width("⟲ again") + tool_width("✕") + 3.0 * GAP;
+        assert_eq!(room, room_for(&head, shown, true, true).0 + tools);
+        assert_eq!(signs, 0.0);
+        assert!(fitted(&unstable, room, signs, 1).shown > Shown::Numbers);
+        // A head in a row of its own, in a narrow bar, has the whole row
+        // but its mark.
+        let above = Layout {
+            inside: inside_of(400.0),
+            stacked: true,
+            ..filmed
+        };
+        let at = "Besieging, WashedUp, PoseidonAway, Daydreaming, AtTheLoom";
+        let tooled = Layout {
+            tools: true,
+            ..above
+        };
+        let letters = |layout| head_of(at, layout).chars().count();
+        assert!(
+            letters(above) > letters(tooled) + 10,
+            "{}",
+            head_of(at, above)
+        );
     }
 
     /// A second row the bar has is taken where it shows more of the
@@ -684,12 +751,18 @@ mod tests {
         let every = Arc::new(vec![(at.to_owned(), many.clone())]);
         let narrow = inside_of(1400.0);
         assert_eq!(narrow, WIDEST - 2.0 * PADDING);
-        let (room, signs) = room_beside(&head_of(at, narrow, false), true, true, narrow);
+        let beside = Layout {
+            inside: narrow,
+            rows: 1,
+            stacked: false,
+            tools: true,
+        };
+        let (room, signs) = room_beside(&head_of(at, beside), Some((true, true)), narrow);
         assert!(!rows_needed(&many, room, signs).0);
-        let layout = layout_of(&every, 1400.0);
+        let layout = layout_of(&every, 1400.0, true);
         assert_eq!(layout.inside, 1400.0 - 2.0 * (MARGIN + PADDING));
         assert!(layout.stacked && layout.rows <= MOST_ROWS, "{layout:?}");
-        let head = head_of(at, layout.inside, true);
+        let head = head_of(at, layout);
         assert_eq!(head, format!("● {at}"));
         let (room, signs) = room_for(&head, layout, true, true);
         let fit = arranged(&many, room, signs, layout.rows);
@@ -722,9 +795,9 @@ mod tests {
         ];
         let at = "end of Booster, ShipCoast";
         let every = Arc::new(vec![(at.to_owned(), options.clone())]);
-        let layout = layout_of(&every, 400.0);
+        let layout = layout_of(&every, 400.0, true);
         assert!(layout.stacked, "{layout:?}");
-        let head = head_of(at, layout.inside, true);
+        let head = head_of(at, layout);
         assert_eq!(head, format!("● {at}"));
         let (room, signs) = room_for(&head, layout, true, true);
         let fit = arranged(&options, room, signs, layout.rows);

@@ -700,7 +700,12 @@ impl Stage {
         let moving = |app: &App| !app.doc().paper.play_moving(crate::clock::now());
         // Where the whole is too large to read, the view follows each step.
         self.app.doc_mut().paper.follow_play = !args.whole;
-        self.app.doc_mut().paper.play_bar = !args.no_bar;
+        // Its bar has no tools: nothing in a film is pressed.
+        self.app.doc_mut().paper.play_bar = if args.no_bar {
+            paper::PlayBar::Hidden
+        } else {
+            paper::PlayBar::Filmed
+        };
         let full = self.app.doc().paper.viewport();
         self.send(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
