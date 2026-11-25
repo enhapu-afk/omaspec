@@ -9,7 +9,15 @@ fn try_draw(
     theme: &mermaid_rs_renderer::Theme,
     source: &str,
 ) -> Option<String> {
-    super::super::try_draw(graph, theme, source, &[], &[], 0.0).map(|(svg, _)| svg)
+    super::super::try_draw(
+        graph,
+        theme,
+        source,
+        &[],
+        &[],
+        super::super::Asked::straight(),
+    )
+    .map(|(svg, _)| svg)
 }
 use super::{block_has, collect, encloses, find, laid, segment_cuts};
 
@@ -548,7 +556,15 @@ fn a_front_matter_title_sits_above_the_chart() {
     let theme = RenderOptions::default().theme;
     let drawn = |source: &str| {
         let parsed = parse_mermaid_strict(source).unwrap();
-        super::super::try_draw(&parsed.graph, &theme, source, &[], &[], 0.0).unwrap()
+        super::super::try_draw(
+            &parsed.graph,
+            &theme,
+            source,
+            &[],
+            &[],
+            super::super::Asked::straight(),
+        )
+        .unwrap()
     };
     let chart = "flowchart LR\n  A[Cart] --> B[Ship]\n";
     let (svg, titled) = drawn(&format!("---\ntitle: Order flow\n---\n{chart}"));
@@ -601,7 +617,15 @@ fn a_flowchart_s_parts_are_named_as_its_map_names_them() {
     let source = "flowchart LR\n  A[Cart] -->|pays| B[Till]\n  subgraph Back[Back office]\n    C[Stock] --> D[Ship]\n  end\n  B -->|orders| C\n%% parts (Omaspec)\n";
     let parsed = parse_mermaid_strict(source).unwrap();
     let theme = RenderOptions::default().theme;
-    let (svg, map) = super::super::try_draw(&parsed.graph, &theme, source, &[], &[], 0.0).unwrap();
+    let (svg, map) = super::super::try_draw(
+        &parsed.graph,
+        &theme,
+        source,
+        &[],
+        &[],
+        super::super::Asked::straight(),
+    )
+    .unwrap();
     let groups = omaspec_uml::part_groups(&svg);
     let named = |name: &str| groups.iter().any(|(n, _)| n == name);
     for place in &map.places {

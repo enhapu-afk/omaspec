@@ -94,7 +94,16 @@ fn broken_diagrams_never_panic_the_drawer() {
             continue;
         };
         let started = Instant::now();
-        if try_draw(&parsed.graph, &theme, &code, &[], &[], 0.0).is_some() {
+        if try_draw(
+            &parsed.graph,
+            &theme,
+            &code,
+            &[],
+            &[],
+            super::super::Asked::straight(),
+        )
+        .is_some()
+        {
             drawn += 1;
         }
         if crate::mermaid::state::try_draw(&theme, &code, crate::mermaid::Over::Nothing).is_some() {

@@ -58,17 +58,43 @@ const WRAP: f32 = 200.0;
 /// The SVG and its map: its lines, which `hands` may have drawn by hand
 /// (docs/adr/0016), and its boxes, which `held` may hold in place
 /// (docs/adr/0021). `None` when this drawer leaves the diagram to mmdr.
-/// `source` is what mmdr parsed, for what its graph does not keep. The
-/// lines' corners curve by up to `curve`.
+/// `source` is what mmdr parsed, for what its graph does not keep;
+/// `asked` what its configuration asks of the drawing.
 pub fn try_draw(
     graph: &Graph,
     theme: &Theme,
     source: &str,
     hands: &[(usize, hand::Line)],
     held: &[(usize, hand::Hold)],
-    curve: f32,
+    asked: Asked,
 ) -> Option<(String, Map)> {
-    draw(graph, theme, source, hands, held, curve, None)
+    draw(graph, theme, source, hands, held, asked, None)
+}
+
+/// What a flowchart's configuration asks of its drawing (REQ-111).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Asked {
+    /// How far the lines' corners curve.
+    pub curve: f32,
+    /// The room around a box's words, as a share of Omaspec's own
+    /// (`flowchart.padding` over Mermaid's 15).
+    pub padding: f32,
+    /// The room around the diagram (`flowchart.diagramPadding`);
+    /// Omaspec's own [`MARGIN`] where none is asked for.
+    pub margin: Option<f32>,
+}
+
+#[cfg(test)]
+impl Asked {
+    /// What a flowchart asks without a configuration, its lines at right
+    /// angles.
+    pub(crate) fn straight() -> Asked {
+        Asked {
+            curve: 0.0,
+            padding: 1.0,
+            margin: None,
+        }
+    }
 }
 
 /// A swimlane diagram (REQ-089): the flowchart `graph`, read from
@@ -81,10 +107,10 @@ pub(super) fn try_draw_lanes(
     theme: &Theme,
     source: &str,
     hands: &[(usize, hand::Line)],
-    curve: f32,
+    asked: Asked,
     lanes: &super::swimlane::Lanes,
 ) -> Option<(String, Map)> {
-    draw(graph, theme, source, hands, &[], curve, Some(lanes))
+    draw(graph, theme, source, hands, &[], asked, Some(lanes))
 }
 
 fn draw(
@@ -93,9 +119,10 @@ fn draw(
     source: &str,
     hands: &[(usize, hand::Line)],
     held: &[(usize, hand::Hold)],
-    curve: f32,
+    asked: Asked,
     swimlanes: Option<&super::swimlane::Lanes>,
 ) -> Option<(String, Map)> {
+    let curve = asked.curve;
     let mut repaired = None;
     let (graph, fix) = flowchart::apply(graph, source, &mut repaired)?;
     // Where its parts are written, read before a fold moves them.
@@ -125,7 +152,10 @@ fn draw(
     if swimlanes.is_none() {
         unplaced.extend(part_boxes(&mut tree, &hand::apart(source)));
     }
-    let palette = palette(theme, source)?;
+    let palette = Palette {
+        padding: asked.padding,
+        ..palette(theme, source)?
+    };
     let family = Family::of(&theme.font_family);
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family)?;
     let bands = match swimlanes {
@@ -202,8 +232,9 @@ fn draw(
     map.misses
         .extend(hand::said(held, &unplaced, &scene.all_unheld()));
     map.misses.sort();
-    let map = canvas.place(map, MARGIN);
-    Some((canvas.finish(MARGIN, Some(palette.background)), map))
+    let margin = asked.margin.unwrap_or(MARGIN);
+    let map = canvas.place(map, margin);
+    Some((canvas.finish(margin, Some(palette.background)), map))
 }
 
 /// Every box a writer may hold in place, for the map (docs/adr/0021): a
@@ -1011,7 +1042,7 @@ fn measure_leaf(tree: &Tree, id: &str, palette: &Palette, family: Family) -> Opt
                 label::measure(&node.label, font, family, Some(wrap(palette))),
                 tree.written.nodes.get(id).copied(),
             );
-            let (width, height) = shape.size(title.width, title.height);
+            let (width, height) = shape.size(title.width, title.height, palette.padding);
             (title, Vec::new(), width, height)
         }
         Kind::Cluster => return None,

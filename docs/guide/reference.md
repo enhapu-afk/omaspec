@@ -283,14 +283,17 @@ and the file's own colors. Colors the file sets itself (`skinparam`, `classDef`,
 stay its own, and two of them that hardly differ, under 3:1, are a finding. Mermaid's
 own settings are honored too, in `%%{init}%%` lines and in the `config:` of the front
 matter, a directive counting over it: the theme, its colors, the font (`fontFamily`,
-`fontSize`), a flowchart's spacing and curve, whether a sequence draws its participants
+`fontSize`), a flowchart's curve and the room around its boxes' words and around it
+(`padding`, `diagramPadding`), whether a sequence draws its participants
 again below, and a git graph's `mainBranchName`, `mainBranchOrder`, `showBranches`,
 `showCommitLabel` and `rotateCommitLabel`. A git graph's ids lie level, the commits as far
 apart as they ask, unless `rotateCommitLabel: true` turns them by 45°, so that where time
-runs to the right the commits stand closer; Mermaid turns them unless told not to. A setting
-Omaspec does not carry out (`themeCSS`, `layout`, `gitGraph.parallelCommits`) is a warning
-on its line, so none is passed over in silence and `--strict` fails on it; so is a theme it
-does not know.
+runs to the right the commits stand closer; Mermaid turns them unless told not to. The
+layout a diagram asks for, ELK or dagre (`layout: elk`, `flowchart-elk`,
+`defaultRenderer`), is Omaspec's own: it lays out every diagram itself, in ranks with lines
+at right angles, as ELK does. A setting Omaspec does not carry out (`themeCSS`, a
+flowchart's `nodeSpacing`, `gitGraph.parallelCommits`) is a warning on its line, so none is
+passed over in silence and `--strict` fails on it; so is a theme it does not know.
 
 A skin colors by kind, so every state of a machine is one color. **Color this box…** in
 the palette, or in the menu of the right mouse button over a box, offers the window's

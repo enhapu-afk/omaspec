@@ -295,10 +295,10 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
         if flowchart_text.is_some() {
             layered::restore(&mut parsed.graph);
         }
-        let curve = flowchart_curve(init.as_ref());
+        let asked = flowchart_asked(init.as_ref());
         let flowchart = parsed.graph.kind == DiagramKind::Flowchart;
         if let Some((svg, map)) = flowchart
-            .then(|| layered::try_draw(&parsed.graph, &options.theme, body, &hands, &held, curve))
+            .then(|| layered::try_draw(&parsed.graph, &options.theme, body, &hands, &held, asked))
             .flatten()
         {
             return Ok(Drawn {
@@ -931,16 +931,29 @@ fn font_size(value: Option<&serde_json::Value>) -> Option<f32> {
     json_number(value).filter(|size| (4.0..=96.0).contains(size))
 }
 
-/// How far a flowchart's corners curve: Mermaid's own default curves them;
-/// `"curve": "linear"` and the steps of `%%{init: {"flowchart": …}}%%`
-/// keep straight runs and right angles.
-fn flowchart_curve(init: Option<&serde_json::Value>) -> f32 {
-    let curve = init
-        .and_then(|init| init.get("flowchart")?.get("curve")?.as_str())
+/// The room Mermaid keeps around a flowchart box's words by default
+/// (`flowchart.padding`): Omaspec's own room is that much.
+const MERMAID_PADDING: f32 = 15.0;
+
+/// What a flowchart's configuration asks of its drawing (REQ-111): how far
+/// its corners curve (Mermaid's own default curves them; `"curve":
+/// "linear"` and the steps keep straight runs and right angles), the room
+/// around a box's words (`padding`, as a share of Mermaid's 15) and around
+/// the diagram (`diagramPadding`, in pixels).
+fn flowchart_asked(init: Option<&serde_json::Value>) -> layered::Asked {
+    let flowchart = init.and_then(|init| init.get("flowchart"));
+    let curve = flowchart
+        .and_then(|flowchart| flowchart.get("curve")?.as_str())
         .unwrap_or("basis");
-    match curve {
-        "linear" | "step" | "stepBefore" | "stepAfter" => 0.0,
-        _ => omaspec_uml::curve::RADIUS,
+    let number = |key: &str| json_number(flowchart.and_then(|flowchart| flowchart.get(key)));
+    layered::Asked {
+        curve: match curve {
+            "linear" | "step" | "stepBefore" | "stepAfter" => 0.0,
+            _ => omaspec_uml::curve::RADIUS,
+        },
+        padding: number("padding")
+            .map_or(1.0, |padding| (padding / MERMAID_PADDING).clamp(0.0, 8.0)),
+        margin: number("diagramPadding").map(|margin| margin.clamp(0.0, 400.0)),
     }
 }
 
@@ -1209,6 +1222,49 @@ mod tests {
         svg.split("<path d=\"")
             .skip(1)
             .any(|rest| rest.split('"').next().is_some_and(|d| d.contains(" C")))
+    }
+
+    /// A flowchart's `padding` widens the room around a box's words, its
+    /// `diagramPadding` the room around the diagram (REQ-111); Mermaid's
+    /// own 15 is Omaspec's own room, and a layout ELK is drawn as any.
+    #[test]
+    fn a_flowchart_s_padding_is_carried_out() {
+        let body = "flowchart LR\n  A[Start here] --> B[Stop]\n";
+        let with = |init: &str| render(&format!("%%{{init: {{{init}}}}}%%\n{body}")).unwrap();
+        let first_rect = |svg: &str| -> (f32, f32) {
+            let rect = svg.split("<rect").nth(2).unwrap();
+            let number = |name: &str| -> f32 {
+                let at = rect.find(&format!(" {name}=\"")).unwrap() + name.len() + 3;
+                rect[at..].split('"').next().unwrap().parse().unwrap()
+            };
+            (number("width"), number("height"))
+        };
+        let size = |svg: &str| -> (f32, f32) {
+            let view = svg
+                .split("viewBox=\"")
+                .nth(1)
+                .unwrap()
+                .split('"')
+                .next()
+                .unwrap();
+            let numbers: Vec<f32> = view.split(' ').map(|n| n.parse().unwrap()).collect();
+            (numbers[2], numbers[3])
+        };
+        let plain = render(body).unwrap();
+        assert_eq!(with("\"flowchart\": {\"padding\": 15}"), plain);
+        let roomy = with("\"flowchart\": {\"padding\": 45}");
+        let (box_plain, box_roomy) = (first_rect(&plain), first_rect(&roomy));
+        assert!(
+            box_roomy.0 > box_plain.0 + 40.0 && box_roomy.1 > box_plain.1 + 20.0,
+            "{box_plain:?} {box_roomy:?}"
+        );
+        let framed = with("\"flowchart\": {\"diagramPadding\": 60}");
+        let (small, large) = (size(&plain), size(&framed));
+        assert!(
+            (large.0 - small.0 - 100.0).abs() < 0.5 && (large.1 - small.1 - 100.0).abs() < 0.5,
+            "{small:?} {large:?}"
+        );
+        assert_eq!(with("\"layout\": \"elk\""), plain);
     }
 
     #[test]

@@ -2083,6 +2083,16 @@ is open and the reasoning around it.
       as the outline's, a Mermaid body's own lines counted
       (`omaspec_model::inspected`). The MCP server's `inspect` tells the
       same, and so does a document's every diagram.
+- [x] A Mermaid flowchart's padding, and ELK (REQ-111, 2026-11-25):
+      `flowchart.padding` widens the room around a box's words, as a
+      share of Mermaid's 15 (Omaspec's own room), and
+      `flowchart.diagramPadding` the room around the diagram
+      (`layered::Asked`, from `mermaid::flowchart_asked`). `layout: elk`
+      or `dagre`, `flowchart.defaultRenderer` and `flowchart-elk` ask for
+      Omaspec's own layout, which lays out every diagram in ranks with
+      lines at right angles as ELK does: lint no longer warns of them,
+      but of a layout Mermaid does not know. The reference said the
+      flowchart's spacing was carried out, which it is not (REQ-110).
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

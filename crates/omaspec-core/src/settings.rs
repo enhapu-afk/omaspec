@@ -410,10 +410,14 @@ const THEMES: [&str; 7] = [
 /// a setting added there is added here. `flowchart.nodeSpacing` and
 /// `rankSpacing` reach mmdr's layout alone, which draws a flowchart only
 /// where Omaspec's own drawer declines it, so they are not (REQ-110).
+/// The layout a diagram asks for, ELK or dagre (`layout`,
+/// `flowchart.defaultRenderer`), is Omaspec's own: it lays out every
+/// diagram itself, in ranks with lines at right angles as ELK does
+/// (REQ-111).
 fn heeded(path: &[String]) -> bool {
     let path: Vec<&str> = path.iter().map(String::as_str).collect();
     match path.as_slice() {
-        ["theme" | "look" | "fontFamily" | "fontSize"] => true,
+        ["theme" | "look" | "fontFamily" | "fontSize" | "layout"] => true,
         [one] => NO_PICTURE.contains(one),
         ["themeVariables", name] => {
             COLORS.contains(name)
@@ -423,7 +427,10 @@ fn heeded(path: &[String]) -> bool {
                     .and_then(|n| n.parse::<u8>().ok())
                     .is_some_and(|n| (1..=12).contains(&n))
         }
-        ["flowchart", "curve"] => true,
+        [
+            "flowchart",
+            "curve" | "padding" | "diagramPadding" | "defaultRenderer",
+        ] => true,
         ["sequence", "mirrorActors"] => true,
         ["gitGraph", name] => omaspec_uml::gitgraph::SETTINGS.contains(name),
         _ => false,
@@ -436,6 +443,11 @@ fn heeded(path: &[String]) -> bool {
 /// says.
 fn carried(setting: &Setting, git_drawn: bool) -> bool {
     match setting.path.as_slice() {
+        // A layout Mermaid knows; Omaspec's own stands for it.
+        [layout] if layout == "layout" => setting.value.as_str().is_some_and(|name| {
+            let name = name.trim().to_ascii_lowercase();
+            name == "dagre" || name == "elk" || name.starts_with("elk.")
+        }),
         [section, key] if section == "gitGraph" => {
             git_drawn
                 && match key.as_str() {
@@ -656,10 +668,17 @@ mod tests {
         );
         let front = "---\nconfig:\n  theme: neon\n  look: handDrawn\n  layout: elk\n---\nflowchart TD\n  A --> B\n";
         let found = unheeded(front);
-        assert_eq!(found.len(), 2, "{found:?}");
+        assert_eq!(found.len(), 1, "{found:?}");
         assert!(found[0].message.starts_with("`neon` is no theme") && found[0].line == 2);
-        assert!(found[1].message.starts_with("`layout`") && found[1].line == 4);
         assert!(unheeded("flowchart TD\n  A --> B\n").is_empty());
+        // ELK and dagre are Omaspec's own layout, a box's padding and the
+        // diagram's are carried out (REQ-111); a layout Mermaid does not
+        // know is not.
+        let laid = "%%{init: {\"layout\": \"elk\", \"flowchart\": {\"padding\": 30, \"diagramPadding\": 20, \"defaultRenderer\": \"elk\"}}}%%\nflowchart TD\n  A --> B\n";
+        assert!(unheeded(laid).is_empty(), "{:?}", unheeded(laid));
+        let unknown = unheeded("---\nconfig:\n  layout: tidy\n---\nflowchart TD\n  A --> B\n");
+        assert_eq!(unknown.len(), 1, "{unknown:?}");
+        assert!(unknown[0].message.starts_with("`layout`") && unknown[0].line == 2);
         // A flowchart's spacing reaches mmdr's layout alone, which Omaspec's
         // drawer does not take (REQ-110); its curve it takes.
         let spaced = "%%{init: {\"flowchart\": {\"nodeSpacing\": 150, \"rankSpacing\": 150, \"curve\": \"basis\"}}}%%\nflowchart TD\n  A --> B\n";

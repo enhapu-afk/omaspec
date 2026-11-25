@@ -112,10 +112,11 @@ impl Shape {
         }
     }
 
-    /// The box around text of `width` and `height`.
-    pub(super) fn size(self, width: f32, height: f32) -> (f32, f32) {
-        let w = (width + PAD_X * 2.0).max(MIN_W);
-        let h = (height + PAD_Y * 2.0).max(MIN_H);
+    /// The box around text of `width` and `height`, the room around the
+    /// text `padding` times the drawer's own.
+    pub(super) fn size(self, width: f32, height: f32, padding: f32) -> (f32, f32) {
+        let w = (width + PAD_X * padding * 2.0).max(MIN_W);
+        let h = (height + PAD_Y * padding * 2.0).max(MIN_H);
         match self {
             Shape::Form(form) => form.size((w, h), (width, height)),
             Shape::Rect | Shape::Rounded | Shape::Label => (w, h),
@@ -123,11 +124,11 @@ impl Shape {
             Shape::Subroutine => (w + 2.0 * SUBROUTINE, h),
             Shape::Cylinder => (w, h + 2.0 * cap(w)),
             Shape::Circle => {
-                let d = circle(width, height);
+                let d = circle(width, height, padding);
                 (d, d)
             }
             Shape::DoubleCircle => {
-                let d = circle(width, height) + 2.0 * RING;
+                let d = circle(width, height, padding) + 2.0 * RING;
                 (d, d)
             }
             Shape::Diamond => {
@@ -240,9 +241,10 @@ fn slant(height: f32) -> f32 {
     height * 0.35
 }
 
-/// A circle that holds text of `width` and `height` with a margin.
-fn circle(width: f32, height: f32) -> f32 {
-    ((width * width + height * height).sqrt() + 12.0).max(MIN_H)
+/// A circle that holds text of `width` and `height` with a margin,
+/// `padding` times the drawer's own.
+fn circle(width: f32, height: f32, padding: f32) -> f32 {
+    ((width * width + height * height).sqrt() + 12.0 * padding).max(MIN_H)
 }
 
 /// Points along an ellipse from `start` to `end` degrees, clockwise on
@@ -337,7 +339,7 @@ mod tests {
     fn a_decision_is_wider_than_high_and_holds_its_text() {
         // A short word, a label, and a long one.
         for (tw, th) in [(20.0, 16.0), (90.0, 16.0), (400.0, 16.0)] {
-            let (w, h) = Shape::Diamond.size(tw, th);
+            let (w, h) = Shape::Diamond.size(tw, th, 1.0);
             let ratio = w / h;
             assert!(
                 (DIAMOND_RATIO - 0.01..=3.01).contains(&ratio),
@@ -348,7 +350,8 @@ mod tests {
             assert!(x / (w / 2.0) + y / (h / 2.0) <= 1.001, "{tw}: {w} x {h}");
         }
         assert!(
-            (Shape::Diamond.size(20.0, 16.0).0 / Shape::Diamond.size(20.0, 16.0).1 - 1.6).abs()
+            (Shape::Diamond.size(20.0, 16.0, 1.0).0 / Shape::Diamond.size(20.0, 16.0, 1.0).1 - 1.6)
+                .abs()
                 < 0.01
         );
     }
@@ -377,7 +380,7 @@ mod tests {
             Shape::Label,
         ] {
             let (tw, th) = (120.0, 20.0);
-            let (w, h) = shape.size(tw, th);
+            let (w, h) = shape.size(tw, th, 1.0);
             let rect = Rect {
                 x: 0.0,
                 y: 0.0,

@@ -9,6 +9,9 @@ use super::shape::Shape;
 
 pub(super) struct Palette {
     pub size: f32,
+    /// The room around a box's words, as a share of the drawer's own
+    /// (`flowchart.padding`, REQ-111).
+    pub padding: f32,
     pub fill: Paint,
     pub text: Color,
     pub border: Color,
@@ -65,6 +68,7 @@ pub(super) fn palette(theme: &Theme, source: &str) -> Option<Palette> {
     // then uses the state colors; the diagram is still drawn.
     Some(Palette {
         size: theme.font_size.clamp(4.0, 96.0),
+        padding: 1.0,
         fill: Some(fill),
         text,
         border,

@@ -448,7 +448,7 @@ mod tests {
         let palette = palette(&theme, &text).unwrap();
         let family = Family::of(&theme.font_family);
         let mut scene = layout_spot(&tree, Spot::Root, &palette, family).unwrap();
-        let curve = super::super::super::flowchart_curve(None);
+        let curve = super::super::super::flowchart_asked(None).curve;
         let bands = place(&tree, &mut scene, &lanes, &palette, family, curve).unwrap();
         let mut ids: Vec<(usize, String)> = tree
             .paths

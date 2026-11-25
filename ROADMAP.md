@@ -395,7 +395,6 @@ is lost without a word, then what misleads, then what is missing.
 - [ ] REQ-110, the rest: `nodeSpacing` and `rankSpacing` carried out by
       the graph engine, whose gaps are its own (`CROSS_GAP`, the ranks'
       gaps); lint says they are not since 2026-11-23.
-- [ ] REQ-111: `padding` and `elk` carried out in Mermaid flowcharts.
 - [ ] REQ-103: `@startchart` drawn natively; the Java PlantUML hangs or
       crashes on it (plantuml/plantuml#3030, #3031).
 - [ ] REQ-105: marble diagrams of reactive streams

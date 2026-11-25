@@ -22,9 +22,9 @@ use super::head;
 pub(super) fn draw(theme: &Theme, body: &str, fenced: &str) -> Option<(String, Map)> {
     let (text, lanes) = read(body)?;
     let parsed = super::layered::read(&text).ok()?;
-    let curve = super::flowchart_curve(omaspec_core::settings::merged(body).as_ref());
+    let asked = super::flowchart_asked(omaspec_core::settings::merged(body).as_ref());
     let hands = omaspec_uml::hand::numbered(fenced);
-    super::layered::try_draw_lanes(&parsed.graph, theme, &text, &hands, curve, &lanes)
+    super::layered::try_draw_lanes(&parsed.graph, theme, &text, &hands, asked, &lanes)
 }
 
 /// The lanes of a swimlane diagram.
