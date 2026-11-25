@@ -351,8 +351,7 @@ fn fold_page(args: &Moving) -> Result<String> {
         folder: None,
         forced: args.forced,
     };
-    let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
-    app.follow_theme = !args.file_colors;
+    let app = film_app(args, start)?;
     let (source, _) = app.diagram_source_in(args.root.as_deref(), &text, language);
     let place = Place::of(&args.file, None);
     let mut renderer = Renderer::new(&crate::commands::render_config());
@@ -494,8 +493,7 @@ impl Stage {
             folder: None,
             forced: args.forced,
         };
-        let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
-        app.follow_theme = !args.file_colors;
+        let mut app = film_app(args, start)?;
         let key = app.doc().key;
         // The pane's pictures go up to this screen's GPU as they are made,
         // as the window's go up to its own.
@@ -1266,6 +1264,87 @@ fn event_of(label: &str) -> &str {
     label.split(['[', '/']).next().unwrap_or(label).trim()
 }
 
+/// The app a film draws its diagram in, from `start`: in the theme and
+/// the look [`colors`] gives.
+pub(super) fn film_app(args: &Moving, start: Start) -> Result<App> {
+    let (omarchy, over) = colors(args)?;
+    let (mut app, _) = App::themed(start, None, omarchy);
+    app.follow_theme = !args.file_colors;
+    app.look_over = over;
+    Ok(app)
+}
+
+/// The theme a film is drawn in, and what is laid over its diagram:
+/// with `--look` (REQ-109) Omaspec's light palette around the diagram in
+/// that look, its dark one for `dark`; `auto` is light in a film, `file`
+/// the file's own colors on the light one, `omarchy` the active theme.
+/// Without it, the theme asked for, the diagram in its colors. With
+/// `--ink` the look is what the sketch is inked into, and `--theme`
+/// still names the film's colors.
+pub(super) fn colors(args: &Moving) -> Result<(Omarchy, Option<Option<crate::look::Skin>>)> {
+    use crate::look::Look;
+    let Some(look) = args.look else {
+        return Ok((theme(args.theme.as_deref())?, None));
+    };
+    if args.theme.is_some() {
+        anyhow::ensure!(
+            args.ink,
+            "--look draws a film in Omaspec's palette, --theme in a theme's: take one"
+        );
+        return Ok((theme(args.theme.as_deref())?, None));
+    }
+    let light = || palette_theme(&omaspec_core::skin::LIGHT, "light");
+    Ok(match look {
+        Look::Omarchy => (Omarchy::load_current(), None),
+        Look::Dark => (
+            palette_theme(&omaspec_core::skin::DARK, "dark"),
+            Some(look.skin()),
+        ),
+        Look::Auto => (light(), Some(Look::Light.skin())),
+        Look::File => (light(), Some(None)),
+        Look::Plain | Look::Sketch | Look::Vivid | Look::Light => (light(), Some(look.skin())),
+    })
+}
+
+/// Omaspec's own palette `colors` as a theme a film is drawn in: its
+/// paper, its words, its accent, and signal colors that read on it (a
+/// deviation's red, a state's green).
+fn palette_theme(colors: &omaspec_core::skin::Colors, name: &str) -> Omarchy {
+    let light = name == "light";
+    // The shades beside the paper as Omarchy's own themes of that kind
+    // set them: a light one's a breath darker than its paper.
+    let (shades, signals) = if light {
+        (
+            "dark_background = \"#f3f4f6\"\ndarker_background = \"#e5e7eb\"\nlighter_background = \"#e5e7eb\"\nselection = \"#dbe5f7\"\n",
+            "red = \"#cf222e\"\ngreen = \"#1a7f37\"\nyellow = \"#9a6700\"\norange = \"#bc4c00\"\ncyan = \"#1b7c83\"\nmagenta = \"#8250df\"\n",
+        )
+    } else {
+        (
+            "dark_background = \"#111317\"\ndarker_background = \"#0c0d10\"\nlighter_background = \"#23272f\"\nselection = \"#2b3240\"\n",
+            "red = \"#ff7b72\"\ngreen = \"#3fb950\"\nyellow = \"#d29922\"\norange = \"#f0883e\"\ncyan = \"#39c5cf\"\nmagenta = \"#bc8cff\"\n",
+        )
+    };
+    let toml = format!(
+        "mode = \"{}\"\naccent = \"{}\"\nblue = \"{}\"\nmuted = \"{}\"\nbackground = \"{}\"\nforeground = \"{}\"\ndark_foreground = \"{}\"\n{shades}{signals}",
+        if light { "light" } else { "dark" },
+        colors.accent,
+        colors.accent,
+        colors.muted,
+        colors.background,
+        colors.text,
+        colors.muted,
+    );
+    Omarchy {
+        name: Some(format!("omaspec-{name}")),
+        palette: omaspec_theme::Palette::parse(&toml, light)
+            .expect("Omaspec's palettes are complete"),
+        source: omaspec_theme::Source::Fallback {
+            reason: format!("--look {name}"),
+        },
+        tweaks: omaspec_theme::Tweaks::default(),
+    }
+}
+
 /// The theme the frames are drawn in.
 pub(super) fn theme(named: Option<&str>) -> Result<Omarchy> {
     let built_in = |name: &str| Omarchy {
@@ -1525,6 +1604,86 @@ mod tests {
         let (past, more) = record(Some(30));
         assert!(past.ends_with(", played)"), "{past}");
         assert_eq!(more, frames, "steps past the end held again");
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// REQ-109: `--look` draws a film in Omaspec's palette, light or
+    /// dark, around the diagram in that look; it is no longer left
+    /// unread, and with `--theme` a play says to take one.
+    #[test]
+    fn a_look_draws_the_film_in_omaspec_s_palette() {
+        use crate::look::Look;
+        let work = std::env::temp_dir().join(format!("omaspec-play-look-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("door.puml");
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
+        )
+        .unwrap();
+        let output = work.join("door.gif");
+        let args = |look: Option<Look>, theme: Option<&str>, ink: bool| Moving {
+            file: file.clone(),
+            text: None,
+            output: output.clone(),
+            events: vec!["open".into()],
+            steps: Some(1),
+            width: Some(200),
+            fps: Some(10),
+            folds: Vec::new(),
+            dives: Vec::new(),
+            builds: false,
+            lockstep: false,
+            history: false,
+            travel: None,
+            traffic: Vec::new(),
+            themes: None,
+            ink,
+            look,
+            timing: super::super::gifs::Timing::default(),
+            whole: false,
+            theme: theme.map(str::to_owned),
+            file_colors: false,
+            root: None,
+            forced: None,
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        };
+        let white = omaspec_theme::Rgb::new(255, 255, 255);
+        let (light, over) = colors(&args(Some(Look::Light), None, false)).unwrap();
+        assert_eq!(light.palette.background, white);
+        assert_eq!(light.palette.mode, omaspec_theme::Mode::Light);
+        assert_eq!(over, Some(Look::Light.skin()));
+        let (dark, over) = colors(&args(Some(Look::Dark), None, false)).unwrap();
+        assert_eq!(dark.palette.mode, omaspec_theme::Mode::Dark);
+        assert_eq!(over, Some(Look::Dark.skin()));
+        let (_, over) = colors(&args(Some(Look::Auto), None, false)).unwrap();
+        assert_eq!(over, Some(Look::Light.skin()), "auto is light in a film");
+        let (_, over) = colors(&args(Some(Look::File), None, false)).unwrap();
+        assert_eq!(over, Some(None), "the file's own colors");
+        assert_eq!(
+            colors(&args(None, Some("built-in"), false)).unwrap().1,
+            None
+        );
+        let both = colors(&args(Some(Look::Light), Some("built-in"), false)).unwrap_err();
+        assert!(both.to_string().contains("take one"), "{both}");
+        // With --ink the look is what it inks into; --theme the film's.
+        assert!(colors(&args(Some(Look::Vivid), Some("built-in"), true)).is_ok());
+        // Drawn: the light film's paper is white, the built-in theme's dark.
+        let corner = |moving: &Moving| {
+            play(moving).unwrap();
+            let mut options = gif::DecodeOptions::new();
+            options.set_color_output(gif::ColorOutput::RGBA);
+            let mut decoder = options
+                .read_info(std::fs::File::open(&output).unwrap())
+                .unwrap();
+            let frame = decoder.read_next_frame().unwrap().unwrap();
+            (frame.buffer[0], frame.buffer[1], frame.buffer[2])
+        };
+        let (r, g, b) = corner(&args(Some(Look::Light), None, false));
+        assert!(r > 240 && g > 240 && b > 240, "{r} {g} {b}");
+        let (r, g, b) = corner(&args(None, Some("built-in"), false));
+        assert!(r < 60 && g < 60 && b < 60, "{r} {g} {b}");
         let _ = std::fs::remove_dir_all(&work);
     }
 

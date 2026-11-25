@@ -775,6 +775,10 @@ struct App {
     /// The diagram takes the active Omarchy colors at render time. The
     /// file stays as it is.
     follow_theme: bool,
+    /// What a film's `--look` lays over the diagram, over a project's
+    /// pinned look and the theme's colors; `Some(None)` the file's own
+    /// colors ([`super::moving::colors`]).
+    pub(super) look_over: Option<Option<crate::look::Skin>>,
     /// An export asks where in the desktop's own dialog ([`crate::file_dialog`]);
     /// without it, or where none answers, in the bottom line. Tests ask
     /// there.
@@ -899,6 +903,7 @@ impl App {
             play_when_drawn: None,
             traces: HashMap::new(),
             follow_theme: session.follow_theme,
+            look_over: None,
             dialogs: cfg!(not(test)),
             pending: HashMap::new(),
             mark: crate::logo::handle(),
@@ -1769,6 +1774,9 @@ impl App {
     /// else the Omarchy colors when the diagram follows them, else nothing,
     /// the file's own colors.
     fn pane_skin(&self, root: Option<&Path>) -> Option<crate::look::Skin> {
+        if let Some(over) = &self.look_over {
+            return over.clone();
+        }
         if let Some(pinned) = self.pinned_look(root) {
             let dark = self
                 .palette

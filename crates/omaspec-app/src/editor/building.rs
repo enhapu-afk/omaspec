@@ -73,7 +73,7 @@ const BUDGET: f32 = 12.0;
 pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
     let text = args.read()?;
     let (_, language) = args.named(&text);
-    let omarchy = super::moving::theme(args.theme.as_deref())?;
+    let (omarchy, over) = super::moving::colors(args)?;
     let tweaks = omarchy.tweaks.syntax.clone();
     let start = Start {
         files: vec![args.file.clone()],
@@ -82,6 +82,7 @@ pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
     };
     let (mut app, _) = App::themed(start, None, omarchy);
     app.follow_theme = !args.file_colors;
+    app.look_over = over;
     let skin = app.pane_skin(args.root.as_deref());
     // Its parts marked, so each comes in on its own.
     let marked = crate::worker::folded(&text, language, &[], crate::worker::Views::default());

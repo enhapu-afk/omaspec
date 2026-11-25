@@ -1994,6 +1994,21 @@ is open and the reasoning around it.
       one way, and a composite state whose regions have all ended go on by
       themselves. A trace may still pass a state's way without an event
       unlogged.
+- [x] `--look` for every film (REQ-109, the rest, 2026-11-25): a play, a
+      fold, a dive, a lockstep, a history, a build and traffic are drawn
+      in Omaspec's light palette around the diagram in its light look
+      with `--look light`, in its dark one with `dark`, and `plain`,
+      `vivid`, `sketch` and `file` (the file's own colors) on the light
+      one; `auto` is light in a film, `omarchy` the active theme, as
+      without it (`moving::colors`, `palette_theme`, which gives the
+      palette the shades of Omarchy's own themes of its kind and signal
+      colors that read on it; `App::look_over` lays the look over a
+      project's pinned one). With `--ink` the look is still what the
+      sketch is inked into, the frame in its palette. The command line
+      had taken `--look` without `--ink` all along and drawn the play in
+      the theme: clap counts a flag's default as given for `requires`.
+      With `--theme` a play says to take one, with `--themes` it is
+      refused.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

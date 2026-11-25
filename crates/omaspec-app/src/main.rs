@@ -578,12 +578,13 @@ enum Command {
         /// without a GPU.
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from", "traffic", "themes"])]
         ink: bool,
-        /// With `--ink`: the look the sketch is inked into (plain, vivid,
-        /// omarchy, light, dark, file; auto is light in a film); without
-        /// `--look`, the play's colors. Only `--ink` takes it: a play, a
-        /// fold or a dive is drawn in `--theme`'s colors, a light one with
-        /// a light theme's colors.toml.
-        #[arg(long, value_enum, requires = "ink")]
+        /// The look the film is drawn in: light (Omaspec's light palette
+        /// around the diagram in its light look), dark, plain, vivid or
+        /// sketch on the light palette, file (the file's own colors on it),
+        /// omarchy (the active theme, as without it); auto is light in a
+        /// film. With `--ink` the look the sketch is inked into. Not with
+        /// `--theme`, but for `--ink`, nor with `--themes`.
+        #[arg(long, value_enum, conflicts_with = "themes")]
         look: Option<crate::look::Look>,
         /// How long the film lasts, in seconds: its holds stretched or
         /// shortened and, where that does not do, its motions quicker.

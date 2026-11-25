@@ -21,7 +21,7 @@ use omaspec_render::{Place, Renderer};
 
 use super::films::Film;
 use super::gifs::Frames;
-use super::moving::{Moving, theme};
+use super::moving::Moving;
 use super::{App, Start};
 
 mod frame;
@@ -146,14 +146,12 @@ pub(super) fn traffic(args: &Moving, film: Film, fps: u32) -> Result<String> {
             std::fs::read_to_string(path).with_context(|| format!("cannot read {}", path.display()))
         })
         .collect::<Result<_>>()?;
-    let omarchy = theme(args.theme.as_deref())?;
     let start = Start {
         files: vec![args.file.clone()],
         folder: None,
         forced: args.forced,
     };
-    let (mut app, _) = App::themed(start, None, omarchy);
-    app.follow_theme = !args.file_colors;
+    let mut app = super::moving::film_app(args, start)?;
     let rendered = draw(&mut app, args, &text, language)?;
     let mut placed = spec.machine.place(&rendered.map);
     in_units(&mut placed, &rendered.svg);

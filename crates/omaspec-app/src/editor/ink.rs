@@ -12,10 +12,10 @@ use omaspec_render::export;
 use omaspec_render::export::tiny_skia;
 use omaspec_render::{Place, Renderer};
 
+use super::Start;
 use super::films::Film;
 use super::gifs::Frames;
-use super::moving::{Moving, theme};
-use super::{App, Start};
+use super::moving::Moving;
 
 /// How fast the pen draws, in units a second, and how long it takes at
 /// least and at most.
@@ -82,14 +82,12 @@ pub(super) struct Pen {
 pub(super) fn ink(args: &Moving, film: Film, fps: u32) -> Result<String> {
     let text = args.read()?;
     let (name, language) = args.named(&text);
-    let omarchy = theme(args.theme.as_deref())?;
     let start = Start {
         files: vec![args.file.clone()],
         folder: None,
         forced: args.forced,
     };
-    let (mut app, _) = App::themed(start, None, omarchy);
-    app.follow_theme = !args.file_colors;
+    let app = super::moving::film_app(args, start)?;
     // The look the ink ends in: the one asked for, else the colors the
     // play is drawn in (REQ-090).
     let clean_skin = match args.look {
