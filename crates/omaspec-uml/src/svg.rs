@@ -1904,7 +1904,13 @@ pub(crate) fn box_part(key: &str, path: &[usize]) -> String {
 /// was to where it is, as its box does, rather than inside the picture of
 /// the box around it; a note added on another side renames none.
 pub(crate) fn note_part(of: &str, side: &str, nth: usize) -> String {
-    format!("note:{of}#{side}{nth}")
+    format!("{}{side}{nth}", notes_part(of))
+}
+
+/// What the parts of the notes on the box drawn in the part `of` start
+/// with ([`note_part`]): a play lets them through the veil with it.
+pub fn notes_part(of: &str) -> String {
+    format!("note:{of}#")
 }
 
 fn part_path(path: &[usize]) -> String {

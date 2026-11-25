@@ -279,14 +279,29 @@ impl Play {
 
     /// Takes each state's own shape from the picture `tree` it is played
     /// on, where the picture marks its parts (docs/adr/0029): a state comes
-    /// through the veil as it is drawn, as the focus lets a box through.
+    /// through the veil as it is drawn, as the focus lets a box through,
+    /// and so do the notes on it (REQ-129), whose parts are named after
+    /// its own ([`omaspec_uml::notes_part`]).
     pub fn shape(&mut self, tree: &omaspec_render::export::usvg::Tree) {
+        use super::focus::Outline;
         if let Play::Machine(play) = self {
             play.outlines = play
                 .placed
                 .states
                 .iter()
-                .map(|spot| super::focus::Outline::of(tree, &spot.as_ref()?.part))
+                .map(|spot| Outline::of(tree, &spot.as_ref()?.part))
+                .collect();
+            play.notes = play
+                .placed
+                .states
+                .iter()
+                .enumerate()
+                .filter_map(|(state, spot)| Some((state, &spot.as_ref()?.part)))
+                .flat_map(|(state, part)| {
+                    Outline::every(tree, &omaspec_uml::notes_part(part))
+                        .into_iter()
+                        .map(move |outline| (state, outline))
+                })
                 .collect();
         }
     }

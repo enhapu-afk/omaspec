@@ -22,6 +22,10 @@ pub struct MachinePlay {
     /// By state index: its outline as the picture draws it, where the
     /// picture marks its parts ([`Play::shape`]); its light follows it.
     pub(in crate::paper) outlines: Vec<Option<Outline>>,
+    /// The notes on the states, each by its state's index and in the shape
+    /// the picture draws it ([`Play::shape`]): it comes through the veil
+    /// with its state (REQ-129).
+    pub(in crate::paper) notes: Vec<(usize, Outline)>,
     /// What moves the machine.
     pub(super) driver: Driver,
     /// The transitions on screen and when each one's light travels.
@@ -155,6 +159,7 @@ impl MachinePlay {
             machine,
             placed,
             outlines: Vec::new(),
+            notes: Vec::new(),
             driver,
             shown: Vec::new(),
             free_at: now + VEIL_FADE / 2,
@@ -525,6 +530,33 @@ impl MachinePlay {
         self.lights.iter().map(|l| level(l, now)).collect()
     }
 
+    /// The notes that come through the veil, by their index in
+    /// [`Self::notes`], and how far, by the `levels` of the states: a note
+    /// on a state as far as the state or one inside it is lit.
+    pub(super) fn note_levels(&self, levels: &[f32]) -> Vec<(usize, f32)> {
+        let m = &self.machine;
+        self.notes
+            .iter()
+            .enumerate()
+            .filter_map(|(note, &(state, _))| {
+                let lit = (0..m.states.len())
+                    .filter(|&s| s == state || m.ancestors(s).any(|a| a == state))
+                    .map(|s| levels.get(s).copied().unwrap_or(0.0))
+                    .fold(0.0, f32::max);
+                (lit > 0.004).then_some((note, lit))
+            })
+            .collect()
+    }
+
+    /// The notes lit by the `levels` of the states ([`Self::note_levels`])
+    /// on screen.
+    fn lit_notes(&self, levels: &[f32], view: &Viewer) -> Vec<(Glow, f32)> {
+        self.note_levels(levels)
+            .into_iter()
+            .map(|(note, lit)| (Glow::outlined(&self.notes[note].1, view), lit))
+            .collect()
+    }
+
     pub(super) fn draw_under(&self, frame: &mut Frame, look: &Look, view: &Viewer, now: Instant) {
         let veil = ramp(now, self.begun, VEIL_FADE);
         let paper = view.paper;
@@ -537,11 +569,18 @@ impl MachinePlay {
             with_alpha(look.veil, VEIL * veil),
         );
         // The states the machine is in come through the veil.
-        for (state, lit) in self.levels(now).into_iter().enumerate() {
+        let levels = self.levels(now);
+        for (state, &lit) in levels.iter().enumerate() {
             let Some(spot) = self.placed.states[state].as_ref().filter(|_| lit > 0.004) else {
                 continue;
             };
             let glow = self.glow(state, spot, view);
+            if let Some(clip) = glow.bounds().intersection(&view.paper) {
+                (view.paint)(frame, clip, lit);
+            }
+        }
+        // So do the notes on them, and on the states around them.
+        for (glow, lit) in self.lit_notes(&levels, view) {
             if let Some(clip) = glow.bounds().intersection(&view.paper) {
                 (view.paint)(frame, clip, lit);
             }
@@ -584,6 +623,11 @@ impl MachinePlay {
                 if glow.bounds().intersects(&view.paper) {
                     glow.mask(frame, with_alpha(look.veil, VEIL * veil * lit));
                 }
+            }
+        }
+        for (glow, lit) in self.lit_notes(&levels, view) {
+            if glow.bounds().intersects(&view.paper) {
+                glow.mask(frame, with_alpha(look.veil, VEIL * veil * lit));
             }
         }
         // States around them get a quiet frame.

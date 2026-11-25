@@ -2044,6 +2044,12 @@ is open and the reasoning around it.
       a diagram that fits at less is drawn at 1. `--no-bar` leaves the
       bar out: the diagram alone, its lights saying where it is
       (`Paper::play_bar`).
+- [x] A note comes through the veil with its state (REQ-129,
+      2026-11-25): a machine's play finds the notes on each state by
+      their parts, named after the state's (`omaspec_uml::notes_part`,
+      `Outline::every`), and lets each through in its own shape as far as
+      its state, or one inside it, is lit. A note of its own and one on
+      a transition stay under the veil.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

@@ -70,7 +70,38 @@ impl Outline {
     /// The outline of the part `part` in `tree`: the largest shape it
     /// fills, where the picture marks its parts.
     pub fn of(tree: &usvg::Tree, part: &str) -> Option<Outline> {
-        let prefix = format!("{}-", omaspec_uml::part_id(part));
+        Self::of_id(tree, &omaspec_uml::part_id(part))
+    }
+
+    /// The outline of each part in `tree` whose name starts with `start`,
+    /// as [`Self::of`] finds it: the notes of a box, whose parts are named
+    /// after its own (`note:state:A#right0`).
+    pub fn every(tree: &usvg::Tree, start: &str) -> Vec<Outline> {
+        // A part's groups are its id, a `-` and their number.
+        let start = omaspec_uml::part_id(start);
+        let mut ids: Vec<&str> = Vec::new();
+        each_group(tree.root(), &mut |group| {
+            if let Some((id, _)) = group.id().rsplit_once('-')
+                && id.starts_with(&start)
+                && !ids.contains(&id)
+            {
+                ids.push(id);
+            }
+        });
+        ids.into_iter()
+            .filter_map(|id| Self::of_id(tree, id))
+            .collect()
+    }
+
+    /// The box it fits in, in the diagram's units.
+    #[cfg(test)]
+    pub(in crate::paper) fn bounds(&self) -> Rect {
+        self.bounds
+    }
+
+    /// The outline of the part whose groups' ids start with `id` and a `-`.
+    fn of_id(tree: &usvg::Tree, id: &str) -> Option<Outline> {
+        let prefix = format!("{id}-");
         let mut best: Option<(f32, &usvg::Path)> = None;
         each_path(tree.root(), &prefix, false, &mut |path| {
             let b = path.abs_bounding_box();
@@ -247,6 +278,16 @@ pub(in crate::paper) fn trace(
 
 /// Hands each path of the groups of `node` whose id starts with `prefix`
 /// to `take`, words left out; `inside` once such a group is entered.
+/// Each group under `node`, at every depth.
+fn each_group<'a>(node: &'a usvg::Group, take: &mut dyn FnMut(&'a usvg::Group)) {
+    for child in node.children() {
+        if let usvg::Node::Group(group) = child {
+            take(group);
+            each_group(group, take);
+        }
+    }
+}
+
 fn each_path<'a>(
     node: &'a usvg::Group,
     prefix: &str,

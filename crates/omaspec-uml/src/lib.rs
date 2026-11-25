@@ -70,8 +70,8 @@ pub use common::{Mention, NO_LINE, lines_away, unseen};
 pub use icons::{open_iconic_names, unknown_open_iconic};
 pub use svg::{
     Align, Canvas, FACE, GRID, HAND_FONT, ICON, INTER_FACES, LINES, Layer, MONO_FACES, PART,
-    SANS_FACES, SERIF_FACES, Stroke, card_part, faces, has_parts, part_groups, part_id, part_name,
-    place_part, unmarked, without_lines, without_parts, words_part,
+    SANS_FACES, SERIF_FACES, Stroke, card_part, faces, has_parts, notes_part, part_groups, part_id,
+    part_name, place_part, unmarked, without_lines, without_parts, words_part,
 };
 pub use text::{
     Block, Family, Font, Link, Style, Written, block as measure_text, creole_link, emoji,

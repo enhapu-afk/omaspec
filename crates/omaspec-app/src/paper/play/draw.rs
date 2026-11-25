@@ -149,12 +149,16 @@ impl Glow {
     /// a state or a choice whose part has an outline.
     pub(in crate::paper) fn shaped(spot: &Spot, outline: Option<&Outline>, view: &Viewer) -> Glow {
         match (outline, spot.shape) {
-            (Some(outline), Shape::State | Shape::Choice) => {
-                let (segments, bounds, reach) = outline.on_screen(view.place);
-                Glow::Own(segments, bounds, reach)
-            }
+            (Some(outline), Shape::State | Shape::Choice) => Glow::outlined(outline, view),
             _ => Glow::of(spot, view),
         }
+    }
+
+    /// `outline` on screen, as the picture draws it: a state's, or a note's
+    /// that comes through the veil with its state.
+    pub(super) fn outlined(outline: &Outline, view: &Viewer) -> Glow {
+        let (segments, bounds, reach) = outline.on_screen(view.place);
+        Glow::Own(segments, bounds, reach)
     }
 
     /// Its own outline `out` pixels larger on every side, stretched from

@@ -690,8 +690,8 @@ must take every message it receives as an event, in the order the scenario sends
 through `alt`, `opt` and `loop`.
 
 **Play it.** F5 (`p` in the preview window) runs the diagram on screen. A state machine
-starts: the rest of the diagram sinks under a veil, the states it is in shine through it,
-and the bar below offers what can happen next, numbered 1 to 9 (where they would not fit
+starts: the rest of the diagram sinks under a veil, the states it is in shine through it
+with the notes on them, and the bar below offers what can happen next, numbered 1 to 9 (where they would not fit
 one line with their names, anywhere in the play, the bar has a second or third from the
 start, so it keeps its height); a light runs along the
 transition's route to the next state, regions start side by side, a choice (or a state

@@ -921,3 +921,50 @@ fn an_object_waits_inside_where_a_person_decides_unless_it_deviates() {
     assert_eq!(live.waiting(), 1);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// A note on a state comes through the veil with it (REQ-129): the play
+/// finds each note in the picture by the part of its state, one inside a
+/// composite state with that one too; a note of its own stays under it.
+#[test]
+fn a_note_comes_through_with_its_state() {
+    let source = "@startuml\n[*] --> New\nNew --> Paid : pay\nstate Paid {\n  [*] --> Held\n}\nPaid --> Shipped : ship\nnote right of Paid : held until it leaves\nnote left of New\n  waits a week\nend note\nnote left of New : at most\nnote \"of its own\" as N1\n@enduml\n";
+    let picture = crate::paper::testing::drawn(source, Language::PlantUml);
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &picture.map, t0).unwrap();
+    play.shape(&picture.tree);
+    let Play::Machine(machine) = &play else {
+        panic!("no machine");
+    };
+    let named = |name: &str| {
+        machine
+            .machine
+            .states
+            .iter()
+            .position(|state| state.name == name)
+            .unwrap()
+    };
+    let mut on: Vec<usize> = machine.notes.iter().map(|(state, _)| *state).collect();
+    on.sort_unstable();
+    let mut want = vec![named("New"), named("New"), named("Paid")];
+    want.sort_unstable();
+    assert_eq!(on, want);
+    // Paid's note in its own shape, right of its state.
+    let paid = machine.placed.states[named("Paid")].as_ref().unwrap().rect;
+    let (_, note) = machine
+        .notes
+        .iter()
+        .find(|(state, _)| *state == named("Paid"))
+        .unwrap();
+    let bounds = note.bounds();
+    assert!(bounds.x >= paid.x + paid.w, "{bounds:?} {paid:?}");
+    // Lit with Paid, or with Held inside it; not with New.
+    let mut levels = vec![0.0; machine.machine.states.len()];
+    levels[named("Held")] = 1.0;
+    let lit = machine.note_levels(&levels);
+    assert_eq!(
+        lit.iter()
+            .map(|&(note, level)| (machine.notes[note].0, level))
+            .collect::<Vec<_>>(),
+        [(named("Paid"), 1.0)]
+    );
+}
