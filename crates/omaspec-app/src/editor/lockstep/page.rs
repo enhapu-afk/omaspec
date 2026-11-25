@@ -14,8 +14,8 @@ use omaspec_render::export::lockstep as page;
 use omaspec_render::{Place, Renderer};
 use omaspec_uml::Color;
 
-use super::super::moving::{Moving, theme};
-use super::super::{App, Start};
+use super::super::Start;
+use super::super::moving::Moving;
 
 /// When the first message sets off.
 const START: f32 = 0.6;
@@ -41,14 +41,12 @@ pub(super) fn write(
     step: &Lockstep,
     machines: &[(PathBuf, String, Language)],
 ) -> Result<String> {
-    let omarchy = theme(args.theme.as_deref())?;
     let start = Start {
         files: vec![args.file.clone()],
         folder: None,
         forced: args.forced,
     };
-    let (mut app, _) = App::themed(start, None, omarchy);
-    app.follow_theme = !args.file_colors;
+    let app = super::super::moving::film_app(args, start)?;
     let skin = app.pane_skin(args.root.as_deref());
     let palette = app.palette.clone();
     let mut renderer = Renderer::new(&crate::commands::render_config());

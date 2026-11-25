@@ -13,7 +13,7 @@ use omaspec_core::Language;
 use omaspec_render::{Place, Renderer};
 
 use super::films::Film;
-use super::moving::{FADE_IN_FRAMES, Moving, SETTLE, shown, theme};
+use super::moving::{FADE_IN_FRAMES, Moving, SETTLE, shown};
 use super::screen::{Caption, Screen, Shows};
 use super::{App, Message, Start};
 use crate::paper;
@@ -245,8 +245,7 @@ impl Stage {
             folder: None,
             forced: args.forced,
         };
-        let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
-        app.follow_theme = !args.file_colors;
+        let mut app = super::moving::film_app(args, start)?;
         let mut screen = match args.renderer {
             Some(renderer) => Screen::drawn_by(&app, 1.0, Some(renderer)),
             None => Screen::new(&app, 1.0),
@@ -398,8 +397,7 @@ fn page(args: &Moving, versions: Vec<Version>) -> Result<String> {
         folder: None,
         forced: args.forced,
     };
-    let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
-    app.follow_theme = !args.file_colors;
+    let app = super::moving::film_app(args, start)?;
     let place = Place::of(&args.file, None);
     let mut renderer = Renderer::new(&crate::commands::render_config());
     let mut maps = Vec::new();

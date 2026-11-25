@@ -100,9 +100,12 @@ pub enum InlineDash {
 impl Inline {
     /// Whether `word`, with its `#`, is written in this style rather than
     /// as one color (`#pink`) or a border (`##red`).
+    /// A `;` after the first `:` is the words' after a color
+    /// (`#red:wait;retry`), not a style's.
     pub fn written(word: &str) -> bool {
+        let head = &word[..word.find(':').unwrap_or(word.len())];
         !word.starts_with("##")
-            && (word.contains(';')
+            && (head.contains(';')
                 || ["#line.", "#line:", "#text:", "#back:"]
                     .iter()
                     .any(|start| word.starts_with(start)))

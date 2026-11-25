@@ -1995,7 +1995,8 @@ is open and the reasoning around it.
       themselves. A trace may still pass a state's way without an event
       unlogged.
 - [x] `--look` for every film (REQ-109, the rest, 2026-11-25): a play, a
-      fold, a dive, a lockstep, a history, a build and traffic are drawn
+      fold, a dive and a flight, a lockstep, a history and a time travel,
+      a build and traffic, as a film or a page, are drawn
       in Omaspec's light palette around the diagram in its light look
       with `--look light`, in its dark one with `dark`, and `plain`,
       `vivid`, `sketch` and `file` (the file's own colors) on the light
@@ -2007,8 +2008,13 @@ is open and the reasoning around it.
       sketch is inked into, the frame in its palette. The command line
       had taken `--look` without `--ink` all along and drawn the play in
       the theme: clap counts a flag's default as given for `requires`.
-      With `--theme` a play says to take one, with `--themes` it is
-      refused.
+      With `--theme` a play says to take one (`omarchy`, which lays no
+      palette of its own, takes the theme named), with `--themes` it is
+      refused. Every film builds its app in one place
+      (`moving::film_app`). After the review: one rule tells a style from
+      a color and words (`Inline::written`: a `;` before the first `:`),
+      and `--id-prefix` reads `url(#…)` only in the attributes that paint
+      or point with one, and collects the ids without a copy.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

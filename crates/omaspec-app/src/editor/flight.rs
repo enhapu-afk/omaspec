@@ -14,7 +14,7 @@ use omaspec_core::Language;
 use omaspec_render::export::flight as page;
 use omaspec_render::{Atlas, Link, Place, Renderer};
 
-use super::moving::{Moving, theme};
+use super::moving::Moving;
 use super::{App, Message, Start};
 
 /// A picture on the way, and the links in it.
@@ -50,8 +50,7 @@ pub(super) fn write(args: &Moving) -> Result<String> {
         folder: None,
         forced: args.forced,
     };
-    let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
-    app.follow_theme = !args.file_colors;
+    let mut app = super::moving::film_app(args, start)?;
     let (specs, atlas) = crate::specs::read_project(&root);
     let _ = app.update(Message::Specs(
         root.clone(),

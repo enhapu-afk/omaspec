@@ -1286,9 +1286,10 @@ pub(super) fn colors(args: &Moving) -> Result<(Omarchy, Option<Option<crate::loo
     let Some(look) = args.look else {
         return Ok((theme(args.theme.as_deref())?, None));
     };
+    // `omarchy` lays no palette of its own: a theme named is drawn in.
     if args.theme.is_some() {
         anyhow::ensure!(
-            args.ink,
+            args.ink || look == Look::Omarchy,
             "--look draws a film in Omaspec's palette, --theme in a theme's: take one"
         );
         return Ok((theme(args.theme.as_deref())?, None));
@@ -1669,6 +1670,9 @@ mod tests {
         assert!(both.to_string().contains("take one"), "{both}");
         // With --ink the look is what it inks into; --theme the film's.
         assert!(colors(&args(Some(Look::Vivid), Some("built-in"), true)).is_ok());
+        let (built_in, over) = colors(&args(Some(Look::Omarchy), Some("built-in"), false)).unwrap();
+        assert_eq!(built_in.name.as_deref(), Some("built-in"));
+        assert_eq!(over, None);
         // Drawn: the light film's paper is white, the built-in theme's dark.
         let corner = |moving: &Moving| {
             play(moving).unwrap();

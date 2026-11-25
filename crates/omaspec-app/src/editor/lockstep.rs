@@ -23,7 +23,7 @@ use omaspec_model::Lockstep;
 mod page;
 
 use super::films::Film;
-use super::moving::{BAR, FADE_IN_FRAMES, HOLD, Moving, SETTLE, shown, theme};
+use super::moving::{BAR, FADE_IN_FRAMES, HOLD, Moving, SETTLE, shown};
 use super::screen::{Screen, Shows};
 use super::{App, Doc, Message, Start};
 use crate::paper::{self, Ask};
@@ -146,8 +146,7 @@ impl Stage {
             folder: None,
             forced: args.forced,
         };
-        let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
-        app.follow_theme = !args.file_colors;
+        let mut app = super::moving::film_app(args, start)?;
         let mut screen = match args.renderer {
             Some(renderer) => Screen::drawn_by(&app, 1.0, Some(renderer)),
             None => Screen::new(&app, 1.0),
