@@ -140,6 +140,27 @@ is open and the reasoning around it.
       block for a project's own `AGENTS.md`; this repository's `AGENTS.md`
       says how they hold on Omaspec's own work (`arrival.puml` and its
       traces, a commit that changes a machine, the rules of findings).
+- [x] The pull request's comment on GitHub (2026-11-25), checked on a
+      pull request of this repository that changed `agent.puml` and was
+      closed unmerged. Omaspec's own pull requests get the comment:
+      `.github/workflows/behavior.yml` runs the steps of
+      `docs/ci/behavior-diff.yml` with Omaspec built from the pull
+      request, and a test holds the two alike. Both run on each push, not
+      only on one that touches a diagram, since a push that takes the
+      change back has to say so. The comment came once and was edited on
+      each push; with the change taken back it said that no diagram
+      changed. GitHub draws its Mermaid in a browser; its mobile app shows
+      the code. What the check found is fixed: `omaspec diff DIR` read
+      what git ignores (a fuzzer's corpus) and told a scenario Omaspec
+      does not read (ZenUML) changed when only a machine had; it reads
+      the folder now as git lists it, by the rules a commit has
+      (`git::files_now`, `names::diagram_files_since`). A line that went
+      is named in the version it stood in (`agent.puml@origin/main:23`,
+      `old/agent.puml:23` between two folders), in the text and in
+      `--json` alike. A `[*]` in a note's words (`hnote over A : back to
+      [*]`) no longer makes a scenario a state diagram. The picture's
+      tints were lost on GitHub's page, light or dark; the states that
+      came are full green with white words now, those that changed amber.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

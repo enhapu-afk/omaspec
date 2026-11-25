@@ -30,13 +30,8 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
 
 [0036](docs/adr/0036-between-agents-and-people.md): an agent is a user of
 Omaspec beside the person, and the loops between them come first. Each
-item says how it is checked.
-
-- [ ] **The pull request's comment on GitHub.** `docs/ci/behavior-diff.yml`
-      (`omaspec diff --markdown`, since 2026-11-24) run on a branch that
-      changes a machine, once the release after 1.1.0 has `--markdown`:
-      the comment comes, its Mermaid drawn by GitHub, and is edited on the
-      next push.
+item says how it is checked. All of them are done (2026-11-25), the last
+the pull request's comment, checked on GitHub.
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 
