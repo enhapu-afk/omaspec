@@ -2029,6 +2029,15 @@ is open and the reasoning around it.
       now, its stereotypes, or what a fold says it holds, in the body
       under it; a package's body reaches at least 16 pixels past its tab
       (`SHOULDER`), open or folded.
+- [x] Ids of its own for a picture on a page of several (REQ-117,
+      2026-11-25): `omaspec render door.puml --id-prefix door-` starts
+      each id of the SVG (`lines`, a gradient's) and every reference to
+      one (`url(#…)`, `href="#…"`) with `door-`, so two pictures on one
+      HTML page share none. `omaspec_render::prefix_ids` reads the tags
+      alone: words that say `url(#x)` or `id="y"`, the stored source and
+      comments stay as written. The project's map and a stack of pictures
+      take their tiles' ids so too; before, a note that said `url(#x)`
+      was changed in a tile. A PNG, a JPEG or `--check` take no prefix.
 
 ## Next
 

@@ -290,6 +290,61 @@ fn render_writes_the_words_as_outlines() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// REQ-117: `--id-prefix` gives an SVG's ids, and the references to them,
+/// a start of their own, so two pictures on one HTML page share none; its
+/// words and the source it stores are left as they are.
+#[test]
+fn render_gives_an_svg_s_ids_a_prefix() {
+    let dir = scratch("ids");
+    let file = dir.join("door.puml");
+    let source = "@startuml\n[*] --> Closed\nstate Closed #red-green\nClosed --> Open : url(#x) id=\"y\"\n@enduml\n";
+    fs::write(&file, source).unwrap();
+    let svg = dir.join("door.svg");
+    let render = |more: &[&str]| {
+        let mut args = vec![
+            "render",
+            file.to_str().unwrap(),
+            "-o",
+            svg.to_str().unwrap(),
+        ];
+        args.extend(more);
+        omaspec(&args)
+    };
+    let out = render(&["--id-prefix", "door-"]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let written = fs::read_to_string(&svg).unwrap();
+    assert!(written.contains(r#" id="door-lines""#), "{written}");
+    assert!(written.contains("url(#door-omaspec-gradient-"), "{written}");
+    assert!(!written.contains(r#" id="lines""#), "{written}");
+    // The words, and the source it stores, as written.
+    assert_eq!(written.matches(r#"url(#x) id="y""#).count(), 2, "{written}");
+    for (more, said) in [
+        (&["--id-prefix", "1a"][..], "starts with a letter"),
+        (
+            &["--id-prefix", "a", "--format", "png"][..],
+            "a PNG has none",
+        ),
+    ] {
+        let out = render(more);
+        assert!(!out.status.success(), "{more:?}");
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert!(err.contains(said), "{more:?}: {err}");
+    }
+    let held = omaspec(&[
+        "render",
+        file.to_str().unwrap(),
+        "--check",
+        "--id-prefix",
+        "a",
+    ]);
+    assert!(!held.status.success());
+    let _ = fs::remove_dir_all(&dir);
+}
+
 /// Every finding has a code a program can hold on to, the rules list
 /// each one with whether it carries its fix
 /// (`omaspec_core::lint::RULES`), and the guide lists each rule: a new

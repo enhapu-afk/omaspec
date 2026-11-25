@@ -36,6 +36,9 @@ pub struct RenderArgs<'a> {
     /// An SVG's words written as outlines, for a viewer without the faces
     /// they were measured in (REQ-068).
     pub text_as_paths: bool,
+    /// What an SVG's ids start with, so pictures on one page share none
+    /// (REQ-117).
+    pub id_prefix: Option<&'a str>,
     /// Store the diagram source in SVG and PNG images.
     pub source: bool,
     pub copy: bool,
@@ -118,6 +121,21 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         "--text-as-paths writes an SVG's words as outlines; a {} has pixels or its own fonts",
         format.extension().to_uppercase()
     );
+    if let Some(prefix) = args.id_prefix {
+        anyhow::ensure!(
+            format == Format::Svg,
+            "--id-prefix names an SVG's ids; a {} has none",
+            format.extension().to_uppercase()
+        );
+        anyhow::ensure!(
+            !args.check,
+            "--check holds each SVG as it stands beside its diagram; it takes no --id-prefix"
+        );
+        anyhow::ensure!(
+            omaspec_render::is_id_prefix(prefix),
+            "--id-prefix starts with a letter or `_`, then letters, digits, `_`, `-` and `.`"
+        );
+    }
     if let Some(least) = args.min_font {
         anyhow::ensure!(
             matches!(format, Format::Png | Format::Jpeg),
@@ -294,6 +312,11 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 continue;
             }
         };
+        let mut exported = exported;
+        if let (Some(prefix), Picture::One(bytes)) = (args.id_prefix, &mut exported.picture) {
+            let svg = String::from_utf8_lossy(bytes);
+            *bytes = omaspec_render::prefix_ids(&svg, prefix).into_bytes();
+        }
         // One diagram holds every name asked to fold, or nothing is
         // written.
         if pieces.len() == 1

@@ -651,6 +651,11 @@ enum Command {
         /// links are no longer links.
         #[arg(long)]
         text_as_paths: bool,
+        /// An SVG's ids, and every reference to one, start with this: two
+        /// pictures on one HTML page then share none (`door-`, `lamp-`).
+        /// Its words and the stored source are left as they are.
+        #[arg(long, value_name = "PREFIX")]
+        id_prefix: Option<String>,
         /// Do not store the diagram source in SVG and PNG images.
         #[arg(long)]
         no_source: bool,
@@ -1106,6 +1111,7 @@ fn main() -> ExitCode {
             fit,
             min_font,
             text_as_paths,
+            id_prefix,
             no_source,
             copy,
             look,
@@ -1123,6 +1129,7 @@ fn main() -> ExitCode {
                 fit,
                 min_font,
                 text_as_paths,
+                id_prefix: id_prefix.as_deref(),
                 source: !no_source,
                 copy,
                 look,

@@ -393,11 +393,10 @@ pub(crate) fn without_styles(svg: &str) -> String {
     kept
 }
 
-/// `body` with its ids and the references to them made its own.
+/// `body` with its ids and the references to them made its own
+/// ([`crate::prefix_ids`]): its words are left as they are.
 pub(crate) fn own_ids(body: &str, prefix: &str) -> String {
-    body.replace(" id=\"", &format!(" id=\"{prefix}"))
-        .replace("url(#", &format!("url(#{prefix}"))
-        .replace("href=\"#", &format!("href=\"#{prefix}"))
+    crate::prefix_ids(body, prefix)
 }
 
 /// Words that fit about `width` units at the size they are drawn in.

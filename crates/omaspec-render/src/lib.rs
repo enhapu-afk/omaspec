@@ -12,6 +12,7 @@ pub mod caught;
 pub mod contrast;
 pub mod export;
 mod fonts;
+mod ids;
 mod include;
 mod java;
 pub mod legible;
@@ -31,6 +32,7 @@ use omaspec_core::kind;
 pub use omaspec_uml::map::Map;
 
 pub use atlas::{Atlas, Entry, Link};
+pub use ids::{is_id_prefix, prefix_ids};
 pub use include::{Place, project_root};
 pub use java::{JavaPlantUml, SANDBOX_REPORT};
 pub use mermaid::{MermaidDeclined, coverage as mermaid_coverage};
