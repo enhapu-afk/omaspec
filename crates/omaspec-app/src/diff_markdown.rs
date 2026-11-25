@@ -200,8 +200,10 @@ pub(crate) fn picture(
     marked.sort();
     let mut out = mermaid.trim_end().to_owned();
     if !marked.is_empty() {
-        out.push_str("\n    classDef omaspecCame fill:#dafbe1,stroke:#1a7f37,color:#1f2328");
-        out.push_str("\n    classDef omaspecChanged fill:#fff8c5,stroke:#9a6700,color:#1f2328");
+        // Full colors, not tints: GitHub draws the picture on a page
+        // light or dark, and a pale fill is lost on either.
+        out.push_str("\n    classDef omaspecCame fill:#1a7f37,stroke:#116329,color:#ffffff");
+        out.push_str("\n    classDef omaspecChanged fill:#d4a72c,stroke:#9a6700,color:#1f2328");
         for (id, class) in marked {
             out.push_str(&format!("\n    class {id} {class}"));
         }
