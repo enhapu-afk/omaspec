@@ -866,11 +866,25 @@ is open and the reasoning around it.
       fill (`classBackgroundColor Wheat|CornflowerBlue`, a stereotype's
       too) and the page's (`skinparam backgroundcolor AntiqueWhite/Gold`,
       `Canvas::page_gradient`, which fills the page's background with it)
-      run as gradients (`Param::fill`). A note takes colors of its own,
+      run as gradients (`Skinparam::fill`). A note takes colors of its own,
       `note left of Foo #blue\9932CC` and `#pink ##red`, a gradient among
       them (`graph::open::NoteColors`); its words are moved until they read
       on them, a style beyond its colors declines. The guide: the class
       diagram 49 of 84, 556 of 897 in all.
+- [x] What the review of the gradients found (2026-11-25). A timing
+      diagram's `U is Idle #red:wait;retry` is drawn again: only a `;`
+      before the label's `:` makes a style. A box's gradient runs over its
+      box as a whole (`Canvas::gradient_over`, in the drawing's
+      coordinates), so a node's faces, a cylinder's cap and a component's
+      UML1 marks are filled as one shape, as PlantUML fills them; an empty
+      diamond on a page that runs as a gradient takes it as it runs there
+      (`Canvas::paper`). Words on a gradient read on both its ends, black
+      or white, whichever reads better on the worse. A note's colors come
+      after a space and before its words (`note left of C#Sharp` names
+      `C#Sharp`, `#red-green;line:blue : words` keeps the style's `:`).
+      One reader of a fill that may be a gradient (`color::parse_fill`). A
+      Gantt bar's colors written with `|`, `-` or `\` say they want
+      `Fill/Line`.
 
 ## Phase 0: foundation and spikes
 

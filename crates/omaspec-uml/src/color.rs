@@ -209,6 +209,28 @@ pub fn parse_gradient(value: &str) -> Option<Result<Gradient, String>> {
     })())
 }
 
+/// `value` as a fill, which may run from one color into another
+/// (`#red-green`): its plain fill is then the gradient's first color.
+pub fn parse_fill(value: &str) -> Result<(Paint, Option<Gradient>), String> {
+    match parse_gradient(value) {
+        Some(gradient) => {
+            let g = gradient?;
+            Ok((Some(g.from), Some(g)))
+        }
+        None => Ok((parse(value)?, None)),
+    }
+}
+
+/// The colors words lie on over `fill`: a gradient's two ends, where it
+/// is one, else the fill's color; none on no fill.
+pub fn grounds(fill: Paint, gradient: Option<Gradient>) -> Vec<Color> {
+    match (gradient, fill) {
+        (Some(g), _) => vec![g.from, g.to],
+        (None, Some(color)) => vec![color],
+        (None, None) => Vec::new(),
+    }
+}
+
 /// `value` as a paint (`transparent` is none). An error names what is not
 /// understood; a gradient (`#red/blue`) is read by [`parse_gradient`],
 /// where a drawer fills with one.

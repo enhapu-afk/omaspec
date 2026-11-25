@@ -848,18 +848,19 @@ fn take_color(text: &str, no: usize) -> Result<(Color, &str), Declined> {
         .trim_start()
         .strip_prefix('#')
         .ok_or_else(|| fail(no, "a color needs `#`"))?;
-    // `#LightCyan;line:Aqua` is a style, whose `:` is not the label's.
-    let word = &text[..text.find(char::is_whitespace).unwrap_or(text.len())];
-    if word.contains(';') {
+    let end = text
+        .find(|c: char| c.is_whitespace() || c == ':')
+        .unwrap_or(text.len());
+    let name = &text[..end];
+    // `#LightCyan;line:Aqua` is a style, whose `:` is not the label's; a
+    // `;` after the label's `:` (`#red:wait;retry`) is the label's.
+    if name.contains(';') {
+        let word = &text[..text.find(char::is_whitespace).unwrap_or(text.len())];
         return Err(fail(
             no,
             format!("a style (`#{word}`) is not supported yet"),
         ));
     }
-    let end = text
-        .find(|c: char| c.is_whitespace() || c == ':')
-        .unwrap_or(text.len());
-    let name = &text[..end];
     if name.is_empty() {
         return Err(fail(no, "a color is missing after `#`"));
     }
@@ -1056,6 +1057,10 @@ mod tests {
             assert_eq!(err.line, Some(3), "{color}");
             assert!(err.reason.contains(reason), "{color}: {}", err.reason);
         }
+        // A `;` in the label after the color is the label's.
+        let diagram =
+            timing("@startuml\nconcise \"U\" as U\n@0\nU is Idle #red:wait;retry\n@enduml");
+        assert!(format!("{diagram:?}").contains("wait;retry"), "{diagram:?}");
     }
 
     #[test]

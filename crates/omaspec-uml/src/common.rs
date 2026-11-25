@@ -98,13 +98,7 @@ impl Skinparam {
     /// The value as a fill, which may run from one color into another
     /// (`AntiqueWhite/Gold`): the fill is then the gradient's first color.
     pub fn fill(&self) -> Result<(Paint, Option<color::Gradient>), Declined> {
-        match color::parse_gradient(self.value.trim()) {
-            Some(gradient) => {
-                let g = gradient.map_err(|e| self.fail(e))?;
-                Ok((Some(g.from), Some(g)))
-            }
-            None => Ok((self.paint()?, None)),
-        }
+        color::parse_fill(self.value.trim()).map_err(|e| self.fail(e))
     }
 
     /// The value as a color that is not `transparent`.

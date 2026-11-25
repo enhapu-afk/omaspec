@@ -529,7 +529,13 @@ fn is_clause<'a>(task: &mut Task, rest: &'a str, no: usize) -> Result<&'a str, D
             return Err(fail(no, "a color is missing"));
         }
         // `Fuchsia/FireBrick`: the bar's fill, then its border, as
-        // PlantUML draws them; no gradient.
+        // PlantUML draws them; no gradient, and no other mark between.
+        if token.contains(['|', '-', '\\']) {
+            return Err(fail(
+                no,
+                format!("`{token}`: a bar takes its fill and its border as `Fill/Line`"),
+            ));
+        }
         let (fill, line) = match token.split_once('/') {
             Some((fill, line)) => (fill, Some(line)),
             None => (token, None),
@@ -1249,6 +1255,17 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(err.line, Some(2), "{}", err.reason);
+        for colors in ["Lavender|LightBlue", "red-blue", "red\\blue"] {
+            let err = crate::parse(&format!(
+                "@startgantt\n[A] requires 2 days\n[A] is colored in {colors}\n@endgantt\n"
+            ))
+            .unwrap_err();
+            assert!(
+                err.reason.contains("`Fill/Line`"),
+                "{colors}: {}",
+                err.reason
+            );
+        }
     }
 
     #[test]

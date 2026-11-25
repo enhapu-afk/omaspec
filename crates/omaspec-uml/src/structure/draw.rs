@@ -75,6 +75,8 @@ pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> 
 fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+    // Set first: what takes the page's fill takes its gradient.
+    canvas.page_gradient(skin.page_gradient);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
     if diagram.frame.parts {
@@ -142,7 +144,6 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     } else {
         Map::default()
     };
-    canvas.page_gradient(skin.page_gradient);
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
@@ -441,14 +442,14 @@ fn measure_element(
     // light under the light text of a dark look. The words are moved
     // towards black or white, whichever reads better there, until they
     // read. An actor's name stands under the figure, on the page. Over a
-    // gradient they read on its middle.
+    // gradient they read on both its ends.
     if el.text_color.is_none()
         && el.fill.is_some()
         && !matches!(el.shape, Shape::Actor | Shape::Lollipop)
-        && let Some(ground) = gradient.map(|g| g.from.mix(g.to, 0.5)).or(fill)
     {
+        let grounds = color::grounds(fill, gradient);
         for font in [&mut look.font, &mut look.member, &mut look.stereo] {
-            legible_on(font, ground);
+            legible_on(font, &grounds);
         }
     }
     // An actor's and a use case's words belong to their figure.
@@ -827,16 +828,7 @@ fn paints(
 /// A fill written on `line`, and the gradient it runs as where it is one
 /// (`#red-green`): its plain fill is then the gradient's first color.
 fn fill_of(value: &str, line: usize) -> Result<(Paint, Option<color::Gradient>), Declined> {
-    match color::parse_gradient(value) {
-        Some(gradient) => {
-            let g = gradient.map_err(|err| Declined::at(line, err))?;
-            Ok((Some(g.from), Some(g)))
-        }
-        None => Ok((
-            color::parse(value).map_err(|err| Declined::at(line, err))?,
-            None,
-        )),
-    }
+    color::parse_fill(value).map_err(|err| Declined::at(line, err))
 }
 
 /// A border's color written on `line`.
@@ -870,15 +862,24 @@ fn note_colors(
     }))
 }
 
-/// `font` moved towards black or white, whichever reads better on
-/// `ground`, until it reads there: words on a fill the writer chose.
-fn legible_on(font: &mut Font, ground: Color) {
-    let far = if Color::WHITE.contrast(ground) > Color::BLACK.contrast(ground) {
+/// `font` moved towards black or white, whichever reads better on all of
+/// `grounds` (a gradient's two ends, where the words may lie on either),
+/// until it reads on each: words on a fill the writer chose.
+fn legible_on(font: &mut Font, grounds: &[Color]) {
+    let worst = |color: Color| {
+        grounds
+            .iter()
+            .map(|ground| color.contrast(*ground))
+            .fold(f32::INFINITY, f32::min)
+    };
+    let far = if worst(Color::WHITE) > worst(Color::BLACK) {
         Color::WHITE
     } else {
         Color::BLACK
     };
-    font.color = font.color.legible_on(ground, far, 4.5);
+    for ground in grounds {
+        font.color = font.color.legible_on(*ground, far, 4.5);
+    }
 }
 
 /// A line's label and multiplicities, each the words its line alone
@@ -1253,9 +1254,11 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     let rect = node.rect;
     let round = skin.round.min(rect.w / 2.0).min(rect.h / 2.0).max(0.0);
     let stroke = Some(node.item.border);
-    // The gradient fills the shape alone: its words, its marks and
-    // its border keep their colors.
-    canvas.gradient(node.item.gradient, |canvas| match node.item.shape {
+    // The gradient fills the shape alone, over its box as a whole, so a
+    // shape of several parts (a node's faces) is filled as one; its
+    // words and its border keep their colors.
+    let span = (rect.x, rect.y, rect.w, rect.h);
+    canvas.gradient_over(node.item.gradient, span, |canvas| match node.item.shape {
         Shape::UseCase => {
             canvas.ellipse(
                 Layer::Frames,
@@ -1324,7 +1327,10 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     if node.item.shape == Shape::Component {
         match skin.component_style {
             ComponentStyle::Uml2 => component_icon(canvas, rect, node.item.border),
-            ComponentStyle::Uml1 => uml1_marks(canvas, rect, node.item.fill, node.item.border),
+            // The marks are filled as the box is, where it is.
+            ComponentStyle::Uml1 => canvas.gradient_over(node.item.gradient, span, |canvas| {
+                uml1_marks(canvas, rect, node.item.fill, node.item.border)
+            }),
             ComponentStyle::Rectangle => {}
         }
     }
@@ -2063,7 +2069,8 @@ fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<u
             None => (skin.note.fill, skin.note.gradient, skin.note.border),
         };
         canvas.part(&part, |canvas| {
-            canvas.gradient(gradient, |canvas| {
+            let span = (note.x, note.y, note.w, note.h);
+            canvas.gradient_over(gradient, span, |canvas| {
                 dog_ear(
                     canvas,
                     Rect {
@@ -2216,8 +2223,15 @@ fn draw_head(
     }
     let fill = match shape.fill {
         HeadFill::Ink => Some(stroke.color),
-        // An empty diamond hides the line under it in the page's color.
-        HeadFill::Paper => Some(skin.background.unwrap_or(Color::WHITE)),
+        // An empty diamond hides the line under it in the page's color,
+        // a gradient's as it runs there.
+        HeadFill::Paper => {
+            let paper = Some(skin.background.unwrap_or(Color::WHITE));
+            canvas.paper(|canvas| {
+                canvas.polygon(Layer::Lines, &shape.points, paper, Some(solid));
+            });
+            return;
+        }
         HeadFill::None => None,
     };
     canvas.polygon(Layer::Lines, &shape.points, fill, Some(solid));
@@ -2482,28 +2496,37 @@ mod tests {
     }
 
     /// A box's own fill may run from one color into another, as PlantUML
-    /// writes it: the shape alone is filled with it, each gradient defined
-    /// once. A border does not take one, nor a color PlantUML does not know.
+    /// writes it: the shape alone is filled with it, over its box as a
+    /// whole, each box's gradient defined once. A border does not take one,
+    /// nor a color PlantUML does not know.
     #[test]
     fn a_gradient_fills_a_box_s_shape() {
         let svg = crate::render(
-            "@startuml\nclass Foo #red-green\nclass Bar #red-green\npackage P #white/lightblue {\n  component C #Lavender|LightBlue\n}\nusecase U #yellow\\orange\n@enduml\n",
+            "@startuml\nclass Foo #red-green\nclass Bar #red-green\npackage P #white/lightblue {\n  component C #Lavender|LightBlue\n}\nusecase U #yellow\\orange\nnode N #red-green;line:blue\n@enduml\n",
         )
         .unwrap();
-        for (id, filled) in [
-            ("omaspec-gradient-ff0000-008000-down", 2),
-            ("omaspec-gradient-ffffff-add8e6-falling", 1),
-            ("omaspec-gradient-e6e6fa-add8e6-across", 1),
-            ("omaspec-gradient-ffff00-ffa500-rising", 1),
+        // Each box has its own, over its own box: the node's faces share one.
+        for (name, boxes, filled) in [
+            ("omaspec-gradient-ff0000-008000-down-", 3, 2 + 3),
+            ("omaspec-gradient-ffffff-add8e6-falling-", 1, 1),
+            ("omaspec-gradient-e6e6fa-add8e6-across-", 1, 1),
+            ("omaspec-gradient-ffff00-ffa500-rising-", 1, 1),
         ] {
             assert_eq!(
-                svg.matches(&format!("id=\"{id}\"")).count(),
-                1,
-                "{id}: {svg}"
+                svg.matches(&format!("id=\"{name}")).count(),
+                boxes,
+                "{name}: {svg}"
             );
-            let fill = format!("fill=\"url(#{id})\"");
-            assert_eq!(svg.matches(&fill).count(), filled, "{id}: {svg}");
+            let fill = format!("fill=\"url(#{name}");
+            assert_eq!(svg.matches(&fill).count(), filled, "{name}: {svg}");
         }
+        assert_eq!(
+            svg.matches(r#"gradientUnits="userSpaceOnUse""#).count(),
+            6,
+            "{svg}"
+        );
+        // A gradient in an inline style, beside its border.
+        assert!(svg.contains(r##"stroke="#0000FF""##), "{svg}");
         for (source, reason) in [
             ("class A ##red-green", "a gradient as a border"),
             ("class A #red-nocolor", "`nocolor` in the gradient"),
@@ -2527,11 +2550,14 @@ mod tests {
             svg.contains(r#"fill="url(#omaspec-gradient-faebd7-ffd700-falling)"/>"#),
             "the page: {svg}"
         );
-        for id in [
-            "omaspec-gradient-f5deb3-6495ed-across",
-            "omaspec-gradient-0000ff-9932cc-rising",
+        for name in [
+            "omaspec-gradient-f5deb3-6495ed-across-",
+            "omaspec-gradient-0000ff-9932cc-rising-",
         ] {
-            assert!(svg.contains(&format!("fill=\"url(#{id})\"")), "{id}: {svg}");
+            assert!(
+                svg.contains(&format!("fill=\"url(#{name}")),
+                "{name}: {svg}"
+            );
         }
         assert!(
             svg.contains(r##"fill="#FFC0CB" stroke="#FF0000""##),
@@ -2559,6 +2585,45 @@ mod tests {
         .unwrap_err();
         assert_eq!(err.line, Some(2));
         assert!(err.reason.contains("a style on a note"), "{}", err.reason);
+        // A note's gradient in an inline style; a `#` in a name is the name's.
+        let svg = crate::render(
+            "@startuml\nclass \"C#\" as C\nnote left of C #red-green;line:blue : x\n@enduml\n",
+        )
+        .unwrap();
+        assert!(
+            svg.contains("url(#omaspec-gradient-ff0000-008000-down-"),
+            "{svg}"
+        );
+        assert!(svg.contains(r##"stroke="#0000FF""##), "{svg}");
+    }
+
+    /// An empty diamond hides the line under it in the page's color: on a
+    /// page that runs as a gradient, in the gradient as it runs there,
+    /// laid over the page as the drawing's coordinates place it.
+    #[test]
+    fn an_empty_diamond_takes_the_page_s_gradient() {
+        let svg = crate::render(
+            "@startuml\nskinparam backgroundcolor AntiqueWhite/Gold\nclass A\nclass B\nA o-- B\n@enduml\n",
+        )
+        .unwrap();
+        let paper = "omaspec-gradient-faebd7-ffd700-falling-page";
+        assert!(
+            svg.contains(&format!(
+                r#"<linearGradient id="{paper}" gradientUnits="userSpaceOnUse""#
+            )),
+            "{svg}"
+        );
+        let diamond = svg
+            .split("<polygon")
+            .find(|shape| shape.contains(&format!("url(#{paper})")))
+            .expect("the diamond");
+        assert_eq!(
+            diamond
+                .split_whitespace()
+                .next()
+                .map(|p| p.matches(',').count()),
+            Some(1)
+        );
     }
 
     use crate::part_groups;

@@ -37,9 +37,8 @@ impl Elements<'_> {
         let mut font = self.skin.note.font;
         if note.fill.is_some()
             && let Some(own) = colors
-            && let Some(ground) = own.gradient.map(|g| g.from.mix(g.to, 0.5)).or(own.fill)
         {
-            legible_on(&mut font, ground);
+            legible_on(&mut font, &crate::color::grounds(own.fill, own.gradient));
         }
         // A note's words are its line's, from the line it begins on.
         let text = note.text.measure_written(font, self.family)?;

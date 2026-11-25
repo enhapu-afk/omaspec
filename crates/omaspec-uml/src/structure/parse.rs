@@ -1089,9 +1089,8 @@ impl Parser {
             let Some(after) = keyword(after, "of") else {
                 return Err(Declined::at(no, "a note needs `of` and an element"));
             };
-            let (name, inline) = split_label(after);
-            // `note left of Foo #pink`: its colors follow the element's name.
-            let (name, fill, line_color, more) = take_colors(name, no)?;
+            let (name, colors, inline) = note_of(after, no)?;
+            let (_, fill, line_color, more) = take_colors(colors, no)?;
             if more != More::default() {
                 return Err(Declined::at(
                     no,
@@ -1689,6 +1688,61 @@ fn take_colors(input: &str, line: usize) -> Result<Colors, Declined> {
         i += 1;
     }
     Ok((out, fill, line_color, more))
+}
+
+/// A note's `of` part, `Foo #pink;line:red : words`, cut into the
+/// element's name, its colors and its words. The colors follow the name
+/// after a space and come before the words: a `#` inside the name or the
+/// words is theirs, a `:` inside a style the style's.
+fn note_of(after: &str, line: usize) -> Result<(&str, &str, Option<&str>), Declined> {
+    let (name, inline) = split_label(after);
+    let name_end = crate::source::offset_in(after, name) + name.len();
+    let Some(at) = colors_at(after).filter(|at| *at < name_end) else {
+        return Ok((name, "", inline));
+    };
+    // Each color is a word of its own; one that is not a style ends at a
+    // `:` as well, the words' (`#red: words`).
+    let mut end = at;
+    while after[end..].trim_start().starts_with('#') {
+        end += after[end..].len() - after[end..].trim_start().len();
+        let word = &after[end..];
+        let word = &word[..word.find(char::is_whitespace).unwrap_or(word.len())];
+        end += match word.find(':') {
+            Some(colon) if !crate::color::Inline::written(word) => colon,
+            _ => word.len(),
+        };
+    }
+    let left = after[end..].trim_start();
+    let inline = if left.is_empty() {
+        None
+    } else if let Some(words) = left.strip_prefix(':') {
+        Some(words.trim())
+    } else {
+        return Err(Declined::at(
+            line,
+            format!(
+                "`{}` after a note's colors is not supported yet",
+                snippet(left)
+            ),
+        ));
+    };
+    Ok((after[..at].trim(), &after[at..end], inline))
+}
+
+/// Where the colors after a name start: the first `#` after a space,
+/// outside quotes.
+fn colors_at(text: &str) -> Option<usize> {
+    let mut quote = false;
+    let mut after_space = false;
+    for (at, c) in text.char_indices() {
+        match c {
+            '"' => quote = !quote,
+            '#' if !quote && after_space => return Some(at),
+            _ => {}
+        }
+        after_space = c.is_whitespace();
+    }
+    None
 }
 
 fn read_color(token: &str, line: usize) -> Result<(Option<String>, Option<String>), Declined> {

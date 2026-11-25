@@ -85,6 +85,9 @@ pub enum Align {
     Right,
 }
 
+/// A box a gradient runs over: x, y, width and height.
+pub type Span = (f32, f32, f32, f32);
+
 pub struct Canvas {
     layers: [String; LAYERS],
     /// The font family as written in the SVG.
@@ -122,10 +125,11 @@ pub struct Canvas {
     faces: Vec<String>,
     /// The gradient a fill takes while one is set ([`Self::gradient`]).
     gradient: Option<String>,
-    /// Every gradient filled with, each once, by its id.
-    gradients: Vec<(String, crate::color::Gradient)>,
+    /// Every gradient filled with, each once, by its id, and the box it
+    /// runs over where that is not each shape's own ([`Self::gradient_over`]).
+    gradients: Vec<(String, crate::color::Gradient, Option<Span>)>,
     /// The gradient the page runs as ([`Self::page_gradient`]).
-    page: Option<String>,
+    page: Option<crate::color::Gradient>,
     /// The words drawn for a line, each where it stands.
     ties: Vec<crate::map::Tied>,
     /// Words are being drawn again ([`Self::echo`]), and where such were.
@@ -529,32 +533,73 @@ impl Canvas {
         let Some(g) = gradient else {
             return paint(self);
         };
-        let id = self.define(g);
+        let id = self.define(g, None);
+        self.filling(id, paint)
+    }
+
+    /// Draws with `paint` as [`Self::gradient`] does, the gradient running
+    /// over `span` (x, y, width, height) as a whole: a shape drawn in parts
+    /// (a node's faces, a cylinder's cap) is filled as one.
+    pub fn gradient_over<T>(
+        &mut self,
+        gradient: Option<crate::color::Gradient>,
+        span: Span,
+        paint: impl FnOnce(&mut Canvas) -> T,
+    ) -> T {
+        let Some(g) = gradient else {
+            return paint(self);
+        };
+        let id = self.define(g, Some(span));
+        self.filling(id, paint)
+    }
+
+    /// The page runs as `gradient` says where there is one
+    /// (`skinparam backgroundColor AntiqueWhite/Gold`): [`Self::finish`]
+    /// fills its background so.
+    pub fn page_gradient(&mut self, gradient: Option<crate::color::Gradient>) {
+        self.page = gradient;
+    }
+
+    /// Draws with `paint` in the page's own fill, where the page runs as a
+    /// gradient: a shape that hides what is under it in the page's color
+    /// (an empty diamond) takes the gradient as it runs there.
+    pub fn paper<T>(&mut self, paint: impl FnOnce(&mut Canvas) -> T) -> T {
+        let Some(g) = self.page else {
+            return paint(self);
+        };
+        let id = format!("{}-page", self.gradient_name(g));
+        self.filling(id, paint)
+    }
+
+    fn filling<T>(&mut self, id: String, paint: impl FnOnce(&mut Canvas) -> T) -> T {
         let before = self.gradient.replace(id);
         let out = paint(self);
         self.gradient = before;
         out
     }
 
-    /// The page runs as `gradient` says where there is one
-    /// (`skinparam backgroundColor AntiqueWhite/Gold`): [`Self::finish`]
-    /// fills it so where it has a background.
-    pub fn page_gradient(&mut self, gradient: Option<crate::color::Gradient>) {
-        self.page = gradient.map(|g| self.define(g));
-    }
-
-    /// The id of `g`, defined once: its colors and its way name it.
-    fn define(&mut self, g: crate::color::Gradient) -> String {
+    /// The name of `g`: its colors and its way.
+    fn gradient_name(&self, g: crate::color::Gradient) -> String {
         let (from, to) = (self.color(g.from), self.color(g.to));
-        let id = format!(
+        format!(
             "omaspec-gradient-{}-{}-{:?}",
             from.to_string().trim_start_matches('#'),
             to.to_string().trim_start_matches('#'),
             g.way
         )
-        .to_ascii_lowercase();
-        if !self.gradients.iter().any(|(known, _)| *known == id) {
-            self.gradients.push((id.clone(), g));
+        .to_ascii_lowercase()
+    }
+
+    /// The id of `g` over `span`, defined once: its colors, its way and
+    /// the box it runs over name it, so a picture inside another defines
+    /// the same.
+    fn define(&mut self, g: crate::color::Gradient, span: Option<Span>) -> String {
+        let mut id = self.gradient_name(g);
+        if let Some((x, y, w, h)) = span {
+            let _ = write!(id, "-{}-{}-{}-{}", n(x), n(y), n(w), n(h));
+        }
+        if !self.gradients.iter().any(|(known, ..)| *known == id) {
+            self.gradients.push((id.clone(), g, span));
         }
         id
     }
@@ -1473,8 +1518,16 @@ impl Canvas {
 
     /// The finished SVG with `margin` around what was drawn, on a
     /// `background` if it is set.
-    pub fn finish(self, margin: f32, background: Paint) -> String {
+    pub fn finish(mut self, margin: f32, background: Paint) -> String {
         let (width, height, shown_width, shown_height, dx, dy) = self.frame(margin);
+        // The page's gradient over its background, and over the page as
+        // the drawing's coordinates place it, for what takes its fill.
+        let page = self.page.map(|g| {
+            let paper = format!("{}-page", self.gradient_name(g));
+            self.gradients
+                .push((paper, g, Some((-dx, -dy, width, height))));
+            self.define(g, None)
+        });
         let mut out =
             String::with_capacity(self.layers.iter().map(String::len).sum::<usize>() + 256);
         let _ = write!(
@@ -1493,11 +1546,23 @@ impl Canvas {
         }
         if !self.gradients.is_empty() {
             out.push_str("<defs>");
-            for (id, g) in &self.gradients {
+            for (id, g, span) in &self.gradients {
                 let (x1, y1, x2, y2) = g.way.ends();
+                // Over a box of its own the ends lie in the drawing's
+                // coordinates; else in each shape's.
+                let (units, x1, y1, x2, y2) = match *span {
+                    Some((x, y, w, h)) => (
+                        r#" gradientUnits="userSpaceOnUse""#,
+                        x + w * x1,
+                        y + h * y1,
+                        x + w * x2,
+                        y + h * y2,
+                    ),
+                    None => ("", x1, y1, x2, y2),
+                };
                 let _ = write!(
                     out,
-                    r#"<linearGradient id="{id}" x1="{}" y1="{}" x2="{}" y2="{}"><stop offset="0" stop-color="{}"/><stop offset="1" stop-color="{}"/></linearGradient>"#,
+                    r#"<linearGradient id="{id}"{units} x1="{}" y1="{}" x2="{}" y2="{}"><stop offset="0" stop-color="{}"/><stop offset="1" stop-color="{}"/></linearGradient>"#,
                     n(x1),
                     n(y1),
                     n(x2),
@@ -1509,7 +1574,7 @@ impl Canvas {
             out.push_str("</defs>");
         }
         if let Some(bg) = background {
-            let fill = match &self.page {
+            let fill = match &page {
                 Some(id) => format!("url(#{id})"),
                 None => self.color(bg).to_string(),
             };
