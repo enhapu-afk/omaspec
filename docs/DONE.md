@@ -2065,6 +2065,15 @@ is open and the reasoning around it.
       paper of its top row around it (`Frames::within`). A page, which
       fits its window, declines it; a film too high even at its
       narrowest says so.
+- [x] Subclasses under one triangle (from the test of 1.0.0,
+      2026-11-25): written parent first (`Shape <|-- Circle`), five
+      subclasses laid their triangles on one another under a narrow
+      class, where `Circle --|> Shape` shared one. A line with a head
+      where it starts now arrives there and shares a trunk as one that
+      ends in its head does (`Edge::departure`, `bundle::depart`; ADR
+      0022, point 7), and ends squeezed nearer than 8 units go onto the
+      trunk however little they move, across the flow too. The keys of
+      an arrival are half a hash, so an edge stays 40 bytes.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

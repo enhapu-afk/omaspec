@@ -98,7 +98,12 @@ pub struct Edge {
     /// How the line looks where it arrives ([`arrival`]). A trunk is
     /// shared only by lines of one key, so it never stacks two kinds of
     /// head, or a dashed line under a solid one.
-    pub arrival: u64,
+    pub arrival: u32,
+    /// How it looks where it leaves, where it has a head there, as
+    /// `Base <|-- Kind` writes a subclass: such lines share a trunk into
+    /// the box they leave as lines that end in their heads do into theirs
+    /// ([`bundle`]). 0 where it has no head at its start.
+    pub departure: u32,
     /// The side of the line its label takes, where the writer chose one:
     /// before the line across the flow (left of a line running down,
     /// above one running across) or after it. `None` lets the layout
@@ -116,8 +121,9 @@ pub struct Edge {
 }
 
 /// The key of a line's arrival ([`Edge::arrival`]): the head it ends in,
-/// and its color, width and dash.
-pub fn arrival(head: impl std::hash::Hash, stroke: &crate::svg::Stroke) -> u64 {
+/// and its color, width and dash. Half a hash: a diagram's few kinds of
+/// line tell apart in it, and an edge stays as small as it was.
+pub fn arrival(head: impl std::hash::Hash, stroke: &crate::svg::Stroke) -> u32 {
     use std::hash::{DefaultHasher, Hash, Hasher};
     let mut hasher = DefaultHasher::new();
     head.hash(&mut hasher);
@@ -127,7 +133,7 @@ pub fn arrival(head: impl std::hash::Hash, stroke: &crate::svg::Stroke) -> u64 {
         .dash
         .map(|(on, off)| (on.to_bits(), off.to_bits()))
         .hash(&mut hasher);
-    hasher.finish()
+    hasher.finish() as u32
 }
 
 /// A frame around some boxes of a layout: a container laid out with
@@ -317,6 +323,7 @@ pub fn framed(
                     apart: true,
                     marked: false,
                     arrival: 0,
+                    departure: 0,
                     label_before: None,
                     level: None,
                     tree: None,
@@ -2356,6 +2363,7 @@ mod tests {
             apart: false,
             marked: false,
             arrival: 0,
+            departure: 0,
             label_before: None,
             level: None,
             tree: None,

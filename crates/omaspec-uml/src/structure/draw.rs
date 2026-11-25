@@ -3054,6 +3054,39 @@ mod tests {
         );
     }
 
+    /// Subclasses written parent first (`Shape <|-- Circle`) arrive at the
+    /// parent as those written the other way round do: under a narrow box
+    /// their five triangles lay on one another, and now share one trunk,
+    /// across the flow too. A line with no head where it starts stays on
+    /// its own.
+    #[test]
+    fn subclasses_written_parent_first_share_one_triangle() {
+        let starts = |source: &str| -> Vec<(f32, f32)> {
+            scene_of(source)
+                .edges
+                .iter()
+                .map(|edge| edge.points[0])
+                .collect()
+        };
+        let kinds = ["Circle", "Square", "Triangle", "Hexagon", "Line"];
+        let body: String = kinds.iter().map(|k| format!("Shape <|-- {k}\n")).collect();
+        for flow in ["", "left to right direction\n"] {
+            let at = starts(&format!("@startuml\n{flow}class Shape\n{body}@enduml\n"));
+            assert!(
+                at.windows(2).all(|pair| (pair[1].0 - pair[0].0).abs()
+                    + (pair[1].1 - pair[0].1).abs()
+                    < 0.5),
+                "{flow}one trunk: {at:?}"
+            );
+        }
+        let plain: String = kinds.iter().map(|k| format!("Shape -- {k}\n")).collect();
+        let at = starts(&format!("@startuml\nclass Shape\n{plain}@enduml\n"));
+        let mut across: Vec<f32> = at.iter().map(|point| point.0).collect();
+        across.sort_by(f32::total_cmp);
+        across.dedup_by(|a, b| (*a - *b).abs() < 0.5);
+        assert_eq!(across.len(), kinds.len(), "each plain line its own: {at:?}");
+    }
+
     /// As Graphviz ranks clusters: a package moves down only as far as its
     /// lines ask, so two can share ranks side by side.
     #[test]

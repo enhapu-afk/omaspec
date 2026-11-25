@@ -483,6 +483,7 @@ mod tests {
                         apart: false,
                         marked: false,
                         arrival: 0,
+                        departure: 0,
                         label_before: None,
                         level: None,
                         tree: None,

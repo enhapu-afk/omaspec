@@ -1,7 +1,9 @@
 # 0022: Lines into one box share a trunk
 
 Status: accepted, 2026-11-06 (proposed the same day; amended the same
-day: lines bundle only when they arrive alike). Extends
+day: lines bundle only when they arrive alike; amended 2026-11-25: a line
+with a head where it starts arrives there, and squeezed ends share a trunk
+however little they move). Extends
 [0012](0012-lines-like-graphviz.md) and
 [0020](0020-room-for-labels.md); the third step of 0.9 in the
 [roadmap](../../ROADMAP.md), *a layout you can steer*.
@@ -42,15 +44,17 @@ pixels beside the box.
    so lines bundle only with lines that arrive alike. A line the writer
    kept apart. Two
    lines between the same two boxes, each with its own arrow and its own
-   label. A line that leaves a box, so two boxes that overlap across the
-   flow are still joined by a straight line (0012). A self-loop, a line
+   label. A line that leaves a box without a head there, so two boxes that
+   overlap across the flow are still joined by a straight line (0012). A self-loop, a line
    into a circle or a diamond, and a line that ends on a frame.
 3. **A trunk that would cross, or jog, is left undrawn.** Before a trunk
    is kept, the lines of that one layout are checked against it. A corner
    that only touches, and a run two lines already share, do not count as a
    crossing. A line that would have to move less than 8 units stays where
    it is and splits the row, so the new run is long enough to be a real
-   one. A line routed afterwards, around containers laid out on their own
+   one; but where two ends of the row lie nearer than that, squeezed onto
+   a short side, their heads lie on one another, and every line goes onto
+   the trunk. A line routed afterwards, around containers laid out on their own
    ([0013](0013-containers-like-graphviz.md)), is outside that check.
 4. **The writer turns it off in the block of
    [0016](0016-lines-by-hand.md).** `apart` keeps every line of the diagram
@@ -69,6 +73,15 @@ pixels beside the box.
 6. **Arrowheads on one trunk stack.** The later line covers the stem.
    They are one kind of head in one stroke (point 2), so the stack reads
    as one.
+7. **A head where a line starts is an arrival there.** `Base <|-- Kind`
+   draws its triangle at the box it starts at, as `Kind --|> Base` does at
+   the box it ends at, and the two are one picture: lines with a head at
+   their start share a trunk into that box as lines that end in their
+   heads do into theirs, by the same rules (`Edge::departure`, from the
+   head and the stroke there). Five subclasses under a narrow class laid
+   their triangles on one another, written parent first, and one under
+   the other way round. A line of a tree (`groupInheritance`) keeps its
+   stem.
 
 ## Why
 

@@ -172,7 +172,7 @@ impl Nested for Charts<'_> {
     }
 
     /// The cap at the end the line arrives at, and its stroke.
-    fn arrival(&self, look: &Look) -> u64 {
+    fn arrival(&self, look: &Look) -> u32 {
         graph::arrival(look.caps.1, &look.stroke)
     }
 

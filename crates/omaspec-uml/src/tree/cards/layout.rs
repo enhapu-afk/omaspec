@@ -795,8 +795,8 @@ impl Nested for Open<'_> {
         Ok((Block::empty(), (wire.net, wire.head)))
     }
 
-    fn arrival(&self, look: &Look) -> u64 {
-        look.0 as u64 * 2 + u64::from(look.1)
+    fn arrival(&self, look: &Look) -> u32 {
+        look.0 as u32 * 2 + u32::from(look.1)
     }
 
     fn band(&self, node: &open::Placed<Unit, Look>) -> Rect {

@@ -257,7 +257,12 @@ pub trait Nested {
     /// How a line drawn as `look` arrives at the box it ends at
     /// ([`super::arrival`]): lines share a trunk only when this is the
     /// same, so the heads that stack on it are one kind.
-    fn arrival(&self, _look: &Self::Look) -> u64 {
+    fn arrival(&self, _look: &Self::Look) -> u32 {
+        0
+    }
+    /// How a line drawn as `look` leaves the box it starts at, where it
+    /// has a head there ([`Edge::departure`]); 0 where it has none.
+    fn departure(&self, _look: &Self::Look) -> u32 {
         0
     }
     /// The room the members keep for notes.
@@ -777,6 +782,7 @@ impl<C: Nested> Flat<C> {
                 apart: line.against || apart.contains(&from) || apart.contains(&to),
                 marked: cx.marked(container, index),
                 arrival: cx.arrival(&look),
+                departure: cx.departure(&look),
                 label_before: cx.label_before(container, index),
                 // A hidden line within the rank ranks neither box: its
                 // drawer holds the second beside the first

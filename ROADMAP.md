@@ -386,8 +386,6 @@ what is plainly missing, then the larger pieces.
       Mermaid state diagram's words in the fonts installed, so another machine lays
       it out otherwise and a label stays on a state. Needs the failing diagram and
       the machine's fonts (`fc-match sans-serif`).
-- [ ] From the test of 1.0.0: without `skinparam groupInheritance 2` the triangles
-      of several subclasses' lines to one class overlap.
 
 ## From the tester's round of 2026-11-23
 

@@ -239,7 +239,7 @@ impl<'a> Nested for States<'a> {
     }
 
     /// Every transition ends in the same head; its stroke may differ.
-    fn arrival(&self, stroke: &Stroke) -> u64 {
+    fn arrival(&self, stroke: &Stroke) -> u32 {
         graph::arrival((), stroke)
     }
 

@@ -571,18 +571,26 @@ mod tests {
             let mut distinct = triangles(&grouped);
             distinct.dedup();
             assert_eq!(distinct.len(), 1, "{flow}{grouped}");
-            assert_eq!(triangles(&alone).len(), 3);
-            assert_ne!(triangles(&alone)[0], triangles(&alone)[2], "{flow}{alone}");
+            // Without it they share a trunk all the same, as lines that
+            // end in their heads do (docs/adr/0022): one triangle, though
+            // on a shorter stem.
+            let mut shared = triangles(&alone);
+            shared.dedup();
+            assert_eq!(
+                (triangles(&alone).len(), shared.len()),
+                (3, 1),
+                "{flow}{alone}"
+            );
+            assert_ne!(alone, grouped, "{flow}");
         }
-        // Fewer lines than it asks for, and a line with words, keep their
-        // own triangles.
+        // Fewer lines than it asks for are no tree: they share a trunk as
+        // without it. A line with words keeps its own triangle.
         let three = crate::render(&format!(
             "@startuml\nskinparam groupInheritance 4\n{body}@enduml\n"
         ))
         .unwrap();
-        let mut distinct = triangles(&three);
-        distinct.dedup();
-        assert_eq!(distinct.len(), 3, "{three}");
+        let alone = crate::render(&format!("@startuml\n{body}@enduml\n")).unwrap();
+        assert_eq!(three, alone);
         let worded = crate::render(
             "@startuml\nskinparam groupInheritance 2\nclass Base\nBase <|-- A\nBase <|-- B\nBase <|-- C : odd\n@enduml\n",
         )

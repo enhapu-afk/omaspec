@@ -11,7 +11,10 @@
 //! stem, the few pixels beside the box. Each such line keeps the run it
 //! has through the ranks and turns onto the trunk only as it arrives. A
 //! line that leaves a box stays on its own, so two boxes that overlap
-//! across the flow are still joined by a straight line. Lines share a
+//! across the flow are still joined by a straight line, but for one with
+//! a head where it leaves, as `Base <|-- Kind` writes a subclass: it
+//! arrives at the box it starts at, and shares a trunk there as a line
+//! written the other way round would ([`Edge::departure`]). Lines share a
 //! trunk only when they arrive alike ([`Edge::arrival`]): the same head,
 //! color, width and dash, so the heads that stack there are one.
 
@@ -47,11 +50,68 @@ pub(super) struct Drawn<'a> {
     pub(super) direction: Direction,
 }
 
-/// Gives the lines of `drawn` that arrive together one trunk. The lines
-/// are in the order of the edges, already freed of small steps.
+/// Gives the lines of `drawn` that arrive together one trunk, at the box
+/// they end at or at the one they start at with a head. The lines are in
+/// the order of the edges, already freed of small steps.
 pub(super) fn share(drawn: &mut Drawn<'_>) {
+    arrive(drawn);
+    depart(drawn);
+}
+
+/// The lines with a head where they start arrive at that box: turned, so
+/// it is their last, they share a trunk there as the lines that end in
+/// their heads do at theirs. The other lines stay as they are, in the way
+/// of a trunk as any line is. A line of a tree keeps its stem ([`super::join`]).
+fn depart(drawn: &mut Drawn<'_>) {
+    let turns = |edge: &Edge| edge.departure != 0 && edge.tree.is_none();
+    let turned: Vec<usize> = (0..drawn.edges.len())
+        .filter(|&index| turns(&drawn.edges[index]))
+        .collect();
+    if turned.len() < 2 {
+        return;
+    }
+    let edges: Vec<Edge> = drawn
+        .edges
+        .iter()
+        .map(|edge| match turns(edge) {
+            true => Edge {
+                from: edge.to,
+                to: edge.from,
+                arrival: edge.departure,
+                ..*edge
+            },
+            false => Edge {
+                apart: true,
+                ..*edge
+            },
+        })
+        .collect();
+    // Turned, a line runs against the flow where it ran with it.
+    let back: Vec<bool> = drawn
+        .edges
+        .iter()
+        .zip(drawn.back)
+        .map(|(edge, &back)| back != turns(edge))
+        .collect();
+    for &index in &turned {
+        drawn.routes[index].reverse();
+    }
+    arrive(&mut Drawn {
+        routes: &mut *drawn.routes,
+        edges: &edges,
+        back: &back,
+        ..*drawn
+    });
+    for &index in &turned {
+        drawn.routes[index].reverse();
+    }
+}
+
+/// Gives the lines of `drawn` that arrive together at the box they end at
+/// one trunk.
+fn arrive(drawn: &mut Drawn<'_>) {
     // Each arriving line, by where it arrives and how it looks there.
-    let arrivals: Vec<(usize, (usize, Side, u64))> = (0..drawn.edges.len())
+    let arrivals: Vec<(usize, (usize, Side, u32))> = (0..drawn.edges.len())
         .filter_map(|index| {
             if !arrives(index, drawn.edges, drawn.chains, drawn.nodes) {
                 return None;
@@ -258,17 +318,27 @@ fn lay_trunk(chunk: &[usize], rect: Rect, side: Side, drawn: &mut Drawn<'_>) {
         drawn.direction,
     );
     // A line too close to move would be crossed by the others on their way
-    // to the trunk. It stays, and it splits the row.
+    // to the trunk. It stays, and it splits the row; but where the ends
+    // were squeezed nearer than that, their heads would lie on one another,
+    // and a short jog onto the trunk is the lesser fault.
+    let ends: Vec<f32> = order
+        .iter()
+        .map(|&index| {
+            across(
+                *drawn.routes[index].last().unwrap_or(&(0.0, 0.0)),
+                drawn.direction,
+            )
+        })
+        .collect();
+    let mut sorted = ends.clone();
+    sorted.sort_by(f32::total_cmp);
+    let crowded = sorted.windows(2).any(|pair| pair[1] - pair[0] < LEAST);
     let mut blocked = false;
     let mut sub = Vec::new();
     let mut subs = Vec::new();
-    for &index in &order {
-        let shift = (across(
-            *drawn.routes[index].last().unwrap_or(&(0.0, 0.0)),
-            drawn.direction,
-        ) - trunk)
-            .abs();
-        if (0.5..LEAST).contains(&shift) {
+    for (&index, end) in order.iter().zip(&ends) {
+        let shift = (end - trunk).abs();
+        if !crowded && (0.5..LEAST).contains(&shift) {
             blocked = true;
             if sub.len() >= 2 {
                 subs.push(std::mem::take(&mut sub));
@@ -454,6 +524,7 @@ mod tests {
             apart: false,
             marked: false,
             arrival: 0,
+            departure: 0,
             label_before: None,
             level: None,
             tree: None,
@@ -518,7 +589,7 @@ mod tests {
     fn lines_that_arrive_differently_keep_their_own_arrivals() {
         let mut edges = [edge(0, 3), edge(1, 3), edge(2, 3)];
         for (key, edge) in edges.iter_mut().enumerate() {
-            edge.arrival = key as u64;
+            edge.arrival = key as u32;
         }
         let at = heads(&edges);
         let span = at.iter().copied().fold(f32::MIN, f32::max)

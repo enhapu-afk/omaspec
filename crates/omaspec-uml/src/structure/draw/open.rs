@@ -97,8 +97,17 @@ impl<'a> Nested for Elements<'a> {
     }
 
     /// The head at the end the line arrives at, and its stroke.
-    fn arrival(&self, look: &Look) -> u64 {
+    fn arrival(&self, look: &Look) -> u32 {
         graph::arrival(look.to_head, &look.stroke)
+    }
+
+    /// A line with a head where it starts, as `Base <|-- Kind`, arrives
+    /// at that box as one written the other way round would.
+    fn departure(&self, look: &Look) -> u32 {
+        match look.from_head {
+            Head::None => 0,
+            head => graph::arrival(head, &look.stroke),
+        }
     }
 
     fn flow(&self, group: &'a Group) -> (graph::Direction, bool) {
