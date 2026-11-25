@@ -64,14 +64,35 @@ pub fn diagram_files_at(root: &Path, rev: &str) -> Result<Vec<Owned>> {
 }
 
 /// The folder's diagrams and documents as of `rev` and as they are now,
-/// for comparing the two: now without what git ignores there, which no
-/// commit holds (a build's output, a fuzzer's corpus).
+/// for comparing the two: both by what git holds and sees, under the
+/// same rules; now without what git ignores there (a build, a fuzzer's
+/// corpus) or what lies in a submodule, which no commit holds.
 pub fn diagram_files_since(root: &Path, rev: &str) -> Result<(Vec<Owned>, Vec<Owned>)> {
     let old = diagram_files_at(root, rev)?;
-    let mut new = diagram_files(root);
-    let paths: Vec<&str> = new.iter().map(|f| f.path.as_str()).collect();
-    let ignored = crate::git::ignored(root, &paths)?;
-    new.retain(|f| !ignored.contains(&f.path));
+    let mut paths: Vec<String> = crate::git::files_now(root)?
+        .into_iter()
+        .filter(|path| walked(path) && is_diagram(path.rsplit('/').next().unwrap_or(path)))
+        .collect();
+    paths.sort_by(|a, b| Path::new(a).cmp(Path::new(b)));
+    paths.truncate(MAX_FILES);
+    // A link is not followed, in the path or at its end, as the walk
+    // follows none: what is read lies in the folder.
+    let inside = root.canonicalize()?;
+    let new = paths
+        .into_iter()
+        .filter_map(|relative| {
+            let path = root.join(&relative);
+            let meta = std::fs::symlink_metadata(&path).ok()?;
+            let small = meta.is_file() && meta.len() <= MAX_FILE;
+            let real = path
+                .canonicalize()
+                .is_ok_and(|p| p == inside.join(&relative));
+            let text = (small && real)
+                .then(|| std::fs::read_to_string(&path).ok())
+                .flatten()?;
+            Some(owned(relative, text))
+        })
+        .collect();
     Ok((old, new))
 }
 

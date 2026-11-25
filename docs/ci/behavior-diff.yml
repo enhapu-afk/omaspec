@@ -8,9 +8,11 @@
 # It takes Omaspec's latest release; `diff --markdown` came with 1.2.0.
 name: Behavior changes
 
+# On each push to the pull request, not only while its files include a
+# diagram: once a push takes the change back they include none, and the
+# comment has to say so.
 on:
   pull_request:
-    paths: ["**/*.puml", "**/*.plantuml", "**/*.pu", "**/*.mmd", "**/*.mermaid", "**/*.md"]
 
 permissions:
   contents: read

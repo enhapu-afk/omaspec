@@ -16,8 +16,9 @@ machine that changed drawn as Mermaid below its changes, what came in green,
 what changed in amber, which GitHub draws in the comment. The comment is
 written once and edited on each push, found by its first line (`<!--
 omaspec: behavior changes -->`), so another workflow's comment is left
-alone. Nothing is posted where no diagram changed in its behavior (exit 0);
-a comment posted before says so once a later push takes the change back.
+alone. It runs on each push to the pull request, also one that touches no
+diagram. Nothing is posted where no diagram changed in its behavior (exit
+0); a comment posted before says so once a later push takes the change back.
 The job's summary shows the same, also for a pull request from a fork, on
 which GitHub's token may not comment.
 

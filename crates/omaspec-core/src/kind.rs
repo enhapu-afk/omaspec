@@ -376,6 +376,8 @@ mod tests {
             puml("@startuml\nClosed --> Open : open[*]\n@enduml"),
             Kind::Sequence
         );
+        // A colon in a quoted name is no label.
+        assert_eq!(puml("@startuml\n\"a:b\" --> [*]\n@enduml"), Kind::State);
     }
 
     #[test]

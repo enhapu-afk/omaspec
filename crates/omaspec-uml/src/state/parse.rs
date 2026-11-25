@@ -35,8 +35,7 @@ pub fn is_state(lines: &[Line]) -> bool {
 fn marks_state(text: &str) -> bool {
     // A start or an end at an arrow, not in its label: `A --> B : x[*]`
     // is a message, as PlantUML reads it.
-    let ends = text.split(':').next().unwrap_or(text);
-    if ends.contains("[*]") || keyword(text, "state").is_some() {
+    if before_label(text).contains("[*]") || keyword(text, "state").is_some() {
         return true;
     }
     if squeezed_eq(text, "hideemptydescription") {
@@ -53,6 +52,22 @@ fn marks_state(text: &str) -> bool {
     ]
     .iter()
     .any(|mark| lower.contains(mark))
+}
+
+/// The line up to its arrow's label: the first `:` after a `-`, outside
+/// quotes. `A --> B : x` is `A --> B `; `"a:b" --> [*]` and `Idle : x`
+/// have no label of an arrow.
+fn before_label(text: &str) -> &str {
+    let (mut quoted, mut dash) = (false, false);
+    for (i, c) in text.char_indices() {
+        match c {
+            '"' => quoted = !quoted,
+            '-' if !quoted => dash = true,
+            ':' if !quoted && dash => return &text[..i],
+            _ => {}
+        }
+    }
+    text
 }
 
 /// Parses a state diagram from the lines [`crate::source::body`] gives.

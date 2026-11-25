@@ -3201,32 +3201,55 @@ fn diff_writes_a_pull_request_s_comment() {
 
     // A folder against its last commit: a diagram that came is told, one
     // git ignores is not, as no commit holds it.
-    let git = |args: &[&str]| {
-        Command::new("git")
-            .arg("-C")
-            .arg(&new)
-            .args(["-c", "user.name=t", "-c", "user.email=t@t"])
-            .args(args)
-            .output()
-            .is_ok_and(|o| o.status.success())
-    };
-    if !(git(&["init", "-q"])
-        && git(&["add", "door.puml"])
-        && git(&["commit", "-qm", "door", "--no-gpg-sign"]))
-    {
+    if Command::new("git").arg("--version").output().is_err() {
         eprintln!("skipped: no git");
         return;
     }
+    let git = |dir: &Path, args: &[&str]| {
+        let out = Command::new("git")
+            .arg("-C")
+            .arg(dir)
+            .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+            .args([
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "commit.gpgSign=false",
+            ])
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "git {args:?}: {out:?}");
+    };
     let lamp = "@startuml\n[*] --> Off\nOff --> On : switch\nOn --> Off : switch\n@enduml\n";
+    // A repository inside, committed as a submodule is: its own.
+    let sub = new.join("sub");
+    fs::create_dir_all(&sub).unwrap();
+    fs::write(sub.join("inner.puml"), lamp).unwrap();
+    git(&sub, &["init", "-q"]);
+    git(&sub, &["add", "inner.puml"]);
+    git(&sub, &["commit", "-qm", "inner"]);
+    git(&new, &["init", "-q"]);
+    git(&new, &["add", "door.puml", "sub"]);
+    git(&new, &["commit", "-qm", "door"]);
     fs::write(new.join(".gitignore"), "corpus/\n").unwrap();
     fs::create_dir_all(new.join("corpus")).unwrap();
     fs::write(new.join("corpus/seed.puml"), lamp).unwrap();
     fs::write(new.join("lamp.puml"), lamp).unwrap();
+    // A name git would read as a pattern, were it given one.
+    fs::write(new.join(":(x)odd.puml"), lamp).unwrap();
     let out = omaspec(&["diff", new.to_str().unwrap(), "--markdown"]);
-    assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
+    assert_eq!(
+        out.status.code(),
+        Some(1),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let text = stdout(&out);
     assert!(text.contains("#### `lamp.puml`"), "{text}");
+    assert!(text.contains("#### `:(x)odd.puml`"), "{text}");
     assert!(!text.contains("corpus"), "{text}");
+    assert!(!text.contains("inner"), "{text}");
 }
 
 /// Omaspec's own pull requests are commented on by the steps a project
