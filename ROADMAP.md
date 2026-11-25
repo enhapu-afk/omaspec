@@ -361,7 +361,7 @@ a contract, a run followed live, a pull request reviewed by behavior, and
 findings with their fix.
 
 - [ ] The release's last steps: AUR `omaspec` and `omaspec-bin`, the
-      announcement. Both PKGBUILDs are at 1.1.0 with their checksums and
+      announcement. Both PKGBUILDs are at 1.2.0 with their checksums and
       build; they wait for an AUR account to be pushed with.
 
 ## After 1.0
