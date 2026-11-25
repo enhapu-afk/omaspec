@@ -644,14 +644,19 @@ impl Stage {
         let full = self.app.doc().paper.viewport();
         self.send(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
-            // What does move of a diagram nothing plays (REQ-122).
-            bail!(
-                "{}; any diagram builds itself up beside its source with --build, is drawn as with a pen and inked with --ink, or sweeps through themes with --themes",
-                self.app
-                    .notice
-                    .clone()
-                    .unwrap_or_else(|| "the diagram cannot be played".into())
-            );
+            let why = self
+                .app
+                .notice
+                .clone()
+                .unwrap_or_else(|| "the diagram cannot be played".into());
+            // What does move of a diagram that is drawn and plays nothing
+            // (REQ-122); a diagram not drawn says why alone.
+            if why == crate::paper::NOTHING_PLAYS {
+                bail!(
+                    "{why}; any diagram builds itself up beside its source with --build, is drawn as with a pen and inked with --ink, or sweeps through themes with --themes"
+                );
+            }
+            bail!("{why}");
         }
         self.begun(full);
         self.step(moving);

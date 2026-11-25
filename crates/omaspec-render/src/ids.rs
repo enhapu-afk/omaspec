@@ -32,12 +32,13 @@ pub fn prefix_ids(svg: &str, prefix: &str) -> String {
 /// The attributes whose `url(#…)` points to another element of the
 /// picture: what paints with a gradient or a pattern, clips, masks,
 /// filters or marks.
-const POINTING: [&str; 9] = [
+const POINTING: [&str; 10] = [
     "fill",
     "stroke",
     "filter",
     "clip-path",
     "mask",
+    "marker",
     "marker-start",
     "marker-mid",
     "marker-end",

@@ -40,6 +40,10 @@ pub use machine::MachinePlay;
 use machine::{Driver, TraceRun, Writer};
 pub use scenario::ScenarioPlay;
 
+/// Why a diagram that is drawn does not play: it is none of these.
+pub const NOTHING_PLAYS: &str =
+    "only a state machine, a sequence of messages or a git graph can be played";
+
 /// How deep the shade over the stretch of a message the light has not
 /// reached yet is.
 const AHEAD: f32 = 0.6;
@@ -100,9 +104,7 @@ impl Play {
             return Ok(Play::Machine(Box::new(play)));
         }
         if map.messages.is_empty() {
-            return Err(
-                "only a state machine, a sequence of messages or a git graph can be played".into(),
-            );
+            return Err(NOTHING_PLAYS.into());
         }
         // A git graph's veil keeps clear of what stands before its commits
         // across the way they run: its title.

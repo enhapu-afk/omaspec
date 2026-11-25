@@ -101,7 +101,7 @@ pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
     .map_err(|err| anyhow::anyhow!("{err}"))?;
     let picture = Picture::of(&rendered.svg, &rendered.map, &text)?;
     let code = Code::of(&text, language, &app.palette, &tweaks);
-    let script = Script::of(&picture, code.lines.len());
+    let script = Script::of(&picture, code.lines.len(), &code.comments);
     if film == Film::Page {
         let (name, _) = args.named(&text);
         return page(
@@ -243,13 +243,7 @@ fn page(
             accent: color(palette.accent),
             picture: paper,
         },
-        comments: {
-            let mut comments = vec![true; code.lines.len()];
-            for &at in &code.shown {
-                comments[at] = false;
-            }
-            comments
-        },
+        comments: code.comments.clone(),
         bare: args.bare,
     };
     let written = page::page(
@@ -287,21 +281,24 @@ struct Script {
 }
 
 impl Script {
-    fn of(picture: &Picture, lines: usize) -> Script {
+    /// The script of `lines` lines; those `comments` marks, which are not
+    /// shown, take no time where they draw nothing (REQ-123).
+    fn of(picture: &Picture, lines: usize, comments: &[bool]) -> Script {
         let draws: Vec<(bool, bool)> = (0..lines).map(|line| picture.draws(line)).collect();
-        let took = |draws: &(bool, bool)| match *draws {
+        let took = |line: usize| match draws[line] {
+            (false, false) if comments.get(line) == Some(&true) => 0.0,
             (false, false) => PASS,
             (true, false) => GROW + AFTER,
             (false, true) => DRAW + WORDS + AFTER,
             (true, true) => GROW * OVERLAP + DRAW + WORDS + AFTER,
         };
-        let natural: f32 = draws.iter().map(took).sum();
+        let natural: f32 = (0..lines).map(took).sum();
         let pace = (natural / BUDGET).max(1.0);
         let mut at = BEFORE;
         let mut starts = Vec::with_capacity(lines);
-        for draw in &draws {
+        for line in 0..lines {
             starts.push(at);
-            at += took(draw) / pace;
+            at += took(line) / pace;
         }
         Script {
             starts,
@@ -374,8 +371,6 @@ mod tests {
     const DOOR: &str =
         "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
 
-    /// A git graph builds lane by lane and commit by commit, each at the
-    /// line that makes it, a merge's line with the merge (REQ-037).
     /// REQ-123: lines of comments draw nothing and are left out of the
     /// source shown, in both languages; the build without its source
     /// gives the diagram the frame.
@@ -396,6 +391,13 @@ mod tests {
             ),
             [false, true, true, true, true, false, false]
         );
+        assert_eq!(
+            super::frame::comments(
+                &lines("A -> B /' first\nsecond\n'/\nB -> A : \"/'\"\nC"),
+                Language::PlantUml
+            ),
+            [false, true, true, false, false]
+        );
         let text =
             "@startuml\n' says what it is\n[*] --> Closed\nClosed --> Open : open\n@enduml\n";
         let door = picture(text, Language::PlantUml);
@@ -406,7 +408,9 @@ mod tests {
             &HashMap::new(),
         );
         assert_eq!(code.shown, [0, 2, 3, 4]);
-        let script = Script::of(&door, code.lines.len());
+        let script = Script::of(&door, code.lines.len(), &code.comments);
+        // The comment takes no time: the caret does not wait on it.
+        assert_eq!(script.starts[1], script.starts[2]);
         let beside = Layout::of(&code, &door, None, false).unwrap();
         let bare = Layout::of(&code, &door, None, true).unwrap();
         assert_eq!(bare.panel.1, 0.0);
@@ -421,6 +425,8 @@ mod tests {
         );
     }
 
+    /// A git graph builds lane by lane and commit by commit, each at the
+    /// line that makes it, a merge's line with the merge (REQ-037).
     #[test]
     fn a_git_graph_builds_each_lane_and_commit_at_its_own_line() {
         let source = "---\ntitle: Release flow\n---\ngitGraph\n  commit id: \"init\"\n  commit\n  branch develop\n  commit id: \"login\"\n  checkout main\n  merge develop\n";
@@ -502,7 +508,7 @@ mod tests {
             &Palette::fallback(),
             &HashMap::new(),
         );
-        let script = Script::of(&door, code.lines.len());
+        let script = Script::of(&door, code.lines.len(), &code.comments);
         let layout = Layout::of(&code, &door, None, false).unwrap();
         let before = layout.built(&door, &script, script.starts[2] - 0.01);
         let after = layout.built(&door, &script, script.end);
@@ -636,7 +642,7 @@ mod tests {
             &Palette::fallback(),
             &HashMap::new(),
         );
-        let script = Script::of(&sequence, code.lines.len());
+        let script = Script::of(&sequence, code.lines.len(), &code.comments);
         let layout = Layout::of(&code, &sequence, None, false).unwrap();
         let frame = layout.frame(&code, &sequence, &script, script.end, &Palette::fallback());
         assert!(
@@ -665,7 +671,7 @@ mod tests {
             &Palette::fallback(),
             &HashMap::new(),
         );
-        let script = Script::of(&scaled, code.lines.len());
+        let script = Script::of(&scaled, code.lines.len(), &code.comments);
         let layout = Layout::of(&code, &scaled, None, false).unwrap();
         assert!(
             layout
@@ -724,13 +730,13 @@ mod tests {
             lines_group: None,
             root: export::usvg::Transform::identity(),
         };
-        let script = Script::of(&picture, 3);
+        let script = Script::of(&picture, 3, &[]);
         assert_eq!(script.starts[0], BEFORE);
         assert!((script.starts[1] - (BEFORE + PASS)).abs() < 1e-5);
         assert!((script.starts[2] - (BEFORE + PASS + GROW + AFTER)).abs() < 1e-5);
         // A long source goes faster, within the budget.
         let reach = (0..400).map(|line| (line, line as f32)).collect();
-        let long = Script::of(&Picture { reach, ..picture }, 400);
+        let long = Script::of(&Picture { reach, ..picture }, 400, &[]);
         assert!(long.end - BEFORE <= BUDGET + 1e-3, "{}", long.end);
         assert!(long.pace > 1.0);
         assert_eq!(script.line(0.0), None);

@@ -20,8 +20,9 @@ use super::{
 /// The source, each line with its colors.
 pub(super) struct Code {
     pub(super) lines: Vec<String>,
-    /// The lines shown, by their place in the source: all but its lines
-    /// of comments, which draw nothing (REQ-123).
+    /// Which lines are comments alone, which draw nothing (REQ-123), and
+    /// the lines shown, by their place in the source: all but those.
+    pub(super) comments: Vec<bool>,
     pub(super) shown: Vec<usize>,
     pub(super) spans: Vec<Vec<HighlightSpan>>,
     pub(super) font: String,
@@ -51,14 +52,11 @@ impl Code {
             lines.pop();
         }
         let font = crate::ui::mono_family().unwrap_or_else(|| "monospace".to_owned());
-        let shown = comments(&lines, language)
-            .into_iter()
-            .enumerate()
-            .filter(|(_, comment)| !comment)
-            .map(|(at, _)| at)
-            .collect();
+        let comments = comments(&lines, language);
+        let shown = (0..lines.len()).filter(|&at| !comments[at]).collect();
         Code {
             spans: highlighter.highlight(text),
+            comments,
             shown,
             lines,
             letter: letter_of(&font),
@@ -141,11 +139,33 @@ pub(super) fn comments(lines: &[String], language: Language) -> Vec<bool> {
                         true
                     }
                     Some(_) => text.ends_with("'/"),
-                    None => text.starts_with('\''),
+                    None if text.starts_with('\'') => true,
+                    // Code before a block that opens and goes on below:
+                    // the lines after are the block's.
+                    None => {
+                        block = opens_block(text);
+                        false
+                    }
                 },
             }
         })
         .collect()
+}
+
+/// Whether a block comment (`/'`) opens on `text` outside quotes and does
+/// not close on it.
+fn opens_block(text: &str) -> bool {
+    let mut quote = false;
+    for (at, c) in text.char_indices() {
+        match c {
+            '"' => quote = !quote,
+            '/' if !quote && text[at + 1..].starts_with('\'') => {
+                return !text[at + 2..].contains("'/");
+            }
+            _ => {}
+        }
+    }
+    false
 }
 
 /// Where the source and the diagram stand in a frame.
@@ -189,7 +209,8 @@ impl Layout {
                 let room = width - panel - gaps * MARGIN;
                 anyhow::ensure!(
                     room >= 120.0,
-                    "--width {width} leaves the diagram no room beside the source"
+                    "--width {width} leaves the diagram no room{}",
+                    if bare { "" } else { " beside the source" }
                 );
                 (width, (room / w).min(tallest))
             }

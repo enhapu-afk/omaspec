@@ -637,6 +637,30 @@ mod tests {
         assert_eq!(style.fill.as_deref(), Some("aliceblue"));
         assert!(Inline::written("#line.bold") && Inline::written("#pink;text:red"));
         assert!(!Inline::written("#pink") && !Inline::written("##[dashed]blue"));
+        // A `;` after the first `:` is words after a color; a style's keys
+        // are the four PlantUML reads.
+        for style in [
+            "#back:pink;line:red",
+            "#line:red;line.dashed",
+            "#text:red",
+            "#pink;line:red",
+        ] {
+            assert!(Inline::written(style), "{style}");
+        }
+        for color in ["#red:wait;retry", "##red;line:blue", "#red"] {
+            assert!(!Inline::written(color), "{color}");
+        }
+        // As the state and the class readers take them.
+        for source in [
+            "@startuml\nstate A #back:pink;line:red\n[*] --> A\n@enduml\n",
+            "@startuml\nclass A #back:pink;line:red\n@enduml\n",
+        ] {
+            let svg = crate::render(source).unwrap();
+            assert!(
+                svg.contains(r##"fill="#FFC0CB" stroke="#FF0000""##),
+                "{source}: {svg}"
+            );
+        }
         // A fill may be a gradient, which its drawer reads.
         let style = Inline::read("#red|green;line:blue").unwrap();
         assert_eq!(style.fill.as_deref(), Some("red|green"));

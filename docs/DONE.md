@@ -2028,6 +2028,13 @@ is open and the reasoning around it.
       `--look light` the source's panel is light too. REQ-120 needed
       nothing: `--gone--` alone on a line is a rule with its title, as
       PlantUML draws it, and amid other words it is struck through.
+      After the review: a line of comments takes no time either, nor
+      counts in the build's budget; a block comment opened after code
+      (`A -> B /' …`) is one; the hint names the other films only where
+      a diagram is drawn and plays nothing (`paper::NOTHING_PLAYS`), a
+      diagram not drawn says why alone; `--no-code` with too narrow a
+      `--width` names no source; `marker` points with `url(#…)` for
+      `--id-prefix` too.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 
