@@ -62,7 +62,9 @@ fuzz_target!(|bytes: &[u8]| {
                 hidden: kind % 11 == 0,
                 apart: kind % 7 == 0,
                 marked: kind % 5 == 0,
-                arrival: u64::from(kind % 3),
+                arrival: u32::from(kind % 3),
+                // Now and then a head where it starts, as `Base <|-- Kind`.
+                departure: u32::from(kind / 3 % 3),
                 label_before: None,
                 level: (kind % 13 == 0).then_some(kind % 2 == 0),
                 // Now and then a line of a tree, as subclasses under one
