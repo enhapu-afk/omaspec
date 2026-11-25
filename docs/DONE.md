@@ -861,6 +861,16 @@ is open and the reasoning around it.
       Omaspec now (`Bar::border`). A timing diagram's `#LightCyan;line:Aqua`
       declines as the style it is, no longer as a gradient cut at its `:`.
       The guide: the Gantt chart 20 of 95, 555 of 897 in all.
+- [x] Gradients of the skin, the page and a note in the structure diagrams
+      (2026-11-25), the guide's one example of them (p. 86): a skinparam's
+      fill (`classBackgroundColor Wheat|CornflowerBlue`, a stereotype's
+      too) and the page's (`skinparam backgroundcolor AntiqueWhite/Gold`,
+      `Canvas::page_gradient`, which fills the page's background with it)
+      run as gradients (`Param::fill`). A note takes colors of its own,
+      `note left of Foo #blue\9932CC` and `#pink ##red`, a gradient among
+      them (`graph::open::NoteColors`); its words are moved until they read
+      on them, a style beyond its colors declines. The guide: the class
+      diagram 49 of 84, 556 of 897 in all.
 
 ## Phase 0: foundation and spikes
 

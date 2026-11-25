@@ -142,6 +142,7 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     } else {
         Map::default()
     };
+    canvas.page_gradient(skin.page_gradient);
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
@@ -446,13 +447,8 @@ fn measure_element(
         && !matches!(el.shape, Shape::Actor | Shape::Lollipop)
         && let Some(ground) = gradient.map(|g| g.from.mix(g.to, 0.5)).or(fill)
     {
-        let far = if Color::WHITE.contrast(ground) > Color::BLACK.contrast(ground) {
-            Color::WHITE
-        } else {
-            Color::BLACK
-        };
         for font in [&mut look.font, &mut look.member, &mut look.stereo] {
-            font.color = font.color.legible_on(ground, far, 4.5);
+            legible_on(font, ground);
         }
     }
     // An actor's and a use case's words belong to their figure.
@@ -816,30 +812,73 @@ fn paints(
     look: &super::skin::Look,
 ) -> Result<(Paint, Option<color::Gradient>, Stroke), Declined> {
     let (fill, gradient) = match &el.fill {
-        Some(value) => match color::parse_gradient(value) {
-            Some(gradient) => {
-                let g = gradient.map_err(|err| Declined::at(el.line, err))?;
-                (Some(g.from), Some(g))
-            }
-            None => (
-                color::parse(value).map_err(|err| Declined::at(el.line, err))?,
-                None,
-            ),
-        },
-        None => (look.fill, None),
+        Some(value) => fill_of(value, el.line)?,
+        None => (look.fill, look.gradient),
     };
     let border = match &el.line_color {
-        Some(value) => match color::parse(value).map_err(|err| Declined::at(el.line, err))? {
-            Some(color) => color,
-            None => {
-                return Err(Declined::at(el.line, "a border must not be transparent"));
-            }
-        },
+        Some(value) => border_of(value, el.line)?,
         None => look.border,
     };
     let mut stroke = Stroke::new(border, el.thickness.unwrap_or(look.thickness));
     stroke.dash = el.border_dash;
     Ok((fill, gradient, stroke))
+}
+
+/// A fill written on `line`, and the gradient it runs as where it is one
+/// (`#red-green`): its plain fill is then the gradient's first color.
+fn fill_of(value: &str, line: usize) -> Result<(Paint, Option<color::Gradient>), Declined> {
+    match color::parse_gradient(value) {
+        Some(gradient) => {
+            let g = gradient.map_err(|err| Declined::at(line, err))?;
+            Ok((Some(g.from), Some(g)))
+        }
+        None => Ok((
+            color::parse(value).map_err(|err| Declined::at(line, err))?,
+            None,
+        )),
+    }
+}
+
+/// A border's color written on `line`.
+fn border_of(value: &str, line: usize) -> Result<Color, Declined> {
+    color::parse(value)
+        .map_err(|err| Declined::at(line, err))?
+        .ok_or_else(|| Declined::at(line, "a border must not be transparent"))
+}
+
+/// The colors `note` was given itself, over its skin's `look`; none
+/// where it was given none.
+fn note_colors(
+    note: &super::Note,
+    look: &super::skin::Look,
+) -> Result<Option<graph::open::NoteColors>, Declined> {
+    if note.fill.is_none() && note.line_color.is_none() {
+        return Ok(None);
+    }
+    let (fill, gradient) = match &note.fill {
+        Some(value) => fill_of(value, note.line)?,
+        None => (look.fill, look.gradient),
+    };
+    let border = match &note.line_color {
+        Some(value) => border_of(value, note.line)?,
+        None => look.border,
+    };
+    Ok(Some(graph::open::NoteColors {
+        fill,
+        gradient,
+        border,
+    }))
+}
+
+/// `font` moved towards black or white, whichever reads better on
+/// `ground`, until it reads there: words on a fill the writer chose.
+fn legible_on(font: &mut Font, ground: Color) {
+    let far = if Color::WHITE.contrast(ground) > Color::BLACK.contrast(ground) {
+        Color::WHITE
+    } else {
+        Color::BLACK
+    };
+    font.color = font.color.legible_on(ground, far, 4.5);
 }
 
 /// A line's label and multiplicities, each the words its line alone
@@ -891,6 +930,7 @@ struct Draft {
     h: f32,
     text: Block,
     line: usize,
+    colors: Option<graph::open::NoteColors>,
 }
 
 fn note_size(text: &Block) -> (f32, f32) {
@@ -950,6 +990,7 @@ fn place_notes(drafts: &mut [Draft], rects: &[Rect], edges: &[PlacedEdge]) -> Ve
                 tether: None,
                 on: None,
                 line: note.line,
+                colors: note.colors,
             });
             nudge(placed.last_mut().expect("just pushed"), side, edges);
         }
@@ -2017,18 +2058,24 @@ fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<u
         if on_hidden(scene, note) {
             continue;
         }
+        let (fill, gradient, border) = match note.colors {
+            Some(own) => (own.fill, own.gradient, own.border),
+            None => (skin.note.fill, skin.note.gradient, skin.note.border),
+        };
         canvas.part(&part, |canvas| {
-            dog_ear(
-                canvas,
-                Rect {
-                    x: note.x,
-                    y: note.y,
-                    w: note.w,
-                    h: note.h,
-                },
-                skin.note.fill,
-                Stroke::new(skin.note.border, skin.note.thickness),
-            );
+            canvas.gradient(gradient, |canvas| {
+                dog_ear(
+                    canvas,
+                    Rect {
+                        x: note.x,
+                        y: note.y,
+                        w: note.w,
+                        h: note.h,
+                    },
+                    fill,
+                    Stroke::new(border, skin.note.thickness),
+                );
+            });
         });
     }
     for (index, node) in scene.nodes.iter().enumerate() {
@@ -2465,6 +2512,53 @@ mod tests {
             assert!(err.reason.contains(reason), "{source}: {}", err.reason);
             assert_eq!(err.line, Some(1), "{source}");
         }
+    }
+
+    /// A skinparam's fill and the page's may run as gradients too, and a
+    /// note takes colors of its own, a gradient among them, as the guide's
+    /// example of them writes them; its words are kept legible on them.
+    #[test]
+    fn gradients_of_the_skin_the_page_and_a_note() {
+        let svg = crate::render(
+            "@startuml\nskinparam backgroundcolor AntiqueWhite/Gold\nskinparam classBackgroundColor Wheat|CornflowerBlue\nclass Foo\nnote left of Foo #blue\\9932CC\n  dark\nend note\nnote right of Foo #pink ##red : light\n@enduml\n",
+        )
+        .unwrap();
+        assert!(
+            svg.contains(r#"fill="url(#omaspec-gradient-faebd7-ffd700-falling)"/>"#),
+            "the page: {svg}"
+        );
+        for id in [
+            "omaspec-gradient-f5deb3-6495ed-across",
+            "omaspec-gradient-0000ff-9932cc-rising",
+        ] {
+            assert!(svg.contains(&format!("fill=\"url(#{id})\"")), "{id}: {svg}");
+        }
+        assert!(
+            svg.contains(r##"fill="#FFC0CB" stroke="#FF0000""##),
+            "{svg}"
+        );
+        // The dark note's words are light; the pink one's stay dark.
+        let words = |word: &str| {
+            let at = svg.find(&format!(">{word}<")).expect(word);
+            let open = svg[..at].rfind("<text").expect("its text");
+            svg[open..at].to_owned()
+        };
+        assert!(
+            !words("dark").contains("fill=\"#000000\""),
+            "{}",
+            words("dark")
+        );
+        assert!(
+            !words("light").contains("fill=\"#FFFFFF\""),
+            "{}",
+            words("light")
+        );
+        let err = crate::render(
+            "@startuml\nclass Foo\nnote left of Foo #pink;line.dashed : x\n@enduml\n",
+        )
+        .unwrap_err();
+        assert_eq!(err.line, Some(2));
+        assert!(err.reason.contains("a style on a note"), "{}", err.reason);
     }
 
     use crate::part_groups;

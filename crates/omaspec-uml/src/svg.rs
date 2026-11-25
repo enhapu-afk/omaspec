@@ -124,6 +124,8 @@ pub struct Canvas {
     gradient: Option<String>,
     /// Every gradient filled with, each once, by its id.
     gradients: Vec<(String, crate::color::Gradient)>,
+    /// The gradient the page runs as ([`Self::page_gradient`]).
+    page: Option<String>,
     /// The words drawn for a line, each where it stands.
     ties: Vec<crate::map::Tied>,
     /// Words are being drawn again ([`Self::echo`]), and where such were.
@@ -190,6 +192,7 @@ impl Canvas {
             faces: Vec::new(),
             gradient: None,
             gradients: Vec::new(),
+            page: None,
             ties: Vec::new(),
             echo: false,
             echoes: Vec::new(),
@@ -526,6 +529,22 @@ impl Canvas {
         let Some(g) = gradient else {
             return paint(self);
         };
+        let id = self.define(g);
+        let before = self.gradient.replace(id);
+        let out = paint(self);
+        self.gradient = before;
+        out
+    }
+
+    /// The page runs as `gradient` says where there is one
+    /// (`skinparam backgroundColor AntiqueWhite/Gold`): [`Self::finish`]
+    /// fills it so where it has a background.
+    pub fn page_gradient(&mut self, gradient: Option<crate::color::Gradient>) {
+        self.page = gradient.map(|g| self.define(g));
+    }
+
+    /// The id of `g`, defined once: its colors and its way name it.
+    fn define(&mut self, g: crate::color::Gradient) -> String {
         let (from, to) = (self.color(g.from), self.color(g.to));
         let id = format!(
             "omaspec-gradient-{}-{}-{:?}",
@@ -537,10 +556,7 @@ impl Canvas {
         if !self.gradients.iter().any(|(known, _)| *known == id) {
             self.gradients.push((id.clone(), g));
         }
-        let before = self.gradient.replace(id);
-        let out = paint(self);
-        self.gradient = before;
-        out
+        id
     }
 
     /// The faces the skin gives its elements, by their place in it
@@ -1493,12 +1509,15 @@ impl Canvas {
             out.push_str("</defs>");
         }
         if let Some(bg) = background {
+            let fill = match &self.page {
+                Some(id) => format!("url(#{id})"),
+                None => self.color(bg).to_string(),
+            };
             let _ = write!(
                 out,
-                r#"<rect x="0" y="0" width="{}" height="{}" fill="{}"/>"#,
+                r#"<rect x="0" y="0" width="{}" height="{}" fill="{fill}"/>"#,
                 n(width),
                 n(height),
-                self.color(bg)
             );
         }
         let _ = write!(out, r#"<g transform="translate({},{})">"#, n(dx), n(dy));

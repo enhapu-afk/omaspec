@@ -285,6 +285,8 @@ impl Parser {
                 side: Side::Right,
                 text: text_at(&note.body, note.line),
                 line: note.line,
+                fill: None,
+                line_color: None,
             });
         }
         // A click on a class that is not there does nothing, as in Mermaid.

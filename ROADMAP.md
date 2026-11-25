@@ -81,7 +81,7 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       and `hollow`, business use cases and actors (`(Use)/`, `:Actor:/`), a
       description over several lines in quotes, a name declared as a
       rectangle and then used as a use case, `note right of (Use)`.
-- [ ] Class (48 of 84): a note on a link (`note on link`), as the state
+- [ ] Class (49 of 84): a note on a link (`note on link`), as the state
       diagrams place it (`graph::open::Note::on`, the room of the words), `set separator none` and `::`,
       `!pragma useIntermediatePackages`, a note on the last class
       (`note left: …`) and on a line, `{abstract}` and `{static}` inside a
@@ -117,13 +117,11 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       emoji (`<:1f600:>`), `<math>` and `<latex>` in text.
 - [ ] Styles of lines (19): `#line:red;line.bold;text:red`, `[thickness=n]`,
       `[#a;#b;#c]`, `line.dashed:blue`.
-- [ ] Gradients beyond a box's own: a skinparam's
-      (`classBackgroundColor Wheat|CornflowerBlue`), the page's
-      (`skinparam backgroundcolor AntiqueWhite/Gold`) and a note's in a
-      class diagram, which takes no color yet (`note left of Foo
-      #blue\9932CC`), all four in the guide's one example of them (p. 86).
-      A box's own (`class Foo #red-green`) is drawn in the state and the
-      structure diagrams (docs/DONE.md).
+- [ ] Gradients beyond the structure diagrams and a state's own: the
+      page's and a skinparam's in the sequence, activity and state
+      diagrams, a sequence diagram's note's (`note left #red-green`), an
+      action's (`#red-green:a;`); and a note's colors in the state diagram
+      (`note left of A #pink`). None of the guide's examples asks for them.
 - [ ] `json` and `map` elements in other diagrams (18).
 - [ ] Sprites (13): hex without a size, SVG sprites, a sprite as a
       stereotype, `listsprite`.

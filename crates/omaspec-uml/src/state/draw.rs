@@ -618,6 +618,7 @@ fn link_notes(
             tether: None,
             on: Some(slot),
             line: note.line,
+            colors: None,
         });
     }
     for (node, placed) in container.nodes.iter().zip(scene.nodes.iter_mut()) {
@@ -759,6 +760,7 @@ fn place_notes(
                 tether: None,
                 on: None,
                 line: note.line,
+                colors: None,
             });
             let last = placed.len() - 1;
             // An edge label can sit in the same gap. Step the note off it,

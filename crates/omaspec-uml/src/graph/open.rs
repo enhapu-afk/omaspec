@@ -84,6 +84,19 @@ pub struct Note {
     /// The zero-based line of the source that writes it: its words are
     /// that line's ([`crate::svg::Canvas::tie`]).
     pub line: usize,
+    /// The colors it was given itself (`note left of A #pink`), in place
+    /// of its skin's.
+    pub colors: Option<NoteColors>,
+}
+
+/// The colors a note was given itself.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NoteColors {
+    pub fill: crate::color::Paint,
+    /// The gradient its fill runs as, where it is one; [`Self::fill`] is
+    /// then its first color.
+    pub gradient: Option<crate::color::Gradient>,
+    pub border: crate::color::Color,
 }
 
 /// Where a note sits relative to its box, in a state diagram or a

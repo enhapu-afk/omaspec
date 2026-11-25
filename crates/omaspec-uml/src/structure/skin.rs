@@ -29,6 +29,9 @@ pub enum ComponentStyle {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Look {
     pub fill: Paint,
+    /// The gradient the fill runs as (`Wheat|CornflowerBlue`), where it is
+    /// one; [`Self::fill`] is then its first color.
+    pub gradient: Option<crate::color::Gradient>,
     pub border: Color,
     pub thickness: f32,
     pub font: Font,
@@ -50,6 +53,9 @@ pub struct Skin {
     /// `skinparam style strictuml`: an open arrow head on `>`.
     pub strict: bool,
     pub background: Paint,
+    /// The gradient the page runs as (`AntiqueWhite/Gold`), where it is
+    /// one; [`Self::background`] is then its first color.
+    pub page_gradient: Option<crate::color::Gradient>,
     /// Corner radius of a box. PlantUML's `RoundCorner` is twice it.
     /// Classes start square; a skinparam rounds them.
     pub round: f32,
@@ -94,7 +100,7 @@ pub struct Skin {
 /// What a stereotype's style changes on a box.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Change {
-    Fill(Paint),
+    Fill(Paint, Option<crate::color::Gradient>),
     Border(Color),
     Thickness(f32),
     FontColor(Color),
@@ -178,7 +184,10 @@ impl Skin {
                 continue;
             }
             match rule.change {
-                Change::Fill(fill) => look.fill = fill,
+                Change::Fill(fill, gradient) => {
+                    look.fill = fill;
+                    look.gradient = gradient;
+                }
                 Change::Border(color) => look.border = color,
                 Change::Thickness(width) => look.thickness = width,
                 Change::FontColor(color) => look.font.color = color,
@@ -227,6 +236,7 @@ impl Default for Skin {
         let gray = Color::hex(0x888888);
         let yellow = Look {
             fill: Some(Color::hex(0xFEFECE)),
+            gradient: None,
             border: dark,
             thickness: 1.0,
             font: Font::new(14.0, black),
@@ -246,6 +256,7 @@ impl Default for Skin {
             left: false,
             strict: false,
             background: None,
+            page_gradient: None,
             round: 0.0,
             min_class: 0.0,
             group_inheritance: 0,
@@ -270,6 +281,7 @@ impl Default for Skin {
             rectangle: yellow,
             note: Look {
                 fill: Some(Color::hex(0xFEFFDD)),
+                gradient: None,
                 border: dark,
                 thickness: 0.5,
                 font: Font::new(13.0, black),
@@ -447,7 +459,10 @@ impl Skin {
                     return Err(p.unsupported());
                 };
                 let change = match property {
-                    "backgroundcolor" => Change::Fill(p.paint()?),
+                    "backgroundcolor" => {
+                        let (fill, gradient) = p.fill()?;
+                        Change::Fill(fill, gradient)
+                    }
                     "bordercolor" => Change::Border(p.solid()?),
                     "borderthickness" => Change::Thickness(p.number(0.0, 20.0)?),
                     "fontcolor" => Change::FontColor(p.solid()?),
@@ -540,7 +555,7 @@ impl Skin {
                 "svek" | "fixcirclelabeloverlapping" => {
                     p.flag()?;
                 }
-                "backgroundcolor" => skin.background = p.paint()?,
+                "backgroundcolor" => (skin.background, skin.page_gradient) = p.fill()?,
                 "arrowcolor" => skin.arrow.color = p.solid()?,
                 "linetype" => skin.curve = crate::curve::linetype(p)?,
                 "arrowthickness" => skin.arrow.width = p.number(0.1, 20.0)?,
@@ -599,7 +614,10 @@ fn apply(
         return Err(p.unsupported());
     }
     match property {
-        "backgroundcolor" => look_mut(skin, element).ok_or_else(no_box)?.fill = p.paint()?,
+        "backgroundcolor" => {
+            let look = look_mut(skin, element).ok_or_else(no_box)?;
+            (look.fill, look.gradient) = p.fill()?;
+        }
         "bordercolor" => look_mut(skin, element).ok_or_else(no_box)?.border = p.solid()?,
         "borderthickness" => {
             look_mut(skin, element).ok_or_else(no_box)?.thickness = p.number(0.0, 20.0)?
@@ -895,12 +913,17 @@ mod tests {
     fn declines_what_would_change_the_picture() {
         for (key, value) in [
             ("ClassFontName", "Courier"),
-            ("ClassBackgroundColor", "#red/blue"),
+            ("ClassBorderColor", "#red/blue"),
+            ("ClassBackgroundColor", "#red/nocolor"),
             ("defaultFontStyle", "bold"),
         ] {
             let err = skin(&[(key, value)]).unwrap_err();
             assert_eq!(err.line, Some(0), "{key}");
         }
+        // A fill may run as a gradient; its first color is the plain fill.
+        let s = skin(&[("ClassBackgroundColor", "#red/blue")]).unwrap();
+        assert_eq!(s.class_box.fill, Some(Color::hex(0xFF0000)));
+        assert!(s.class_box.gradient.is_some());
     }
 
     #[test]

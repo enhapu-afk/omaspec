@@ -6,7 +6,8 @@ use super::super::{Head, Link};
 use super::{
     Block, Declined, Direction, Draft, Family, Group, Item, Look, Measured, NOTE_GAP, Placed, Rect,
     Scene, Side, Skin, arrow_stroke, card_rects, child_origin, containers, frame_of, graph,
-    graph_direction, link_blocks, measure_element, name_band, note_size, place_notes,
+    graph_direction, legible_on, link_blocks, measure_element, name_band, note_colors, note_size,
+    place_notes,
 };
 use crate::graph::open::{self, Line, Nested, Room};
 
@@ -31,10 +32,17 @@ impl Elements<'_> {
         if note.target >= group.nodes.len() {
             return Err(Declined::at(note.line, "a note needs an element"));
         }
+        let colors = note_colors(note, &self.skin.note)?;
+        // On a fill of its own its words are moved until they read.
+        let mut font = self.skin.note.font;
+        if note.fill.is_some()
+            && let Some(own) = colors
+            && let Some(ground) = own.gradient.map(|g| g.from.mix(g.to, 0.5)).or(own.fill)
+        {
+            legible_on(&mut font, ground);
+        }
         // A note's words are its line's, from the line it begins on.
-        let text = note
-            .text
-            .measure_written(self.skin.note.font, self.family)?;
+        let text = note.text.measure_written(font, self.family)?;
         let (w, h) = note_size(&text);
         Ok(Draft {
             target: note.target,
@@ -43,6 +51,7 @@ impl Elements<'_> {
             h,
             text,
             line: note.line,
+            colors,
         })
     }
 }

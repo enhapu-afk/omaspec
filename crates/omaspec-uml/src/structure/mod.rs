@@ -388,4 +388,8 @@ pub struct Note {
     pub side: Side,
     pub text: Text,
     pub line: usize,
+    /// Its own fill (`note left of Foo #pink`), which may be a gradient,
+    /// and its border's color (`##red`), as written.
+    pub fill: Option<String>,
+    pub line_color: Option<String>,
 }

@@ -346,6 +346,8 @@ struct RawNote {
     side: Side,
     text: Text,
     line: usize,
+    fill: Option<String>,
+    line_color: Option<String>,
 }
 
 struct Parser {
@@ -999,6 +1001,8 @@ impl Parser {
                 side: note.side,
                 text: note.text,
                 line: note.line,
+                fill: note.fill,
+                line_color: note.line_color,
             });
         }
         Ok(())
@@ -1086,6 +1090,14 @@ impl Parser {
                 return Err(Declined::at(no, "a note needs `of` and an element"));
             };
             let (name, inline) = split_label(after);
+            // `note left of Foo #pink`: its colors follow the element's name.
+            let (name, fill, line_color, more) = take_colors(name, no)?;
+            if more != More::default() {
+                return Err(Declined::at(
+                    no,
+                    "a style on a note beyond its colors is not supported yet",
+                ));
+            }
             let name = name.trim().trim_matches('"');
             if name.is_empty() {
                 return Err(Declined::at(no, "a note needs an element"));
@@ -1100,6 +1112,8 @@ impl Parser {
                 side,
                 text: body,
                 line: no,
+                fill,
+                line_color,
             });
             return Ok(next);
         }
