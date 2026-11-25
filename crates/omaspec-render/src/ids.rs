@@ -1,12 +1,30 @@
 //! An SVG's ids made its own, for a page that holds several pictures
 //! (REQ-117): each id and each reference to one starts with a prefix.
 
+use std::collections::HashSet;
+
 /// `svg` with each of its ids, and every reference to one, starting with
 /// `prefix`: an `id`, a `href` or `xlink:href` to `#…`, a `url(#…)` in an
 /// attribute. Only tags are read: words, the stored source, comments and
 /// style sheets (which name no id: the sanitizer leaves no `url(#…)` in
 /// one) are left as they are, so a note that says `url(#x)` still does.
+/// A reference to an id the picture does not define (a link to an anchor
+/// of the page around it) is left as it is too.
 pub fn prefix_ids(svg: &str, prefix: &str) -> String {
+    let mut defined = HashSet::new();
+    tags(svg, |tag| {
+        for (name, value) in attributes(tag) {
+            if name == "id" {
+                defined.insert(value.to_owned());
+            }
+        }
+        tag.to_owned()
+    });
+    tags(svg, |tag| prefixed_tag(tag, prefix, &defined))
+}
+
+/// `svg` with each of its tags as `tag` makes it; the rest as it is.
+fn tags(svg: &str, mut tag: impl FnMut(&str) -> String) -> String {
     let mut out = String::with_capacity(svg.len() + 64);
     let mut rest = svg;
     'tags: while let Some(open) = rest.find('<') {
@@ -21,11 +39,35 @@ pub fn prefix_ids(svg: &str, prefix: &str) -> String {
             }
         }
         let close = tag_end(rest);
-        out.push_str(&prefixed_tag(&rest[..close], prefix));
+        out.push_str(&tag(&rest[..close]));
         rest = &rest[close..];
     }
     out.push_str(rest);
     out
+}
+
+/// The attributes of `tag`, each its name and its value.
+fn attributes(tag: &str) -> impl Iterator<Item = (&str, &str)> {
+    let mut rest = tag;
+    std::iter::from_fn(move || {
+        loop {
+            let eq = rest.find('=')?;
+            let after = &rest[eq + 1..];
+            let Some(quote) = after.chars().next().filter(|c| matches!(c, '"' | '\'')) else {
+                rest = after;
+                continue;
+            };
+            let end = after[1..].find(quote)?;
+            let name = rest[..eq]
+                .trim_end()
+                .rsplit(char::is_whitespace)
+                .next()
+                .unwrap_or_default();
+            let value = &after[1..=end];
+            rest = &after[end + 2..];
+            return Some((name, value));
+        }
+    })
 }
 
 /// Whether `prefix` may start an id: a letter or `_`, then letters,
@@ -52,8 +94,9 @@ fn tag_end(tag: &str) -> usize {
     tag.len()
 }
 
-/// `tag` with the values of its attributes prefixed where they name an id.
-fn prefixed_tag(tag: &str, prefix: &str) -> String {
+/// `tag` with the values of its attributes prefixed where they name an id
+/// of `defined`.
+fn prefixed_tag(tag: &str, prefix: &str, defined: &HashSet<String>) -> String {
     let mut out = String::with_capacity(tag.len() + 16);
     let mut rest = tag;
     while let Some(eq) = rest.find('=') {
@@ -79,15 +122,36 @@ fn prefixed_tag(tag: &str, prefix: &str) -> String {
                 out.push_str(prefix);
                 out.push_str(value);
             }
-            "href" | "xlink:href" if value.starts_with('#') => {
+            "href" | "xlink:href"
+                if value
+                    .strip_prefix('#')
+                    .is_some_and(|id| defined.contains(id)) =>
+            {
                 out.push('#');
                 out.push_str(prefix);
                 out.push_str(&value[1..]);
             }
-            _ => out.push_str(&value.replace("url(#", &format!("url(#{prefix}"))),
+            _ => out.push_str(&prefixed_urls(value, prefix, defined)),
         }
         out.push(quote);
         rest = &after[end + 2..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// `value` with each `url(#…)` to an id of `defined` prefixed.
+fn prefixed_urls(value: &str, prefix: &str, defined: &HashSet<String>) -> String {
+    let mut out = String::with_capacity(value.len());
+    let mut rest = value;
+    while let Some(at) = rest.find("url(#") {
+        let start = at + "url(#".len();
+        out.push_str(&rest[..start]);
+        rest = &rest[start..];
+        let id = &rest[..rest.find(')').unwrap_or(rest.len())];
+        if defined.contains(id) {
+            out.push_str(prefix);
+        }
     }
     out.push_str(rest);
     out
@@ -101,7 +165,7 @@ mod tests {
     /// prefix; the words, the stored source and a comment do not.
     #[test]
     fn ids_and_their_references_take_the_prefix_and_words_do_not() {
-        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg"><!-- id="c" --><metadata><sf:source xmlns:sf="urn:omaspec:source">note : url(#x) id="y" href="#z"</sf:source></metadata><defs><linearGradient id='g'/><marker id="m"/></defs><g id="lines"><path fill="url(#g)" marker-end="url(#m)" style="filter:url(#m)"/><use href="#m"/><a xlink:href="#lines" href="https://x.org/#top"><text>url(#x) and id="y"</text></a></g></svg>"##;
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg"><!-- id="c" --><metadata><sf:source xmlns:sf="urn:omaspec:source">note : url(#x) id="y" href="#z"</sf:source></metadata><defs><linearGradient id='g'/><marker id="m"/></defs><g id="lines"><path fill="url(#g)" marker-end="url(#m)" style="filter:url(#m)"/><use href="#m"/><a xlink:href="#lines" href="https://x.org/#top"><text>url(#x) and id="y"</text></a><a href="#install"><title id="t" aria-label="url(#nowhere)"/></a></g></svg>"##;
         let owned = prefix_ids(svg, "p1-");
         for kept in [
             r#"<!-- id="c" -->"#,
@@ -109,6 +173,9 @@ mod tests {
             r#"<text>url(#x) and id="y"</text>"#,
             r##"href="https://x.org/#top""##,
             r#"xmlns:sf="urn:omaspec:source""#,
+            // Ids the picture does not define: the page's around it.
+            r##"<a href="#install">"##,
+            r#"aria-label="url(#nowhere)""#,
         ] {
             assert!(owned.contains(kept), "{kept}: {owned}");
         }

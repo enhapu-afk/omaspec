@@ -132,6 +132,10 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             "--check holds each SVG as it stands beside its diagram; it takes no --id-prefix"
         );
         anyhow::ensure!(
+            pieces.len() == 1,
+            "--id-prefix gives one picture's ids a start of their own; give each picture its own"
+        );
+        anyhow::ensure!(
             omaspec_render::is_id_prefix(prefix),
             "--id-prefix starts with a letter or `_`, then letters, digits, `_`, `-` and `.`"
         );

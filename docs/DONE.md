@@ -884,7 +884,11 @@ is open and the reasoning around it.
       `C#Sharp`, `#red-green;line:blue : words` keeps the style's `:`).
       One reader of a fill that may be a gradient (`color::parse_fill`). A
       Gantt bar's colors written with `|`, `-` or `\` say they want
-      `Fill/Line`.
+      `Fill/Line`. After the second review: `note left of Foo
+      #red:wait;retry` keeps its words, a picture inside a note has no
+      page gradient of its own (its page is the note's, and its diamonds
+      take the first color, as with one color), and words that a step for
+      one end of a gradient leaves short on the other are black or white.
 
 ## Phase 0: foundation and spikes
 
@@ -2035,9 +2039,11 @@ is open and the reasoning around it.
       one (`url(#…)`, `href="#…"`) with `door-`, so two pictures on one
       HTML page share none. `omaspec_render::prefix_ids` reads the tags
       alone: words that say `url(#x)` or `id="y"`, the stored source and
-      comments stay as written. The project's map and a stack of pictures
-      take their tiles' ids so too; before, a note that said `url(#x)`
-      was changed in a tile. A PNG, a JPEG or `--check` take no prefix.
+      comments stay as written, and so does a reference to an id the
+      picture does not define (`[[#install]]`, an anchor of the page
+      around it). The project's map and a stack of pictures take their
+      tiles' ids so too; before, a note that said `url(#x)` was changed in
+      a tile. One picture takes a prefix; a PNG, a JPEG or `--check` none.
 
 ## Next
 

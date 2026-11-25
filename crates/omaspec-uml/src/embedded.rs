@@ -117,6 +117,12 @@ pub fn closes(lines: &[&str]) -> Option<usize> {
     None
 }
 
+/// Whether a picture inside another is being drawn: its page is the
+/// note's it stands in, not its own.
+pub(crate) fn inside() -> bool {
+    STATE.with_borrow(|state| state.depth > 0)
+}
+
 /// Why the engine writes the diagram of `kind` in `lines`, inside `depth`
 /// diagrams, as text; `Ok` when it draws it, as [`picture`] does.
 pub fn drawn(kind: &str, lines: &[&str], depth: usize) -> Result<(), String> {

@@ -342,6 +342,18 @@ fn render_gives_an_svg_s_ids_a_prefix() {
         "a",
     ]);
     assert!(!held.status.success());
+    // One prefix for two pictures would give them the same ids.
+    let lamp = dir.join("lamp.puml");
+    fs::write(&lamp, "@startuml\n[*] --> Off\n@enduml\n").unwrap();
+    let two = omaspec(&[
+        "render",
+        file.to_str().unwrap(),
+        lamp.to_str().unwrap(),
+        "--id-prefix",
+        "a",
+    ]);
+    assert!(!two.status.success());
+    assert!(String::from_utf8_lossy(&two.stderr).contains("give each picture its own"));
     let _ = fs::remove_dir_all(&dir);
 }
 

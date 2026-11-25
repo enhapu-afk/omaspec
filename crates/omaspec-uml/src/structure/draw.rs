@@ -75,8 +75,9 @@ pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> 
 fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
-    // Set first: what takes the page's fill takes its gradient.
-    canvas.page_gradient(skin.page_gradient);
+    // Set first: what takes the page's fill takes its gradient. A
+    // picture inside a note has no page of its own: the note's is it.
+    canvas.page_gradient(skin.page_gradient.filter(|_| !crate::embedded::inside()));
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
     if diagram.frame.parts {
@@ -879,6 +880,13 @@ fn legible_on(font: &mut Font, grounds: &[Color]) {
     };
     for ground in grounds {
         font.color = font.color.legible_on(*ground, far, 4.5);
+    }
+    // A step for one end may leave another short: then all the way.
+    if grounds
+        .iter()
+        .any(|ground| font.color.contrast(*ground) < 4.5)
+    {
+        font.color = far;
     }
 }
 
@@ -2585,6 +2593,11 @@ mod tests {
         .unwrap_err();
         assert_eq!(err.line, Some(2));
         assert!(err.reason.contains("a style on a note"), "{}", err.reason);
+        // A `;` after the words' `:` is the words'.
+        let svg =
+            crate::render("@startuml\nclass Foo\nnote left of Foo #red:wait;retry\n@enduml\n")
+                .unwrap();
+        assert!(svg.contains(">wait;retry<"), "{svg}");
         // A note's gradient in an inline style; a `#` in a name is the name's.
         let svg = crate::render(
             "@startuml\nclass \"C#\" as C\nnote left of C #red-green;line:blue : x\n@enduml\n",
@@ -2624,6 +2637,36 @@ mod tests {
                 .map(|p| p.matches(',').count()),
             Some(1)
         );
+        // A picture inside a note has no page of its own: its diamond takes
+        // the first color, and the page's gradient is defined once.
+        let svg = crate::render(
+            "@startuml\nskinparam backgroundcolor AntiqueWhite/Gold\nclass A\nclass B\nA o-- B\nnote right of A\n{{\nskinparam backgroundcolor AntiqueWhite/Gold\nclass X\nclass Y\nX o-- Y\n}}\nend note\n@enduml\n",
+        )
+        .unwrap();
+        assert_eq!(svg.matches(&format!("id=\"{paper}\"")).count(), 1, "{svg}");
+        assert_eq!(svg.matches(&format!("url(#{paper})")).count(), 1, "{svg}");
+        assert!(svg.contains(r##"fill="#FAEBD7" stroke"##), "{svg}");
+    }
+
+    /// Words on a fill read on every end of it, or are black or white.
+    #[test]
+    fn words_on_a_gradient_read_on_both_its_ends() {
+        let ends = [
+            (Color::hex(0x000080), Color::hex(0xFFFFE0)),
+            (Color::hex(0x0000FF), Color::hex(0xADD8E6)),
+            (Color::hex(0xFF0000), Color::hex(0xFFFF00)),
+            (Color::hex(0x333333), Color::hex(0x999999)),
+        ];
+        for (from, to) in ends {
+            let mut font = Font::new(14.0, Color::hex(0x808080));
+            legible_on(&mut font, &[from, to]);
+            let reads = [from, to].iter().all(|g| font.color.contrast(*g) >= 4.5);
+            assert!(
+                reads || font.color == Color::WHITE || font.color == Color::BLACK,
+                "{from} to {to}: {}",
+                font.color
+            );
+        }
     }
 
     use crate::part_groups;

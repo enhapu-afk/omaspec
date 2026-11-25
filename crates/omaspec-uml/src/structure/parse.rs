@@ -1707,8 +1707,15 @@ fn note_of(after: &str, line: usize) -> Result<(&str, &str, Option<&str>), Decli
         end += after[end..].len() - after[end..].trim_start().len();
         let word = &after[end..];
         let word = &word[..word.find(char::is_whitespace).unwrap_or(word.len())];
+        // A style's `;` comes before its first `:` or it starts with one
+        // of its keys; `#red:wait;retry` is a color and words.
+        let head = &word[..word.find(':').unwrap_or(word.len())];
+        let style = head.contains(';')
+            || ["#line:", "#text:", "#back:"]
+                .iter()
+                .any(|key| word.starts_with(key));
         end += match word.find(':') {
-            Some(colon) if !crate::color::Inline::written(word) => colon,
+            Some(colon) if !style => colon,
             _ => word.len(),
         };
     }
