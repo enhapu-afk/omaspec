@@ -20,6 +20,9 @@ use super::{
 /// The source, each line with its colors.
 pub(super) struct Code {
     pub(super) lines: Vec<String>,
+    /// The lines shown, by their place in the source: all but its lines
+    /// of comments, which draw nothing (REQ-123).
+    pub(super) shown: Vec<usize>,
     pub(super) spans: Vec<Vec<HighlightSpan>>,
     pub(super) font: String,
     /// How wide a letter of its face is at [`CODE_SIZE`], as the frames
@@ -48,8 +51,15 @@ impl Code {
             lines.pop();
         }
         let font = crate::ui::mono_family().unwrap_or_else(|| "monospace".to_owned());
+        let shown = comments(&lines, language)
+            .into_iter()
+            .enumerate()
+            .filter(|(_, comment)| !comment)
+            .map(|(at, _)| at)
+            .collect();
         Code {
             spans: highlighter.highlight(text),
+            shown,
             lines,
             letter: letter_of(&font),
             font,
@@ -102,13 +112,40 @@ impl Code {
 
     /// How many letters the widest line shows.
     pub(super) fn letters(&self) -> usize {
-        self.lines
+        self.shown
             .iter()
-            .map(|line| line.replace('\t', "    ").chars().count())
+            .map(|&at| self.lines[at].replace('\t', "    ").chars().count())
             .max()
             .unwrap_or(0)
             .min(WIDEST_LINE + 1)
     }
+}
+
+/// Which of `lines` are comments alone: `%%` in Mermaid, an `%%{init}%%`
+/// among them; `'` and `/' … '/` in PlantUML.
+pub(super) fn comments(lines: &[String], language: Language) -> Vec<bool> {
+    let mut block = false;
+    lines
+        .iter()
+        .map(|line| {
+            let text = line.trim();
+            match language {
+                Language::Mermaid => text.starts_with("%%"),
+                Language::PlantUml if block => {
+                    block = !text.contains("'/");
+                    block || text.ends_with("'/")
+                }
+                Language::PlantUml => match text.strip_prefix("/'") {
+                    Some(rest) if !rest.contains("'/") => {
+                        block = true;
+                        true
+                    }
+                    Some(_) => text.ends_with("'/"),
+                    None => text.starts_with('\''),
+                },
+            }
+        })
+        .collect()
 }
 
 /// Where the source and the diagram stand in a frame.
@@ -123,21 +160,33 @@ pub(super) struct Layout {
     /// The diagram: its left and top, and its scale.
     pub(super) at: (f32, f32),
     pub(super) scale: f32,
+    /// The diagram alone, its source not beside it (`--no-code`).
+    pub(super) bare: bool,
 }
 
 impl Layout {
-    pub(super) fn of(code: &Code, picture: &Picture, asked: Option<u32>) -> Result<Layout> {
+    pub(super) fn of(
+        code: &Code,
+        picture: &Picture,
+        asked: Option<u32>,
+        bare: bool,
+    ) -> Result<Layout> {
         let letter = code.letter;
         let digits = code.lines.len().to_string().len().max(2);
         let gutter = digits as f32 * letter + 14.0;
-        let panel = gutter + code.letters() as f32 * letter + 2.0 * INSET;
+        // Without the source its panel takes no room, nor the gap after it.
+        let (panel, gaps) = match bare {
+            true => (0.0, 2.0),
+            false => (gutter + code.letters() as f32 * letter + 2.0 * INSET, 3.0),
+        };
+        let narrowest = if bare { 200.0 } else { NARROWEST };
         let (w, h) = picture.size;
         anyhow::ensure!(w > 0.0 && h > 0.0, "the diagram is empty");
         let tallest = (HIGHEST - 2.0 * MARGIN) / h;
         let (width, scale) = match asked {
             Some(width) => {
                 let width = width as f32;
-                let room = width - panel - 3.0 * MARGIN;
+                let room = width - panel - gaps * MARGIN;
                 anyhow::ensure!(
                     room >= 120.0,
                     "--width {width} leaves the diagram no room beside the source"
@@ -147,9 +196,9 @@ impl Layout {
             None => {
                 // Never larger than drawn, and always whole in the frame.
                 let scale = 1.0_f32
-                    .min((WIDEST - panel - 3.0 * MARGIN) / w)
+                    .min((WIDEST - panel - gaps * MARGIN) / w)
                     .min(tallest);
-                let width = (panel + w * scale + 3.0 * MARGIN).clamp(NARROWEST, WIDEST);
+                let width = (panel + w * scale + gaps * MARGIN).clamp(narrowest, WIDEST);
                 (width, scale)
             }
         };
@@ -158,7 +207,7 @@ impl Layout {
             .floor()
             .max(1.0) as usize;
         // The diagram in the room right of the panel, in its middle.
-        let room_left = MARGIN + panel + MARGIN;
+        let room_left = MARGIN + panel + (gaps - 2.0) * MARGIN;
         let room = width - room_left - MARGIN;
         let at = (
             room_left + (room - w * scale).max(0.0) / 2.0,
@@ -172,6 +221,7 @@ impl Layout {
             rows,
             at,
             scale,
+            bare,
         })
     }
 
@@ -192,7 +242,9 @@ impl Layout {
             h = self.height,
             bg = palette.background,
         );
-        self.source(&mut svg, code, script.line(at), palette);
+        if !self.bare {
+            self.source(&mut svg, code, script.line(at), palette);
+        }
         self.diagram(&mut svg, picture, script, at);
         svg.push_str("</svg>");
         svg
@@ -215,9 +267,13 @@ impl Layout {
             r#"<rect x="{left}" y="{top}" width="{width}" height="{height}" rx="10" fill="{}"/>"#,
             palette.dark_background,
         );
-        let lines = code.lines.len();
+        // The lines shown; the caret on a comment stays on the line shown
+        // before it.
+        let shown = &code.shown;
+        let lines = shown.len();
+        let lit = current.and_then(|c| shown.partition_point(|&at| at <= c).checked_sub(1));
         // The caret's line stays in sight, a third down the panel.
-        let first = current
+        let first = lit
             .unwrap_or(0)
             .saturating_sub(self.rows / 3)
             .min(lines.saturating_sub(self.rows));
@@ -227,10 +283,11 @@ impl Layout {
         // the generic one where the family is missing.
         let font = format!("'{}', monospace", xml(&code.font.replace(['\'', '\\'], "")));
         for row in 0..self.rows.min(lines - first.min(lines)) {
-            let line = first + row;
+            let line = shown[first + row];
             let y = top + INSET + row as f32 * LINE_HEIGHT;
             let ahead = current.is_none_or(|current| line > current);
-            if current == Some(line) {
+            let here = lit == Some(first + row);
+            if here {
                 let _ = write!(
                     svg,
                     r#"<rect x="{}" y="{}" width="{}" height="{LINE_HEIGHT}" rx="4" fill="{}" fill-opacity="0.55"/>"#,
@@ -259,7 +316,7 @@ impl Layout {
                 r#"<text x="{text_left}" y="{baseline}" font-family="{font}" font-size="{CODE_SIZE}" xml:space="preserve" fill-opacity="{}">{words}</text>"#,
                 if ahead { AHEAD } else { 1.0 },
             );
-            if current == Some(line) {
+            if here {
                 let _ = write!(
                     svg,
                     r#"<rect x="{}" y="{}" width="2" height="{}" fill="{}"/>"#,

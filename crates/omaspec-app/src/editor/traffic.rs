@@ -523,6 +523,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,

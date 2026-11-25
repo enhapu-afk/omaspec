@@ -79,6 +79,9 @@ pub struct Moving {
     /// Instead of a play: the source beside the diagram, which builds
     /// itself up line by line ([`super::building`]).
     pub builds: bool,
+    /// With `builds`: the diagram alone, its source not beside it
+    /// (`--no-code`).
+    pub bare: bool,
     /// Instead of a play of the diagram alone: a scenario played beside
     /// the state machines of its participants ([`super::lockstep`]).
     pub lockstep: bool,
@@ -228,6 +231,10 @@ pub fn play(args: &Moving) -> Result<String> {
             Film::Webp => "a WebP",
             Film::Page => "a page",
         }
+    );
+    anyhow::ensure!(
+        !args.bare || args.builds,
+        "--no-code leaves the source out beside a build: it goes with --build"
     );
     if args.builds {
         anyhow::ensure!(
@@ -637,8 +644,9 @@ impl Stage {
         let full = self.app.doc().paper.viewport();
         self.send(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
+            // What does move of a diagram nothing plays (REQ-122).
             bail!(
-                "{}",
+                "{}; any diagram builds itself up beside its source with --build, is drawn as with a pen and inked with --ink, or sweeps through themes with --themes",
                 self.app
                     .notice
                     .clone()
@@ -1507,6 +1515,7 @@ mod tests {
                 folds: Vec::new(),
                 dives: Vec::new(),
                 builds: false,
+                bare: false,
                 lockstep: false,
                 history: false,
                 travel: None,
@@ -1566,6 +1575,7 @@ mod tests {
                 folds: Vec::new(),
                 dives: Vec::new(),
                 builds: false,
+                bare: false,
                 lockstep: false,
                 history: false,
                 travel: None,
@@ -1608,6 +1618,49 @@ mod tests {
         let _ = std::fs::remove_dir_all(&work);
     }
 
+    /// REQ-122: a diagram nothing plays says what moves of it instead.
+    #[test]
+    fn a_diagram_nothing_plays_names_the_films_it_takes() {
+        let work = std::env::temp_dir().join(format!("omaspec-play-flow-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("flow.mmd");
+        std::fs::write(&file, "flowchart LR\n  A --> B\n").unwrap();
+        let err = play(&Moving {
+            file: file.clone(),
+            text: None,
+            output: work.join("flow.gif"),
+            events: Vec::new(),
+            steps: None,
+            width: Some(200),
+            fps: Some(10),
+            folds: Vec::new(),
+            dives: Vec::new(),
+            builds: false,
+            bare: false,
+            lockstep: false,
+            history: false,
+            travel: None,
+            traffic: Vec::new(),
+            themes: None,
+            ink: false,
+            look: None,
+            timing: super::super::gifs::Timing::default(),
+            whole: false,
+            theme: Some("built-in".into()),
+            file_colors: false,
+            root: None,
+            forced: None,
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        })
+        .unwrap_err()
+        .to_string();
+        for named in ["can be played", "--build", "--ink", "--themes"] {
+            assert!(err.contains(named), "{named}: {err}");
+        }
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
     /// REQ-109: `--look` draws a film in Omaspec's palette, light or
     /// dark, around the diagram in that look; it is no longer left
     /// unread, and with `--theme` a play says to take one.
@@ -1634,6 +1687,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1716,6 +1770,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1776,6 +1831,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1865,6 +1921,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -1926,6 +1983,7 @@ mod tests {
             folds: vec![fold.to_owned()],
             dives: Vec::new(),
             builds: false,
+            bare: false,
                 lockstep: false,
                 history: false,
                 travel: None,
@@ -1972,6 +2030,7 @@ mod tests {
             folds: folds.iter().map(|f| (*f).to_owned()).collect(),
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -2118,6 +2177,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -2251,6 +2311,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,

@@ -76,3 +76,11 @@ html, body {
     max-height: 40vh;
   }
 }
+/* A line of comments draws nothing: it is left out of the source shown. */
+#source .line.comment {
+  display: none;
+}
+/* The diagram alone builds itself up. */
+#build.bare #source {
+  display: none;
+}

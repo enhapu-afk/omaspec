@@ -115,7 +115,7 @@ pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
             &app.palette,
         );
     }
-    let layout = Layout::of(&code, &picture, args.width)?;
+    let layout = Layout::of(&code, &picture, args.width, args.bare)?;
 
     let delay = match film {
         Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
@@ -243,6 +243,14 @@ fn page(
             accent: color(palette.accent),
             picture: paper,
         },
+        comments: {
+            let mut comments = vec![true; code.lines.len()];
+            for &at in &code.shown {
+                comments[at] = false;
+            }
+            comments
+        },
+        bare: args.bare,
     };
     let written = page::page(
         &building,
@@ -368,6 +376,51 @@ mod tests {
 
     /// A git graph builds lane by lane and commit by commit, each at the
     /// line that makes it, a merge's line with the merge (REQ-037).
+    /// REQ-123: lines of comments draw nothing and are left out of the
+    /// source shown, in both languages; the build without its source
+    /// gives the diagram the frame.
+    #[test]
+    fn comments_are_left_out_and_the_code_may_be() {
+        let lines = |text: &str| text.lines().map(str::to_owned).collect::<Vec<_>>();
+        assert_eq!(
+            super::frame::comments(
+                &lines("%%{init: {}}%%\nflowchart LR\n  %% a word\n  A --> B"),
+                Language::Mermaid
+            ),
+            [true, false, true, false]
+        );
+        assert_eq!(
+            super::frame::comments(
+                &lines("@startuml\n' a word\n/' one\ntwo '/\n/' alone '/\nA -> B : it's\n@enduml"),
+                Language::PlantUml
+            ),
+            [false, true, true, true, true, false, false]
+        );
+        let text =
+            "@startuml\n' says what it is\n[*] --> Closed\nClosed --> Open : open\n@enduml\n";
+        let door = picture(text, Language::PlantUml);
+        let code = Code::of(
+            text,
+            Language::PlantUml,
+            &Palette::fallback(),
+            &HashMap::new(),
+        );
+        assert_eq!(code.shown, [0, 2, 3, 4]);
+        let script = Script::of(&door, code.lines.len());
+        let beside = Layout::of(&code, &door, None, false).unwrap();
+        let bare = Layout::of(&code, &door, None, true).unwrap();
+        assert_eq!(bare.panel.1, 0.0);
+        assert!(bare.width < beside.width, "{} {}", bare.width, beside.width);
+        let shown = beside.frame(&code, &door, &script, script.end, &Palette::fallback());
+        assert!(!shown.contains("says what it is"), "a comment is shown");
+        assert!(shown.contains(">3</text>"), "a line keeps its number");
+        let alone = bare.frame(&code, &door, &script, script.end, &Palette::fallback());
+        assert!(
+            !alone.contains("Closed --&gt;") && !alone.contains(">3</text>"),
+            "{alone}"
+        );
+    }
+
     #[test]
     fn a_git_graph_builds_each_lane_and_commit_at_its_own_line() {
         let source = "---\ntitle: Release flow\n---\ngitGraph\n  commit id: \"init\"\n  commit\n  branch develop\n  commit id: \"login\"\n  checkout main\n  merge develop\n";
@@ -450,7 +503,7 @@ mod tests {
             &HashMap::new(),
         );
         let script = Script::of(&door, code.lines.len());
-        let layout = Layout::of(&code, &door, None).unwrap();
+        let layout = Layout::of(&code, &door, None, false).unwrap();
         let before = layout.built(&door, &script, script.starts[2] - 0.01);
         let after = layout.built(&door, &script, script.end);
         let open = door
@@ -539,6 +592,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: true,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,
@@ -583,7 +637,7 @@ mod tests {
             &HashMap::new(),
         );
         let script = Script::of(&sequence, code.lines.len());
-        let layout = Layout::of(&code, &sequence, None).unwrap();
+        let layout = Layout::of(&code, &sequence, None, false).unwrap();
         let frame = layout.frame(&code, &sequence, &script, script.end, &Palette::fallback());
         assert!(
             frame.contains("build-reveal") && frame.contains(">hello<"),
@@ -612,7 +666,7 @@ mod tests {
             &HashMap::new(),
         );
         let script = Script::of(&scaled, code.lines.len());
-        let layout = Layout::of(&code, &scaled, None).unwrap();
+        let layout = Layout::of(&code, &scaled, None, false).unwrap();
         assert!(
             layout
                 .built(&scaled, &script, 0.0)

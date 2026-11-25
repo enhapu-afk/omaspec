@@ -2015,6 +2015,19 @@ is open and the reasoning around it.
       a color and words (`Inline::written`: a `;` before the first `:`),
       and `--id-prefix` reads `url(#…)` only in the attributes that paint
       or point with one, and collects the ids without a copy.
+- [x] A diagram nothing plays names the films it takes (REQ-122,
+      2026-11-25): a flowchart in `omaspec play` says that any diagram
+      builds itself up with `--build`, is inked with `--ink` or sweeps
+      through themes with `--themes`, each of which draws one.
+- [x] The build's source as a film wants it (REQ-123, 2026-11-25): lines
+      of comments (`%%`, an `%%{init}%%` among them; `'` and `/' … '/`)
+      draw nothing and are left out of the source shown, each line
+      keeping its number, as a film and as a page (`frame::comments`,
+      `Code::shown`); the caret on one stays on the line before.
+      `--no-code` builds the diagram alone, the frame its own; with
+      `--look light` the source's panel is light too. REQ-120 needed
+      nothing: `--gone--` alone on a line is a rule with its title, as
+      PlantUML draws it, and amid other words it is struck through.
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

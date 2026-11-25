@@ -132,12 +132,16 @@
 
   const draw = (t) => {
     const line = lineAt(t);
+    // The caret on a line of comments, which is not shown, stays on the
+    // line shown before it.
+    let lit = line;
+    while (lit >= 0 && rows[lit] && rows[lit].classList.contains("comment")) lit -= 1;
     rows.forEach((row, i) => {
       row.classList.toggle("ahead", line < 0 || i > line);
-      row.classList.toggle("current", i === line);
+      row.classList.toggle("current", i === lit);
     });
-    if (line >= 0 && rows[line]) {
-      const top = rows[line].offsetTop - source.clientHeight / 3;
+    if (lit >= 0 && rows[lit]) {
+      const top = rows[lit].offsetTop - source.clientHeight / 3;
       source.scrollTop = Math.max(0, top);
     }
     if (edge) {

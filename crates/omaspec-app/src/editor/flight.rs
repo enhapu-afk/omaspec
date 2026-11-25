@@ -264,6 +264,7 @@ mod tests {
             folds: Vec::new(),
             dives: dives.iter().map(|d| (*d).to_owned()).collect(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,

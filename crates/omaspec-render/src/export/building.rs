@@ -53,6 +53,10 @@ pub struct Building {
     /// The page's ground and its colors: the panel, its words, the
     /// numbers, the caret's line and the caret.
     pub colors: Colors,
+    /// Which lines are comments alone, left out of the source shown.
+    pub comments: Vec<bool>,
+    /// The diagram alone, its source not beside it.
+    pub bare: bool,
 }
 
 /// Words of one color.
@@ -125,10 +129,17 @@ pub fn page(
         "<style>\n:root {{ --paper: {}; --panel: {}; --ink: {}; --muted: {}; --selection: {}; --accent: {}; }}\n{STYLE}</style>\n",
         c.paper, c.panel, c.ink, c.muted, c.selection, c.accent
     ));
-    out.push_str("</head>\n<body>\n<main id=\"build\">\n<pre id=\"source\">");
+    out.push_str(match building.bare {
+        true => "</head>\n<body>\n<main id=\"build\" class=\"bare\">\n<pre id=\"source\">",
+        false => "</head>\n<body>\n<main id=\"build\">\n<pre id=\"source\">",
+    });
     for (at, runs) in building.lines.iter().enumerate() {
+        let comment = match building.comments.get(at) {
+            Some(true) => " comment",
+            _ => "",
+        };
         out.push_str(&format!(
-            "<span class=\"line ahead\" data-line=\"{at}\"><span class=\"number\">{}</span>",
+            "<span class=\"line ahead{comment}\" data-line=\"{at}\"><span class=\"number\">{}</span>",
             at + 1
         ));
         for run in runs {
@@ -253,6 +264,8 @@ mod tests {
                 accent: Color::BLACK,
                 picture: Color::WHITE,
             },
+            comments: Vec::new(),
+            bare: false,
         }
     }
 
@@ -268,5 +281,26 @@ mod tests {
         assert!(page.contains(r#""kind":"build""#));
         // Nothing from anywhere.
         assert!(page.contains("default-src 'none'"));
+    }
+
+    /// A line of comments is a row the page hides; a build without its
+    /// source hides the source.
+    #[test]
+    fn a_page_hides_its_comments_and_may_hide_its_source() {
+        let mut built = building();
+        built.comments = vec![true];
+        let written = page(&built, None, "door").unwrap();
+        assert!(
+            written.contains(r#"class="line ahead comment" data-line="0""#),
+            "{written}"
+        );
+        assert!(written.contains("#source .line.comment"), "{written}");
+        assert!(written.contains(r#"<main id="build">"#));
+        built.bare = true;
+        let written = page(&built, None, "door").unwrap();
+        assert!(
+            written.contains(r#"<main id="build" class="bare">"#),
+            "{written}"
+        );
     }
 }

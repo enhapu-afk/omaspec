@@ -237,6 +237,7 @@ impl App {
             folds: vec![fold.clone()],
             dives: Vec::new(),
             builds: false,
+            bare: false,
             lockstep: false,
             history: false,
             travel: None,

@@ -531,9 +531,14 @@ enum Command {
         /// Instead of a play: code becomes a picture. The source stands
         /// on the left, and as a caret walks down it, the diagram on the
         /// right builds itself up line by line: a box grows in, a line
-        /// draws itself to its head. Drawn without a GPU.
+        /// draws itself to its head. Drawn without a GPU. Lines of
+        /// comments (`%%`, `'`) are left out of the source shown.
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive"])]
         build: bool,
+        /// With `--build`: the diagram alone builds itself up, its source
+        /// not beside it.
+        #[arg(long)]
+        no_code: bool,
         /// On a sequence diagram: it plays beside the state machines of
         /// its participants, found in its project. As a message's light
         /// reaches its receiver, the receiver's machine takes the
@@ -1056,6 +1061,7 @@ fn main() -> ExitCode {
             fold,
             dive,
             build,
+            no_code,
             lockstep,
             history,
             from,
@@ -1082,6 +1088,7 @@ fn main() -> ExitCode {
                     folds: fold,
                     dives: dive,
                     builds: build,
+                    bare: no_code,
                     lockstep,
                     history,
                     travel: from.map(|from| editor::moving::Travel { from, to }),
