@@ -22,6 +22,6 @@ state Working {
 Working --> Idle
 Working --> Paused : paused
 Paused --> Working : resumed
-Working --> Failed : out of tokens
-Failed --> [*]
+Working --> Stopped : out of tokens
+Stopped --> [*]
 @enduml
