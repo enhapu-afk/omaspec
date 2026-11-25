@@ -92,7 +92,7 @@ fn a_project_since_its_last_commit() {
     let (code, out, err) = omaspec(&["diff", folder]);
     assert_eq!(code, Some(1), "{out}{err}");
     assert!(
-        out.contains("door.puml:6: removed: Transition removed: Closed to Locked on lock."),
+        out.contains("door.puml@HEAD:6: removed: Transition removed: Closed to Locked on lock."),
         "{out}"
     );
     assert!(

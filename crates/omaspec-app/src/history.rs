@@ -28,11 +28,18 @@ pub fn diff(
     json: bool,
     markdown: bool,
 ) -> Result<ExitCode> {
-    let (old, new, since) = match folders {
+    // A line of the old version is named by where that version is, as
+    // `omaspec diff FILE` names it: `door.puml@main:5`, `old/door.puml:5`.
+    let (old, new, since, (before, after)) = match folders {
         [dir] => {
             let rev = rev.unwrap_or("HEAD");
             let (old, new) = diagram_files_since(dir, rev)?;
-            (old, new, format!("since {rev}"))
+            (
+                old,
+                new,
+                format!("since {rev}"),
+                (String::new(), format!("@{rev}")),
+            )
         }
         [old, new] => {
             anyhow::ensure!(rev.is_none(), "--rev compares one folder with a commit");
@@ -40,25 +47,30 @@ pub fn diff(
                 diagram_files(old),
                 diagram_files(new),
                 format!("from {} to {}", old.display(), new.display()),
+                (format!("{}/", old.display()), String::new()),
             )
         }
         _ => anyhow::bail!("diff compares two versions"),
     };
     let diagrams = omaspec_model::diff_project(&files(&old), &files(&new));
+    let old_names: Vec<String> = diagrams
+        .iter()
+        .map(|d| format!("{before}{}{after}", names(d).0))
+        .collect();
     let mut out = stdout();
     if markdown {
         // A diagram file's machine is drawn; one in a document is listed.
         let sections: Vec<crate::diff_markdown::Section> = diagrams
             .iter()
-            .map(|d| {
-                let (old_name, new_name) = names(d);
+            .zip(&old_names)
+            .map(|(d, old_name)| {
                 let picture = text_of(&new, d.new_file.as_deref()).and_then(|b| {
                     let a = text_of(&old, d.old_file.as_deref());
                     crate::diff_markdown::picture(a, b, &d.changes)
                 });
                 crate::diff_markdown::Section {
                     old: old_name,
-                    new: new_name,
+                    new: names(d).1,
                     changes: &d.changes,
                     picture,
                 }
@@ -69,10 +81,9 @@ pub fn diff(
         serde_json::to_writer_pretty(&mut out, &report(&diagrams))?;
         writeln!(out)?;
     } else {
-        for d in &diagrams {
-            let (old, new) = names(d);
+        for (d, old) in diagrams.iter().zip(&old_names) {
             for c in &d.changes {
-                writeln!(out, "{}", change_line(old, new, c))?;
+                writeln!(out, "{}", change_line(old, names(d).1, c))?;
             }
         }
         eprintln!("{}", summary(&diagrams, &since));
