@@ -304,6 +304,7 @@ impl Builder {
                         shown_end: place.end,
                         milestone: task.milestone,
                         color: task.color,
+                        border: task.border,
                         done: task.done,
                         marks: Marks::default(),
                         link_from: task.link_from.clone(),
@@ -379,6 +380,7 @@ struct Task {
     happens: Vec<Anchor>,
     milestone: bool,
     color: Option<Color>,
+    border: Option<Color>,
     done: Option<f32>,
     link_from: Option<String>,
     /// `links to [[url]]`.
@@ -397,6 +399,7 @@ impl Task {
             happens: Vec::new(),
             milestone: false,
             color: None,
+            border: None,
             done: None,
             link_from: None,
             link: None,
@@ -525,13 +528,24 @@ fn is_clause<'a>(task: &mut Task, rest: &'a str, no: usize) -> Result<&'a str, D
         if token.is_empty() {
             return Err(fail(no, "a color is missing"));
         }
-        let color = color::parse(token)
-            .map_err(|reason| fail(no, reason))?
-            .ok_or_else(|| fail(no, "a color must not be transparent"))?;
+        // `Fuchsia/FireBrick`: the bar's fill, then its border, as
+        // PlantUML draws them; no gradient.
+        let (fill, line) = match token.split_once('/') {
+            Some((fill, line)) => (fill, Some(line)),
+            None => (token, None),
+        };
+        let solid = |value: &str| {
+            color::parse(value)
+                .map_err(|reason| fail(no, reason))?
+                .ok_or_else(|| fail(no, "a color must not be transparent"))
+        };
+        let color = solid(fill)?;
+        let border = line.map(solid).transpose()?;
         if task.color.is_some() {
             return Err(fail(no, "the color is already set"));
         }
         task.color = Some(color);
+        task.border = border;
         return Ok(rest);
     }
     let (token, after) = split_word(rest);
@@ -1214,7 +1228,27 @@ mod tests {
         assert_eq!(date::format(diagram.origin.unwrap()), "2017-09-20");
         let task = bar(&diagram, 0);
         assert_eq!(task.color, Some(Color::hex(0xFF00FF)));
+        assert_eq!(task.border, None);
         assert!((task.done.unwrap() - 0.4).abs() < 1e-5);
+    }
+
+    /// `is colored in Fill/Line` is the bar's fill and its border, as
+    /// PlantUML draws them, not a gradient.
+    #[test]
+    fn a_second_color_is_the_bar_s_border() {
+        let source =
+            "@startgantt\n[A] requires 2 days\n[A] is colored in Fuchsia/FireBrick\n@endgantt\n";
+        let diagram = gantt(source);
+        let task = bar(&diagram, 0);
+        assert_eq!(task.color, Some(Color::hex(0xFF00FF)));
+        assert_eq!(task.border, Some(Color::hex(0xB22222)));
+        let svg = crate::render(source).unwrap();
+        assert!(svg.contains("fill=\"#FF00FF\" stroke=\"#B22222\""), "{svg}");
+        let err = crate::parse(
+            "@startgantt\n[A] requires 2 days\n[A] is colored in Fuchsia/nocolor\n@endgantt\n",
+        )
+        .unwrap_err();
+        assert_eq!(err.line, Some(2), "{}", err.reason);
     }
 
     #[test]

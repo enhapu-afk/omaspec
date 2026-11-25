@@ -612,6 +612,7 @@ impl Chart {
                         shown_end: place.shown - base,
                         milestone: task.milestone,
                         color: None,
+                        border: None,
                         done: None,
                         marks: task.marks,
                         link_from: None,

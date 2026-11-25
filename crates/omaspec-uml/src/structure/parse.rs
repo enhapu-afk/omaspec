@@ -1678,18 +1678,33 @@ fn take_colors(input: &str, line: usize) -> Result<Colors, Declined> {
 }
 
 fn read_color(token: &str, line: usize) -> Result<(Option<String>, Option<String>), Declined> {
-    if token.contains([';', '/', '|']) {
+    if token.contains(';') {
         return Err(Declined::at(
             line,
             format!("`{token}` is not supported yet"),
         ));
     }
     if let Some(rest) = token.strip_prefix("##") {
+        if crate::color::parse_gradient(rest).is_some() {
+            return Err(Declined::at(
+                line,
+                format!("a gradient as a border (`{token}`) is not supported yet"),
+            ));
+        }
         crate::color::parse(rest).map_err(|err| Declined::at(line, err))?;
         return Ok((None, Some(rest.to_owned())));
     }
+    // A fill may run from one color into another (`#red-green`), which
+    // the drawer reads again.
     let rest = token.strip_prefix('#').unwrap_or(token);
-    crate::color::parse(rest).map_err(|err| Declined::at(line, err))?;
+    match crate::color::parse_gradient(rest) {
+        Some(gradient) => {
+            gradient.map_err(|err| Declined::at(line, err))?;
+        }
+        None => {
+            crate::color::parse(rest).map_err(|err| Declined::at(line, err))?;
+        }
+    }
     Ok((Some(rest.to_owned()), None))
 }
 

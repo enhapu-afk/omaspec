@@ -117,8 +117,13 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       emoji (`<:1f600:>`), `<math>` and `<latex>` in text.
 - [ ] Styles of lines (19): `#line:red;line.bold;text:red`, `[thickness=n]`,
       `[#a;#b;#c]`, `line.dashed:blue`.
-- [ ] Gradients (16) in the diagrams beyond the state diagram, which
-      draws them (`Canvas::gradient`): `#red/white`, `Lavender/LightBlue`.
+- [ ] Gradients beyond a box's own: a skinparam's
+      (`classBackgroundColor Wheat|CornflowerBlue`), the page's
+      (`skinparam backgroundcolor AntiqueWhite/Gold`) and a note's in a
+      class diagram, which takes no color yet (`note left of Foo
+      #blue\9932CC`), all four in the guide's one example of them (p. 86).
+      A box's own (`class Foo #red-green`) is drawn in the state and the
+      structure diagrams (docs/DONE.md).
 - [ ] `json` and `map` elements in other diagrams (18).
 - [ ] Sprites (13): hex without a size, SVG sprites, a sprite as a
       stereotype, `listsprite`.
@@ -128,15 +133,15 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
 - [ ] Commands that draw a page of their own: `colors`, `skinparameters`,
       `listopeniconic`, `stdlib`.
 
-### Step 6: the Gantt chart (18 of 95)
+### Step 6: the Gantt chart (20 of 95)
 
 - [ ] Days: closed days (`saturday are closed`, `2020-07-13 is closed`),
       dates in their forms, `Print between`, week numbers,
       `language de|ja|zh|ko`, `%date`.
 - [ ] Resources (`on {Alice}`, `hide resources names` and `footbox`),
       `displays on same row as`, `then [T] requires 4 days`.
-- [ ] Notes (`note bottom`), `hide footbox`, gradients, `<style>`, labels
-      on the first or the last column.
+- [ ] Notes (`note bottom`), `hide footbox`, `<style>`, labels on the
+      first or the last column.
 - [ ] Drawn but different: the calendar with the weekdays and the month's
       name.
 

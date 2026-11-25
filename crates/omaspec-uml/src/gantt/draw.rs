@@ -276,7 +276,7 @@ fn paint_task(
     );
     let mid = y + row_h / 2.0;
     let fill = bar.color.unwrap_or(skin.bar);
-    let border = Stroke::new(skin.bar_border, 1.0);
+    let border = Stroke::new(bar.border.unwrap_or(skin.bar_border), 1.0);
     if bar.milestone || bar.shown_end <= bar.start {
         let x = x_of(geom, bar.start);
         canvas.polygon(

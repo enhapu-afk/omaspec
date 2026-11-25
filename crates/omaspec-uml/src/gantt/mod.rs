@@ -107,6 +107,8 @@ pub struct Bar {
     pub shown_end: i64,
     pub milestone: bool,
     pub color: Option<Color>,
+    /// The color of its border: the second of `is colored in Fill/Line`.
+    pub border: Option<Color>,
     /// `is 40% complete`, from 0 to 1. Mermaid's `done` tag is a [`Marks`]
     /// flag, not this share.
     pub done: Option<f32>,

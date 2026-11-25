@@ -849,6 +849,18 @@ is open and the reasoning around it.
       stopped stands below it and the room before it draws no line, a
       label first in a flow leaves its arrow's words room, a label written
       twice and a goto after `stop` decline on their line.
+- [x] A box's own gradient in the class, component, use case and the other
+      structure diagrams (2026-11-25): `class Foo #red-green`, `package P
+      #white/lightblue`, `component C #Lavender|LightBlue`, `usecase U
+      #yellow\orange`, as the state diagram draws them (`Canvas::gradient`):
+      the shape alone runs from one color into the other, its words, marks
+      and border keep theirs, and the words are kept legible on the
+      gradient's middle. A border takes none and declines. A Gantt chart's
+      `is colored in Fuchsia/FireBrick` is no gradient: PlantUML fills the
+      bar with the first and draws its border in the second, and so does
+      Omaspec now (`Bar::border`). A timing diagram's `#LightCyan;line:Aqua`
+      declines as the style it is, no longer as a gradient cut at its `:`.
+      The guide: the Gantt chart 20 of 95, 555 of 897 in all.
 
 ## Phase 0: foundation and spikes
 

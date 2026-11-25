@@ -848,11 +848,22 @@ fn take_color(text: &str, no: usize) -> Result<(Color, &str), Declined> {
         .trim_start()
         .strip_prefix('#')
         .ok_or_else(|| fail(no, "a color needs `#`"))?;
+    // `#LightCyan;line:Aqua` is a style, whose `:` is not the label's.
+    let word = &text[..text.find(char::is_whitespace).unwrap_or(text.len())];
+    if word.contains(';') {
+        return Err(fail(
+            no,
+            format!("a style (`#{word}`) is not supported yet"),
+        ));
+    }
     let end = text
         .find(|c: char| c.is_whitespace() || c == ':')
         .unwrap_or(text.len());
     let name = &text[..end];
-    if name.is_empty() || name.contains([';', '/', '|', '\\']) {
+    if name.is_empty() {
+        return Err(fail(no, "a color is missing after `#`"));
+    }
+    if name.contains(['/', '|', '\\']) {
         return Err(fail(
             no,
             format!("color gradients (`#{name}`) are not supported yet"),
@@ -1029,6 +1040,22 @@ mod tests {
         let err =
             parse_source("@startuml\nbinary \"E\" as E\n@0\nE is maybe\n@enduml").unwrap_err();
         assert_eq!(err.line, Some(3));
+    }
+
+    /// A style after a state (`#LightCyan;line:Aqua`) is said as one, not
+    /// taken for a gradient cut at its `:`.
+    #[test]
+    fn a_style_on_a_state_is_named_as_one() {
+        for (color, reason) in [
+            ("#LightCyan;line:Aqua", "a style (`#LightCyan;line:Aqua`)"),
+            ("#red/green", "color gradients (`#red/green`)"),
+            ("#", "a color is missing"),
+        ] {
+            let source = format!("@startuml\nconcise \"U\" as U\n@0\nU is Idle {color}\n@enduml");
+            let err = parse_source(&source).unwrap_err();
+            assert_eq!(err.line, Some(3), "{color}");
+            assert!(err.reason.contains(reason), "{color}: {}", err.reason);
+        }
     }
 
     #[test]

@@ -309,6 +309,8 @@ struct Item {
     name: String,
     shape: Shape,
     fill: Paint,
+    /// The gradient its shape is filled with, where it is one.
+    gradient: Option<color::Gradient>,
     border: Stroke,
     rows: Vec<Row>,
     /// First member row. Equal to `rows.len()` when the box has none.
@@ -427,7 +429,7 @@ fn measure_element(
         look.member.color = color;
         look.stereo.color = color;
     }
-    let (fill, border) = paints(el, &look)?;
+    let (fill, gradient, border) = paints(el, &look)?;
     // `skinparam packageStyle`: a package drawn as another shape, in its
     // own look.
     let shape = match el.shape {
@@ -437,11 +439,12 @@ fn measure_element(
     // A fill the writer gave a box may be anything under the skin's text:
     // light under the light text of a dark look. The words are moved
     // towards black or white, whichever reads better there, until they
-    // read. An actor's name stands under the figure, on the page.
+    // read. An actor's name stands under the figure, on the page. Over a
+    // gradient they read on its middle.
     if el.text_color.is_none()
         && el.fill.is_some()
         && !matches!(el.shape, Shape::Actor | Shape::Lollipop)
-        && let Some(ground) = fill
+        && let Some(ground) = gradient.map(|g| g.from.mix(g.to, 0.5)).or(fill)
     {
         let far = if Color::WHITE.contrast(ground) > Color::BLACK.contrast(ground) {
             Color::WHITE
@@ -612,6 +615,7 @@ fn measure_element(
             name: el.key.clone(),
             shape,
             fill,
+            gradient,
             border,
             rows,
             body,
@@ -805,10 +809,24 @@ fn restyle(block: Block, font: Font, family: Family, italic: bool, underline: bo
     }
 }
 
-fn paints(el: &Element, look: &super::skin::Look) -> Result<(Paint, Stroke), Declined> {
-    let fill = match &el.fill {
-        Some(value) => color::parse(value).map_err(|err| Declined::at(el.line, err))?,
-        None => look.fill,
+/// An element's fill, the gradient it runs as where it is one (its plain
+/// fill is then the gradient's first color), and its border.
+fn paints(
+    el: &Element,
+    look: &super::skin::Look,
+) -> Result<(Paint, Option<color::Gradient>, Stroke), Declined> {
+    let (fill, gradient) = match &el.fill {
+        Some(value) => match color::parse_gradient(value) {
+            Some(gradient) => {
+                let g = gradient.map_err(|err| Declined::at(el.line, err))?;
+                (Some(g.from), Some(g))
+            }
+            None => (
+                color::parse(value).map_err(|err| Declined::at(el.line, err))?,
+                None,
+            ),
+        },
+        None => (look.fill, None),
     };
     let border = match &el.line_color {
         Some(value) => match color::parse(value).map_err(|err| Declined::at(el.line, err))? {
@@ -821,7 +839,7 @@ fn paints(el: &Element, look: &super::skin::Look) -> Result<(Paint, Stroke), Dec
     };
     let mut stroke = Stroke::new(border, el.thickness.unwrap_or(look.thickness));
     stroke.dash = el.border_dash;
-    Ok((fill, stroke))
+    Ok((fill, gradient, stroke))
 }
 
 /// A line's label and multiplicities, each the words its line alone
@@ -1194,7 +1212,9 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     let rect = node.rect;
     let round = skin.round.min(rect.w / 2.0).min(rect.h / 2.0).max(0.0);
     let stroke = Some(node.item.border);
-    match node.item.shape {
+    // The gradient fills the shape alone: its words, its marks and
+    // its border keep their colors.
+    canvas.gradient(node.item.gradient, |canvas| match node.item.shape {
         Shape::UseCase => {
             canvas.ellipse(
                 Layer::Frames,
@@ -1259,7 +1279,7 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
                 stroke,
             );
         }
-    }
+    });
     if node.item.shape == Shape::Component {
         match skin.component_style {
             ComponentStyle::Uml2 => component_icon(canvas, rect, node.item.border),
@@ -2412,6 +2432,39 @@ mod tests {
         )
         .unwrap();
         assert!(svg.contains("fill=\"#FF0000\""), "{svg}");
+    }
+
+    /// A box's own fill may run from one color into another, as PlantUML
+    /// writes it: the shape alone is filled with it, each gradient defined
+    /// once. A border does not take one, nor a color PlantUML does not know.
+    #[test]
+    fn a_gradient_fills_a_box_s_shape() {
+        let svg = crate::render(
+            "@startuml\nclass Foo #red-green\nclass Bar #red-green\npackage P #white/lightblue {\n  component C #Lavender|LightBlue\n}\nusecase U #yellow\\orange\n@enduml\n",
+        )
+        .unwrap();
+        for (id, filled) in [
+            ("omaspec-gradient-ff0000-008000-down", 2),
+            ("omaspec-gradient-ffffff-add8e6-falling", 1),
+            ("omaspec-gradient-e6e6fa-add8e6-across", 1),
+            ("omaspec-gradient-ffff00-ffa500-rising", 1),
+        ] {
+            assert_eq!(
+                svg.matches(&format!("id=\"{id}\"")).count(),
+                1,
+                "{id}: {svg}"
+            );
+            let fill = format!("fill=\"url(#{id})\"");
+            assert_eq!(svg.matches(&fill).count(), filled, "{id}: {svg}");
+        }
+        for (source, reason) in [
+            ("class A ##red-green", "a gradient as a border"),
+            ("class A #red-nocolor", "`nocolor` in the gradient"),
+        ] {
+            let err = crate::render(&format!("@startuml\n{source}\n@enduml\n")).unwrap_err();
+            assert!(err.reason.contains(reason), "{source}: {}", err.reason);
+            assert_eq!(err.line, Some(1), "{source}");
+        }
     }
 
     use crate::part_groups;
