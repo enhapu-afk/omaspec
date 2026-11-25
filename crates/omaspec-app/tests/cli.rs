@@ -3232,6 +3232,12 @@ fn diff_writes_a_pull_request_s_comment() {
     git(&new, &["init", "-q"]);
     git(&new, &["add", "door.puml", "sub"]);
     git(&new, &["commit", "-qm", "door"]);
+    // What went is named at its line in the commit.
+    fs::write(
+        new.join("door.puml"),
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+    )
+    .unwrap();
     fs::write(new.join(".gitignore"), "corpus/\n").unwrap();
     fs::create_dir_all(new.join("corpus")).unwrap();
     fs::write(new.join("corpus/seed.puml"), lamp).unwrap();
@@ -3250,6 +3256,14 @@ fn diff_writes_a_pull_request_s_comment() {
     assert!(text.contains("#### `:(x)odd.puml`"), "{text}");
     assert!(!text.contains("corpus"), "{text}");
     assert!(!text.contains("inner"), "{text}");
+    assert!(text.contains("(`door.puml@HEAD:5`)"), "{text}");
+    let out = omaspec(&["diff", new.to_str().unwrap()]);
+    assert!(
+        stdout(&out)
+            .contains("door.puml@HEAD:5: removed: Transition removed: Closed to Locked on lock."),
+        "{}",
+        stdout(&out)
+    );
 }
 
 /// Omaspec's own pull requests are commented on by the steps a project
