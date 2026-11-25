@@ -2117,7 +2117,15 @@ is open and the reasoning around it.
       color takes the charts' palette, the axes follow the words' color
       toward the page, so a chart reads on a dark theme. The outline
       lists its axes, series and annotations; the gallery has a bakery's
-      year.
+      year. After the review: values too far apart for an axis are a
+      mistake on their line, and a value beyond a written range stands at
+      its edge, as a bar's does, so no picture runs to infinity; an
+      annotation finds its category however the lines are ordered; a
+      legend at a side stays the chart's though a legend block follows;
+      an axis's title, a series' name and an annotation are tied to their
+      lines; a marker on a part that draws none is not supported in a
+      chart, and changes nothing elsewhere; one builder for an element's
+      own skinparams (`Element::own`).
 
 ## From the tester's round of 1.1.0 (2026-11-24)
 

@@ -12,6 +12,7 @@ use crate::Declined;
 use crate::annotations::Annotations;
 use crate::chart::words;
 use crate::color::Color;
+use crate::map::Map;
 use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::{Block, Font};
 
@@ -42,6 +43,12 @@ pub(super) struct Drawn<'a> {
 }
 
 pub fn draw(d: &Diagram) -> Result<String, Declined> {
+    draw_mapped(d).map(|(svg, _)| svg)
+}
+
+/// [`draw`], and the words each line alone writes, tied to it: an axis's
+/// title, a series' name in the legend, an annotation.
+pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let look = Look::read(&d.frame.skinparams)?;
     let mut canvas = Canvas::new(&look.font_name, false);
     canvas.sketch(look.sketch);
@@ -89,6 +96,25 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
                     .any(|s| s.v2)
                     .then(|| Scale::of(&Axis::default(), &values(true)))
             });
+    // Values too far apart give an axis no width to draw on.
+    let spread = |scale: &Scale, second: bool| -> Result<(), Declined> {
+        if (scale.high - scale.low).is_finite() {
+            return Ok(());
+        }
+        let line = d
+            .series
+            .iter()
+            .find(|s| s.v2 == second)
+            .map_or(val_axis.line, |s| s.line);
+        Err(Declined::refused(
+            line,
+            "these values lie too far apart for a chart to draw",
+        ))
+    };
+    spread(&primary, false)?;
+    if let Some(scale) = &second {
+        spread(scale, true)?;
+    }
     let points = d
         .series
         .iter()
@@ -156,7 +182,11 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
     } else {
         (PLOT_W, PLOT_H)
     };
-    let title_of = |axis: &Axis| axis.title.as_deref().map(|t| label(t, look.font));
+    let title_of = |axis: &Axis| {
+        axis.title
+            .as_deref()
+            .map(|t| label(t, look.font).written_on(axis.line))
+    };
     let (left_title, bottom_title) = (title_of(&d.v), title_of(&d.h));
     let right_title = d.v2.as_ref().and_then(title_of);
     let legend = Legend::of(d, &drawn, &look, family);
@@ -261,7 +291,7 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
             .spans
             .iter()
             .enumerate()
-            .map(|(i, span)| pos(place_of(i, None), scale.at(span.1)))
+            .map(|(i, span)| pos(place_of(i, None), within(scale, span.1)))
             .collect();
         let mut outline = tops.clone();
         outline.extend(
@@ -269,7 +299,7 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
                 .iter()
                 .enumerate()
                 .rev()
-                .map(|(i, span)| pos(place_of(i, None), scale.at(span.0))),
+                .map(|(i, span)| pos(place_of(i, None), within(scale, span.0))),
         );
         let stroke = s
             .style
@@ -449,15 +479,15 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
         let c = match (&note.at, &places) {
             (Place::Category(i), _) => place_of(*i, None),
             (Place::At(x), Some(scale)) => scale.at(*x),
-            (Place::At(_), None) => {
+            (Place::At(_), None) | (Place::Named(_), _) => {
                 return Err(Declined::at(
                     note.line,
                     "on a chart of categories an annotation stands at a category",
                 ));
             }
         };
-        let point = pos(c, primary.at(note.value));
-        let block = label(&note.text, look.note_font);
+        let point = pos(c, within(&primary, note.value));
+        let block = label(&note.text, look.note_font).written_on(note.line);
         // The words on the page's color, so they read over a bar.
         let backed = |canvas: &mut Canvas, (x, y): (f32, f32)| {
             let ground = look.page.unwrap_or(Color::WHITE);
@@ -512,7 +542,8 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
         legend.draw(&mut canvas, &look, at);
     }
     annotations.draw(&mut canvas);
-    Ok(canvas.finish(MARGIN, look.page))
+    let map = canvas.place(Map::default(), MARGIN);
+    Ok((canvas.finish(MARGIN, look.page), map))
 }
 
 /// The plot's categories.
@@ -562,6 +593,12 @@ fn lanes_of(
     lanes[at]
 }
 
+/// Where `value` lies along `scale`, at its end where it lies beyond: a
+/// value off a written range stands at its edge, as a bar's does.
+fn within(scale: &Scale, value: f64) -> f32 {
+    scale.at(value).clamp(0.0, 1.0)
+}
+
 /// The places of a line's or a scatter's values on the page.
 fn series_points(
     s: &Drawn,
@@ -572,13 +609,13 @@ fn series_points(
     match &s.series.values {
         Values::Points(points) => points
             .iter()
-            .map(|&(x, y)| pos(place_of(0, Some(x)), scale.at(y)))
+            .map(|&(x, y)| pos(place_of(0, Some(x)), within(scale, y)))
             .collect(),
         Values::Each(_) => s
             .spans
             .iter()
             .enumerate()
-            .map(|(i, span)| pos(place_of(i, None), scale.at(span.1)))
+            .map(|(i, span)| pos(place_of(i, None), within(scale, span.1)))
             .collect(),
     }
 }
@@ -624,7 +661,7 @@ fn drawn<'a>(d: &'a Diagram, look: &Look) -> Result<Vec<Drawn<'a>>, Declined> {
             Kind::Area => &look.area,
             Kind::Scatter => &look.scatter,
         };
-        let style = merged(class, part);
+        let style = merged(class, &merged(Some(part), &look.series));
         let main = |c: &Class| match series.kind {
             Kind::Bar | Kind::Area => c.fill.or(c.line),
             Kind::Line => c.line.or(c.fill),
@@ -636,6 +673,7 @@ fn drawn<'a>(d: &'a Diagram, look: &Look) -> Result<Vec<Drawn<'a>>, Declined> {
             .color
             .or_else(|| class.and_then(main))
             .or_else(|| main(part))
+            .or_else(|| main(&look.series))
             .unwrap_or_else(|| match series.kind {
                 Kind::Line | Kind::Scatter => {
                     look.color(index).legible_on(look.ground(), look.ink, 3.0)
@@ -773,5 +811,67 @@ mod tests {
         let source = "@startchart\nstackMode stacked\nbar [1.7e308]\nbar [1.7e308]\n@endchart\n";
         let why = crate::render(source).unwrap_err();
         assert!(why.refused && why.line == Some(3), "{why:?}");
+    }
+
+    /// Values too far apart for an axis are a mistake on their line; a
+    /// value beyond a written range stands at its edge, the picture whole.
+    #[test]
+    fn values_beyond_an_axis_keep_the_picture_whole() {
+        let source = "@startchart\nh-axis [A, B]\nbar [-1.7e308, 1.7e308]\n@endchart\n";
+        let why = crate::render(source).unwrap_err();
+        assert!(why.refused && why.line == Some(2), "{why:?}");
+        let far = svg(
+            "h-axis [A, B]\nv-axis 0 --> 100\nline [1e300, 150]\nscatter [-1e300, 50]\narea [1e300, 1]\nannotation \"x\" at (A, 1e300)",
+        );
+        assert!(!far.contains("inf") && !far.contains("NaN"), "{far}");
+        let plain = svg("h-axis [A, B]\nv-axis 0 --> 100\nline [10, 20]");
+        let height = |svg: &str| {
+            svg.split("height=\"")
+                .nth(1)
+                .unwrap()
+                .split('"')
+                .next()
+                .unwrap()
+                .to_owned()
+        };
+        // As high as a chart within its range, but for the annotation's
+        // words over its top.
+        let (far, plain) = (
+            height(&far).parse::<f32>().unwrap(),
+            height(&plain).parse::<f32>().unwrap(),
+        );
+        assert!((far - plain).abs() < 30.0, "{far} {plain}");
+    }
+
+    /// An axis's title, a series' name and an annotation are tied to the
+    /// lines that write them, for a click and the caret's light.
+    #[test]
+    fn its_words_are_tied_to_their_lines() {
+        let source = "@startchart\nh-axis \"Quarter\" [Q1]\nbar \"Sales\" [4]\nannotation \"Peak\" at (Q1, 4)\nlegend right\n@endchart\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let mut lines: Vec<usize> = map.tied.iter().map(|tie| tie.line).collect();
+        lines.sort_unstable();
+        lines.dedup();
+        assert_eq!(lines, [1, 2, 3], "{:?}", map.tied);
+    }
+
+    /// A chart's own setting on a part that does not draw it is not
+    /// supported; in another diagram it changes nothing, as in PlantUML.
+    #[test]
+    fn a_marker_goes_where_a_chart_draws_it() {
+        let style = |part: &str| {
+            format!(
+                "<style>\nchartDiagram {{\n  {part} {{\n    MarkerShape square\n  }}\n}}\n</style>"
+            )
+        };
+        let source = format!("@startchart\n{}\nbar [1]\n@endchart\n", style("axis"));
+        assert!(crate::render(&source).is_err());
+        let source = format!(
+            "@startchart\n{}\nscatter [1]\n@endchart\n",
+            style("scatter")
+        );
+        assert!(crate::render(&source).is_ok());
+        let class = "@startuml\n<style>\nclassDiagram {\n  class {\n    MarkerSize 4\n  }\n}\n</style>\nclass A\n@enduml\n";
+        assert!(crate::render(class).is_ok());
     }
 }

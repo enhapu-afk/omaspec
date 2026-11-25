@@ -25,7 +25,7 @@ mod legend;
 mod look;
 mod read;
 
-pub use draw::draw;
+pub use draw::{draw, draw_mapped};
 pub use read::parse;
 
 use crate::color::Color;
@@ -143,4 +143,7 @@ pub struct Annotation {
 pub enum Place {
     Category(usize),
     At(f64),
+    /// As written, while the chart is read: a category or a number once
+    /// every line is.
+    Named(String),
 }

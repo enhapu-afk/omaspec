@@ -522,7 +522,7 @@ fn draw_mapped(diagram: Diagram, source: &str) -> Result<(String, map::Map), Dec
         }
         Diagram::Timing(d) => unmapped(timing::draw(&d)),
         Diagram::Gantt(d) => gantt::draw_mapped(&d),
-        Diagram::Chart(d) => unmapped(plot::draw(&d)),
+        Diagram::Chart(d) => plot::draw_mapped(&d),
         Diagram::Flow(d) => unmapped(flow::draw(&d)),
         Diagram::StoryMap(d) => storymap::draw_mapped(&d),
         Diagram::Capabilities(d) => capabilities::draw_mapped(&d),

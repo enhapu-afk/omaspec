@@ -56,6 +56,8 @@ pub(super) struct Look {
     pub line: Class,
     pub area: Class,
     pub scatter: Class,
+    /// What `series { … }` gives every series, under its kind's style.
+    pub series: Class,
     pub legend_fill: Paint,
     pub legend_border: Option<Color>,
     pub legend_padding: f32,
@@ -157,6 +159,7 @@ impl Look {
             line: part("chartline")?,
             area: part("chartarea")?,
             scatter: part("chartscatter")?,
+            series: part("chartseries")?,
             legend_fill: match own.get("chartlegendbackgroundcolor") {
                 Some(p) => color::parse(&p.value).map_err(|why| p.fail(why))?,
                 None => None,

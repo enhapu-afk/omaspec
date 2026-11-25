@@ -34,7 +34,7 @@ impl Legend {
                     s.color,
                     s.style.shape.unwrap_or(Shape::Circle),
                     s.style.size.unwrap_or(MARKER),
-                    words(name, look.legend_font, family),
+                    words(name, look.legend_font, family).written_on(s.series.line),
                 ))
             })
             .collect();

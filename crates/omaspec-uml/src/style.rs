@@ -296,14 +296,9 @@ impl Element {
         }
     }
 
-    /// The element, with skinparams of its own besides the usual ones:
-    /// the frame's texts, which the frame takes rather than a skin.
-    const fn aligned(self, keys: &'static [(Prop, &'static str)]) -> Element {
-        Element { keys, ..self }
-    }
-
     /// The element, with skinparams of its own for what has no usual
-    /// name: a chart's markers, its bars' width, its legend's room.
+    /// name: how the frame's texts align, a chart's markers, its bars'
+    /// width, its legend's room.
     pub const fn own(self, keys: &'static [(Prop, &'static str)]) -> Element {
         Element { keys, ..self }
     }
@@ -371,13 +366,13 @@ impl Element {
 const DOCUMENT: [Element; 6] = [
     Element::keys(&["document"], &[(Prop::BackGroundColor, "BackgroundColor")]),
     Element::new(&["document", "title"], "Title", TEXT)
-        .aligned(&[(Prop::HorizontalAlignment, "TitleHorizontalAlignment")]),
+        .own(&[(Prop::HorizontalAlignment, "TitleHorizontalAlignment")]),
     Element::new(&["document", "header"], "Header", TEXT)
-        .aligned(&[(Prop::HorizontalAlignment, "HeaderHorizontalAlignment")]),
+        .own(&[(Prop::HorizontalAlignment, "HeaderHorizontalAlignment")]),
     Element::new(&["document", "footer"], "Footer", TEXT)
-        .aligned(&[(Prop::HorizontalAlignment, "FooterHorizontalAlignment")]),
+        .own(&[(Prop::HorizontalAlignment, "FooterHorizontalAlignment")]),
     Element::new(&["document", "caption"], "Caption", TEXT)
-        .aligned(&[(Prop::HorizontalAlignment, "CaptionHorizontalAlignment")]),
+        .own(&[(Prop::HorizontalAlignment, "CaptionHorizontalAlignment")]),
     Element::new(
         &["document", "mainframe"],
         "Mainframe",
@@ -510,6 +505,10 @@ pub fn skinparams(
         .filter(|n| n.ends_with("Diagram"));
     let first = named.next();
     let diagram = first.filter(|own| named.all(|n| n.eq_ignore_ascii_case(own)));
+    // Whether these are a chart's, whose parts draw markers and widths.
+    let charted = elements
+        .iter()
+        .any(|e| e.keys.iter().any(|(prop, _)| prop.of_charts()));
     let whole = |d: &Declaration| {
         d.only.is_empty()
             && !d.names.is_empty()
@@ -619,7 +618,11 @@ pub fn skinparams(
                 taken = true;
             }
         }
-        if !taken && !d.prop.of_charts() && reached.iter().any(|e| e.named_by(&d.names)) {
+        // A chart's own setting changes nothing in another diagram, as in
+        // PlantUML; in a chart, on a part that does not draw it, it is
+        // not supported.
+        let elsewhere = d.prop.of_charts() && !charted;
+        if !taken && !elsewhere && reached.iter().any(|e| e.named_by(&d.names)) {
             return Err(fail(format!("`{}` is not supported yet", d.written)));
         }
     }

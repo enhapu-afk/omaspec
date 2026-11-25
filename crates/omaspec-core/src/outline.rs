@@ -368,8 +368,6 @@ fn flow_line(b: &mut Builder, row: usize, l: &str) {
     }
 }
 
-/// A capability map's areas, and the capabilities under them by their
-/// stars, without the value after the last colon.
 /// A chart's axes by their titles, its series by their names (or their
 /// values, unnamed), its annotations by their words.
 fn chart_line(b: &mut Builder, row: usize, l: &str) {
@@ -391,6 +389,8 @@ fn chart_line(b: &mut Builder, row: usize, l: &str) {
     b.add_at(row, &word, label(&shown), 0);
 }
 
+/// A capability map's areas, and the capabilities under them by their
+/// stars, without the value after the last colon.
 fn capability_line(b: &mut Builder, row: usize, l: &str) {
     let Some(c) = re!(r#"^(\*+)\s*(.+)$"#).captures(l) else {
         return;

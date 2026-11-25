@@ -118,12 +118,10 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
     while at < lines.len() {
         let Line { no, text, .. } = lines[at];
         // `legend right` places the chart's legend; a legend block of the
-        // frame's runs on to `endlegend`.
-        let block = lines[at + 1..].iter().any(|line| {
-            let words: String = line.text.split_whitespace().collect();
-            words.eq_ignore_ascii_case("endlegend")
-        });
-        if let Some(side) = legend_side(text).filter(|_| !block) {
+        // frame's runs on to `endlegend`, before another legend opens.
+        if let Some(side) = legend_side(text)
+            && !opens_block(&lines[at + 1..])
+        {
             d.legend = Some(side);
             at += 1;
             continue;
@@ -137,6 +135,22 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
     }
     check(&mut d)?;
     Ok(d)
+}
+
+/// Whether `endlegend` closes a legend opened before `rest`: it comes
+/// before the next line that opens a legend.
+fn opens_block(rest: &[Line]) -> bool {
+    for line in rest {
+        let words: String = line.text.split_whitespace().collect();
+        if words.eq_ignore_ascii_case("endlegend") {
+            return true;
+        }
+        let first = line.text.split_whitespace().next().unwrap_or("");
+        if first.eq_ignore_ascii_case("legend") {
+            return false;
+        }
+    }
+    false
 }
 
 /// `legend left|right|top|bottom` on its own.
@@ -190,7 +204,7 @@ fn statement(d: &mut Diagram, text: &str, no: usize) -> Result<(), Declined> {
             return Ok(());
         }
         "annotation" => {
-            let note = annotation(d, rest, no)?;
+            let note = annotation(rest, no)?;
             d.annotations.push(note);
             return Ok(());
         }
@@ -488,9 +502,8 @@ fn values(list: &str, no: usize) -> Result<Values, Declined> {
         .map(Values::Each)
 }
 
-/// `"text" at (x, y) <<arrow>>`; `x` a category of the chart read so far,
-/// or a number.
-fn annotation(d: &Diagram, rest: &str, no: usize) -> Result<Annotation, Declined> {
+/// `"text" at (x, y) <<arrow>>`; `x` a category of the chart, or a number.
+fn annotation(rest: &str, no: usize) -> Result<Annotation, Declined> {
     let wrong = || {
         Declined::at(
             no,
@@ -517,28 +530,38 @@ fn annotation(d: &Diagram, rest: &str, no: usize) -> Result<Annotation, Declined
     let (x, y) = place
         .rsplit_once(',')
         .ok_or_else(|| Declined::refused(no, format!("`({place})` is no place `(x, y)`")))?;
-    let x = unquoted(x);
-    let categories = if d.horizontal {
-        &d.v.categories
-    } else {
-        &d.h.categories
-    };
-    let at = match categories.iter().position(|c| c == x) {
-        Some(index) => Place::Category(index),
-        None => Place::At(number(x, no)?),
-    };
     Ok(Annotation {
         text: (*text).to_owned(),
-        at,
+        // A category or a number, once the chart is read.
+        at: Place::Named(unquoted(x).to_owned()),
         value: number(y, no)?,
         arrow,
         line: no,
     })
 }
 
-/// What the lines say together: points stand on a range, every series
-/// gives them alike, and each lies on its axis.
+/// What the lines say together: an annotation stands at a category or a
+/// number, points stand on a range, every series gives them alike, and
+/// each lies on its axis.
 fn check(d: &mut Diagram) -> Result<(), Declined> {
+    let categories = if d.horizontal {
+        &d.v.categories
+    } else {
+        &d.h.categories
+    };
+    for note in &mut d.annotations {
+        if let Place::Named(x) = &note.at {
+            note.at = match categories.iter().position(|c| c == x) {
+                Some(index) => Place::Category(index),
+                None => Place::At(number(x, note.line).map_err(|_| {
+                    Declined::refused(
+                        note.line,
+                        format!("`{x}` is no category of the chart, nor a number"),
+                    )
+                })?),
+            };
+        }
+    }
     let points = d
         .series
         .iter()
@@ -669,6 +692,24 @@ mod tests {
         ] {
             assert!(read(text).unwrap_err().refused, "{text}");
         }
+    }
+
+    /// An annotation finds its category however the lines are ordered; a
+    /// legend at a side stays the chart's though a legend block follows.
+    #[test]
+    fn the_order_of_the_lines_changes_nothing() {
+        let d = read("annotation \"Peak\" at (Q2, 62)\nh-axis [Q1, Q2]\nbar [1, 62]").unwrap();
+        assert_eq!(d.annotations[0].at, Place::Category(1));
+        let d =
+            read("annotation \"x\" at (B, 1)\nv-axis [A, B]\norientation horizontal\nbar [1, 2]")
+                .unwrap();
+        assert_eq!(d.annotations[0].at, Place::Category(1));
+        let why = read("h-axis [A]\nannotation \"x\" at (Z, 1)").unwrap_err();
+        assert!(why.refused && why.reason.contains("no category"), "{why:?}");
+        let d = read("legend right\nbar \"A\" [1]\nlegend\n  note\nendlegend").unwrap();
+        assert_eq!(d.legend, Some(Side::Right));
+        assert_eq!(d.series.len(), 1);
+        assert!(d.frame.legend.is_some());
     }
 
     #[test]
