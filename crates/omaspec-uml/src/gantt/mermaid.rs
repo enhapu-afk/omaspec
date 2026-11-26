@@ -592,6 +592,7 @@ impl Chart {
                 Item::Task(index) if self.tasks[index].vert => {
                     let task = &self.tasks[index];
                     verts.push(super::Vert {
+                        key: task.written.then(|| task.key.clone()),
                         label: task.label.clone(),
                         day: places[index].start - base,
                         line: task.line,

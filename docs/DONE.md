@@ -2448,7 +2448,14 @@ is open and the reasoning around it.
       `field-Source_20_port` (on each row it takes), an XY chart's
       series `bar`, `line` (the second of a kind `-2`), a PlantUML
       chart's `bar-Bread`, `line-Margin`, `area-…`, `scatter-…`; their
-      titles `title`.
+      titles `title`. After the review: a radar's axes and curves and a
+      Gantt chart's `vert` are named by what the source calls them
+      (`axis-m` for `m["Math"]`, `vert-f`), their words only where it
+      gives no name; a PlantUML chart's line of the legend is its
+      series'; a timing message's end is a row's key before it is
+      another row's label, as PlantUML reads it (drawn so too); a wire
+      inside a flow's block is named by the way down to it
+      (`A.Inner.x`).
 - [x] An id for every box and line, step 2, done (2026-11-26,
       [0037](adr/0037-an-id-for-every-box-and-line.md)): an EBNF's rules
       (`rule-value`, a regular expression's `rule`) and a marble

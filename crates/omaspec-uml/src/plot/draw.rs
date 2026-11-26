@@ -579,7 +579,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
                 y1 + below + LEGEND_GAP / 2.0,
             ),
         };
-        legend.draw(&mut canvas, &look, at);
+        legend.draw(&mut canvas, (&look, &names), at);
     }
     annotations.draw(&mut canvas);
     let map = canvas.place(Map::default(), MARGIN);

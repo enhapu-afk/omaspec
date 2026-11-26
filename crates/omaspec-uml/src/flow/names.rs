@@ -3,7 +3,10 @@
 //! (`input-x`, `output-y`), a block by its name (`block-Filter`, one
 //! inside another as well), a wire by what it joins and says, a block's
 //! port as `Block.port` (`link-x-Filter.in`). A name given twice takes
-//! `-2`.
+//! `-2`. A wire inside a block names that block's own port by the way
+//! down to it (`link-Charger.voltage-Limit.voltage`, deeper
+//! `Outer.Inner.x`), so two blocks of one wiring keep their names
+//! wherever they stand.
 
 use std::collections::HashMap;
 
@@ -37,7 +40,11 @@ impl Names {
         };
         names.blocks_of(&diagram.blocks, &mut Vec::new(), &mut given);
         names.wires_of((&diagram.wires, None), &[], &mut given);
-        names.inner_wires(&diagram.blocks, &mut Vec::new(), &mut given);
+        names.inner_wires(
+            &diagram.blocks,
+            (&mut Vec::new(), &mut Vec::new()),
+            &mut given,
+        );
         names
     }
 
@@ -85,11 +92,21 @@ impl Names {
         }
     }
 
-    fn inner_wires(&mut self, blocks: &[Block], path: &mut Vec<usize>, given: &mut Given) {
+    /// The wires inside `blocks`, at `path`, the names of the blocks
+    /// down to them in `way`.
+    fn inner_wires(
+        &mut self,
+        blocks: &[Block],
+        (path, way): (&mut Vec<usize>, &mut Vec<String>),
+        given: &mut Given,
+    ) {
         for (index, block) in blocks.iter().enumerate() {
             path.push(index);
-            self.wires_of((&block.wires, Some(&block.name)), path, given);
-            self.inner_wires(&block.blocks, path, given);
+            way.push(block.name.clone());
+            let holder = way.join(".");
+            self.wires_of((&block.wires, Some(&holder)), path, given);
+            self.inner_wires(&block.blocks, (path, way), given);
+            way.pop();
             path.pop();
         }
     }

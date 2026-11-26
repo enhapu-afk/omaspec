@@ -15,7 +15,8 @@ const SWATCH: f32 = 12.0;
 
 /// The legend: each named series' sign and its name.
 pub(super) struct Legend {
-    entries: Vec<(Kind, Color, Shape, f32, Block)>,
+    /// Each entry with the series it is of, among those drawn.
+    entries: Vec<(usize, Kind, Color, Shape, f32, Block)>,
     row: bool,
     pub width: f32,
     pub height: f32,
@@ -25,11 +26,13 @@ pub(super) struct Legend {
 impl Legend {
     pub fn of(d: &Diagram, drawn: &[Drawn], look: &Look, family: Family) -> Option<Legend> {
         let side = d.legend?;
-        let entries: Vec<(Kind, Color, Shape, f32, Block)> = drawn
+        let entries: Vec<(usize, Kind, Color, Shape, f32, Block)> = drawn
             .iter()
-            .filter_map(|s| {
+            .enumerate()
+            .filter_map(|(at, s)| {
                 let name = s.series.name.as_deref()?;
                 Some((
+                    at,
                     s.series.kind,
                     s.color,
                     s.style.shape.unwrap_or(Shape::Circle),
@@ -45,13 +48,13 @@ impl Legend {
         let padding = look.legend_padding;
         let entry = |b: &Block| (SWATCH + 6.0 + b.width, b.height.max(SWATCH));
         let (width, height) = if row {
-            let w: f32 = entries.iter().map(|e| entry(&e.4).0).sum::<f32>()
+            let w: f32 = entries.iter().map(|e| entry(&e.5).0).sum::<f32>()
                 + 16.0 * (entries.len() - 1) as f32;
-            let h = entries.iter().map(|e| entry(&e.4).1).fold(0.0, f32::max);
+            let h = entries.iter().map(|e| entry(&e.5).1).fold(0.0, f32::max);
             (w, h)
         } else {
-            let w = entries.iter().map(|e| entry(&e.4).0).fold(0.0, f32::max);
-            let h: f32 = entries.iter().map(|e| entry(&e.4).1).sum::<f32>()
+            let w = entries.iter().map(|e| entry(&e.5).0).fold(0.0, f32::max);
+            let h: f32 = entries.iter().map(|e| entry(&e.5).1).sum::<f32>()
                 + 8.0 * (entries.len() - 1) as f32;
             (w, h)
         };
@@ -64,7 +67,9 @@ impl Legend {
         })
     }
 
-    pub fn draw(&self, canvas: &mut Canvas, look: &Look, (x, y): (f32, f32)) {
+    /// Draws the legend at `(x, y)`, each entry in the part of its series
+    /// (`names`, as the series are drawn).
+    pub fn draw(&self, canvas: &mut Canvas, (look, names): (&Look, &[String]), (x, y): (f32, f32)) {
         let x = x + look.legend_margin;
         if look.legend_fill.is_some() || look.legend_border.is_some() {
             let border = look.legend_border.map(|c| Stroke::new(c, 1.0));
@@ -72,44 +77,47 @@ impl Legend {
             canvas.rect(Layer::Background, box_, 3.0, look.legend_fill, border);
         }
         let (mut cx, mut cy) = (x + self.padding, y + self.padding);
-        for (kind, color, shape, size, name) in &self.entries {
+        for (at, kind, color, shape, size, name) in &self.entries {
             let high = name.height.max(SWATCH);
             let middle = cy + high / 2.0;
-            match kind {
-                Kind::Bar | Kind::Area => {
-                    canvas.rect(
-                        Layer::Front,
-                        (cx, middle - SWATCH / 2.0, SWATCH, SWATCH),
-                        0.0,
-                        Some(*color),
-                        None,
-                    );
+            let part = names.get(*at).map_or("", String::as_str);
+            canvas.part(part, |canvas| {
+                match kind {
+                    Kind::Bar | Kind::Area => {
+                        canvas.rect(
+                            Layer::Front,
+                            (cx, middle - SWATCH / 2.0, SWATCH, SWATCH),
+                            0.0,
+                            Some(*color),
+                            None,
+                        );
+                    }
+                    Kind::Line => {
+                        canvas.line(
+                            Layer::Front,
+                            (cx, middle),
+                            (cx + SWATCH, middle),
+                            Stroke::new(*color, LINE),
+                        );
+                    }
+                    Kind::Scatter => {
+                        marker(
+                            canvas,
+                            Layer::Front,
+                            (cx + SWATCH / 2.0, middle),
+                            *shape,
+                            size.min(SWATCH),
+                            *color,
+                        );
+                    }
                 }
-                Kind::Line => {
-                    canvas.line(
-                        Layer::Front,
-                        (cx, middle),
-                        (cx + SWATCH, middle),
-                        Stroke::new(*color, LINE),
-                    );
-                }
-                Kind::Scatter => {
-                    marker(
-                        canvas,
-                        Layer::Front,
-                        (cx + SWATCH / 2.0, middle),
-                        *shape,
-                        size.min(SWATCH),
-                        *color,
-                    );
-                }
-            }
-            canvas.text(
-                Layer::Front,
-                name,
-                (cx + SWATCH + 6.0, middle - name.height / 2.0),
-                Align::Left,
-            );
+                canvas.text(
+                    Layer::Front,
+                    name,
+                    (cx + SWATCH + 6.0, middle - name.height / 2.0),
+                    Align::Left,
+                );
+            });
             if self.row {
                 cx += SWATCH + 6.0 + name.width + 16.0;
             } else {

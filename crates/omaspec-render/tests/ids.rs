@@ -268,7 +268,7 @@ fn a_mermaid_gantt_names_its_tasks_by_their_ids_or_their_words() {
             "section-Plan",
             "task-b",
             "task-Sketch",
-            "vert-Freeze",
+            "vert-f",
             "milestone-l",
         ],
     );
@@ -295,8 +295,8 @@ fn the_charts_name_what_they_show() {
             &["quadrant-1", "quadrant-4", "point-Dark_20_mode"][..],
         ),
         (
-            "radar-beta\n  axis A, B, C\n  curve ada[\"Ada\"]{1, 2, 3}\n",
-            &["axis-A", "axis-C"][..],
+            "radar-beta\n  axis A, B, m[\"Math\"]\n  curve ada[\"Ada\"]{1, 2, 3}\n",
+            &["axis-A", "axis-m", "curve-ada"][..],
         ),
         (
             "treemap-beta\n\"Team\"\n  \"Apps\": 3\n  \"Data\": 2\n",
@@ -337,4 +337,26 @@ fn a_grammar_names_its_rules_and_a_marble_diagram_its_lanes() {
         Language::Mermaid,
         &["lane-keys", "lane-results"],
     );
+}
+
+#[test]
+fn a_name_holds_when_what_the_source_calls_it_is_not_its_words() {
+    // A timing message's end is a row's key before it is another's label.
+    named(
+        "@startuml\nconcise \"B\" as A\nconcise \"X\" as B\n@0\nA is on\nB is off\n@5\nB -> A : go\n@enduml\n",
+        Language::PlantUml,
+        &["link-B-A-go"],
+    );
+    // Two blocks of one name hold wires of their own names, by the way down.
+    named(
+        "@startflow\nblock A {\n  block Inner {\n    in x\n    out y\n    x -> y\n  }\n}\nblock B {\n  block Inner {\n    in x\n    out y\n    x -> y\n  }\n}\n@endflow\n",
+        Language::PlantUml,
+        &["link-A.Inner.x-A.Inner.y", "link-B.Inner.x-B.Inner.y"],
+    );
+    // A chart's line of the legend is its series'.
+    let svg = drawn(
+        "@startchart\nlegend right\nh-axis [Q1, Q2]\nbar \"Bread\" [3, 4]\n@endchart\n",
+        Language::PlantUml,
+    );
+    assert!(svg.matches(r#"<g class="bar-Bread""#).count() >= 2, "{svg}");
 }

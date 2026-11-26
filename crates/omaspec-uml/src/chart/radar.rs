@@ -18,6 +18,11 @@ pub struct Diagram {
     pub axes: Vec<String>,
     /// Each curve's label and its value on every axis.
     pub curves: Vec<(String, Vec<f64>)>,
+    /// What the source calls each axis and each curve (`m` in
+    /// `m["Math"]`, its words where it gives no name), which names its
+    /// part (docs/adr/0037).
+    pub axis_ids: Vec<String>,
+    pub curve_ids: Vec<String>,
     pub min: f64,
     pub max: f64,
     pub ticks: usize,
@@ -32,6 +37,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
     let mut ids: Vec<String> = Vec::new();
     let mut axes: Vec<String> = Vec::new();
     let mut raw: Vec<(String, String)> = Vec::new();
+    let mut curve_ids: Vec<String> = Vec::new();
     let (mut min, mut max, mut ticks, mut polygon, mut legend) = (None, None, 5, false, true);
     for (_, line) in lines {
         let (word, rest) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
@@ -47,7 +53,8 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
             "curve" => {
                 let open = rest.find('{')?;
                 let close = rest.rfind('}').filter(|close| *close > open)?;
-                let (_, label) = labelled(rest[..open].trim())?;
+                let (id, label) = labelled(rest[..open].trim())?;
+                curve_ids.push(id.to_owned());
                 raw.push((label.to_owned(), rest[open + 1..close].to_owned()));
             }
             "min" => min = Some(number(rest)?),
@@ -86,6 +93,8 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         title,
         axes,
         curves,
+        axis_ids: ids,
+        curve_ids,
         min,
         max,
         ticks,
@@ -124,13 +133,10 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
         }
     }
     canvas.end_group(Layer::Background);
-    // Each axis and curve named by its name (docs/adr/0037).
-    let axes = super::names(&mut canvas, "axis", d.axes.iter().map(String::as_str));
-    let curves = super::names(
-        &mut canvas,
-        "curve",
-        d.curves.iter().map(|(c, _)| c.as_str()),
-    );
+    // Each axis and curve named by what the source calls it
+    // (docs/adr/0037).
+    let axes = super::names(&mut canvas, "axis", d.axis_ids.iter().map(String::as_str));
+    let curves = super::names(&mut canvas, "curve", d.curve_ids.iter().map(String::as_str));
     for (i, axis) in d.axes.iter().enumerate() {
         canvas.part(super::at(&axes, i), |canvas| {
             let end = at(i, RADIUS);

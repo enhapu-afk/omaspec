@@ -212,7 +212,11 @@ fn paint(
             ..Stroke::new(skin.label.color, 1.0)
         };
         let label = block(&vert.label, skin.label, family, vert.line)?;
-        let part = crate::svg::element("vert", crate::svg::first_line(&vert.label));
+        let name = vert
+            .key
+            .as_deref()
+            .unwrap_or_else(|| crate::svg::first_line(&vert.label));
+        let part = crate::svg::element("vert", name);
         canvas.part(&given.unique(part), |canvas| {
             canvas.line(Layer::Front, (x, rows_top), (x, bottom), stroke);
             canvas.text(Layer::Front, &label, (x, bottom + 2.0), Align::Center);

@@ -50,6 +50,9 @@ pub struct Diagram {
 /// name under the chart.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Vert {
+    /// What the source calls it (`f` in `Freeze :vert, f, …`), which
+    /// names its part; none where it gives no name.
+    pub key: Option<String>,
     pub label: String,
     /// From day 0.
     pub day: i64,

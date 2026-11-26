@@ -1224,12 +1224,12 @@ none on one page.
 | Block | `group-…`, `block-a`, `link-a-b` |
 | Kanban | `column-todo`, `card-t1` (by its words where it has no id) |
 | Journey, timeline | `section-Morning`, `task-Read`, `period-2020`, `event-Launch` |
-| Flow | `input-sensor`, `output-valve`, `block-Filter`, `link-sensor-Filter.sensor` |
+| Flow | `input-sensor`, `output-valve`, `block-Filter`, `link-sensor-Filter.sensor`, inside a block `link-Filter.in-Core.x` |
 | Network | `network-home`, `server-router`, `group-…`, `link-home-router` |
 | Story map, capability map | `activity-Enrol`, `step-Sign_20_up`, `release-Pilot`, `story-By_20_email`, `capability-Lending` |
 | Timing | `concise-P`, `binary-L`, `note-concise-P-top-1`, `link-P-L-lock` |
-| Gantt | `section-Plan`, `task-D` (by its words where it has no id), `milestone-Review`, `vert-Freeze`, `link-D-B` |
-| Charts | `slice-Sleep`, `node-Solar`, `link-Solar-Grid`, `quadrant-1`, `point-…`, `axis-Design`, `curve-Ada`, `field-…`, `bar`, `line`, `bar-Bread` |
+| Gantt | `section-Plan`, `task-D`, `milestone-Review`, `vert-f` (by its words where it has no id), `link-D-B` |
+| Charts | `slice-Sleep`, `node-Solar`, `link-Solar-Grid`, `quadrant-1`, `point-…`, `axis-m`, `curve-ada`, `field-…`, `bar`, `line`, `bar-Bread` |
 | EBNF, regex, marble | `rule-value`, `rule`, `lane-keys` |
 | A title and the like | `title`, `header`, `footer`, `caption`, `legend` |
 
