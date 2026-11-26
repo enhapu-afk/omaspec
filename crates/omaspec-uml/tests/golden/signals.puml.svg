@@ -1,9 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="233" height="305" viewBox="0 0 233 305" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="233" height="305" viewBox="0 0 233 305" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="clock-clk" id="clock-clk">
 <polyline points="62.67,46.94 72.67,46.94 72.67,46.94 72.67,66.94 82.67,66.94 82.67,66.94 82.67,46.94 92.67,46.94 92.67,46.94 92.67,66.94 102.67,66.94 102.67,66.94 102.67,46.94 112.67,46.94 112.67,46.94 112.67,66.94 122.67,66.94 122.67,66.94 122.67,46.94 132.67,46.94 132.67,46.94 132.67,66.94 142.67,66.94 142.67,66.94 142.67,46.94 152.67,46.94 152.67,46.94 152.67,66.94 162.67,66.94 162.67,66.94 162.67,46.94 172.67,46.94 172.67,46.94 172.67,66.94 182.67,66.94 182.67,66.94 182.67,46.94 192.67,46.94 192.67,46.94 192.67,66.94 202.67,66.94 202.67,66.94 202.67,46.94 212.67,46.94" fill="none" stroke="#181818" stroke-width="1.5"/>
+</g>
+<g class="binary-EN" id="binary-EN">
 <polyline points="62.67,104.94 112.67,104.94 112.67,84.94 162.67,84.94 162.67,104.94 212.67,104.94" fill="none" stroke="#181818" stroke-width="1.5"/>
+</g>
+<g class="analog-L" id="analog-L">
 <polyline points="62.67,164.94 112.67,139.74 162.67,122.94 212.67,122.94" fill="none" stroke="#181818" stroke-width="1.5"/>
+</g>
 <line x1="62.67" y1="226.94" x2="212.67" y2="226.94" fill="none" stroke="#888888" stroke-width="1"/>
 <line x1="62.67" y1="226.94" x2="62.67" y2="230.94" fill="none" stroke="#888888" stroke-width="1"/>
 <line x1="112.67" y1="226.94" x2="112.67" y2="230.94" fill="none" stroke="#888888" stroke-width="1"/>
@@ -11,20 +17,27 @@
 <line x1="162.67" y1="226.94" x2="162.67" y2="230.94" fill="none" stroke="#888888" stroke-width="1"/>
 </g>
 <g>
+<g class="concise-db" id="concise-db">
 <rect x="62.67" y="182.94" width="50" height="28" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="112.67" y="182.94" width="50" height="28" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="162.67" y="182.94" width="50" height="28" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="clock-clk">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="62.78" font-size="14" fill="#000000" textLength="28.11" lengthAdjust="spacing">Tick</tspan>
 </text>
+</g>
+<g class="binary-EN">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="100.78" font-size="14" fill="#000000" textLength="44.67" lengthAdjust="spacing">Enable</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="124.2" y="99.22" font-size="10" fill="#000000" font-style="italic" textLength="26.95" lengthAdjust="spacing">ready</tspan>
 </text>
+</g>
+<g class="analog-L">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="149.78" font-size="14" fill="#000000" textLength="35.49" lengthAdjust="spacing">Level</tspan>
 </text>
@@ -37,6 +50,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="163.12" y="121.07" font-size="12" fill="#000000" textLength="7.12" lengthAdjust="spacing">5</tspan>
 </text>
+</g>
+<g class="concise-db">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="201.78" font-size="14" fill="#000000" textLength="30.42" lengthAdjust="spacing">Data</tspan>
 </text>
@@ -49,6 +64,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="173.53" y="202.07" font-size="12" fill="#000000" textLength="28.28" lengthAdjust="spacing">0xFF</tspan>
 </text>
+</g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="59.52" y="241.22" font-size="10" fill="#888888" textLength="6.31" lengthAdjust="spacing">0</tspan>
 </text>
@@ -61,11 +77,13 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="157.48" y="241.22" font-size="10" fill="#888888" textLength="10.38" lengthAdjust="spacing">10</tspan>
 </text>
+<g class="link-EN-db-sample" id="link-EN-db-sample">
 <line x1="114.95" y1="103.6" x2="140.4" y2="189.27" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="142.67,196.94 137.04,190.26 143.75,188.27" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="107.26" y="142.6" font-size="12" fill="#000000" textLength="40.84" lengthAdjust="spacing">sample</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="81.19" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="50.3" lengthAdjust="spacing">Signals</tspan>

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="382" height="136" viewBox="0 0 382 136" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="382" height="136" viewBox="0 0 382 136" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
 <g id="grid">
@@ -17,10 +17,18 @@
 </g>
 </g>
 <g>
+<g class="task-Plan" id="task-Plan">
 <rect x="59.2" y="32" width="30" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="task-Build" id="task-Build">
 <rect x="89.2" y="54" width="150" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="task-Pilot" id="task-Pilot">
 <rect x="239.2" y="76" width="42" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="task-Rollout" id="task-Rollout">
 <rect x="281.2" y="98" width="60" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -56,18 +64,26 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="336.62" y="23.28" font-size="10" fill="#888888" textLength="19.15" lengthAdjust="spacing">Nov</tspan>
 </text>
+<g class="task-Plan">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="43.5" font-size="13" fill="#000000" textLength="26.44" lengthAdjust="spacing">Plan</tspan>
 </text>
+</g>
+<g class="task-Build">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="65.5" font-size="13" fill="#000000" textLength="30.43" lengthAdjust="spacing">Build</tspan>
 </text>
+</g>
+<g class="task-Pilot">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="87.5" font-size="13" fill="#000000" textLength="26.65" lengthAdjust="spacing">Pilot</tspan>
 </text>
+</g>
+<g class="task-Rollout">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="109.5" font-size="13" fill="#000000" textLength="42.2" lengthAdjust="spacing">Rollout</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

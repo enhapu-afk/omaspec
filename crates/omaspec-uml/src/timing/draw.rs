@@ -280,10 +280,17 @@ fn paint(
             }
         }
     }
+    // Each row, note and message named from the source (docs/adr/0037),
+    // the chart drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
     for (index, row) in diagram.rows.iter().enumerate() {
         let lane = &place.lanes[index];
-        paint_row(canvas, skin, family, lane, &axis, row)?;
-        paint_notes(canvas, diagram, skin, family, row, lane)?;
+        let part = given.unique(crate::svg::element(kind_word(row.kind), &row.key));
+        canvas.part(&part, |canvas| {
+            paint_row(canvas, skin, family, lane, &axis, row)
+        })?;
+        paint_notes(canvas, (diagram, &part), skin, family, row, lane)?;
     }
     if !diagram.hide_axis {
         paint_axis(canvas, diagram, skin, family, place, &axis)?;
@@ -308,20 +315,36 @@ fn paint(
     for message in &diagram.messages {
         let from = row_center(diagram, place, &message.from);
         let to = row_center(diagram, place, &message.to);
-        arrow(
-            canvas,
-            skin,
-            (x_of(message.time), from),
-            (x_of(message.to_time), to),
-        );
-        if !message.label.is_empty() {
-            let label = block(&message.label, skin.arrow_font, family, message.line)?;
-            let mid_x = (x_of(message.time) + x_of(message.to_time)) / 2.0;
-            let mid_y = (from + to) / 2.0 - label.height - 1.0;
-            canvas.text(Layer::Front, &label, (mid_x, mid_y), Align::Center);
-        }
+        let name = crate::svg::link_name(&message.from, &message.to, &message.label);
+        canvas.part(&given.unique(name), |canvas| {
+            arrow(
+                canvas,
+                skin,
+                (x_of(message.time), from),
+                (x_of(message.to_time), to),
+            );
+            if !message.label.is_empty() {
+                let label = block(&message.label, skin.arrow_font, family, message.line)?;
+                let mid_x = (x_of(message.time) + x_of(message.to_time)) / 2.0;
+                let mid_y = (from + to) / 2.0 - label.height - 1.0;
+                canvas.text(Layer::Front, &label, (mid_x, mid_y), Align::Center);
+            }
+            Ok(())
+        })?;
     }
     Ok(())
+}
+
+/// The word a kind of row is named by, as the source writes it.
+fn kind_word(kind: super::RowKind) -> &'static str {
+    match kind {
+        super::RowKind::Robust => "robust",
+        super::RowKind::Concise => "concise",
+        super::RowKind::Binary => "binary",
+        super::RowKind::Clock => "clock",
+        super::RowKind::Analog => "analog",
+        super::RowKind::Rectangle => "rectangle",
+    }
 }
 
 fn loose_index(diagram: &Diagram, constraint: &Constraint) -> f32 {
@@ -727,32 +750,42 @@ fn fitted(
     Ok(None)
 }
 
+/// The notes on `row`, each in a part of its own by the row's `part`
+/// ([`crate::svg::note_part`]).
 fn paint_notes(
     canvas: &mut Canvas,
-    diagram: &Diagram,
+    (diagram, part): (&Diagram, &str),
     skin: &Skin,
     family: Family,
     row: &Row,
     lane: &Lane,
 ) -> Result<(), Declined> {
-    for note in &diagram.notes {
-        if note.row != row.key {
-            continue;
-        }
+    let (mut top, mut bottom) = (0, 0);
+    for note in diagram.notes.iter().filter(|note| note.row == row.key) {
+        let (side, nth) = if note.top {
+            top += 1;
+            ("top", top - 1)
+        } else {
+            bottom += 1;
+            ("bottom", bottom - 1)
+        };
+        let name = crate::svg::note_part(part, side, nth);
         let text = block(&note.text, skin.note, family, note.line)?;
         let y = if note.top {
             lane.body - text.height - 10.0
         } else {
             lane.body + lane.height + 4.0
         };
-        canvas.rect(
-            Layer::Frames,
-            (0.0, y - 3.0, text.width + 12.0, text.height + 6.0),
-            2.0,
-            Some(skin.note_fill),
-            Some(Stroke::new(skin.note_border, 1.0)),
-        );
-        canvas.text(Layer::Front, &text, (6.0, y), Align::Left);
+        canvas.part(&name, |canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (0.0, y - 3.0, text.width + 12.0, text.height + 6.0),
+                2.0,
+                Some(skin.note_fill),
+                Some(Stroke::new(skin.note_border, 1.0)),
+            );
+            canvas.text(Layer::Front, &text, (6.0, y), Align::Left);
+        });
     }
     Ok(())
 }

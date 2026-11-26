@@ -2420,6 +2420,17 @@ is open and the reasoning around it.
       `step-Sign_20_up`, `release-Pilot` (the band of none
       `release-unplanned`) and `story-By_20_email`. Six golden SVGs
       changed, by their groups alone.
+- [x] An id for every box and line, step 2, timing, Gantt and capability
+      diagrams (2026-11-26,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)), drawn as a
+      whole as before: a timing diagram's row by its kind and its alias
+      (`concise-P`, `binary-L`), its notes by their row
+      (`note-concise-P-top-1`), its messages by what they join and say
+      (`link-P-L-lock`); a Gantt chart's `section-Plan`, `task-D`,
+      `milestone-Review`, `vert-…` and a link by the tasks it joins
+      (`link-D-B`), of both languages; a capability map's
+      `capability-Lending`, one inside another too. Nine golden SVGs
+      changed, by their groups alone.
 
 ## Next
 

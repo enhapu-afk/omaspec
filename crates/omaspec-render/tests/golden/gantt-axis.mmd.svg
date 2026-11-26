@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="462" height="238" viewBox="0 0 462 238" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="462" height="238" viewBox="0 0 462 238" data-omaspec="named">
 <rect x="0" y="0" width="462" height="238" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
@@ -28,8 +28,12 @@
 <line x1="416.05" y1="66.96" x2="416.05" y2="198.96" fill="none" stroke="#E6E6E6" stroke-width="1"/>
 <line x1="64.05" y1="66.96" x2="416.05" y2="66.96" fill="none" stroke="#E6E6E6" stroke-width="1"/>
 </g>
+<g class="section-Plan" id="section-Plan">
 <rect x="0" y="66.96" width="416.05" height="22" fill="#EEEEEE"/>
+</g>
+<g class="section-Build" id="section-Build">
 <rect x="0" y="132.96" width="416.05" height="22" fill="#EEEEEE"/>
+</g>
 <rect x="144.05" y="66.96" width="16" height="132" fill="#D0D0D0"/>
 <rect x="160.05" y="66.96" width="16" height="132" fill="#D0D0D0"/>
 <rect x="256.05" y="66.96" width="16" height="132" fill="#D0D0D0"/>
@@ -38,10 +42,18 @@
 <rect x="384.05" y="66.96" width="16" height="132" fill="#D0D0D0"/>
 </g>
 <g>
+<g class="task-s1" id="task-s1">
 <rect x="64.05" y="92.96" width="64" height="14" fill="#E1E5EB" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="task-r1" id="task-r1">
 <rect x="128.05" y="114.96" width="80" height="14" fill="#A6ADB5" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="task-c1" id="task-c1">
 <rect x="208.05" y="158.96" width="160" height="14" fill="#E56C6F" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="milestone-m1" id="milestone-m1">
 <polygon points="400.05,179.96 408.05,187.96 400.05,195.96 392.05,187.96" fill="#CBD3DD" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
@@ -59,28 +71,42 @@
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="382.16" y="61.66" font-size="14" fill="#0F172A" textLength="35.78" lengthAdjust="spacing">26.01</tspan>
 </text>
+<g class="section-Plan">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="82.81" font-size="14" fill="#0F172A" font-weight="bold" textLength="29.72" lengthAdjust="spacing">Plan</tspan>
 </text>
+</g>
+<g class="task-s1">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="104.81" font-size="14" fill="#0F172A" textLength="45.68" lengthAdjust="spacing">Sketch</tspan>
 </text>
+</g>
+<g class="task-r1">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="126.81" font-size="14" fill="#0F172A" textLength="48.05" lengthAdjust="spacing">Review</tspan>
 </text>
+</g>
+<g class="section-Build">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="148.81" font-size="14" fill="#0F172A" font-weight="bold" textLength="34.4" lengthAdjust="spacing">Build</tspan>
 </text>
+</g>
+<g class="task-c1">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="170.81" font-size="14" fill="#0F172A" textLength="32.05" lengthAdjust="spacing">Core</tspan>
 </text>
+</g>
+<g class="milestone-m1">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="192.81" font-size="14" fill="#0F172A" textLength="29.22" lengthAdjust="spacing">Ship</tspan>
 </text>
+</g>
+<g class="vert-Code_20_freeze" id="vert-Code_20_freeze">
 <line x1="400.05" y1="66.96" x2="400.05" y2="198.96" fill="none" stroke="#0F172A" stroke-width="1" stroke-dasharray="4,3"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="359.08" y="213.95" font-size="14" fill="#0F172A" textLength="81.94" lengthAdjust="spacing">Code freeze</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="11.8" y="16.24" font-size="17.5" fill="#000000" font-weight="bold" textLength="417.43" lengthAdjust="spacing">A sprint, its axis named in Mermaid's own format</tspan>

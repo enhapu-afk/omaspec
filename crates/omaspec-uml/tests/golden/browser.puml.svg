@@ -1,27 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="668" height="351" viewBox="0 0 668 351" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="668" height="351" viewBox="0 0 668 351" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
 <rect x="167.28" y="42.94" width="417.39" height="217.94" fill="#FFD700"/>
 </g>
 <g>
+<g class="robust-WB" id="robust-WB">
 <polyline points="167.28,76.9 375.98,76.9 375.98,96.9 584.67,96.9 584.67,116.9 647.28,116.9" fill="none" stroke="#181818" stroke-width="1.5"/>
+</g>
 <line x1="167.28" y1="272.87" x2="647.28" y2="272.87" fill="none" stroke="#888888" stroke-width="1"/>
 <line x1="167.28" y1="272.87" x2="167.28" y2="276.87" fill="none" stroke="#888888" stroke-width="1"/>
 <line x1="375.98" y1="272.87" x2="375.98" y2="276.87" fill="none" stroke="#888888" stroke-width="1"/>
 <line x1="584.67" y1="272.87" x2="584.67" y2="276.87" fill="none" stroke="#888888" stroke-width="1"/>
 </g>
 <g>
+<g class="concise-U" id="concise-U">
 <rect x="103.54" y="188.89" width="43.56" height="19.97" rx="3" ry="3" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="167.28" y="184.87" width="480" height="28" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="note-concise-U-top-1" id="note-concise-U-top-1">
 <rect x="0" y="153.9" width="44.44" height="19.97" rx="2" ry="2" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="rectangle-C" id="rectangle-C">
 <rect x="103.54" y="232.89" width="43.74" height="19.97" rx="3" ry="3" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="167.28" y="228.87" width="417.39" height="28" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="584.67" y="228.87" width="62.61" height="28" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="354.38" y="57.07" font-size="12" fill="#000000" textLength="43.2" lengthAdjust="spacing">request</tspan>
 </text>
+<g class="robust-WB">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="101.75" font-size="14" fill="#000000" textLength="89.54" lengthAdjust="spacing">Web Browser</tspan>
 </text>
@@ -34,6 +43,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="594.6" y="116.04" font-size="12" fill="#000000" textLength="42.74" lengthAdjust="spacing">Waiting</tspan>
 </text>
+</g>
+<g class="concise-U">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="203.72" font-size="14" fill="#000000" textLength="31.23" lengthAdjust="spacing">User</tspan>
 </text>
@@ -43,9 +54,13 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="384.6" y="204.01" font-size="12" fill="#000000" textLength="45.36" lengthAdjust="spacing">Clicking</tspan>
 </text>
+</g>
+<g class="note-concise-U-top-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="6" y="168.04" font-size="12" fill="#000000" textLength="32.44" lengthAdjust="spacing">clicks</tspan>
 </text>
+</g>
+<g class="rectangle-C">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="247.72" font-size="14" fill="#000000" textLength="42.52" lengthAdjust="spacing">Cache</tspan>
 </text>
@@ -58,6 +73,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="608.1" y="248.01" font-size="12" fill="#000000" textLength="15.74" lengthAdjust="spacing">Hit</tspan>
 </text>
+</g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="164.12" y="287.15" font-size="10" fill="#888888" textLength="6.31" lengthAdjust="spacing">0</tspan>
 </text>
@@ -74,11 +90,13 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="455.09" y="127.07" font-size="12" fill="#000000" textLength="50.47" lengthAdjust="spacing">{100 ms}</tspan>
 </text>
+<g class="link-U-WB-URL" id="link-U-WB-URL">
 <line x1="375.98" y1="190.87" x2="375.98" y2="104.9" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="375.98,96.9 379.48,104.9 372.48,104.9" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="364.26" y="144.06" font-size="12" fill="#000000" textLength="23.44" lengthAdjust="spacing">URL</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="294.98" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="57.33" lengthAdjust="spacing">Browser</tspan>

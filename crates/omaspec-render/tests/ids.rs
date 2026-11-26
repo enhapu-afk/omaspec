@@ -189,3 +189,41 @@ fn a_story_map_names_its_activities_steps_releases_and_stories() {
         ],
     );
 }
+
+#[test]
+fn a_timing_diagram_names_its_rows_notes_and_messages() {
+    named(
+        "@startuml\nconcise \"Program\" as P\nbinary \"Lock\" as L\n@0\nP is Idle\nL is low\n@5\nP is Wash\nP -> L : lock\nnote top of P : starts\n@enduml\n",
+        Language::PlantUml,
+        &[
+            "concise-P",
+            "binary-L",
+            "link-P-L-lock",
+            "note-concise-P-top-1",
+        ],
+    );
+}
+
+#[test]
+fn a_gantt_chart_names_its_sections_tasks_and_links() {
+    named(
+        "@startgantt\n-- Plan --\n[Design] as [D] lasts 3 days\n[Build] as [B] lasts 4 days\n[D] -> [B]\n[Review] happens at [B]'s end\n@endgantt\n",
+        Language::PlantUml,
+        &[
+            "section-Plan",
+            "task-D",
+            "task-B",
+            "milestone-Review",
+            "link-D-B",
+        ],
+    );
+}
+
+#[test]
+fn a_capability_map_names_its_capabilities() {
+    named(
+        "@startcapabilities\nlevels Maturity : none, basic\n* Readers\n** Lending : basic\n@endcapabilities\n",
+        Language::PlantUml,
+        &["capability-Readers", "capability-Lending"],
+    );
+}

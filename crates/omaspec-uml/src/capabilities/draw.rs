@@ -197,6 +197,10 @@ fn paint(
     let rows = count.div_ceil(fit);
     let per_row = count.div_ceil(rows);
     let mut y = top;
+    // Each capability named by its name (docs/adr/0037), the map drawn as
+    // a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
     for row in diagram.areas.chunks(per_row) {
         let mut tiles = row
             .iter()
@@ -207,7 +211,7 @@ fn paint(
             tile.x = i as f32 * (column + APART);
             tile.y = y;
             tile.h = high;
-            draw_tile(canvas, tile, (0.0, 0.0), look);
+            draw_tile(canvas, tile, (0.0, 0.0), (look, &mut given));
         }
         y += high + APART;
     }
@@ -309,8 +313,25 @@ fn dotted(cap: &Capability, look: &Look) -> bool {
 }
 
 /// Paints `tile`, whose parent's corner is at `at`, and what it holds.
-fn draw_tile(canvas: &mut Canvas, tile: &Tile, at: (f32, f32), look: &Look) {
+fn draw_tile(
+    canvas: &mut Canvas,
+    tile: &Tile,
+    at: (f32, f32),
+    (look, given): (&Look, &mut crate::svg::Given),
+) {
     let (x, y) = (at.0 + tile.x, at.1 + tile.y);
+    let part = given.unique(crate::svg::element(
+        "capability",
+        crate::svg::first_line(&tile.cap.name),
+    ));
+    canvas.part(&part, |canvas| draw_own(canvas, tile, (x, y), look));
+    for inner in &tile.inner {
+        draw_tile(canvas, inner, (x, y), (look, given));
+    }
+}
+
+/// The tile itself at `(x, y)`, without the tiles it holds.
+fn draw_own(canvas: &mut Canvas, tile: &Tile, (x, y): (f32, f32), look: &Look) {
     let (fill, edge) = look.fill(tile.cap, tile.depth);
     let round = look.skin.round.max(2.0) / tile.depth as f32;
     // Drawn by hand, a tile keeps its strokes by its name wherever it
@@ -372,9 +393,6 @@ fn draw_tile(canvas: &mut Canvas, tile: &Tile, at: (f32, f32), look: &Look) {
             c.end_group(Layer::Front);
         }
     });
-    for inner in &tile.inner {
-        draw_tile(canvas, inner, (x, y), look);
-    }
 }
 
 /// The legend under the map, from `top`: the scale's name, each step's

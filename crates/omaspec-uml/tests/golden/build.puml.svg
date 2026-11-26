@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="563" height="286" viewBox="0 0 563 286" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="563" height="286" viewBox="0 0 563 286" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
 <g id="grid">
@@ -31,17 +31,33 @@
 <line x1="536.99" y1="70.94" x2="536.99" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
 <line x1="120.99" y1="70.94" x2="536.99" y2="70.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
 </g>
+<g class="section-Release" id="section-Release">
 <rect x="0" y="136.94" width="536.99" height="22" fill="#EEEEEE"/>
 </g>
+</g>
 <g>
+<g class="task-D" id="task-D">
 <rect x="120.99" y="74.94" width="240" height="14" fill="#FF00FF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="task-Documentation" id="task-Documentation">
 <rect x="120.99" y="96.94" width="160" height="14" fill="#ADD8E6" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="task-Tests" id="task-Tests">
 <rect x="360.99" y="118.94" width="80" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
 <rect x="361.99" y="119.94" width="30" height="12" fill="#5C788C"/>
+</g>
+<g class="task-Package" id="task-Package">
 <rect x="440.99" y="162.94" width="48" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="task-Publish" id="task-Publish">
 <rect x="488.99" y="184.94" width="32" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="milestone-Milestone" id="milestone-Milestone">
 <polygon points="520.99,205.94 528.99,213.94 520.99,221.94 512.99,213.94" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Package-Publish" id="link-Package-Publish">
 <polygon points="488.99,191.94 485.49,183.94 492.49,183.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -128,28 +144,44 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="531.11" y="66.22" font-size="10" fill="#888888" textLength="11.76" lengthAdjust="spacing">27</tspan>
 </text>
+<g class="task-D">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="86.43" font-size="13" fill="#000000" textLength="104.99" lengthAdjust="spacing">Prototype design</tspan>
 </text>
+</g>
+<g class="task-Documentation">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="108.43" font-size="13" fill="#000000" textLength="93.38" lengthAdjust="spacing">Documentation</tspan>
 </text>
+</g>
+<g class="task-Tests">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="130.43" font-size="13" fill="#000000" textLength="33.96" lengthAdjust="spacing">Tests</tspan>
 </text>
+</g>
+<g class="section-Release">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="152.43" font-size="13" fill="#000000" font-weight="bold" textLength="50.14" lengthAdjust="spacing">Release</tspan>
 </text>
+</g>
+<g class="task-Package">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="174.43" font-size="13" fill="#000000" textLength="53.03" lengthAdjust="spacing">Package</tspan>
 </text>
+</g>
+<g class="task-Publish">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="196.43" font-size="13" fill="#000000" textLength="44.78" lengthAdjust="spacing">Publish</tspan>
 </text>
+</g>
+<g class="milestone-Milestone">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="218.43" font-size="13" fill="#000000" textLength="59.79" lengthAdjust="spacing">Milestone</tspan>
 </text>
+</g>
+<g class="link-Package-Publish">
 <line x1="488.99" y1="177.94" x2="488.99" y2="183.94" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="254.24" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="34.4" lengthAdjust="spacing">Build</tspan>

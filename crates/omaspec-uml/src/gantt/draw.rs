@@ -144,28 +144,42 @@ fn paint(
         grid,
     );
     canvas.end_group(Layer::Background);
+    // Each section, task, milestone, line and link named from the
+    // source (docs/adr/0037), the chart drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
     for (index, row) in diagram.rows.iter().enumerate() {
         let y = rows_top + index as f32 * row_h;
         match row {
             Row::Section { text, line } => {
-                canvas.plain(|canvas| {
-                    canvas.rect(
-                        Layer::Background,
-                        (0.0, y, right.max(name_w), row_h),
-                        0.0,
-                        Some(skin.section_fill),
-                        None,
+                let part = crate::svg::element("section", crate::svg::first_line(text));
+                canvas.part(&given.unique(part), |canvas| -> Result<(), Declined> {
+                    canvas.plain(|canvas| {
+                        canvas.rect(
+                            Layer::Background,
+                            (0.0, y, right.max(name_w), row_h),
+                            0.0,
+                            Some(skin.section_fill),
+                            None,
+                        );
+                    });
+                    let label = block(text, skin.section, family, *line)?;
+                    canvas.text(
+                        Layer::Front,
+                        &label,
+                        (0.0, y + (row_h - label.height) / 2.0),
+                        Align::Left,
                     );
-                });
-                let label = block(text, skin.section, family, *line)?;
-                canvas.text(
-                    Layer::Front,
-                    &label,
-                    (0.0, y + (row_h - label.height) / 2.0),
-                    Align::Left,
-                );
+                    Ok(())
+                })?;
             }
-            Row::Bar(bar) => paint_bar(canvas, skin, family, &geom, bar, y, row_h)?,
+            Row::Bar(bar) => {
+                let kind = if bar.milestone { "milestone" } else { "task" };
+                let part = given.unique(crate::svg::element(kind, &bar.key));
+                canvas.part(&part, |canvas| {
+                    paint_bar(canvas, skin, family, &geom, bar, y, row_h)
+                })?;
+            }
         }
     }
     if let Some(origin) = diagram.origin {
@@ -191,9 +205,12 @@ fn paint(
             dash: Some((4.0, 3.0)),
             ..Stroke::new(skin.label.color, 1.0)
         };
-        canvas.line(Layer::Front, (x, rows_top), (x, bottom), stroke);
         let label = block(&vert.label, skin.label, family, vert.line)?;
-        canvas.text(Layer::Front, &label, (x, bottom + 2.0), Align::Center);
+        let part = crate::svg::element("vert", crate::svg::first_line(&vert.label));
+        canvas.part(&given.unique(part), |canvas| {
+            canvas.line(Layer::Front, (x, rows_top), (x, bottom), stroke);
+            canvas.text(Layer::Front, &label, (x, bottom + 2.0), Align::Center);
+        });
     }
     for (index, row) in diagram.rows.iter().enumerate() {
         let Row::Bar(bar) = row else { continue };
@@ -205,12 +222,15 @@ fn paint(
         };
         let y0 = rows_top + from_index as f32 * row_h + row_h / 2.0;
         let y1 = rows_top + index as f32 * row_h + row_h / 2.0;
-        link(
-            canvas,
-            skin,
-            (x_of(&geom, from.end), y0),
-            (x_of(&geom, bar.start), y1),
-        );
+        let part = given.unique(crate::svg::link_name(&from.key, &bar.key, ""));
+        canvas.part(&part, |canvas| {
+            link(
+                canvas,
+                skin,
+                (x_of(&geom, from.end), y0),
+                (x_of(&geom, bar.start), y1),
+            );
+        });
     }
     // Both head the rows: the dates over them, the names beside them; a
     // `vert`'s name under them and a footer are not theirs.

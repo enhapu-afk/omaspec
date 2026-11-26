@@ -1,26 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="754" height="387" viewBox="0 0 754 387" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="754" height="387" viewBox="0 0 754 387" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="capability-Customers" id="capability-Customers">
 <rect x="0" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F1F1F1" stroke="#8D8D8D" stroke-width="1"/>
+</g>
+<g class="capability-Marketing" id="capability-Marketing">
 <rect x="8" y="55.1" width="218" height="91.2" rx="2" ry="2" fill="#FFFFFF" stroke="#6E6E6E" stroke-width="1"/>
 <rect x="8" y="55.1" width="218" height="36.6" rx="2" ry="2" fill="#939393"/>
 <rect x="8" y="73.4" width="218" height="18.3" fill="#939393"/>
 <rect x="8" y="55.1" width="218" height="91.2" rx="2" ry="2" fill="none" stroke="#6E6E6E" stroke-width="1"/>
+</g>
+<g class="capability-Newsletter" id="capability-Newsletter">
 <rect x="16" y="97.7" width="97" height="40.6" rx="1.33" ry="1.33" fill="#565656" stroke="#414141" stroke-width="1"/>
+</g>
+<g class="capability-Events" id="capability-Events">
 <rect x="121" y="97.7" width="97" height="40.6" rx="1.33" ry="1.33" fill="#D1D1D1" stroke="#8D8D8D" stroke-width="1"/>
+</g>
+<g class="capability-Sales" id="capability-Sales">
 <rect x="8" y="154.3" width="218" height="124.8" rx="2" ry="2" fill="#FFFFFF" stroke="#8D8D8D" stroke-width="1"/>
+</g>
+<g class="capability-Online_20_shop" id="capability-Online_20_shop">
 <rect x="16" y="181.9" width="97" height="40.6" rx="1.33" ry="1.33" fill="#181818" stroke="#121212" stroke-width="1"/>
+</g>
+<g class="capability-Stores" id="capability-Stores">
 <rect x="121" y="181.9" width="97" height="40.6" rx="1.33" ry="1.33" fill="#565656" stroke="#414141" stroke-width="1"/>
+</g>
+<g class="capability-Gift_20_cards" id="capability-Gift_20_cards">
 <rect x="16" y="230.5" width="97" height="40.6" rx="1.33" ry="1.33" fill="#939393" stroke="#6E6E6E" stroke-width="1"/>
+</g>
+<g class="capability-Service" id="capability-Service">
 <rect x="8" y="287.1" width="218" height="40.6" rx="2" ry="2" fill="#565656" stroke="#414141" stroke-width="1"/>
+</g>
+<g class="capability-Books" id="capability-Books">
 <rect x="250" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F1F1F1" stroke="#8D8D8D" stroke-width="1"/>
+</g>
+<g class="capability-Buying" id="capability-Buying">
 <rect x="258" y="55.1" width="218" height="40.6" rx="2" ry="2" fill="#565656" stroke="#414141" stroke-width="1"/>
+</g>
+<g class="capability-Stock" id="capability-Stock">
 <rect x="258" y="103.7" width="218" height="40.6" rx="2" ry="2" fill="#939393" stroke="#6E6E6E" stroke-width="1"/>
+</g>
+<g class="capability-Pricing" id="capability-Pricing">
 <rect x="258" y="152.3" width="218" height="31.6" rx="2" ry="2" fill="#FFFFFF" stroke="#8D8D8D" stroke-width="1" stroke-dasharray="4,3"/>
+</g>
+<g class="capability-People_20_and_20_money" id="capability-People_20_and_20_money">
 <rect x="500" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F1F1F1" stroke="#8D8D8D" stroke-width="1"/>
+</g>
+<g class="capability-Hiring" id="capability-Hiring">
 <rect x="508" y="55.1" width="218" height="40.6" rx="2" ry="2" fill="#939393" stroke="#6E6E6E" stroke-width="1"/>
+</g>
+<g class="capability-Payroll" id="capability-Payroll">
 <rect x="508" y="103.7" width="218" height="40.6" rx="2" ry="2" fill="#181818" stroke="#121212" stroke-width="1"/>
+</g>
+<g class="capability-Accounts" id="capability-Accounts">
 <rect x="508" y="152.3" width="218" height="40.6" rx="2" ry="2" fill="#565656" stroke="#414141" stroke-width="1"/>
+</g>
 <rect x="69.92" y="351.7" width="20.8" height="13" rx="2" ry="2" fill="#D1D1D1" stroke="#8D8D8D" stroke-width="1"/>
 <rect x="141.47" y="351.7" width="20.8" height="13" rx="2" ry="2" fill="#939393" stroke="#6E6E6E" stroke-width="1"/>
 <rect x="214.96" y="351.7" width="20.8" height="13" rx="2" ry="2" fill="#565656" stroke="#414141" stroke-width="1"/>
@@ -28,9 +62,12 @@
 <rect x="398.54" y="351.7" width="20.8" height="13" rx="2" ry="2" fill="#FFFFFF" stroke="#8D8D8D" stroke-width="1" stroke-dasharray="4,3"/>
 </g>
 <g>
+<g class="capability-Customers">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="79.35" y="47.29" font-size="14" fill="#000000" font-weight="bold" textLength="75.29" lengthAdjust="spacing">Customers</tspan>
 </text>
+</g>
+<g class="capability-Marketing">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16" y="75.16" font-size="13" fill="#000000" font-weight="bold" textLength="64.84" lengthAdjust="spacing">Marketing</tspan>
 </text>
@@ -40,6 +77,8 @@
 <ellipse cx="32.5" cy="82.73" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 <ellipse cx="39.5" cy="82.73" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Newsletter">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="117.76" font-size="13" fill="#FFFFFF" textLength="66.56" lengthAdjust="spacing">Newsletter</tspan>
 </text>
@@ -49,6 +88,8 @@
 <ellipse cx="40.5" cy="125.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="47.5" cy="125.33" rx="2.5" ry="2.5" fill="none" stroke="#FFFFFF" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Events">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="129" y="117.76" font-size="13" fill="#000000" textLength="41.5" lengthAdjust="spacing">Events</tspan>
 </text>
@@ -58,9 +99,13 @@
 <ellipse cx="145.5" cy="125.33" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 <ellipse cx="152.5" cy="125.33" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Sales">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16" y="174.36" font-size="13" fill="#000000" font-weight="bold" textLength="34.62" lengthAdjust="spacing">Sales</tspan>
 </text>
+</g>
+<g class="capability-Online_20_shop">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="201.96" font-size="13" fill="#FFFFFF" textLength="73.14" lengthAdjust="spacing">Online shop</tspan>
 </text>
@@ -70,6 +115,8 @@
 <ellipse cx="40.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="47.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 </g>
+</g>
+<g class="capability-Stores">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="129" y="201.96" font-size="13" fill="#FFFFFF" textLength="39.73" lengthAdjust="spacing">Stores</tspan>
 </text>
@@ -79,6 +126,8 @@
 <ellipse cx="145.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="152.5" cy="209.53" rx="2.5" ry="2.5" fill="none" stroke="#FFFFFF" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Gift_20_cards">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="250.56" font-size="13" fill="#000000" textLength="59.99" lengthAdjust="spacing">Gift cards</tspan>
 </text>
@@ -88,6 +137,8 @@
 <ellipse cx="40.5" cy="258.13" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 <ellipse cx="47.5" cy="258.13" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Service">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16" y="307.16" font-size="13" fill="#FFFFFF" font-weight="bold" textLength="48.27" lengthAdjust="spacing">Service</tspan>
 </text>
@@ -97,9 +148,13 @@
 <ellipse cx="32.5" cy="314.73" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="39.5" cy="314.73" rx="2.5" ry="2.5" fill="none" stroke="#FFFFFF" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Books">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="345.8" y="47.29" font-size="14" fill="#000000" font-weight="bold" textLength="42.39" lengthAdjust="spacing">Books</tspan>
 </text>
+</g>
+<g class="capability-Buying">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="266" y="75.16" font-size="13" fill="#FFFFFF" font-weight="bold" textLength="44.37" lengthAdjust="spacing">Buying</tspan>
 </text>
@@ -109,6 +164,8 @@
 <ellipse cx="282.5" cy="82.73" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="289.5" cy="82.73" rx="2.5" ry="2.5" fill="none" stroke="#FFFFFF" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Stock">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="266" y="123.76" font-size="13" fill="#000000" font-weight="bold" textLength="36.43" lengthAdjust="spacing">Stock</tspan>
 </text>
@@ -118,12 +175,18 @@
 <ellipse cx="282.5" cy="131.33" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 <ellipse cx="289.5" cy="131.33" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Pricing">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="266" y="172.36" font-size="13" fill="#000000" font-weight="bold" textLength="44.72" lengthAdjust="spacing">Pricing</tspan>
 </text>
+</g>
+<g class="capability-People_20_and_20_money">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="553.94" y="47.29" font-size="14" fill="#000000" font-weight="bold" textLength="126.13" lengthAdjust="spacing">People and money</tspan>
 </text>
+</g>
+<g class="capability-Hiring">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="516" y="75.16" font-size="13" fill="#000000" font-weight="bold" textLength="38.36" lengthAdjust="spacing">Hiring</tspan>
 </text>
@@ -133,6 +196,8 @@
 <ellipse cx="532.5" cy="82.73" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 <ellipse cx="539.5" cy="82.73" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 </g>
+</g>
+<g class="capability-Payroll">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="516" y="123.76" font-size="13" fill="#FFFFFF" font-weight="bold" textLength="44.11" lengthAdjust="spacing">Payroll</tspan>
 </text>
@@ -142,6 +207,8 @@
 <ellipse cx="532.5" cy="131.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="539.5" cy="131.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 </g>
+</g>
+<g class="capability-Accounts">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="516" y="172.36" font-size="13" fill="#FFFFFF" font-weight="bold" textLength="61.2" lengthAdjust="spacing">Accounts</tspan>
 </text>
@@ -150,6 +217,7 @@
 <ellipse cx="525.5" cy="179.93" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="532.5" cy="179.93" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="539.5" cy="179.93" rx="2.5" ry="2.5" fill="none" stroke="#FFFFFF" stroke-width="0.8"/>
+</g>
 </g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="363.76" font-size="13" fill="#000000" font-weight="bold" textLength="53.92" lengthAdjust="spacing">Maturity</tspan>
