@@ -372,7 +372,10 @@ each release's notes are in `docs/releases/`. 1.2.0 followed the same day
 with the loops between agents and people (the section above): the trace as
 a contract, a run followed live, a pull request reviewed by behavior, and
 findings with their fix; 1.2.1 with what running that review on Omaspec's
-own pull requests found.
+own pull requests found. 1.3.0 followed on 2026-11-26 with PlantUML's charts,
+Mermaid's marble diagrams and association classes drawn natively, every
+film in the look and the size asked for, and what a tester's round and a
+research run found.
 
 - [ ] The release's last steps: AUR `omaspec` and `omaspec-bin`, the
       announcement. Both PKGBUILDs are at 1.2.1 with their checksums and

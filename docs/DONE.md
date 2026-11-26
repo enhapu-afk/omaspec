@@ -4493,6 +4493,11 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       recording's clock (`docs/images/film.sh`, `editor/tests/film.rs`); the guide is a
       PDF of 47 pages whose examples the release build draws (`docs/guide/pdf/build.py`),
       to download from the page
+- [x] Release 1.3.0 (2026-11-26): PlantUML's charts, Mermaid's marble diagrams and
+      association classes drawn natively, gradients in the structure diagrams, every
+      film in the look and the size asked for, the bar as large as the words or none,
+      `inspect` telling the behavior, `--id-prefix`, a start's label as its event in a
+      play and a trace, ADR 0037; the guide drawn by 1.3.0
 - [x] Release 1.2.1 (2026-11-25): what the review by behavior found on Omaspec's own
       pull requests, the diff of a folder as git lists it, a line that went named in
       the version it stood in, the comment's machine in full colors and its workflow
