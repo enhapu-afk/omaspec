@@ -2,7 +2,9 @@
 
 Status: accepted, 2026-11-14. Replaces how a glide takes its boxes in the
 addendum to [0024](0024-focus-and-collapse.md); the lines keep gliding as
-written there.
+written there. Point 2, and how point 1 writes the names, are replaced
+by [0037](0037-an-id-for-every-box-and-line.md) once its first step is
+done.
 
 ## Context
 

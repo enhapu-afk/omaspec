@@ -33,6 +33,20 @@ Omaspec beside the person, and the loops between them come first. Each
 item says how it is checked. All of them are done (2026-11-25), the last
 the pull request's comment, checked on GitHub.
 
+## An id for every box and line (2026-11-26)
+
+[0037](docs/adr/0037-an-id-for-every-box-and-line.md), REQ-132: every
+element and every line of a picture has an id from the source, for a
+page, a trace and a diff to find it by.
+
+- [ ] Step 1: every drawer that marks parts writes them as 0037 names
+      them, in every picture, and the pane reads them; the hex names and
+      `' parts (Omaspec)` go. A state machine's lines take their ids too.
+      The golden SVGs change in a commit of their own.
+- [ ] Step 2: sequence diagrams (participants, messages, notes,
+      fragments), then the lines of the other drawers and the kinds that
+      mark no parts yet; the guide lists the kinds that carry ids.
+
 ## PlantUML's guide, drawn natively (2026-11-21)
 
 PlantUML's *Language Reference Guide* (1.2025.0) holds 929 examples.
