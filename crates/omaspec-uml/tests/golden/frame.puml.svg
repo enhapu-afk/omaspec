@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="253" height="457" viewBox="0 0 202 365" data-omaspec="named">
 <g transform="translate(20,10)">
 <g>
-<g class="participant-B" id="participant-B">
+<g class="participant-B">
 <line x1="34.54" y1="101.53" x2="34.54" y2="210.92" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-A" id="participant-A">
+<g class="participant-A">
 <line x1="143.62" y1="101.53" x2="143.62" y2="210.92" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
@@ -13,13 +13,13 @@
 <polygon points="-10,42.94 65.75,42.94 65.75,57.23 59.75,63.23 -10,63.23" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
 <g>
-<g class="participant-B">
+<g class="participant-B" id="participant-B">
 <rect x="0" y="71.23" width="69.09" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="91.22" font-size="14" fill="#000000" textLength="55.09" lengthAdjust="spacing">Browser</tspan>
 </text>
 </g>
-<g class="participant-A">
+<g class="participant-A" id="participant-A">
 <rect x="125.81" y="71.23" width="35.62" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="132.81" y="91.22" font-size="14" fill="#000000" textLength="21.62" lengthAdjust="spacing">Api</tspan>

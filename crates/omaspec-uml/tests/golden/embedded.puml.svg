@@ -1,21 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="294" height="465" viewBox="0 0 294 465" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
-<g class="participant-Alice" id="participant-Alice">
+<g class="participant-Alice">
 <line x1="23.3" y1="30.3" x2="23.3" y2="262.63" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Bob" id="participant-Bob">
+<g class="participant-Bob">
 <line x1="90.31" y1="30.3" x2="90.31" y2="262.63" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
 <g>
-<g class="participant-Alice">
+<g class="participant-Alice" id="participant-Alice">
 <rect x="0" y="0" width="46.59" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="19.99" font-size="14" fill="#000000" textLength="32.59" lengthAdjust="spacing">Alice</tspan>
 </text>
 </g>
-<g class="participant-Bob">
+<g class="participant-Bob" id="participant-Bob">
 <rect x="70.25" y="0" width="40.12" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="77.25" y="19.99" font-size="14" fill="#000000" textLength="26.12" lengthAdjust="spacing">Bob</tspan>

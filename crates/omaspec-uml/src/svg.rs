@@ -110,6 +110,9 @@ pub struct Canvas {
     marks_parts: bool,
     /// Its elements are named, but it is drawn as a whole ([`NAMED`]).
     whole: bool,
+    /// The layer a part's id goes on where it is not its first
+    /// ([`Self::id_on`]), by the part's id.
+    id_layers: std::collections::HashMap<String, usize>,
     /// The part being drawn: its groups' class ([`part_id`]).
     part: Option<String>,
     /// For each layer, the part whose group is open there, among its
@@ -190,6 +193,7 @@ impl Canvas {
             // inside another's note: its names are not the picture's.
             marks_parts: !crate::embedded::inside(),
             whole: false,
+            id_layers: std::collections::HashMap::new(),
             part: None,
             open: Default::default(),
             open_shades: Default::default(),
@@ -213,6 +217,15 @@ impl Canvas {
     /// fades it and a build uncovers it from the top down ([`NAMED`]).
     pub fn whole(&mut self) {
         self.whole = true;
+    }
+
+    /// Gives the id of the part called `name` to its first group in
+    /// `layer`, where its shape is, rather than to its first of all: a
+    /// participant's head, not the lifeline drawn under it.
+    pub fn id_on(&mut self, name: &str, layer: Layer) {
+        if self.marks_parts && !name.is_empty() {
+            self.id_layers.insert(part_id(name), layer as usize);
+        }
     }
 
     /// Draws with `paint` the part called `name`: a box, a mark or a line's
@@ -1609,7 +1622,9 @@ impl Canvas {
         }
         let mut named = std::collections::HashSet::new();
         for (index, layer) in layers.iter().enumerate() {
-            let layer = name_first(layer, &mut named);
+            let layer = name_first(layer, &mut named, |name| {
+                self.id_layers.get(name).is_none_or(|&on| on == index)
+            });
             // One group, so shadows that overlap are no darker there.
             let shade = &shades[index];
             if !shade.is_empty() {
@@ -1926,9 +1941,14 @@ fn sync(out: &mut String, open: &mut Option<String>, part: Option<&str>) {
 }
 
 /// Gives the first group of each part in `layer` its name as its id too,
-/// where no layer before had one: the group of its shape, which a page
-/// links to and finds (docs/adr/0037).
-fn name_first(layer: &str, named: &mut std::collections::HashSet<String>) -> String {
+/// where no layer before had one and the part's id may go on this layer
+/// (`here`): the group of its shape, which a page links to and finds
+/// (docs/adr/0037).
+fn name_first(
+    layer: &str,
+    named: &mut std::collections::HashSet<String>,
+    here: impl Fn(&str) -> bool,
+) -> String {
     let mut out = String::with_capacity(layer.len() + 64);
     let mut rest = layer;
     while let Some(at) = rest.find(PART) {
@@ -1938,7 +1958,7 @@ fn name_first(layer: &str, named: &mut std::collections::HashSet<String>) -> Str
         };
         let name = &rest[start..start + length];
         out.push_str(&rest[..start + length + 1]);
-        if named.insert(name.to_owned()) {
+        if here(name) && named.insert(name.to_owned()) {
             let _ = write!(out, r#" id="{name}""#);
         }
         rest = &rest[start + length + 1..];
@@ -2056,21 +2076,28 @@ pub fn push_written(id: &mut String, name: &str) {
 #[derive(Debug, Default)]
 pub struct Given {
     taken: std::collections::HashSet<String>,
+    /// For a name given before, the number its next one starts looking
+    /// from: those below it are taken, so many of one name (a sequence's
+    /// `A -> B`) take no longer each.
+    next: std::collections::HashMap<String, usize>,
 }
 
 impl Given {
-    /// `name`, or the first of `name-2`, `name-3`, … not given yet.
+    /// `name`, or the first of `name-2`, `name-3`, … not given yet; no
+    /// name stays none, as a part without one is drawn in none.
     pub fn unique(&mut self, name: String) -> String {
-        if self.taken.insert(name.clone()) {
+        if name.is_empty() || self.taken.insert(name.clone()) {
             return name;
         }
-        (2..)
-            .map(|n| format!("{name}-{n}"))
-            .find(|next| !self.taken.contains(next))
-            .inspect(|next| {
-                self.taken.insert(next.clone());
-            })
-            .expect("a free name")
+        let mut n = self.next.get(&name).copied().unwrap_or(2);
+        loop {
+            let next = format!("{name}-{n}");
+            n += 1;
+            if self.taken.insert(next.clone()) {
+                self.next.insert(name, n);
+                return next;
+            }
+        }
     }
 }
 

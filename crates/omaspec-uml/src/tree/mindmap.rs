@@ -214,9 +214,11 @@ impl Geometry<'_> {
         } else {
             (before, top + half)
         };
+        // Each link's name given once (docs/adr/0037).
+        let mut links = crate::svg::Given::default();
         for (finger, dir) in [(&right, 1.0), (&left, -1.0)] {
             if let Some(finger) = finger {
-                self.draw_finger(canvas, finger, origin, dir, found);
+                self.draw_finger(canvas, finger, (origin, dir), (found, &mut links));
             }
         }
         // The root holds the ideas of both of its sides.
@@ -245,9 +247,8 @@ impl Geometry<'_> {
         &self,
         canvas: &mut Canvas,
         finger: &Finger,
-        start: (f32, f32),
-        dir: f32,
-        found: &mut map::Map,
+        (start, dir): ((f32, f32), f32),
+        (found, links): (&mut map::Map, &mut crate::svg::Given),
     ) {
         let skin = self.skin;
         if let Some(label) = &finger.label {
@@ -288,10 +289,10 @@ impl Geometry<'_> {
         let p1 = self.at(start, dir * finger.elongation, 0.0);
         for (child, &offset) in finger.children.iter().zip(&finger.offsets) {
             let p2 = self.at(start, dir * (finger.elongation + x1 + x2), offset);
-            self.draw_finger(canvas, child, p2, dir, found);
+            self.draw_finger(canvas, child, (p2, dir), (found, links));
             // In its part, by what it joins (docs/adr/0037).
             let name = match self.glides {
-                true => super::link(&finger.key, &child.key),
+                true => links.unique(super::link(&finger.key, &child.key)),
                 false => String::new(),
             };
             let points = canvas.part(&name, |canvas| self.link(canvas, p1, p2, dir));

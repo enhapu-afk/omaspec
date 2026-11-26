@@ -2,13 +2,13 @@
 <rect x="0" y="0" width="275" height="410" fill="#1E1E1E"/>
 <g transform="translate(10,10)">
 <g>
-<g class="actor-User" id="actor-User">
+<g class="actor-User">
 <line x1="15.62" y1="100.25" x2="15.62" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-App" id="participant-App">
+<g class="participant-App">
 <line x1="107.17" y1="100.25" x2="107.17" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="database-DB" id="database-DB">
+<g class="database-DB">
 <line x1="239.04" y1="100.25" x2="239.04" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
@@ -19,20 +19,20 @@
 </g>
 </g>
 <g>
-<g class="actor-User">
+<g class="actor-User" id="actor-User">
 <ellipse cx="15.62" cy="39.45" rx="8" ry="8" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <path d="M15.62,47.45 L15.62,66.45 M2.62,53.45 L28.62,53.45 M15.62,66.45 L2.62,80.45 M15.62,66.45 L28.62,80.45" fill="none" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="96.94" font-size="14" fill="#EEEEEE" textLength="31.23" lengthAdjust="spacing">User</tspan>
 </text>
 </g>
-<g class="participant-App">
+<g class="participant-App" id="participant-App">
 <rect x="86.77" y="69.95" width="40.8" height="30.3" rx="2.5" ry="2.5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="93.77" y="89.94" font-size="14" fill="#EEEEEE" textLength="26.8" lengthAdjust="spacing">App</tspan>
 </text>
 </g>
-<g class="database-DB">
+<g class="database-DB" id="database-DB">
 <path d="M224.04,47.95 L224.04,75.95 A15,5 0 0 0 254.04,75.95 L254.04,47.95" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <ellipse cx="239.04" cy="47.95" rx="15" ry="5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">

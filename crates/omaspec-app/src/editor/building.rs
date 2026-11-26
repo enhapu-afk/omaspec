@@ -585,6 +585,13 @@ mod tests {
             Language::PlantUml,
         );
         assert!(!sequence.by_parts());
+        // Heads alone tie nothing: the picture comes whole at the end,
+        // though its participants are named (REQ-142, docs/adr/0037).
+        let heads = picture(
+            "@startuml\nparticipant A\nparticipant B\n@enduml\n",
+            Language::PlantUml,
+        );
+        assert!(heads.untied && !heads.by_parts());
         let lines: Vec<usize> = sequence.reach.iter().map(|&(line, _)| line).collect();
         assert!(lines.contains(&1) && lines.contains(&2), "{lines:?}");
         let (first, second) = (

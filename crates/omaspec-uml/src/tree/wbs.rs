@@ -63,6 +63,7 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
         places: Vec::new(),
         wires: Vec::new(),
         glides: d.root.named(),
+        links: crate::svg::Given::default(),
     };
     drawer.root(&root, &row, annotations.top());
     let (places, wires) = (drawer.places, drawer.wires);
@@ -173,6 +174,8 @@ struct Drawer<'a> {
     /// stands in the picture's group of lines. A link without its line in
     /// the map would be gone while a pane glides.
     glides: bool,
+    /// Each link's name given once (docs/adr/0037).
+    links: crate::svg::Given,
 }
 
 impl Drawer<'_> {
@@ -190,7 +193,7 @@ impl Drawer<'_> {
     /// of a spine. A spine and a row's bar many links share are no one's.
     fn own_line(&mut self, (parent, child): (&Branch, &Branch), from: (f32, f32), to: (f32, f32)) {
         let name = match self.glides {
-            true => super::link(&parent.key, &child.key),
+            true => self.links.unique(super::link(&parent.key, &child.key)),
             false => String::new(),
         };
         let (layer, link) = (
@@ -347,8 +350,6 @@ impl Drawer<'_> {
 
 #[cfg(test)]
 mod tests {
-    /// Asked for its parts, a WBS draws each box in a group of its own,
-    /// named as its map names it, the lines between them outside.
     /// A link is named by what it joins, on the piece of its line that is
     /// its own (docs/adr/0037).
     #[test]
@@ -362,6 +363,8 @@ mod tests {
         }
     }
 
+    /// Asked for its parts, a WBS draws each box in a group of its own,
+    /// named as its map names it, the lines between them outside.
     #[test]
     fn a_wbs_s_boxes_are_parts_named_as_its_map_names_them() {
         let source = "@startwbs\n* Move\n** Pack\n*** Books\n** Clean\n@endwbs\n";

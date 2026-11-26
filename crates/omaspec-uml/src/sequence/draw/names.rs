@@ -8,6 +8,8 @@
 //! divider, a delay and a reference by their words, a box of
 //! participants by its title. A name given twice takes `-2`.
 
+use std::collections::HashMap;
+
 use super::super::{Diagram, End, GroupKind, Item, NotePlace, Shape, Side};
 use crate::svg::{Given, element, note_part, push_written};
 
@@ -30,7 +32,8 @@ impl Names {
             End::Participant(p) => written(&d.participants[*p].code),
             End::Edge(side) | End::Short(side) => side_word(*side).to_owned(),
         };
-        let mut notes: Vec<(String, &str)> = Vec::new();
+        // How many notes each element has on each side so far.
+        let mut notes: HashMap<(String, &str), usize> = HashMap::new();
         let mut items = Vec::with_capacity(d.items.len());
         for (k, item) in d.items.iter().enumerate() {
             let name = match item {
@@ -54,8 +57,9 @@ impl Names {
                             (message.unwrap_or_default(), side_word(side))
                         }
                     };
-                    let nth = notes.iter().filter(|(o, s)| *o == of && *s == side).count();
-                    notes.push((of.clone(), side));
+                    let seen = notes.entry((of.clone(), side)).or_default();
+                    let nth = *seen;
+                    *seen += 1;
                     match of.is_empty() {
                         true => format!("note-{side}-{}", nth + 1),
                         false => note_part(&of, side, nth),

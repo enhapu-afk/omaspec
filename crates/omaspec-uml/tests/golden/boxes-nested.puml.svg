@@ -15,39 +15,39 @@
 </g>
 </g>
 <g>
-<g class="participant-Gateway" id="participant-Gateway">
+<g class="participant-Gateway">
 <line x1="46.12" y1="76.56" x2="46.12" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Invoices" id="participant-Invoices">
+<g class="participant-Invoices">
 <line x1="141.86" y1="76.56" x2="141.86" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Payments" id="participant-Payments">
+<g class="participant-Payments">
 <line x1="285.92" y1="76.56" x2="285.92" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Bank" id="participant-Bank">
+<g class="participant-Bank">
 <line x1="384.09" y1="76.56" x2="384.09" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
 <g>
-<g class="participant-Gateway">
+<g class="participant-Gateway" id="participant-Gateway">
 <rect x="10" y="46.26" width="72.24" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="17" y="66.26" font-size="14" fill="#000000" textLength="58.24" lengthAdjust="spacing">Gateway</tspan>
 </text>
 </g>
-<g class="participant-Invoices">
+<g class="participant-Invoices" id="participant-Invoices">
 <rect x="107.24" y="46.26" width="69.24" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="114.24" y="66.26" font-size="14" fill="#000000" textLength="55.24" lengthAdjust="spacing">Invoices</tspan>
 </text>
 </g>
-<g class="participant-Payments">
+<g class="participant-Payments" id="participant-Payments">
 <rect x="246.25" y="46.26" width="79.35" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="253.25" y="66.26" font-size="14" fill="#000000" textLength="65.35" lengthAdjust="spacing">Payments</tspan>
 </text>
 </g>
-<g class="participant-Bank">
+<g class="participant-Bank" id="participant-Bank">
 <rect x="360.6" y="46.26" width="46.98" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="367.6" y="66.26" font-size="14" fill="#000000" textLength="32.98" lengthAdjust="spacing">Bank</tspan>

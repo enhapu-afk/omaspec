@@ -379,6 +379,8 @@ impl Space {
 /// A box around participants, by columns.
 #[derive(Clone)]
 struct BoxPlace {
+    /// Which of the diagram's boxes it is ([`names::Names::group_box`]).
+    of: usize,
     first: usize,
     last: usize,
     title: Block,
@@ -850,7 +852,7 @@ impl<'a> Drawer<'a> {
         let n = cols.len();
         let mut pad_left = vec![0.0; n];
         let mut pad_right = vec![0.0; n];
-        for b in &d.boxes {
+        for (of, b) in d.boxes.iter().enumerate() {
             let mut members: Vec<usize> = b
                 .participants
                 .iter()
@@ -875,6 +877,7 @@ impl<'a> Drawer<'a> {
             pad_left[first] += skin.box_padding;
             pad_right[last] += skin.box_padding;
             let place = BoxPlace {
+                of,
                 first,
                 last,
                 title,
@@ -1567,8 +1570,8 @@ impl<'a> Drawer<'a> {
         pages.push((page_top, bottom));
         let bands = self.box_bands();
         let mut grounds = Vec::new();
-        for (at, b) in self.boxes.iter().enumerate() {
-            let part = self.names.group_box(at);
+        for b in &self.boxes {
+            let part = self.names.group_box(b.of);
             // Inside another, it keeps the padding of those around it that
             // end at the same column clear, and starts under their titles.
             let (inset_left, inset_right) = inset(&self.boxes, b, skin.box_padding);
@@ -2916,49 +2919,47 @@ impl<'a> Drawer<'a> {
         end: f32,
         (dashed, dotted): (Stroke, Stroke),
     ) {
-        {
-            let x = self.x[c];
-            let mut y = self.life_start[c];
-            let stop = self.life_end[c].unwrap_or(end);
-            // Between pages it does not run; past a page it starts below.
-            let mut breaks: Vec<(f32, f32, Break)> = self
-                .delays
-                .iter()
-                .map(|&(d0, d1, words)| (d0, d1, Break::Delay(words)))
-                .chain(self.pages.iter().map(|p| (p.end, p.resume, Break::Page)))
-                .collect();
-            breaks.sort_by(|a, b| a.0.total_cmp(&b.0));
-            for (d0, d1, kind) in breaks {
-                let Break::Delay(words) = kind else {
-                    if d0 > y && y < stop {
-                        canvas.line(Layer::Lifelines, (x, y), (x, d0.min(stop)), dashed);
-                    }
-                    y = y.max(d1);
-                    continue;
-                };
-                if d1 <= y || d0 >= stop {
-                    continue;
+        let x = self.x[c];
+        let mut y = self.life_start[c];
+        let stop = self.life_end[c].unwrap_or(end);
+        // Between pages it does not run; past a page it starts below.
+        let mut breaks: Vec<(f32, f32, Break)> = self
+            .delays
+            .iter()
+            .map(|&(d0, d1, words)| (d0, d1, Break::Delay(words)))
+            .chain(self.pages.iter().map(|p| (p.end, p.resume, Break::Page)))
+            .collect();
+        breaks.sort_by(|a, b| a.0.total_cmp(&b.0));
+        for (d0, d1, kind) in breaks {
+            let Break::Delay(words) = kind else {
+                if d0 > y && y < stop {
+                    canvas.line(Layer::Lifelines, (x, y), (x, d0.min(stop)), dashed);
                 }
-                if d0 > y {
-                    canvas.line(Layer::Lifelines, (x, y), (x, d0), dashed);
-                }
-                let (from, to) = (d0.max(y), d1.min(stop));
-                match words {
-                    Some([left, top, right, bottom]) if x > left && x < right => {
-                        if top > from {
-                            canvas.line(Layer::Lifelines, (x, from), (x, top), dotted);
-                        }
-                        if to > bottom {
-                            canvas.line(Layer::Lifelines, (x, bottom), (x, to), dotted);
-                        }
-                    }
-                    _ => canvas.line(Layer::Lifelines, (x, from), (x, to), dotted),
-                }
-                y = to;
+                y = y.max(d1);
+                continue;
+            };
+            if d1 <= y || d0 >= stop {
+                continue;
             }
-            if stop > y {
-                canvas.line(Layer::Lifelines, (x, y), (x, stop), dashed);
+            if d0 > y {
+                canvas.line(Layer::Lifelines, (x, y), (x, d0), dashed);
             }
+            let (from, to) = (d0.max(y), d1.min(stop));
+            match words {
+                Some([left, top, right, bottom]) if x > left && x < right => {
+                    if top > from {
+                        canvas.line(Layer::Lifelines, (x, from), (x, top), dotted);
+                    }
+                    if to > bottom {
+                        canvas.line(Layer::Lifelines, (x, bottom), (x, to), dotted);
+                    }
+                }
+                _ => canvas.line(Layer::Lifelines, (x, from), (x, to), dotted),
+            }
+            y = to;
+        }
+        if stop > y {
+            canvas.line(Layer::Lifelines, (x, y), (x, stop), dashed);
         }
     }
 
@@ -2976,8 +2977,6 @@ impl<'a> Drawer<'a> {
         self.head_drawn_again(canvas, c, top, bottom, bottom)
     }
 
-    /// [`Self::head`]; `again` where the name is drawn a second time, at
-    /// the foot or on a page after the first.
     /// [`Self::head_shape_drawn`] in its participant's element.
     fn head_drawn_again(
         &self,
@@ -2987,11 +2986,20 @@ impl<'a> Drawer<'a> {
         bottom: bool,
         again: bool,
     ) -> (crate::graph::Rect, Paint) {
+        // Its id on its head, not on the lifeline under it; a linked head
+        // is a link, drawn in no part, and its lifeline keeps the id.
+        let linked = (0..self.d.participants.len())
+            .any(|p| self.col_of[p] == Some(c) && self.d.participants[p].link.is_some());
+        if !linked {
+            canvas.id_on(&self.column_names[c], Layer::Front);
+        }
         canvas.part(&self.column_names[c], |canvas| {
             self.head_shape_drawn(canvas, c, top, bottom, again)
         })
     }
 
+    /// [`Self::head`]; `again` where the name is drawn a second time, at
+    /// the foot or on a page after the first.
     fn head_shape_drawn(
         &self,
         canvas: &mut Canvas,
@@ -4235,12 +4243,30 @@ mod tests {
         ] {
             assert_eq!(count(&svg, &format!(" id=\"{id}\"")), 1, "{id}");
         }
-        // A participant's head, foot, lifeline and bar are all its own.
+        // A participant's head, foot, lifeline and bar are all its own;
+        // its id is on its head, not on the lifeline under it.
         assert!(count(&svg, r#"<g class="participant-Web""#) >= 3, "{svg}");
+        let head = r#"<g class="participant-Web" id="participant-Web">"#;
+        let at = svg.find(head).unwrap() + head.len();
+        assert!(!svg[at..].starts_with("<line"), "{}", &svg[at..at + 200]);
         assert!(svg.contains(crate::NAMED) && !svg.contains(crate::svg::MARKED));
         assert!(crate::has_parts(&svg) && !crate::glides_by_parts(&svg));
         // The same source, the same ids.
         assert_eq!(svg, crate::render(source).unwrap());
+    }
+
+    /// A box with no one to show is not drawn, and the next keeps its own
+    /// name.
+    #[test]
+    fn a_box_keeps_its_name_after_one_not_drawn() {
+        let svg = crate::render(
+            "hide unlinked\nbox Idle\nparticipant X\nend box\nbox Back\nparticipant Api\nend box\nUser -> Api : go",
+        )
+        .unwrap();
+        assert!(
+            svg.contains(r#" id="box-Back""#) && !svg.contains("box-Idle"),
+            "{svg}"
+        );
     }
 
     #[test]

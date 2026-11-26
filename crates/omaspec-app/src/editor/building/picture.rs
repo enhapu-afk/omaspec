@@ -181,11 +181,10 @@ impl Picture {
         // what each line drew: the picture comes whole as the line that
         // closes the diagram is written, rather than all of it but its
         // foot from the first line on, a row cut in half to the end
-        // (REQ-142).
-        let boxes = parts
-            .iter()
-            .any(|part| !omaspec_uml::FRAME_PARTS.contains(&part.name.as_str()));
-        let untied = reach.is_empty() && !boxes;
+        // (REQ-142). One built by its parts has its boxes to set down; a
+        // sequence's elements are named but not built so (docs/adr/0037).
+        let glides = omaspec_uml::glides_by_parts(shown);
+        let untied = reach.is_empty() && !glides;
         if untied {
             reach.push((closing_line(text), size.1));
         }
@@ -198,7 +197,7 @@ impl Picture {
             wires,
             reach,
             untied,
-            glides: omaspec_uml::glides_by_parts(shown),
+            glides,
             lines_group,
             root: root_of(svg, size),
         })

@@ -123,7 +123,8 @@ Measured on a state machine of seven states, 16 part groups made its SVG
   before: its root says `data-omaspec="named"`, not `"parts"`, so the
   pane fades it, a build uncovers it from the top down and a play lifts
   its veil message by message. A participant's head, foot, lifeline and
-  bars are its element; a note beside a message is one of its own.
+  bars are its element, its id on its head; a note beside a message is
+  one of its own.
   Whether messages should glide is a question of its own.
 - A line many links share (a WBS's spine, the bar over a row) is no
   one link's: it stays in the lines' group without an id, and each

@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="465" height="545" viewBox="0 0 465 545" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
-<g class="actor-User" id="actor-User">
+<g class="actor-User">
 <line x1="15" y1="95.59" x2="15" y2="454.85" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Web" id="participant-Web">
+<g class="participant-Web">
 <line x1="153.53" y1="95.59" x2="153.53" y2="454.85" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Auth" id="participant-Auth">
+<g class="participant-Auth">
 <line x1="312.26" y1="95.59" x2="312.26" y2="454.85" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="database-Sessions" id="database-Sessions">
+<g class="database-Sessions">
 <line x1="420.1" y1="95.59" x2="420.1" y2="454.85" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
@@ -21,26 +21,26 @@
 </g>
 </g>
 <g>
-<g class="actor-User">
+<g class="actor-User" id="actor-User">
 <ellipse cx="15" cy="34.8" rx="8" ry="8" fill="#E4E4E4" stroke="#181818" stroke-width="0.5"/>
 <path d="M15,42.8 L15,61.8 M2,48.8 L28,48.8 M15,61.8 L2,75.8 M15,61.8 L28,75.8" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Times New Roman, Liberation Serif, Tinos, Times, Nimbus Roman, serif" xml:space="preserve">
 <tspan x="1.78" y="92.29" font-size="14" fill="#000000" textLength="26.43" lengthAdjust="spacing">User</tspan>
 </text>
 </g>
-<g class="participant-Web">
+<g class="participant-Web" id="participant-Web">
 <rect x="121.46" y="65.3" width="64.15" height="30.3" fill="#E4E4E4" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Times New Roman, Liberation Serif, Tinos, Times, Nimbus Roman, serif" xml:space="preserve">
 <tspan x="128.46" y="85.29" font-size="14" fill="#000000" textLength="50.15" lengthAdjust="spacing">Web app</tspan>
 </text>
 </g>
-<g class="participant-Auth">
+<g class="participant-Auth" id="participant-Auth">
 <rect x="291.26" y="65.3" width="42" height="30.3" fill="#E4E4E4" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Times New Roman, Liberation Serif, Tinos, Times, Nimbus Roman, serif" xml:space="preserve">
 <tspan x="298.26" y="85.29" font-size="14" fill="#000000" textLength="28" lengthAdjust="spacing">Auth</tspan>
 </text>
 </g>
-<g class="database-Sessions">
+<g class="database-Sessions" id="database-Sessions">
 <path d="M405.1,43.3 L405.1,71.3 A15,5 0 0 0 435.1,71.3 L435.1,43.3" fill="#E4E4E4" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="420.1" cy="43.3" rx="15" ry="5" fill="#E4E4E4" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Times New Roman, Liberation Serif, Tinos, Times, Nimbus Roman, serif" xml:space="preserve">

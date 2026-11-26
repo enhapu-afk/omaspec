@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="271" height="409" viewBox="0 0 271 409" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
-<g class="participant-Client" id="participant-Client">
+<g class="participant-Client">
 <line x1="26" y1="30.3" x2="26" y2="358.22" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Server" id="participant-Server">
+<g class="participant-Server">
 <line x1="127.82" y1="30.3" x2="127.82" y2="358.22" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
@@ -14,13 +14,13 @@
 </g>
 </g>
 <g>
-<g class="participant-Client">
+<g class="participant-Client" id="participant-Client">
 <rect x="0" y="0" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="19.99" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
 </text>
 </g>
-<g class="participant-Server">
+<g class="participant-Server" id="participant-Server">
 <rect x="98.97" y="0" width="57.71" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="105.97" y="19.99" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>

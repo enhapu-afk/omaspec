@@ -2359,7 +2359,13 @@ is open and the reasoning around it.
       `divider-Done`, `delay-later`, `ref-more`, `box-Back`. It is drawn
       as a whole, as before: its root says `data-omaspec="named"`, so the
       pane fades it and a build uncovers it from the top down. 21 golden
-      SVGs changed, by their groups and their root alone.
+      SVGs changed, by their groups and their root alone. After the
+      review: a participant's id is on its head, not on the lifeline
+      drawn before it (`Canvas::id_on`); a box after one with no one to
+      show keeps its own name; a build of heads alone still comes whole
+      at the end (REQ-142), now that they are named; a mind map's and a
+      WBS's link names are given once; many messages of one name are
+      named without counting each from the start.
 - [x] An id for every box and line, step 2, the lines of structure
       diagrams, flowcharts and trees (2026-11-26,
       [0037](adr/0037-an-id-for-every-box-and-line.md)): a structure

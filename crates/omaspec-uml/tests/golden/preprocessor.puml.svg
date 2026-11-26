@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="318" height="455" viewBox="0 0 318 455" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
-<g class="participant-C" id="participant-C">
+<g class="participant-C">
 <line x1="34.54" y1="83.59" x2="34.54" y2="376.78" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-S" id="participant-S">
+<g class="participant-S">
 <line x1="150.51" y1="83.59" x2="150.51" y2="376.78" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="database-D" id="database-D">
+<g class="database-D">
 <line x1="279.34" y1="83.59" x2="279.34" y2="376.78" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
@@ -19,19 +19,19 @@
 </g>
 </g>
 <g>
-<g class="participant-C">
+<g class="participant-C" id="participant-C">
 <rect x="0" y="53.3" width="69.09" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="73.29" font-size="14" fill="#000000" textLength="55.09" lengthAdjust="spacing">Browser</tspan>
 </text>
 </g>
-<g class="participant-S">
+<g class="participant-S" id="participant-S">
 <rect x="132.7" y="53.3" width="35.62" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="139.7" y="73.29" font-size="14" fill="#000000" textLength="21.62" lengthAdjust="spacing">Api</tspan>
 </text>
 </g>
-<g class="database-D">
+<g class="database-D" id="database-D">
 <path d="M264.34,31.3 L264.34,59.3 A15,5 0 0 0 294.34,59.3 L294.34,31.3" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="279.34" cy="31.3" rx="15" ry="5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">

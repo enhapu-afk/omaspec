@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="626" height="596" viewBox="0 0 626 596" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
-<g class="actor-User" id="actor-User">
+<g class="actor-User">
 <line x1="17.85" y1="100.25" x2="17.85" y2="503.74" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Web" id="participant-Web">
+<g class="participant-Web">
 <line x1="207.05" y1="100.25" x2="207.05" y2="503.74" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Auth" id="participant-Auth">
+<g class="participant-Auth">
 <line x1="425.64" y1="100.25" x2="425.64" y2="503.74" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="database-Sessions" id="database-Sessions">
+<g class="database-Sessions">
 <line x1="571.77" y1="100.25" x2="571.77" y2="503.74" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
@@ -21,26 +21,26 @@
 </g>
 </g>
 <g>
-<g class="actor-User">
+<g class="actor-User" id="actor-User">
 <ellipse cx="17.85" cy="37.12" rx="8" ry="8" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M17.85,45.12 L17.85,64.12 M4.85,51.12 L30.85,51.12 M17.85,64.12 L4.85,78.12 M17.85,64.12 L30.85,78.12" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="96.47" font-size="16" fill="#000000" textLength="35.7" lengthAdjust="spacing">User</tspan>
 </text>
 </g>
-<g class="participant-Web">
+<g class="participant-Web" id="participant-Web">
 <rect x="166.07" y="67.62" width="81.95" height="32.62" rx="6" ry="6" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="173.07" y="89.47" font-size="16" fill="#000000" textLength="67.95" lengthAdjust="spacing">Web app</tspan>
 </text>
 </g>
-<g class="participant-Auth">
+<g class="participant-Auth" id="participant-Auth">
 <rect x="401.05" y="67.62" width="49.18" height="32.62" rx="6" ry="6" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="408.05" y="89.47" font-size="16" fill="#000000" textLength="35.18" lengthAdjust="spacing">Auth</tspan>
 </text>
 </g>
-<g class="database-Sessions">
+<g class="database-Sessions" id="database-Sessions">
 <path d="M556.77,45.62 L556.77,73.62 A15,5 0 0 0 586.77,73.62 L586.77,45.62" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="571.77" cy="45.62" rx="15" ry="5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">

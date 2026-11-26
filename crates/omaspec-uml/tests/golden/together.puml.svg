@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="442" height="300" viewBox="0 0 442 300" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
-<g class="participant-Client" id="participant-Client">
+<g class="participant-Client">
 <line x1="101" y1="30.3" x2="101" y2="249.22" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Gateway" id="participant-Gateway">
+<g class="participant-Gateway">
 <line x1="199.68" y1="30.3" x2="199.68" y2="249.22" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Orders" id="participant-Orders">
+<g class="participant-Orders">
 <line x1="291.95" y1="30.3" x2="291.95" y2="249.22" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g class="participant-Stock" id="participant-Stock">
+<g class="participant-Stock">
 <line x1="382.59" y1="30.3" x2="382.59" y2="249.22" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 </g>
@@ -28,25 +28,25 @@
 </g>
 </g>
 <g>
-<g class="participant-Client">
+<g class="participant-Client" id="participant-Client">
 <rect x="75" y="0" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="82" y="19.99" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
 </text>
 </g>
-<g class="participant-Gateway">
+<g class="participant-Gateway" id="participant-Gateway">
 <rect x="163.56" y="0" width="72.24" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="170.56" y="19.99" font-size="14" fill="#000000" textLength="58.24" lengthAdjust="spacing">Gateway</tspan>
 </text>
 </g>
-<g class="participant-Orders">
+<g class="participant-Orders" id="participant-Orders">
 <rect x="262.27" y="0" width="59.36" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="269.27" y="19.99" font-size="14" fill="#000000" textLength="45.36" lengthAdjust="spacing">Orders</tspan>
 </text>
 </g>
-<g class="participant-Stock">
+<g class="participant-Stock" id="participant-Stock">
 <rect x="356.77" y="0" width="51.65" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="363.77" y="19.99" font-size="14" fill="#000000" textLength="37.65" lengthAdjust="spacing">Stock</tspan>
