@@ -39,6 +39,7 @@ pub mod journey;
 pub mod json;
 pub mod kanban;
 pub mod map;
+pub mod marble;
 mod metrics;
 pub mod network;
 mod own_skin;

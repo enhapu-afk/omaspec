@@ -1,0 +1,15 @@
+---
+title: A search box
+---
+marble-beta
+  %% The keys wait for a pause of 0.3 s (debounce), and a new search
+  %% cancels the one still in flight (switchMap).
+  axis      : 0    0.5s 1s   1.5s 2s   2.5s
+  keys      : -a-b-----c-d-------------|
+  debounced : ------b-------d----------|
+  "GET b"   :       [=======!
+  "GET d"   :               [====]
+  results   : -------------------r-----|
+  label = "request"
+  label ! "cancelled"
+  label r "results for d"

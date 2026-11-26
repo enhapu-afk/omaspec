@@ -81,7 +81,7 @@ pub(crate) fn puml_end() -> &'static Regex {
 /// [`crate::mermaid_head`]'s).
 pub(crate) fn mermaid_head() -> &'static Regex {
     re!(
-        r"^(flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|sankey-beta|xychart-beta|block-beta|packet-beta|kanban|architecture-beta|zenuml|radar-beta|treemap-beta|swimlane-beta)\b"
+        r"^(flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|sankey-beta|xychart-beta|block-beta|packet-beta|kanban|architecture-beta|zenuml|radar-beta|treemap-beta|swimlane-beta|marble-beta)\b"
     )
 }
 
@@ -89,7 +89,9 @@ pub(crate) fn mermaid_head() -> &'static Regex {
 /// (`xychart`, `sankey horizontal`): a word, at most one more, and no more
 /// to the line, so `block = parse(x)` is no diagram.
 pub(crate) fn mermaid_bare() -> &'static Regex {
-    re!(r"^(sankey|xychart|block|packet|architecture|radar|treemap)(?:-beta)?(?:\s+[A-Za-z]+)?\s*$")
+    re!(
+        r"^(sankey|xychart|block|packet|architecture|radar|treemap|marble)(?:-beta)?(?:\s+[A-Za-z]+)?\s*$"
+    )
 }
 
 pub(crate) fn mermaid_graph() -> &'static Regex {
@@ -215,6 +217,10 @@ mod tests {
         // code that begins with its word is none.
         assert_eq!(detect("xychart\n  bar [1, 2]", None), Mermaid);
         assert_eq!(detect("sankey-beta\nA,B,1", None), Mermaid);
+        assert_eq!(
+            detect("---\ntitle: T\n---\nmarble-beta\n  a : -a-|", None),
+            Mermaid
+        );
         assert!(looks_like_diagram("xychart horizontal\n  bar [1, 2]"));
         assert!(!looks_like_diagram("block = parse(x)\nprint(block)"));
         assert!(!looks_like_diagram(

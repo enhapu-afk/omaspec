@@ -2127,6 +2127,31 @@ is open and the reasoning around it.
       chart, and changes nothing elsewhere; one builder for an element's
       own skinparams (`Element::own`).
 
+- [x] Mermaid's marble diagrams drawn natively (REQ-105, 2026-11-26):
+      `marble-beta`, proposed in mermaid-js/mermaid#8864, read as the
+      proposal's reference reads it, in a module of its own
+      (`omaspec_uml::marble`: read, lane, layout, draw). Lanes in RxJS's
+      marble syntax measured from one origin, so lanes lined up in the
+      source line up in the picture: values, `|`, `#`, `( )` groups
+      stacked in one frame, `^` and `!`, a subscription lane as one span,
+      time progressions (`9ms`) as a break with their words; the
+      proposal's spans (`[===]`, `S~~~E`, `>` still running), `/` breaks
+      on every lane, `axis`, `title` and `label c "text"`, each labelled
+      character in a color of the charts' palette, a label beside its
+      marble or in a row of its own where it would run into the one
+      before. The `marble` section's sizes and `showEventLabels` and the
+      seventeen `marble…` theme variables are carried out, and lint says
+      so for a number out of reach; `look: handDrawn` draws it by hand.
+      What Mermaid refuses (a group never closed or nested, a `)` that
+      closes none, a lane or a label written twice, a second axis, a tab
+      that would decide a column, a keyword as a lane's name without
+      quotes) is an error on its line, in `render` and `lint` alike. A
+      lane's name, each marble's character, the ticks and the title are
+      tied to their lines, a label's words to its line the first time and
+      as echoes after; the outline lists the lanes and the labels. The
+      gallery has a search box: keys debounced, a request in flight
+      cancelled by the next.
+
 ## From the tester's round of 1.1.0 (2026-11-24)
 
 - [x] Lint says what of PlantUML's standard library Omaspec lacks

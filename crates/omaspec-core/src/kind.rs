@@ -220,7 +220,7 @@ fn structure_name(code: &str) -> &'static str {
     }
 }
 
-const MERMAID_KINDS: [(&str, Kind, &str); 23] = [
+const MERMAID_KINDS: [(&str, Kind, &str); 24] = [
     ("sequenceDiagram", Kind::Sequence, "Sequence diagram"),
     ("swimlane-beta", Kind::Activity, "Swimlane diagram"),
     ("zenuml", Kind::Sequence, "ZenUML sequence diagram"),
@@ -244,6 +244,7 @@ const MERMAID_KINDS: [(&str, Kind, &str); 23] = [
     ("radar-beta", Kind::Other, "Radar chart"),
     ("treemap-beta", Kind::Other, "Treemap"),
     ("gitGraph", Kind::Other, "Git graph"),
+    ("marble-beta", Kind::Other, "Marble diagram"),
 ];
 
 /// A head word: the keyword followed by a non-word character or the end.

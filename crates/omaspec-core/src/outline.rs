@@ -730,6 +730,25 @@ fn mermaid(lines: &[&str], mut b: Builder) -> (Vec<Entry>, Vec<(usize, usize)>) 
                     b.add(row, "tag", label(&tag));
                 }
             }
+            // A marble diagram's lanes and what its labels say (REQ-105),
+            // past what is said for accessibility.
+            "marble-beta" | "marble" => {
+                if acc_descr {
+                    acc_descr = !l.contains('}');
+                    continue;
+                }
+                if re!(r"^acc(Title|Descr)\b").is_match(l) {
+                    acc_descr = re!(r"^accDescr\s*\{").is_match(l) && !l.contains('}');
+                    continue;
+                }
+                if let Some(c) = re!(r#"^label\s*(\S)\s*"([^"]*)""#).captures(l) {
+                    b.add(row, "label", label(&format!("{} {}", &c[1], &c[2])));
+                } else if let Some(c) = re!(r#"^("[^"]*"|[A-Za-z_][\w.-]*)\s*:"#).captures(l)
+                    && &c[1] != "axis"
+                {
+                    b.add(row, "lane", label(c[1].trim_matches('"').trim()));
+                }
+            }
             "mindmap" => {
                 if l.starts_with("::icon(") {
                     continue;
@@ -1035,6 +1054,22 @@ mod tests {
                 e(7, 0, "tag", "v1"),
                 e(10, 0, "merge", "my feature"),
                 e(10, 0, "commit", "m"),
+            ]
+        );
+    }
+
+    /// A marble diagram's outline: its lanes, quoted or not, and its
+    /// labels, not its axis nor a lane named `title` taken for the title.
+    #[test]
+    fn a_marble_diagram_lists_its_lanes_and_labels() {
+        let code = "marble-beta\n  title switchMap\n  accDescr {\n  hidden : -\n  }\n  axis : 0  5\n  input : -a-|\n  \"search a\" :  [==!\n  title : --t\n  label ! \"cancelled\"\n";
+        assert_eq!(
+            tags(code, Language::Mermaid),
+            [
+                e(6, 0, "lane", "input"),
+                e(7, 0, "lane", "search a"),
+                e(8, 0, "lane", "title"),
+                e(9, 0, "label", "! cancelled"),
             ]
         );
     }

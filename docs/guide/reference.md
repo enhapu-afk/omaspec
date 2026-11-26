@@ -1031,8 +1031,19 @@ Gantt diagrams, C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF 
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
 packets, radars, treemaps, sankeys, XY and quadrant charts, ZenUML,
 mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards,
-requirement diagrams and swimlanes (`swimlane-beta`: each subgraph at the top a lane, drawn
-as bands of one size with their names, the lines running from lane to lane around them). What a drawer leaves (a horizontal XY chart) is drawn by
+requirement diagrams, swimlanes (`swimlane-beta`: each subgraph at the top a lane, drawn
+as bands of one size with their names, the lines running from lane to lane around them) and
+marble diagrams (`marble-beta`, proposed in mermaid-js/mermaid#8864): lanes of events over
+time, each written in RxJS's marble syntax after its name and a colon (`input : -a-b-|`),
+one column of the source for each frame, so lanes lined up in the source line up in the
+picture. `|` completes a lane, `#` errors it, `(ab)` holds values of one frame, `^` and
+`!` subscribe and unsubscribe, `9ms` is time off the scale; `[===]` and `S~~~E` are spans
+of what lasts, `>` one still running, `/` a break in time on every lane; `axis : 0  5  10`
+sets ticks at their columns and `label c "text"` says what a character means and gives it
+a color of the palette. The `marble` section's sizes (`columnWidth`, `marbleRadius`, …,
+`showEventLabels`) and the `marble…` theme variables are carried out; a group never
+closed, a lane written twice or a tab that would decide a column is a mistake on its line,
+as Mermaid has it. What a drawer leaves (a horizontal XY chart) is drawn by
 [mmdr](https://github.com/1jehuang/mermaid-rs-renderer), a Rust library, in the same
 process. An interface beside components is a circle with its name under it, as PlantUML
 draws it there: `[Renderer] ..> () "Clipboard"`, `() HTTP`, or an `interface` without

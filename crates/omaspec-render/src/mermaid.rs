@@ -14,6 +14,7 @@ mod head;
 mod journey;
 mod kanban;
 mod layered;
+mod marble;
 mod mindmap;
 mod pie;
 mod repair;
@@ -444,6 +445,18 @@ const NATIVE: &[Native] = &[
         refusal: |_| None,
         wrong: omaspec_core::mermaid_flow::wrong,
         as_read: swimlane::as_flowchart,
+    },
+    // mmdr reads nothing like a marble diagram: its drawer draws what
+    // `wrong` lets through, its lines as written (`fenced`), since a
+    // marble's column is its time.
+    Native {
+        kind: None,
+        headers: &["marble"],
+        noun: "marble diagram",
+        draw: |i| marble::try_draw(i.theme, i.fenced),
+        refusal: |_| None,
+        wrong: omaspec_uml::marble::mermaid_wrong,
+        as_read: |_| None,
     },
     Native {
         kind: Some(DiagramKind::Sequence),

@@ -160,6 +160,16 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
                     said,
                 ));
             }
+            // What Mermaid refuses in a marble diagram (REQ-105): a group
+            // never closed, a lane written twice.
+            if let Some((line, said)) = omaspec_uml::marble::mermaid_wrong(body) {
+                findings.push(Finding::new(
+                    "refused",
+                    line + offset,
+                    Severity::Error,
+                    said,
+                ));
+            }
             // A flowchart's or a swimlane diagram's box named with a space,
             // which Mermaid refuses and render too (REQ-112).
             if let Some((line, said)) = crate::mermaid_flow::wrong(body) {

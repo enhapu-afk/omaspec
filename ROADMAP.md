@@ -387,14 +387,6 @@ what is plainly missing, then the larger pieces.
       it out otherwise and a label stays on a state. Needs the failing diagram and
       the machine's fonts (`fc-match sans-serif`).
 
-## From the tester's round of 2026-11-23
-
-Reproduced on `main` (9f7a72a), in the order they are taken: first what
-is lost without a word, then what misleads, then what is missing.
-
-- [ ] REQ-105: marble diagrams of reactive streams
-      (mermaid-js/mermaid#8864), a niche.
-
 ## Next
 
 What comes after 0.4, announced in the README. Lines by hand, projects and

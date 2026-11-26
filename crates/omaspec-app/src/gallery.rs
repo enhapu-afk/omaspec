@@ -195,6 +195,12 @@ pub static EXAMPLES: &[Example] = &[
         "Timing: a program, a lock, the drum's speed."
     ),
     example!(
+        "search-box.mmd",
+        Behavior,
+        "A search box",
+        "A Mermaid marble diagram: keys debounced, a search in flight cancelled by the next."
+    ),
+    example!(
         "thermostat.puml",
         Behavior,
         "A room thermostat",

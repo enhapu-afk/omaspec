@@ -345,6 +345,23 @@ pub fn git_graph(code: &str) -> omaspec_uml::gitgraph::Settings {
     }
 }
 
+/// A marble diagram's `marble` section as its drawer takes it: each
+/// number within what a picture can take, the labels beside the marbles
+/// or not. A number out of reach keeps its default, and is not carried
+/// out ([`carried`]).
+pub fn marble(code: &str) -> omaspec_uml::marble::Config {
+    let mut config = omaspec_uml::marble::Config::default();
+    if let Some(section) = merged(code).as_ref().and_then(|root| root.get("marble")) {
+        for key in omaspec_uml::marble::SETTINGS {
+            if let Some(value) = section.get(key).and_then(Value::as_f64) {
+                config.set(key, value);
+            }
+        }
+    }
+    config.event_labels = switch(code, "marble", "showEventLabels", config.event_labels);
+    config
+}
+
 /// The colors of `themeVariables` the drawers take.
 const COLORS: [&str; 23] = [
     "primaryColor",
@@ -412,7 +429,8 @@ const THEMES: [&str; 7] = [
 /// layout as in mmdr's (REQ-110). The layout a diagram asks for, ELK or dagre (`layout`,
 /// `flowchart.defaultRenderer`), is Omaspec's own: it lays out every
 /// diagram itself, in ranks with lines at right angles as ELK does
-/// (REQ-111).
+/// (REQ-111). A marble diagram's `marble` section and its `marble…`
+/// colors are its drawer's (REQ-105).
 fn heeded(path: &[String]) -> bool {
     let path: Vec<&str> = path.iter().map(String::as_str).collect();
     match path.as_slice() {
@@ -421,6 +439,7 @@ fn heeded(path: &[String]) -> bool {
         ["themeVariables", name] => {
             COLORS.contains(name)
                 || VARIABLES.contains(name)
+                || omaspec_uml::marble::COLORS.contains(name)
                 || name
                     .strip_prefix("pie")
                     .and_then(|n| n.parse::<u8>().ok())
@@ -433,6 +452,7 @@ fn heeded(path: &[String]) -> bool {
         ] => true,
         ["sequence", "mirrorActors"] => true,
         ["gitGraph", name] => omaspec_uml::gitgraph::SETTINGS.contains(name),
+        ["marble", name] => omaspec_uml::marble::SETTINGS.contains(name),
         _ => false,
     }
 }
@@ -448,6 +468,19 @@ fn carried(setting: &Setting, git_drawn: bool) -> bool {
             let name = name.trim().to_ascii_lowercase();
             name == "dagre" || name == "elk" || name.starts_with("elk.")
         }),
+        // A marble diagram's numbers within what a picture takes, its
+        // switch a switch.
+        [section, key] if section == "marble" => match key.as_str() {
+            // Read as a switch reads it ([`switch`]): what is no value
+            // at all changes nothing.
+            "showEventLabels" => {
+                setting.value.is_boolean() || setting.value.is_number() || setting.value.is_string()
+            }
+            key => setting
+                .value
+                .as_f64()
+                .is_some_and(|value| omaspec_uml::marble::Config::default().set(key, value)),
+        },
         [section, key] if section == "gitGraph" => {
             git_drawn
                 && match key.as_str() {
@@ -560,6 +593,30 @@ mod tests {
     /// A git graph's settings from the front matter and a directive over
     /// it, its switches tested as Mermaid tests them; what they set is
     /// carried out, so lint says nothing of it, and of the rest it does.
+    /// A marble diagram's sizes within reach and its switch are carried
+    /// out, its colors too; a size out of reach or of no number keeps its
+    /// default and is said (REQ-105).
+    #[test]
+    fn a_marble_diagram_s_settings_are_read_and_carried_out() {
+        let code = "---\nconfig:\n  themeVariables:\n    marbleEventFill: '#ffd54f'\n  marble:\n    columnWidth: 16\n    marbleRadius: 500\n    laneHeight: \"60\"\n    showEventLabels: 0\n    useMaxWidth: true\n---\nmarble-beta\n  a : -a-|\n";
+        let config = marble(code);
+        assert_eq!(config.column_width, 16.0);
+        let stock = omaspec_uml::marble::Config::default();
+        assert_eq!(
+            (config.radius, config.lane_height),
+            (stock.radius, stock.lane_height)
+        );
+        assert!(!config.event_labels);
+        let said: Vec<String> = unheeded(code).into_iter().map(|f| f.message).collect();
+        assert_eq!(said.len(), 3, "{said:?}");
+        for (said, name) in said
+            .iter()
+            .zip(["marbleRadius", "laneHeight", "useMaxWidth"])
+        {
+            assert!(said.starts_with(&format!("`marble.{name}`")), "{said}");
+        }
+    }
+
     #[test]
     fn a_git_graph_s_settings_are_read_and_carried_out() {
         let code = "---\nconfig:\n  gitGraph:\n    mainBranchName: trunk\n    mainBranchOrder: 2\n    showBranches: 0\n---\n%%{init: {\"gitGraph\": {\"rotateCommitLabel\": true, \"showCommitLabel\": \"\", \"parallelCommits\": true}}}%%\ngitGraph\n  commit\n";

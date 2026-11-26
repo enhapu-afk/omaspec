@@ -48,6 +48,7 @@ const KINDS: &[(&str, &[&str])] = &[
     ("treemap", &["treemap-beta", "treemap"]),
     ("xychart", &["xychart-beta", "xychart"]),
     ("swimlane", &["swimlane-beta"]),
+    ("marble", &["marble-beta"]),
 ];
 
 /// What mmdr makes of a Mermaid diagram's first line.
