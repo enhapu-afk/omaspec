@@ -2242,7 +2242,7 @@ mod tests {
         let page = std::fs::read_to_string(work.join("fold.html")).unwrap();
         assert_eq!(page.matches("<svg ").count(), 2);
         // Each picture names its parts by their classes, its ids its own.
-        let brewing = omaspec_uml::part_id("state:Brewing");
+        let brewing = omaspec_uml::part_id("state-Brewing");
         assert!(page.matches(&format!(r#"class="{brewing}""#)).count() >= 2);
         assert!(page.contains(&format!(r#"id="p0-{brewing}""#)), "{page}");
         assert!(page.contains(&format!(r#"id="p1-{brewing}""#)));
@@ -2271,9 +2271,9 @@ mod tests {
                 .find(|b| b["parts"][0] == part(name).as_str())
                 .unwrap_or_else(|| panic!("{name} in {boxes:?}"))
         };
-        assert_eq!(of("state:Brewing")["role"], "stay");
-        assert_ne!(of("state:Brewing")["from"], of("state:Brewing")["to"]);
-        assert_eq!(of("state:Grinding")["role"], "leave");
+        assert_eq!(of("state-Brewing")["role"], "stay");
+        assert_ne!(of("state-Brewing")["from"], of("state-Brewing")["to"]);
+        assert_eq!(of("state-Grinding")["role"], "leave");
         assert!(!data["glides"][0]["lines"].as_array().unwrap().is_empty());
 
         let err = play(&moving(&[])).unwrap_err().to_string();

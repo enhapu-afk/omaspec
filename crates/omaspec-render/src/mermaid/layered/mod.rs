@@ -193,7 +193,9 @@ fn draw(
     if let Some(bands) = &bands {
         lanes::paint(&mut canvas, &palette, bands);
     }
-    paint::paint(&mut canvas, &palette, &scene, curve);
+    // Every part by its name from the source (docs/adr/0037).
+    let names = Names::of(&tree);
+    paint::paint(&mut canvas, &palette, &scene, (curve, &names));
     if let Some((_, title)) = omaspec_uml::front_title(source) {
         paint::title(&mut canvas, &palette, title, family);
     }
@@ -220,7 +222,7 @@ fn draw(
             let mut heads = paint::cap_shape(drawn, true, start);
             heads.extend(paint::cap_shape(drawn, false, end));
             // The part of its words, where it has some (paint::paint_labels).
-            let words = (!edge.label.is_empty()).then(|| omaspec_uml::words_part(&[], slot));
+            let words = (!edge.label.is_empty()).then(|| names.edge(slot));
             Dress {
                 stroke: edge.look.stroke,
                 heads,
@@ -231,7 +233,7 @@ fn draw(
     // In a lane a box stands where its lane puts it: none is offered to
     // hold.
     if swimlanes.is_none() {
-        map.places = places(&tree, &top, held);
+        map.places = places(&tree, &top, held, &names);
     }
     map.misses = misses;
     map.misses
@@ -248,6 +250,7 @@ fn places(
     tree: &Tree,
     top: &[omaspec_uml::graph::across::Placement],
     held: &[(usize, hand::Hold)],
+    parts: &Names,
 ) -> Vec<omaspec_uml::map::Place> {
     let names: HashMap<&Vec<usize>, &String> =
         tree.paths.iter().map(|(id, path)| (path, id)).collect();
@@ -268,8 +271,69 @@ fn places(
         },
         across,
         held,
-        |path| Some(omaspec_uml::place_part(path)),
+        |path| Some(parts.node(path)),
     )
+}
+
+/// The parts of a flowchart's picture by name, from the source
+/// (docs/adr/0037): a node by its id (`node-A`), a subgraph by its
+/// (`subgraph-Back`), a line's words by its ends and what it says
+/// (`link-A-B-pays`); a name given twice takes `-2`.
+pub(super) struct Names {
+    nodes: HashMap<Vec<usize>, String>,
+    edges: Vec<String>,
+}
+
+impl Names {
+    fn of(tree: &Tree) -> Names {
+        let mut given = omaspec_uml::Given::default();
+        let mut placed: Vec<(&Vec<usize>, &String)> =
+            tree.paths.iter().map(|(id, path)| (path, id)).collect();
+        placed.sort();
+        let sub = |id: &str| {
+            tree.graph
+                .subgraphs
+                .iter()
+                .any(|s| s.id.as_deref() == Some(id))
+        };
+        let nodes = placed
+            .into_iter()
+            .map(|(path, id)| {
+                let kind = if sub(id) { "subgraph" } else { "node" };
+                (path.clone(), given.unique(omaspec_uml::element(kind, id)))
+            })
+            .collect();
+        let edges = tree
+            .graph
+            .edges
+            .iter()
+            .map(|edge| {
+                let mut name = String::from("link");
+                for end in [&edge.from, &edge.to] {
+                    name.push('-');
+                    omaspec_uml::push_written(&mut name, end);
+                }
+                let said = edge.label.as_deref().unwrap_or_default();
+                let said = said.lines().next().unwrap_or_default().trim();
+                if !said.is_empty() {
+                    name.push('-');
+                    omaspec_uml::push_written(&mut name, said);
+                }
+                given.unique(name)
+            })
+            .collect();
+        Names { nodes, edges }
+    }
+
+    /// The part of the node or subgraph at `path`.
+    pub(super) fn node(&self, path: &[usize]) -> String {
+        self.nodes.get(path).cloned().unwrap_or_default()
+    }
+
+    /// The part of the words of edge `index` of the graph.
+    pub(super) fn edge(&self, index: usize) -> String {
+        self.edges.get(index).cloned().unwrap_or_default()
+    }
 }
 
 /// Gives each container of `tree` the boxes of `held` it holds both of,

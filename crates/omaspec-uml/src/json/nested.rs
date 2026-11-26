@@ -283,7 +283,8 @@ fn place_of(path: &[String], (x, y, w, h): (f32, f32, f32, f32), frame: bool) ->
         entry: None,
         frame,
         fixed: true,
-        part: None,
+        // A card is drawn in a part of its own, a row in its card's.
+        part: frame.then(|| super::cells::part_of(path)),
     }
 }
 
@@ -303,7 +304,7 @@ mod tests {
                 .map(|(_, g)| *g)
                 .collect()
         };
-        let (home, street) = (of("home"), of("home/street"));
+        let (home, street) = (of("json-home"), of("json-home_2f_street"));
         assert!(home.contains("London") && !home.contains(">7<"), "{home}");
         assert!(street.contains(">7<"), "{street}");
         assert!(map.wires.is_empty());

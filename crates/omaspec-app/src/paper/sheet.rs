@@ -497,7 +497,7 @@ mod tests {
         let plan = Plan::overview(size, 7.0).unwrap();
         let sheet = sheet(drawn.bare.as_ref().unwrap(), &drawn.tree, plan).unwrap();
         let parts = sheet.parts.as_ref().unwrap();
-        assert!(parts.parts.contains_key("state:Idle") && parts.parts.contains_key("state:Busy"));
+        assert!(parts.parts.contains_key("state-Idle") && parts.parts.contains_key("state-Busy"));
         let reach = |r: Rectangle| {
             Rectangle::new(
                 Point::new(r.x - SHEET_REACH, r.y - SHEET_REACH),

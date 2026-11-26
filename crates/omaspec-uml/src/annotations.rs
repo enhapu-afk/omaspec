@@ -120,7 +120,7 @@ impl Annotations {
     }
 
     /// Draws them around what `canvas` holds.
-    /// Each in a part of its own (docs/adr/0029), `frame:title` and so
+    /// Each in a part of its own (docs/adr/0029), `title` and so
     /// on, when the parts are marked: in the pictures before and after a
     /// fold, a pane glides it from where it was to where it is. The main
     /// frame is not: around everything, it would take a sheet as large as
@@ -170,7 +170,7 @@ impl Annotations {
                 canvas.bottom() + GAP
             };
             let look = &self.look;
-            canvas.part("frame:legend", |canvas| {
+            canvas.part("legend", |canvas| {
                 canvas.rect(
                     Layer::Front,
                     (x, y, w, h),
@@ -206,19 +206,19 @@ impl Annotations {
             canvas.text(Layer::Front, &self.title, (x, places.title), align);
         });
         let (x, align) = at(self.aligned.header, Align::Right);
-        canvas.part("frame:header", |canvas| {
+        canvas.part("header", |canvas| {
             canvas.text(Layer::Front, &self.header, (x, 0.0), align);
         });
         let mut y = canvas.bottom() + 8.0;
         if !self.caption.is_empty() {
             let (x, align) = at(self.aligned.caption, Align::Center);
-            canvas.part("frame:caption", |canvas| {
+            canvas.part("caption", |canvas| {
                 canvas.text(Layer::Front, &self.caption, (x, y), align);
             });
             y += self.caption.height + 5.0;
         }
         let (x, align) = at(self.aligned.footer, Align::Center);
-        canvas.part("frame:footer", |canvas| {
+        canvas.part("footer", |canvas| {
             canvas.text(Layer::Front, &self.footer, (x, y), align);
         });
         if let Some(scale) = self.scale {
@@ -229,7 +229,7 @@ impl Annotations {
 
 /// The part of a diagram's title (docs/adr/0029), whichever drawer draws
 /// it: a name no box has, as each drawer names its boxes.
-pub const TITLE_PART: &str = "frame:title";
+pub const TITLE_PART: &str = "title";
 
 struct Places {
     title: f32,

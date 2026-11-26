@@ -135,7 +135,8 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
             }
             // A swimlane's name and each line between two are parts no
             // box takes: they glide on their own (docs/adr/0029).
-            canvas.part(&format!("lane:{lane}"), |canvas| {
+            let name = super::parts::words(&titles[lane]);
+            canvas.part(&crate::svg::element("lane", &name), |canvas| {
                 canvas.text(
                     Layer::Front,
                     &titles[lane],
@@ -144,11 +145,11 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
                 );
             });
             if lane == 0 {
-                canvas.part("border:left", |canvas| {
+                canvas.part("border-left", |canvas| {
                     canvas.line(Layer::Lifelines, (left, lanes_top), (left, bottom), stroke);
                 });
             }
-            canvas.part(&format!("border:{lane}"), |canvas| {
+            canvas.part(&crate::svg::element("border", &name), |canvas| {
                 canvas.line(
                     Layer::Lifelines,
                     (right, lanes_top),

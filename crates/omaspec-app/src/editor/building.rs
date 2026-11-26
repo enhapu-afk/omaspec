@@ -448,12 +448,12 @@ mod tests {
             .iter()
             .map(|p| (p.name.clone(), p.line))
             .collect();
-        assert_eq!(line_of("branch main"), Some(3), "{lines:?}");
-        assert_eq!(line_of("commit init"), Some(4), "{lines:?}");
-        assert_eq!(line_of("commit main #0"), Some(5), "{lines:?}");
-        assert_eq!(line_of("branch develop"), Some(6), "{lines:?}");
-        assert_eq!(line_of("commit login"), Some(7), "{lines:?}");
-        assert_eq!(line_of("commit main #1"), Some(9), "{lines:?}");
+        assert_eq!(line_of("branch-main"), Some(3), "{lines:?}");
+        assert_eq!(line_of("commit-init"), Some(4), "{lines:?}");
+        assert_eq!(line_of("commit-main-0"), Some(5), "{lines:?}");
+        assert_eq!(line_of("branch-develop"), Some(6), "{lines:?}");
+        assert_eq!(line_of("commit-login"), Some(7), "{lines:?}");
+        assert_eq!(line_of("commit-main-1"), Some(9), "{lines:?}");
         // So in a look, which lays its skin before the diagram, and in a
         // fence, whose lines come before the diagram's.
         let mut maps = crate::specs::Maps::default();
@@ -476,7 +476,7 @@ mod tests {
         )
         .unwrap();
         let looked = Picture::of(&looked.svg, &looked.map, source).unwrap();
-        let commit = looked.parts.iter().find(|part| part.name == "commit init");
+        let commit = looked.parts.iter().find(|part| part.name == "commit-init");
         assert_eq!(commit.map(|part| part.line), Some(4));
         let fenced = format!("```mermaid\n{marked}```\n");
         let rendered = renderer
@@ -486,7 +486,7 @@ mod tests {
             .map
             .written
             .iter()
-            .find(|(part, _)| part == "commit init");
+            .find(|(part, _)| part == "commit-init");
         assert_eq!(line.map(|(_, line)| *line), Some(5));
     }
 

@@ -303,12 +303,13 @@ impl<N, E> Scene<N, E> {
         &self,
         path: &[usize],
         part: impl Fn(&Placed<N, E>, &[usize]) -> String,
+        edge: impl Fn(usize) -> String,
     ) -> Vec<String> {
         self.notes
             .iter()
             .map(|note| {
                 if let Some(slot) = note.on {
-                    return crate::svg::note_part(&crate::svg::words_part(path, slot), "on", 0);
+                    return crate::svg::note_part(&edge(slot), "on", 0);
                 }
                 let mut at = path.to_vec();
                 at.push(note.target);
@@ -325,23 +326,28 @@ impl<N, E> Scene<N, E> {
     /// the box it lies inside, into `out` ([`crate::map::Map::inside`]): a
     /// box's own part as `part` names it, or none for one, as a region,
     /// that lies in the part of the box around it; `owner` is that of the
-    /// box around this scene, none at the top.
+    /// box around this scene, none at the top; `edge` names the part of a
+    /// line's words, by the container's path and the line's slot.
     pub fn notes_inside(
         &self,
-        path: &mut Vec<usize>,
-        owner: Option<&str>,
+        (path, owner): (&mut Vec<usize>, Option<&str>),
         part: &impl Fn(&Placed<N, E>, &[usize]) -> Option<String>,
+        edge: &impl Fn(&[usize], usize) -> String,
         out: &mut Vec<(String, String)>,
     ) {
         if let Some(owner) = owner {
-            let notes = self.note_parts(path, |node, at| part(node, at).unwrap_or_default());
+            let notes = self.note_parts(
+                path,
+                |node, at| part(node, at).unwrap_or_default(),
+                |slot| edge(path, slot),
+            );
             out.extend(notes.into_iter().map(|note| (note, owner.to_owned())));
         }
         for (index, node) in self.nodes.iter().enumerate() {
             path.push(index);
             let inner = part(node, path).or_else(|| owner.map(str::to_owned));
             node.children
-                .notes_inside(path, inner.as_deref(), part, out);
+                .notes_inside((path, inner.as_deref()), part, edge, out);
             path.pop();
         }
     }

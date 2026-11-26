@@ -482,8 +482,8 @@ pub(super) fn wires(
     arrows: &[(Arrow, Key)],
     scene: &Scene,
     hands: &[(usize, hand::Line)],
-    curve: f32,
-    strict: bool,
+    (curve, strict): (f32, bool),
+    names: &super::Names,
 ) -> Vec<Wire> {
     let top = placements(&scene.nodes);
     by_hand::wires(
@@ -502,7 +502,7 @@ pub(super) fn wires(
                 })
                 .into_iter()
                 .collect(),
-            words: [Some(crate::svg::words_part(path, slot)), None, None],
+            words: [Some(names.edge(path, slot)), None, None],
         },
     )
 }

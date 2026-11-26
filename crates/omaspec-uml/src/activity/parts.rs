@@ -77,7 +77,7 @@ enum Node {
     Point(i32, i32),
 }
 
-fn words(text: &Block) -> String {
+pub(super) fn words(text: &Block) -> String {
     text.lines
         .iter()
         .map(|line| {
@@ -117,18 +117,16 @@ impl Found {
             Shape::Label { text, .. } => ("label", words(text), false),
             Shape::Test { text, .. } => ("test", words(text), false),
         };
-        let base = if said.is_empty() {
-            kind.to_owned()
-        } else {
-            format!("{kind}:{said}")
-        };
+        // Its kind and its words, as an id may hold them
+        // (`action-Pay_20_the_20_bill`, docs/adr/0037).
+        let base = crate::svg::element(kind, &said);
         // The second of a name is counted; a count that is another
-        // shape's own words (`A #2`) is passed over.
+        // shape's own words (`A-2`) is passed over.
         let mut nth = self.seen.get(&base).copied().unwrap_or(0);
         let name = loop {
             nth += 1;
             let name = if nth > 1 {
-                format!("{base} #{nth}")
+                format!("{base}-{nth}")
             } else {
                 base.clone()
             };
@@ -368,10 +366,10 @@ mod tests {
             names,
             [
                 "start",
-                "action:A",
-                "action:A #2",
-                "action:A #3",
-                "action:A #4",
+                "action-A",
+                "action-A_20__23_2",
+                "action-A-2",
+                "action-A-3",
                 "stop"
             ]
         );
@@ -395,13 +393,13 @@ mod tests {
             names,
             [
                 "start",
-                "action:Build",
-                "test:green?",
-                "action:Publish",
-                "action:Fix",
+                "action-Build",
+                "test-green_3f_",
+                "action-Publish",
+                "action-Fix",
                 "stop",
-                "action:Build #2",
-                "stop #2"
+                "action-Build-2",
+                "stop-2"
             ]
         );
         let drawn: HashSet<String> = crate::part_groups(&svg)
@@ -416,19 +414,19 @@ mod tests {
                 place.name
             );
         }
-        assert!(drawn.contains("label:yes") && drawn.contains("label:no"));
+        assert!(drawn.contains("label-yes") && drawn.contains("label-no"));
         let lines: Vec<(&str, &str)> = map
             .wires
             .iter()
             .map(|w| (w.key.from.as_str(), w.key.to.as_str()))
             .collect();
         for line in [
-            ("start", "action:Build"),
-            ("test:green?", "action:Publish"),
-            ("test:green?", "action:Fix"),
-            ("action:Fix", "stop"),
-            ("action:Publish", "action:Build #2"),
-            ("action:Build #2", "stop #2"),
+            ("start", "action-Build"),
+            ("test-green_3f_", "action-Publish"),
+            ("test-green_3f_", "action-Fix"),
+            ("action-Fix", "stop"),
+            ("action-Publish", "action-Build-2"),
+            ("action-Build-2", "stop-2"),
         ] {
             assert!(lines.contains(&line), "{line:?} not in {lines:?}");
         }
@@ -451,17 +449,17 @@ mod tests {
             (wire.words[crate::map::WORDS].clone(), wire.labels.len())
         };
         assert_eq!(
-            words("test:green?", "action:Publish"),
-            (Some("label:yes".to_owned()), 1)
+            words("test-green_3f_", "action-Publish"),
+            (Some("label-yes".to_owned()), 1)
         );
         assert_eq!(
-            words("test:green?", "action:Fix"),
-            (Some("label:no".to_owned()), 1)
+            words("test-green_3f_", "action-Fix"),
+            (Some("label-no".to_owned()), 1)
         );
-        assert_eq!(words("start", "action:Build"), (None, 0));
+        assert_eq!(words("start", "action-Build"), (None, 0));
 
         let plain = crate::render(source).unwrap();
-        assert!(!plain.contains("part-"));
+        assert!(!crate::has_parts(&plain));
         assert_eq!(crate::unmarked(&svg), plain);
     }
 

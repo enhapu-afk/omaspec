@@ -1917,100 +1917,84 @@ pub fn unmarked(svg: &str) -> String {
     out
 }
 
-/// The name of the part whose groups have the class `class`, as
-/// [`part_id`] wrote it.
+/// The name of the part whose groups have the class `class`: the class
+/// itself, as the drawers name their parts as ids may stand
+/// ([`element`]).
 pub fn part_name(class: &str) -> Option<String> {
-    if class.is_empty() {
-        return None;
-    }
-    let mut out = String::with_capacity(class.len());
-    let mut rest = class;
-    while let Some(at) = rest.find('_') {
-        out.push_str(&rest[..at]);
-        let after = &rest[at + 1..];
-        let code = after
-            .find('_')
-            .filter(|&end| end > 0 && end <= 6)
-            .and_then(|end| {
-                Some((
-                    end,
-                    char::from_u32(u32::from_str_radix(&after[..end], 16).ok()?)?,
-                ))
-            });
-        match code {
-            Some((end, c)) => {
-                out.push(c);
-                rest = &after[end + 1..];
-            }
-            None => {
-                out.push('_');
-                rest = after;
-            }
-        }
-    }
-    out.push_str(rest);
-    Some(out)
-}
-
-/// The part the words of the line at `slot` of the container at `path` of
-/// a diagram's tree are drawn in; the map's `Wire::words` names it so.
-pub fn words_part(path: &[usize], slot: usize) -> String {
-    format!("words:{}:{slot}", part_path(path))
-}
-
-/// The part of a line's multiplicity at its start, or at its end, beside
-/// the part of its words `words`: `words:2:1#from`.
-pub fn card_part(words: &str, at_start: bool) -> String {
-    format!("{words}#{}", if at_start { "from" } else { "to" })
-}
-
-/// The part a box is drawn in by its place in a diagram's tree alone, for
-/// a drawer whose keys two boxes may share (a namespace and a class).
-pub fn place_part(path: &[usize]) -> String {
-    format!("box:{}", part_path(path))
-}
-
-/// The part a state is drawn in: its key, or for one without, as a start
-/// or an end, its place in the diagram's tree. Each kind of part has a
-/// name of its own (`state:`, `mark:`, `words:`, `frame:`), so a state
-/// called `frame:title` is never the title.
-pub(crate) fn box_part(key: &str, path: &[usize]) -> String {
-    if key.is_empty() {
-        format!("mark:{}", part_path(path))
-    } else {
-        format!("state:{key}")
-    }
+    (!class.is_empty()).then(|| class.to_owned())
 }
 
 /// The part a note is drawn in: the `nth` note on the `side` of the box
-/// drawn in the part `of` (`note:state:A#right0`). It glides from where it
-/// was to where it is, as its box does, rather than inside the picture of
-/// the box around it; a note added on another side renames none.
+/// drawn in the part `of`, counted from 1 (`note-state-A-right-1`). It
+/// glides from where it was to where it is, as its box does, rather than
+/// inside the picture of the box around it; a note added on another side
+/// renames none.
 pub(crate) fn note_part(of: &str, side: &str, nth: usize) -> String {
-    format!("{}{side}{nth}", notes_part(of))
+    format!("{}{side}-{}", notes_part(of), nth + 1)
 }
 
 /// What the parts of the notes on the box drawn in the part `of` start
 /// with ([`note_part`]): a play lets them through the veil with it.
 pub fn notes_part(of: &str) -> String {
-    format!("note:{of}#")
+    format!("note-{of}-")
 }
 
-fn part_path(path: &[usize]) -> String {
-    path.iter()
-        .map(usize::to_string)
-        .collect::<Vec<_>>()
-        .join(".")
+/// An element's name as a part and an id, from the source (docs/adr/0037):
+/// its kind, and the name the source gives it, as an id may hold it:
+/// letters, digits, `_` and `.` as written, any other character as `_`,
+/// its code in hex and `_` (`state-Order_20_parts`). Without a name, the
+/// kind alone (`title`).
+pub fn element(kind: &str, name: &str) -> String {
+    let mut id = String::with_capacity(kind.len() + name.len() + 1);
+    id.push_str(kind);
+    if !name.is_empty() {
+        id.push('-');
+        push_written(&mut id, name);
+    }
+    id
+}
+
+/// `name` onto `id` as [`element`] writes a name.
+pub fn push_written(id: &mut String, name: &str) {
+    for c in name.chars() {
+        if c.is_alphanumeric() || matches!(c, '_' | '.') {
+            id.push(c);
+        } else {
+            let _ = write!(id, "_{:x}_", c as u32);
+        }
+    }
+}
+
+/// Names given once in a picture: one already given takes `-2`, `-3`, …
+/// in the order asked for (docs/adr/0037).
+#[derive(Debug, Default)]
+pub struct Given {
+    taken: std::collections::HashSet<String>,
+}
+
+impl Given {
+    /// `name`, or the first of `name-2`, `name-3`, … not given yet.
+    pub fn unique(&mut self, name: String) -> String {
+        if self.taken.insert(name.clone()) {
+            return name;
+        }
+        (2..)
+            .map(|n| format!("{name}-{n}"))
+            .find(|next| !self.taken.contains(next))
+            .inspect(|next| {
+                self.taken.insert(next.clone());
+            })
+            .expect("a free name")
+    }
 }
 
 /// The class of the groups of the part `name`, and the id of its first:
-/// letters, digits, `-` and `.` as written, any other character as `_`,
-/// its code in hex and `_` (a space is `_20_`), so it is valid in XML and
-/// CSS ([`part_name`] reads it back).
+/// the name as the drawers give it, valid in XML and CSS ([`element`]);
+/// a character no id holds is written as [`element`] writes it.
 pub fn part_id(name: &str) -> String {
-    let mut id = String::with_capacity(name.len() + 8);
+    let mut id = String::with_capacity(name.len());
     for c in name.chars() {
-        if c.is_alphanumeric() || matches!(c, '-' | '.') {
+        if c.is_alphanumeric() || matches!(c, '-' | '.' | '_') {
             id.push(c);
         } else {
             let _ = write!(id, "_{:x}_", c as u32);
@@ -2270,7 +2254,7 @@ mod tests {
                 canvas.line(Layer::Front, (10.0, 20.0), (90.0, 20.0), ink);
             });
         });
-        canvas.part("mark:0.1", |canvas| {
+        canvas.part("start-Brewing", |canvas| {
             canvas.line(Layer::Front, (0.0, 0.0), (1.0, 1.0), ink);
         });
         let svg = canvas.finish(4.0, None);
@@ -2288,7 +2272,7 @@ mod tests {
             .into_iter()
             .map(|(name, _)| name)
             .collect();
-        assert_eq!(named, ["Brewing", "Grinding", "Brewing", "mark:0.1"]);
+        assert_eq!(named, ["Brewing", "Grinding", "Brewing", "start-Brewing"]);
         // Brewing's group of its frame holds its own box, not Grinding's.
         let brewing = &svg[svg
             .find(&format!(r#"class="{}""#, part_id("Brewing")))
@@ -2351,11 +2335,13 @@ mod tests {
 
     #[test]
     fn a_part_s_name_is_read_back_from_its_group() {
-        let id = part_id("Ready → Brewing");
-        assert_eq!(id, "Ready_20__2192__20_Brewing");
-        assert_eq!(part_name(&id).as_deref(), Some("Ready → Brewing"));
-        assert_eq!(part_id("state-Idle"), "state-Idle");
-        assert_eq!(part_name("a_b").as_deref(), Some("a_b"));
+        // A name as the drawers give it is its class, and read back so.
+        let name = element("state", "Ready → Brewing");
+        assert_eq!(name, "state-Ready_20__2192__20_Brewing");
+        assert_eq!(part_id(&name), name);
+        assert_eq!(part_name(&part_id(&name)), Some(name));
+        // A character no id holds is written as an element's would be.
+        assert_eq!(part_id("a b"), "a_20_b");
         assert_eq!(part_name(""), None);
     }
 

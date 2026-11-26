@@ -243,14 +243,21 @@ fn place(key: &str, rect: crate::graph::Rect, frame: bool) -> Option<crate::map:
     })
 }
 
-/// The part the box called `key` is drawn in (docs/adr/0029): its key in
-/// a name of its own, so no box's words name the title's part, or
-/// another's.
-fn part(key: &str) -> String {
+/// The part the box called `key` is drawn in (docs/adr/0029, 0037): its
+/// words in a name of its own, so no box's words name the title's part,
+/// or another's (`node-Pack`); the second box of the same words, keyed
+/// `Pack (2)`, is `node-Pack-2`.
+pub(crate) fn part(key: &str) -> String {
     if key.is_empty() {
-        String::new()
-    } else {
-        format!("box:{key}")
+        return String::new();
+    }
+    let counted = key
+        .strip_suffix(')')
+        .and_then(|rest| rest.rsplit_once(" ("))
+        .filter(|(_, nth)| !nth.is_empty() && nth.bytes().all(|b| b.is_ascii_digit()));
+    match counted {
+        Some((words, nth)) => format!("{}-{nth}", crate::svg::element("node", words)),
+        None => crate::svg::element("node", key),
     }
 }
 

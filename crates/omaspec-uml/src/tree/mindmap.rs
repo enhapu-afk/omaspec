@@ -563,7 +563,7 @@ mod tests {
     #[test]
     fn a_box_never_shares_the_title_s_part() {
         let source =
-            "@startmindmap\ntitle Year\n* frame:title\n** mark:0\n' parts (Omaspec)\n@endmindmap\n";
+            "@startmindmap\ntitle Year\n* title\n** start\n' parts (Omaspec)\n@endmindmap\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         let title: Vec<&str> = groups
@@ -572,11 +572,11 @@ mod tests {
             .map(|(_, g)| *g)
             .collect();
         assert!(
-            title.len() == 1 && title[0].contains(">Year<") && !title[0].contains("frame:title"),
+            title.len() == 1 && title[0].contains(">Year<") && !title[0].contains(">title<"),
             "{title:?}"
         );
         let names: Vec<String> = map.places.iter().filter_map(|p| p.part.clone()).collect();
-        assert!(names.iter().all(|n| n.starts_with("box:")), "{names:?}");
+        assert_eq!(names, ["node-title", "node-start"]);
     }
 
     #[test]
@@ -596,7 +596,7 @@ mod tests {
                 place.name
             );
         }
-        for (_, group) in groups.iter().filter(|(n, _)| n == "box:Pack") {
+        for (_, group) in groups.iter().filter(|(n, _)| n == "node-Pack") {
             assert!(
                 !group.contains("Socks") && !group.contains("<path"),
                 "{group}"

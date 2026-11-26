@@ -582,7 +582,7 @@ mod tests {
             parent: Some("Brewing".into()),
             rect,
             radius: 11.0,
-            part: "mark:1.2".into(),
+            part: "history-Brewing".into(),
         });
         let place = |name: &str, rect| Place {
             name: name.into(),
@@ -594,7 +594,10 @@ mod tests {
             fixed: false,
             part: None,
         };
-        assert_eq!(map_part(&map, &place("Brewing[H]", rect)), "mark:1.2");
+        assert_eq!(
+            map_part(&map, &place("Brewing[H]", rect)),
+            "history-Brewing"
+        );
         let elsewhere = Rect { x: 200.0, ..rect };
         assert_eq!(map_part(&map, &place("Idle", elsewhere)), "Idle");
     }

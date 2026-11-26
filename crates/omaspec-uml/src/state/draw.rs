@@ -25,10 +25,12 @@ mod actions;
 mod bars;
 mod choices;
 mod data;
+mod names;
 mod nest;
 mod open;
 mod points;
 
+use names::Names;
 pub use nest::label_by_hand;
 use nest::{arrows, fill_regions, lay_by_hand, layout_regions, link_crossings, separators, wires};
 use open::layout_open;
@@ -112,7 +114,9 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let down = annotations.top() + points::rise(&scene);
     scene.offset(0.0, down);
     points::lower_names(&mut scene, down);
-    paint(&mut canvas, &skin, &diagram.root, &scene);
+    // Every part by its name from the source (docs/adr/0037).
+    let names = Names::of(&diagram.root);
+    paint(&mut canvas, &skin, &diagram.root, &scene, &names);
     annotations.draw(&mut canvas);
     let mut map = Map::default();
     chart(
@@ -120,19 +124,19 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         &scene,
         None,
         (skin.round, skin.curve),
-        &mut Vec::new(),
+        (&mut Vec::new(), &names),
         &mut map,
     );
     map.wires = wires(
         &arrows,
         &scene,
         &diagram.frame.by_hand,
-        skin.curve,
-        skin.strict,
+        (skin.curve, skin.strict),
+        &names,
     );
     map.places = nest::places(&diagram.root, &scene, &diagram.frame.held);
     map.quiet = choices::names(&diagram.root);
-    notes_inside(&scene, &mut map.inside);
+    notes_inside(&scene, &names, &mut map.inside);
     map.misses = misses;
     map.misses.extend(crate::hand::said(
         &diagram.frame.held,
@@ -153,12 +157,12 @@ fn chart(
     scene: &Scene,
     parent: Option<&str>,
     (round, curve): (f32, f32),
-    path: &mut Vec<usize>,
+    (path, names): (&mut Vec<usize>, &Names),
     map: &mut Map,
 ) {
     for (index, (node, placed)) in container.nodes.iter().zip(&scene.nodes).enumerate() {
         path.push(index);
-        chart_node(node, placed, parent, (round, curve), path, map);
+        chart_node(node, placed, parent, (round, curve), (path, names), map);
         path.pop();
     }
     let arrows = container
@@ -183,7 +187,7 @@ fn chart_node(
     placed: &Placed,
     parent: Option<&str>,
     (round, curve): (f32, f32),
-    path: &mut Vec<usize>,
+    (path, names): (&mut Vec<usize>, &Names),
     map: &mut Map,
 ) {
     let shape = match node.kind {
@@ -202,7 +206,7 @@ fn chart_node(
                 &placed.children,
                 parent,
                 (round, curve),
-                path,
+                (path, names),
                 map,
             );
             return;
@@ -226,14 +230,14 @@ fn chart_node(
         parent: parent.map(str::to_owned),
         rect,
         radius,
-        part: crate::svg::box_part(&node.key, path),
+        part: names.node(path),
     });
     chart(
         &node.children,
         &placed.children,
         Some(&node.key),
         (round, curve),
-        path,
+        (path, names),
         map,
     );
 }
@@ -1106,26 +1110,31 @@ fn stack_height(title: &Block, description: &[Block]) -> f32 {
         .fold(title.height, |height, block| height + block.height)
 }
 
-fn paint(canvas: &mut Canvas, skin: &Skin, root: &Container, scene: &Scene) {
-    paint_shapes(canvas, skin, scene, &mut Vec::new());
+fn paint(canvas: &mut Canvas, skin: &Skin, root: &Container, scene: &Scene, names: &Names) {
+    paint_shapes(canvas, skin, scene, (&mut Vec::new(), names));
     paint_edges(canvas, scene, skin.curve);
-    paint_notes(canvas, skin, scene, &mut Vec::new());
-    paint_labels(canvas, Some(root), scene, &mut Vec::new());
+    paint_notes(canvas, skin, scene, (&mut Vec::new(), names));
+    paint_labels(canvas, Some(root), scene, (&mut Vec::new(), names));
     paint_heads(canvas, skin, scene);
 }
 
 /// The part of each of `scene`'s notes, at `path` in the tree: a part of
-/// its own by its state's ([`crate::svg::note_part`]).
-fn note_parts(scene: &Scene, path: &[usize]) -> Vec<String> {
-    scene.note_parts(path, |node, at| crate::svg::box_part(&node.item.name, at))
+/// its own by its state's, or its transition's ([`crate::svg::note_part`]).
+fn note_parts(scene: &Scene, path: &[usize], names: &Names) -> Vec<String> {
+    scene.note_parts(path, |_, at| names.node(at), |slot| names.edge(path, slot))
 }
 
 /// Each state's shape, in its part; `path` is where `scene` is in the
 /// tree.
-fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
+fn paint_shapes(
+    canvas: &mut Canvas,
+    skin: &Skin,
+    scene: &Scene,
+    (path, names): (&mut Vec<usize>, &Names),
+) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
+        canvas.part(&names.node(path), |canvas| {
             canvas.named(&node.item.name, |canvas| {
                 paint_shape(canvas, skin, node);
                 if node.item.composite {
@@ -1140,7 +1149,7 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<
             });
         });
         if node.item.composite {
-            paint_shapes(canvas, skin, &node.children, path);
+            paint_shapes(canvas, skin, &node.children, (path, names));
         }
         path.pop();
     }
@@ -1380,22 +1389,27 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
 
 /// Each note's part with the part of the state it lies inside, a
 /// region's state for a region, into `out`.
-fn notes_inside(scene: &Scene, out: &mut Vec<(String, String)>) {
-    let part = |node: &Placed, at: &[usize]| {
-        (node.item.kind != Kind::Region).then(|| crate::svg::box_part(&node.item.name, at))
-    };
-    scene.notes_inside(&mut Vec::new(), None, &part, out);
+fn notes_inside(scene: &Scene, names: &Names, out: &mut Vec<(String, String)>) {
+    let part =
+        |node: &Placed, at: &[usize]| (node.item.kind != Kind::Region).then(|| names.node(at));
+    let edge = |at: &[usize], slot: usize| names.edge(at, slot);
+    scene.notes_inside((&mut Vec::new(), None), &part, &edge, out);
 }
 
 /// Each note, in a part of its own; `path` is where `scene` is in the
 /// tree.
-fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
-    for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
+fn paint_notes(
+    canvas: &mut Canvas,
+    skin: &Skin,
+    scene: &Scene,
+    (path, names): (&mut Vec<usize>, &Names),
+) {
+    for (note, part) in scene.notes.iter().zip(note_parts(scene, path, names)) {
         canvas.part(&part, |canvas| note_box(canvas, skin, note));
     }
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        paint_notes(canvas, skin, &node.children, path);
+        paint_notes(canvas, skin, &node.children, (path, names));
         path.pop();
     }
 }
@@ -1451,12 +1465,12 @@ fn paint_labels(
     canvas: &mut Canvas,
     container: Option<&Container>,
     scene: &Scene,
-    path: &mut Vec<usize>,
+    (path, names): (&mut Vec<usize>, &Names),
 ) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
         let written = container.and_then(|container| container.nodes.get(index));
-        canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
+        canvas.part(&names.node(path), |canvas| {
             canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
                 paint_words(canvas, node, written);
             });
@@ -1465,7 +1479,7 @@ fn paint_labels(
             canvas,
             written.map(|written| &written.children),
             &node.children,
-            path,
+            (path, names),
         );
         path.pop();
     }
@@ -1481,13 +1495,13 @@ fn paint_labels(
         if hidden(edge) {
             continue;
         }
-        canvas.part(&crate::svg::words_part(path, slot), |canvas| {
+        canvas.part(&names.edge(path, slot), |canvas| {
             let before = canvas.tie(lines.get(slot).copied());
             canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
             canvas.tie(before);
         });
     }
-    for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
+    for (note, part) in scene.notes.iter().zip(note_parts(scene, path, names)) {
         canvas.part(&part, |canvas| {
             canvas.text(
                 Layer::Front,
@@ -1758,8 +1772,8 @@ mod tests {
         // line of the diagram, and its first crossing after its two edges.
         let groups = crate::part_groups(&svg);
         for (name, words) in [
-            ("note:words::1#on0", "counts"),
-            ("note:words::2#on0", "a crossing"),
+            ("note-transition-Idle-Busy-start-on-1", "counts"),
+            ("note-transition-Working-Idle-fail-on-1", "a crossing"),
         ] {
             let group: String = groups
                 .iter()
@@ -2206,9 +2220,9 @@ mod tests {
                 .collect()
         };
         for (name, words) in [
-            ("note:state:Grind#right0", "fine"),
-            ("note:state:Grind#left0", "dark"),
-            ("note:state:Idle#left0", "coarse"),
+            ("note-state-Grind-right-1", "fine"),
+            ("note-state-Grind-left-1", "dark"),
+            ("note-state-Idle-left-1", "coarse"),
         ] {
             let group = part(name);
             assert!(
@@ -2216,7 +2230,7 @@ mod tests {
                 "{name}: {group}"
             );
         }
-        assert!(!part("state:Brewing").contains("fine"));
+        assert!(!part("state-Brewing").contains("fine"));
         // The map says which state each note lies inside.
         let (_, map) = crate::render_mapped(source, None).unwrap();
         let inside = |part: &str| {
@@ -2225,8 +2239,8 @@ mod tests {
                 .find(|(note, _)| note == part)
                 .map(|(_, owner)| owner.as_str())
         };
-        assert_eq!(inside("note:state:Grind#right0"), Some("state:Brewing"));
-        assert_eq!(inside("note:state:Idle#left0"), None);
+        assert_eq!(inside("note-state-Grind-right-1"), Some("state-Brewing"));
+        assert_eq!(inside("note-state-Idle-left-1"), None);
         // A note added before it on another side renames it not.
         let added = source.replace(
             "  note right of Grind : fine\n",
@@ -2236,7 +2250,7 @@ mod tests {
         assert!(
             crate::part_groups(&svg)
                 .iter()
-                .any(|(n, g)| n == "note:state:Grind#right0" && g.contains("fine"))
+                .any(|(n, g)| n == "note-state-Grind-right-1" && g.contains("fine"))
         );
     }
 
@@ -2288,7 +2302,7 @@ mod tests {
     /// a part of its own, the one the map names.
     #[test]
     fn a_state_never_shares_another_part() {
-        let source = "@startuml\ntitle Year\nstate \"frame:title\"\nstate \"mark:0\"\nstate \"Long name\" as L\n[*] --> L\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\ntitle Year\nstate title\nstate start\nstate \"Long name\" as L\n[*] --> L\n' parts (Omaspec)\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         let title: Vec<&str> = groups
@@ -2297,7 +2311,7 @@ mod tests {
             .map(|(_, g)| *g)
             .collect();
         assert!(
-            title.len() == 1 && !title[0].contains("frame:title"),
+            title.len() == 1 && !title[0].contains(">title<"),
             "{title:?}"
         );
         for spot in &map.states {
@@ -2342,11 +2356,11 @@ mod tests {
             );
         }
         assert!(
-            named.contains("mark:0") && named.contains("mark:2.0"),
+            named.contains("start") && named.contains("start-Brewing"),
             "{named:?}"
         );
         // Brewing's groups: its frame, its divider and its title only.
-        for (_, group) in groups.iter().filter(|(name, _)| name == "state:Brewing") {
+        for (_, group) in groups.iter().filter(|(name, _)| name == "state-Brewing") {
             assert!(group.matches("<rect").count() <= 1, "{group}");
             assert!(!group.contains("Grinding"), "{group}");
         }

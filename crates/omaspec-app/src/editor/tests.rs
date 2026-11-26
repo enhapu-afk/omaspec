@@ -3453,12 +3453,12 @@ fn an_activity_diagram_takes_the_focus() {
     let mut app = open(std::slice::from_ref(&file));
     show(&mut app, release, Language::PlantUml);
     let key = app.doc().key;
-    let at = app.doc().paper.screen_of_box("action:Publish packages");
+    let at = app.doc().paper.screen_of_box("action-Publish_20_packages");
     let _ = app.update(Message::Paper(key, paper::Message::FocusAt(at)));
     let lit = app.doc().paper.lit().expect("the action is in focus");
     let mut around: Vec<&str> = lit.neighbors.iter().map(|s| s.name.as_str()).collect();
     around.sort_unstable();
-    assert_eq!(around, ["bar", "test:all green?"]);
+    assert_eq!(around, ["bar", "test-all_20_green_3f_"]);
     assert_eq!(lit.lines.len(), 2);
     assert_eq!(lit.words.len(), 1, "`yes`, beside the line from the test");
     assert!(
@@ -3490,7 +3490,7 @@ fn snapshot_activity() {
         follow_theme(&mut app, colors);
         show(&mut app, release, Language::PlantUml);
         let key = app.doc().key;
-        let at = app.doc().paper.screen_of_box("action:Publish packages");
+        let at = app.doc().paper.screen_of_box("action-Publish_20_packages");
         let _ = app.update(Message::Paper(key, paper::Message::FocusAt(at)));
         shoot(&mut app, &dir, name);
     }

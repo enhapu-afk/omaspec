@@ -71,10 +71,9 @@ pub use color::{Color, Paint, parse as parse_color};
 pub use common::{Mention, NO_LINE, lines_away, unseen};
 pub use icons::{open_iconic_names, unknown_open_iconic};
 pub use svg::{
-    Align, Canvas, FACE, GRID, HAND_FONT, ICON, INTER_FACES, LINES, Layer, MONO_FACES, PART,
-    SANS_FACES, SERIF_FACES, Stroke, card_part, faces, has_parts, notes_part, numbered,
-    part_groups, part_id, part_name, part_of_id, place_part, unmarked, without_lines,
-    without_parts, words_part,
+    Align, Canvas, FACE, GRID, Given, HAND_FONT, ICON, INTER_FACES, LINES, Layer, MONO_FACES, PART,
+    SANS_FACES, SERIF_FACES, Stroke, element, faces, has_parts, notes_part, numbered, part_groups,
+    part_id, part_name, part_of_id, push_written, unmarked, without_lines, without_parts,
 };
 pub use text::{
     Block, Family, Font, Link, Style, Written, block as measure_text, creole_link, emoji,

@@ -731,7 +731,7 @@ fn steps(diagram: &Diagram, plan: &Plan) -> Vec<crate::map::Step> {
 fn commit_part(diagram: &Diagram, turn: usize) -> String {
     let commit = &diagram.commits[turn];
     if let Some(id) = &commit.id {
-        return format!("commit {id}");
+        return crate::svg::element("commit", id);
     }
     let before = diagram.commits[..turn]
         .iter()
@@ -741,12 +741,12 @@ fn commit_part(diagram: &Diagram, turn: usize) -> String {
         .branches
         .get(commit.branch)
         .map_or("", |b| b.name.as_str());
-    format!("commit {branch} #{before}")
+    format!("{}-{before}", crate::svg::element("commit", branch))
 }
 
 /// The part of the branch `name`: its lane and the plate with its name.
 fn branch_part(name: &str) -> String {
-    format!("branch {name}")
+    crate::svg::element("branch", name)
 }
 
 /// A commit's mark: a dot, a square for `HIGHLIGHT`, a crossed dot for

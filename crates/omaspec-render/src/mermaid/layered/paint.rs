@@ -38,23 +38,37 @@ pub(super) fn title(canvas: &mut Canvas, palette: &Palette, title: &str, family:
 }
 
 /// Draws `scene`; the lines' corners curve by up to `curve`.
-pub(super) fn paint(canvas: &mut Canvas, palette: &Palette, scene: &Scene, curve: f32) {
-    paint_shapes(canvas, scene, &mut Vec::new());
+pub(super) fn paint(
+    canvas: &mut Canvas,
+    palette: &Palette,
+    scene: &Scene,
+    (curve, names): (f32, &super::Names),
+) {
+    paint_shapes(canvas, scene, (&mut Vec::new(), names));
     paint_edges(canvas, scene, curve);
-    paint_labels(canvas, scene, Some(palette.background), &mut Vec::new());
+    paint_labels(
+        canvas,
+        scene,
+        Some(palette.background),
+        (&mut Vec::new(), names),
+    );
     paint_caps(canvas, scene);
 }
 
 /// Each node's and subgraph's shape, in its part (docs/adr/0029); `path` is
 /// where `scene` is in the tree.
-fn paint_shapes(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>) {
+fn paint_shapes(
+    canvas: &mut Canvas,
+    scene: &Scene,
+    (path, names): (&mut Vec<usize>, &super::Names),
+) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        canvas.part(&omaspec_uml::place_part(path), |canvas| {
+        canvas.part(&names.node(path), |canvas| {
             paint_shape(canvas, node);
         });
         if node.item.nested {
-            paint_shapes(canvas, &node.children, path);
+            paint_shapes(canvas, &node.children, (path, names));
         }
         path.pop();
     }
@@ -186,10 +200,15 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
 /// Each node's and subgraph's words in its part, each line's in a part of
 /// their own, by its edge; `ground` is the fill the scene sits on, `path`
 /// where it is in the tree.
-fn paint_labels(canvas: &mut Canvas, scene: &Scene, ground: Paint, path: &mut Vec<usize>) {
+fn paint_labels(
+    canvas: &mut Canvas,
+    scene: &Scene,
+    ground: Paint,
+    (path, names): (&mut Vec<usize>, &super::Names),
+) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        canvas.part(&omaspec_uml::place_part(path), |canvas| {
+        canvas.part(&names.node(path), |canvas| {
             node_words(canvas, node);
         });
         let inside = if node.item.nested {
@@ -197,14 +216,14 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, ground: Paint, path: &mut Ve
         } else {
             ground
         };
-        paint_labels(canvas, &node.children, inside, path);
+        paint_labels(canvas, &node.children, inside, (path, names));
         path.pop();
     }
     for edge in &scene.edges {
         if edge.label.is_empty() {
             continue;
         }
-        canvas.part(&omaspec_uml::words_part(&[], edge.look.edge), |canvas| {
+        canvas.part(&names.edge(edge.look.edge), |canvas| {
             edge_words(canvas, scene, edge, ground);
         });
     }

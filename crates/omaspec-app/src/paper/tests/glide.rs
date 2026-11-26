@@ -273,7 +273,7 @@ fn a_json_card_folds_from_its_part_into_its_row() {
     assert_eq!(street.role, morph::Role::Stay);
     assert!(old.part(&street.parts[0]).is_some());
     assert!(new.part(&street.parts[1]).is_none());
-    assert!(new.part("home").is_some() && old.part("home").is_some());
+    assert!(new.part("json-home").is_some() && old.part("json-home").is_some());
     assert!(
         morph.orphans.iter().all(Vec::is_empty),
         "{:?}",
@@ -285,7 +285,7 @@ fn a_json_card_folds_from_its_part_into_its_row() {
         .iter()
         .map(|kept| (kept.name.as_str(), kept.solid))
         .collect();
-    assert_eq!(kept, [("frame:title", false), ("json:top", true)]);
+    assert_eq!(kept, [("json", true), ("title", false)]);
     // The home card, which grows by its folded row, is drawn at its size
     // and covers the old one.
     let home = morph.moves.iter().find(|m| m.name == "home").unwrap();
@@ -643,7 +643,7 @@ fn a_note_glides_on_its_own_when_its_state_folds() {
     let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
-    let note = "note:state:Multiball#right0";
+    let note = "note-state-Multiball-right-1";
     assert!(old.part(note).is_some() && new.part(note).is_some());
     let kept = morph
         .kept
@@ -657,7 +657,7 @@ fn a_note_glides_on_its_own_when_its_state_folds() {
     // over Multiball, as Three does, not under every box.
     let inner = morph.orphans[0]
         .iter()
-        .find(|orphan| orphan.name == "note:state:Three#right0")
+        .find(|orphan| orphan.name == "note-state-Three-right-1")
         .unwrap_or_else(|| panic!("orphans {:?}", morph.orphans));
     assert_eq!(
         morph.moves[inner.over.expect("Multiball holds it")].name,

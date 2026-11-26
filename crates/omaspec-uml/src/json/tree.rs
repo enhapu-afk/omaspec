@@ -389,7 +389,8 @@ fn place_of(path: &[String], (x, y, w, h): (f32, f32, f32, f32), frame: bool) ->
         entry: None,
         frame,
         fixed: true,
-        part: None,
+        // A card is drawn in a part of its own, a row in its card's.
+        part: frame.then(|| super::cells::part_of(path)),
     }
 }
 
@@ -415,12 +416,13 @@ mod tests {
             .map(|p| p.name.as_str())
             .collect();
         assert_eq!(cards, ["home", "home/street", "tags"], "{:?}", map.places);
-        for card in &cards {
-            assert!(groups.iter().any(|(n, _)| n == card), "{card}: {groups:?}");
+        for card in map.places.iter().filter(|p| p.frame) {
+            let part = card.part.as_deref().unwrap();
+            assert!(groups.iter().any(|(n, _)| n == part), "{part}: {groups:?}");
         }
         let home: String = groups
             .iter()
-            .filter(|(n, _)| n == "home")
+            .filter(|(n, _)| n == "json-home")
             .map(|(_, g)| *g)
             .collect();
         assert!(home.contains("London") && !home.contains(">7<"), "{home}");
