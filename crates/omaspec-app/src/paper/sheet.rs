@@ -467,7 +467,7 @@ fn gather_parts<'a>(group: &'a usvg::Group, seen: f32, parts: &mut Vec<Part<'a>>
         let usvg::Node::Group(inner) = node else {
             continue;
         };
-        match omaspec_uml::part_name(inner.id()) {
+        match omaspec_uml::part_of_id(inner.id()) {
             Some(name) => match parts.iter_mut().find(|part| part.name == name) {
                 Some(part) => part.nodes.push((node, seen)),
                 None => parts.push(Part {

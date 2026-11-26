@@ -188,7 +188,7 @@ fn page(
     // units, which a `scale` sets apart from its size.
     let own_y = |y: f32| picture.own((0.0, y)).1;
     let building = page::Building {
-        svg: picture.svg.clone(),
+        svg: picture.shown.clone(),
         size: picture.own(picture.size),
         lines: code.runs(palette.foreground),
         starts: script.starts.clone(),
@@ -204,7 +204,7 @@ fn page(
             .parts
             .iter()
             .map(|part| page::PartAt {
-                prefix: format!("{}-", omaspec_uml::part_id(&part.name)),
+                class: omaspec_uml::part_id(&part.name),
                 line: part.line,
                 middle: picture.own(part.middle),
                 words: part.of_wire.is_some(),
@@ -523,10 +523,10 @@ mod tests {
             .unwrap();
         let (id, _) = &open.groups[0];
         assert!(
-            before.contains(&format!(r#"<g id="{id}" opacity="0.000""#)),
+            before.contains(&format!(r#" id="{id}" opacity="0.000""#)),
             "{before}"
         );
-        assert!(!after.contains(&format!(r#"<g id="{id}" opacity="#)));
+        assert!(!after.contains(&format!(r#" id="{id}" opacity="#)));
     }
 
     #[test]
@@ -757,6 +757,7 @@ mod tests {
     fn the_script_waits_on_lines_that_draw() {
         let picture = Picture {
             svg: String::new(),
+            shown: String::new(),
             size: (100.0, 100.0),
             paper: "#FFFFFF".into(),
             parts: Vec::new(),

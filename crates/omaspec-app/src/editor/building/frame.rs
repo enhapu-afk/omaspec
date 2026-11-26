@@ -415,7 +415,7 @@ impl Layout {
 /// `part`'s groups at `opacity`, scaled by `scale` about its middle.
 pub(super) fn attribute(svg: &mut String, part: &Part, opacity: f32, scale: f32) {
     for (id, transform) in &part.groups {
-        let open = format!(r#"<g id="{id}""#);
+        let open = format!(r#" id="{id}""#);
         let Some(at) = svg.find(&open) else { continue };
         // Its middle where the group draws.
         let local = transform

@@ -12,6 +12,10 @@ use super::LINE_HEIGHT;
 
 /// The diagram as drawn, and what each source line sets down in it.
 pub(super) struct Picture {
+    /// The picture as drawn, for a page: its parts by their classes.
+    pub(super) shown: String,
+    /// The picture with each group of a part numbered ([`omaspec_uml::numbered`]),
+    /// which the frames are made of.
     pub(super) svg: String,
     pub(super) size: (f32, f32),
     /// The color of its paper, which an empty head is filled with.
@@ -56,6 +60,10 @@ pub(super) struct WireAt {
 
 impl Picture {
     pub(super) fn of(svg: &str, map: &Map, text: &str) -> Result<Picture> {
+        let shown = svg;
+        // Each group of a part with an id of its own, which a frame finds
+        // it by: usvg keeps no classes (docs/adr/0037).
+        let svg = &omaspec_uml::numbered(svg);
         let tree = export::parse(svg).map_err(|err| anyhow::anyhow!("{err}"))?;
         let size = (tree.size().width(), tree.size().height());
         let mut found: Vec<(String, String, usvg::Transform, usvg::Rect)> = Vec::new();
@@ -65,7 +73,7 @@ impl Picture {
             if id == omaspec_uml::LINES {
                 lines_group = Some(group.abs_transform());
             }
-            if let Some(name) = omaspec_uml::part_name(id) {
+            if let Some(name) = omaspec_uml::part_of_id(id) {
                 let bounds = group.abs_layer_bounding_box().to_rect();
                 found.push((name, id.to_owned(), group.abs_transform(), bounds));
             }
@@ -178,6 +186,7 @@ impl Picture {
         }
         Ok(Picture {
             svg: svg.to_owned(),
+            shown: shown.to_owned(),
             size,
             paper: paper_of(svg),
             parts,

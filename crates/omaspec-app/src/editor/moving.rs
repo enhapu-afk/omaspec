@@ -2241,8 +2241,15 @@ mod tests {
         );
         let page = std::fs::read_to_string(work.join("fold.html")).unwrap();
         assert_eq!(page.matches("<svg ").count(), 2);
-        assert!(page.contains(r#"id="p0-part-"#) && page.contains(r#"id="p1-part-"#));
-        assert!(!page.contains(r#"id="part-"#), "an id two pictures share");
+        // Each picture names its parts by their classes, its ids its own.
+        let brewing = omaspec_uml::part_id("state:Brewing");
+        assert!(page.matches(&format!(r#"class="{brewing}""#)).count() >= 2);
+        assert!(page.contains(&format!(r#"id="p0-{brewing}""#)), "{page}");
+        assert!(page.contains(&format!(r#"id="p1-{brewing}""#)));
+        assert!(
+            !page.contains(&format!(r#"id="{brewing}""#)),
+            "an id two pictures share"
+        );
         assert!(page.contains("default-src 'none'"));
         let kept = omaspec_core::embed::source_from_svg(&page).unwrap();
         assert_eq!(kept.code, text);
@@ -2257,7 +2264,7 @@ mod tests {
         assert_eq!(data["sizes"].as_array().unwrap().len(), 2);
         let boxes = data["glides"][0]["boxes"].as_array().unwrap();
         // Brewing stays, another size; Grinding, inside it, leaves.
-        let part = |name: &str| format!("p0-{}-", omaspec_uml::part_id(name));
+        let part = omaspec_uml::part_id;
         let of = |name: &str| {
             boxes
                 .iter()

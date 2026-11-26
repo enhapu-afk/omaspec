@@ -77,11 +77,12 @@ impl Outline {
     /// as [`Self::of`] finds it: the notes of a box, whose parts are named
     /// after its own (`note:state:A#right0`).
     pub fn every(tree: &usvg::Tree, start: &str) -> Vec<Outline> {
-        // A part's groups are its id, a `-` and their number.
+        // A part's groups are its class, a `~` and their number
+        // (`omaspec_uml::numbered`).
         let start = omaspec_uml::part_id(start);
         let mut ids: Vec<&str> = Vec::new();
         each_group(tree.root(), &mut |group| {
-            if let Some((id, _)) = group.id().rsplit_once('-')
+            if let Some((id, _)) = group.id().rsplit_once('~')
                 && id.starts_with(&start)
                 && !ids.contains(&id)
             {
@@ -101,7 +102,7 @@ impl Outline {
 
     /// The outline of the part whose groups' ids start with `id` and a `-`.
     fn of_id(tree: &usvg::Tree, id: &str) -> Option<Outline> {
-        let prefix = format!("{id}-");
+        let prefix = format!("{id}~");
         let mut best: Option<(f32, &usvg::Path)> = None;
         each_path(tree.root(), &prefix, false, &mut |path| {
             let b = path.abs_bounding_box();

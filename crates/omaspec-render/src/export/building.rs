@@ -70,8 +70,8 @@ pub struct Run {
 
 #[derive(Debug, Clone)]
 pub struct PartAt {
-    /// The id its groups start with.
-    pub prefix: String,
+    /// The class of its groups ([`omaspec_uml::part_id`]).
+    pub class: String,
     pub line: usize,
     pub middle: (f32, f32),
     /// The words of a line: they come after it is drawn.
@@ -183,7 +183,7 @@ fn data(b: &Building) -> Value {
         "pace": round(b.pace),
         "boxes": b.boxes,
         "parts": b.parts.iter().map(|part| json!({
-            "prefix": part.prefix,
+            "class": part.class,
             "line": part.line,
             "middle": point(&part.middle),
             "words": part.words,
@@ -228,7 +228,7 @@ mod tests {
 
     fn building() -> Building {
         Building {
-            svg: r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><g id="part-61-1"><rect width="10" height="10" fill="#ccc"/></g><g id="lines"></g></svg>"##.to_owned(),
+            svg: r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><g class="a" id="a"><rect width="10" height="10" fill="#ccc"/></g><g id="lines"></g></svg>"##.to_owned(),
             size: (40.0, 20.0),
             lines: vec![vec![Run {
                 text: "a --> <b>".to_owned(),
@@ -246,7 +246,7 @@ mod tests {
             pace: 1.0,
             boxes: vec![true],
             parts: vec![PartAt {
-                prefix: "part-61-".to_owned(),
+                class: "a".to_owned(),
                 line: 0,
                 middle: (5.0, 5.0),
                 words: false,
@@ -276,7 +276,7 @@ mod tests {
         // The source's words escaped, the picture sanitized, the play's
         // data where the script reads it.
         assert!(page.contains("a --&gt; &lt;b&gt;"), "{page}");
-        assert!(page.contains(r#"id="part-61-1""#), "{page}");
+        assert!(page.contains(r#"<g class="a" id="a">"#), "{page}");
         assert!(page.contains(r#"<script type="application/json" id="play">{"#));
         assert!(page.contains(r#""kind":"build""#));
         // Nothing from anywhere.

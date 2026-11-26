@@ -30,10 +30,11 @@ const LAYERS: usize = 6;
 /// The id of the group that holds the [`Layer::Lines`].
 pub const LINES: &str = "lines";
 
-/// What the id of a group of a part starts with: a box, a mark or a
-/// line's words, drawn so the pane can glide it on its own
-/// ([`Canvas::part`], docs/adr/0029).
-pub const PART: &str = "part-";
+/// What a group of a part starts with: a box, a mark or a line's words,
+/// drawn so a page can find it and the pane can glide it on its own
+/// ([`Canvas::part`], docs/adr/0029, docs/adr/0037). Each of its groups
+/// carries its name as a class, the first of its shape also as its id.
+pub const PART: &str = r#"<g class=""#;
 
 /// The id of the group that holds a chart's grid: lines that only guide
 /// the eye, drawn faint on purpose, as PlantUML draws them. A check of
@@ -107,7 +108,7 @@ pub struct Canvas {
     shades: [String; LAYERS],
     /// The parts are marked ([`Self::mark_parts`]).
     marks_parts: bool,
-    /// The part being drawn: what its groups' ids start with.
+    /// The part being drawn: its groups' class ([`part_id`]).
     part: Option<String>,
     /// For each layer, the part whose group is open there, among its
     /// shapes and among its shadows.
@@ -115,8 +116,6 @@ pub struct Canvas {
     open_shades: [Option<String>; LAYERS],
     /// The part drawn when each link still open was opened.
     links: Vec<Option<String>>,
-    /// How many groups of parts were opened, to keep their ids apart.
-    groups: usize,
     /// The line of the source whose words are being drawn ([`Self::tie`]).
     tie: Option<usize>,
     /// Where a rule in the words drawn reaches ([`Self::across`]).
@@ -190,7 +189,6 @@ impl Canvas {
             open: Default::default(),
             open_shades: Default::default(),
             links: Vec::new(),
-            groups: 0,
             tie: None,
             across: None,
             faces: Vec::new(),
@@ -213,8 +211,9 @@ impl Canvas {
 
     /// Draws with `paint` the part called `name`: a box, a mark or a line's
     /// words. When the parts are marked, what it draws on each layer lies
-    /// in a group of that part, `<g id="part-…">`, its name in hex
-    /// ([`part_name`]); a part drawn within it is a part of its own. A
+    /// in a group of that part, `<g class="…">`, its name as an id and a
+    /// class may stand ([`part_id`]), the first group of its shape with
+    /// the name as its id too; a part drawn within it is a part of its own. A
     /// link is opened within the part, not around it; a part drawn within
     /// a link opened within another part is drawn as that one, so the link
     /// closes inside its group. A box without a name, which the map does
@@ -251,7 +250,6 @@ impl Canvas {
             &mut self.layers[index],
             &mut self.open[index],
             self.part.as_deref(),
-            &mut self.groups,
         );
         &mut self.layers[index]
     }
@@ -275,7 +273,6 @@ impl Canvas {
                 &mut self.shades[index],
                 &mut self.open_shades[index],
                 self.part.as_deref(),
-                &mut self.groups,
             );
             let _ = write!(self.shades[index], r##"{shape} fill="#000000"/>"##);
         }
@@ -1597,7 +1594,9 @@ impl Canvas {
                 layer.push_str("</g>");
             }
         }
+        let mut named = std::collections::HashSet::new();
         for (index, layer) in layers.iter().enumerate() {
+            let layer = name_first(layer, &mut named);
             // One group, so shadows that overlap are no darker there.
             let shade = &shades[index];
             if !shade.is_empty() {
@@ -1613,7 +1612,7 @@ impl Canvas {
                 } else {
                     out.push_str("<g>");
                 }
-                out.push_str(layer);
+                out.push_str(&layer);
                 out.push_str("</g>");
             }
         }
@@ -1777,26 +1776,66 @@ pub fn without_lines(svg: &str) -> Option<String> {
     Some(format!("{}{}", &svg[..start], &svg[end..]))
 }
 
+/// The class of the part whose group `rest` starts with, where it is
+/// one: its first word, and none of the groups a page lays over a
+/// picture (`omaspec-links`, `omaspec-play`).
+fn part_class(rest: &str) -> Option<&str> {
+    let value = rest.strip_prefix(PART)?;
+    let class = value[..value.find('"')?].split_whitespace().next()?;
+    (!class.starts_with("omaspec-")).then_some(class)
+}
+
+/// Where each group of a part starts in `svg`, with its class.
+fn part_starts(svg: &str) -> impl Iterator<Item = (usize, &str)> {
+    svg.match_indices(PART)
+        .filter_map(|(at, _)| part_class(&svg[at..]).map(|class| (at, class)))
+}
+
 /// Whether `svg` marks its parts ([`Canvas::part`]).
 pub fn has_parts(svg: &str) -> bool {
-    svg.contains(&format!(r#"<g id="{PART}"#))
+    part_starts(svg).next().is_some()
 }
 
 /// Each group of a part in `svg`, whole: the part's name and the group.
 pub fn part_groups(svg: &str) -> Vec<(String, &str)> {
-    svg.match_indices(&format!(r#"<g id="{PART}"#))
-        .filter_map(|(at, _)| {
+    part_starts(svg)
+        .filter_map(|(at, class)| {
             let rest = &svg[at..];
-            let id = &rest[7..];
-            let name = part_name(&id[..id.find('"')?])?;
-            Some((name, &rest[..group_length(rest)?]))
+            Some((part_name(class)?, &rest[..group_length(rest)?]))
         })
         .collect()
 }
 
+/// `svg` with each group of a part given an id of its own, its class and
+/// a `~` and its number among the picture's groups: a reader that knows
+/// a group by its id alone (usvg keeps no classes) finds every group of
+/// a part so ([`part_of_id`]). For the pane's own reading, never written
+/// out.
+pub fn numbered(svg: &str) -> String {
+    let mut out = String::with_capacity(svg.len() + 256);
+    let mut rest = svg;
+    let mut count = 0;
+    while let Some((at, class)) = part_starts(rest).next() {
+        let Some(end) = rest[at..].find('>') else {
+            break;
+        };
+        count += 1;
+        out.push_str(&rest[..at]);
+        let _ = write!(out, r#"{PART}{class}" id="{class}~{count}">"#);
+        rest = &rest[at + end + 1..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// The name of the part whose group [`numbered`] gave the id `id`.
+pub fn part_of_id(id: &str) -> Option<String> {
+    part_name(id.rsplit_once('~')?.0)
+}
+
 /// Brings the group open in `out` to the one of `part`: closes another
 /// part's, opens `part`'s with the next of `groups` for its id.
-fn sync(out: &mut String, open: &mut Option<String>, part: Option<&str>, groups: &mut usize) {
+fn sync(out: &mut String, open: &mut Option<String>, part: Option<&str>) {
     if open.as_deref() == part {
         return;
     }
@@ -1804,20 +1843,40 @@ fn sync(out: &mut String, open: &mut Option<String>, part: Option<&str>, groups:
         out.push_str("</g>");
     }
     if let Some(part) = part {
-        *groups += 1;
-        let _ = write!(out, r#"<g id="{part}-{groups}">"#);
+        let _ = write!(out, r#"{PART}{part}">"#);
         *open = Some(part.to_owned());
     }
+}
+
+/// Gives the first group of each part in `layer` its name as its id too,
+/// where no layer before had one: the group of its shape, which a page
+/// links to and finds (docs/adr/0037).
+fn name_first(layer: &str, named: &mut std::collections::HashSet<String>) -> String {
+    let mut out = String::with_capacity(layer.len() + 64);
+    let mut rest = layer;
+    while let Some(at) = rest.find(PART) {
+        let start = at + PART.len();
+        let Some(length) = rest[start..].find('"') else {
+            break;
+        };
+        let name = &rest[start..start + length];
+        out.push_str(&rest[..start + length + 1]);
+        if named.insert(name.to_owned()) {
+            let _ = write!(out, r#" id="{name}""#);
+        }
+        rest = &rest[start + length + 1..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// `svg` without the groups of its parts ([`Canvas::part`]): its ground,
 /// what a glide draws under the parts it glides. None when it has none.
 pub fn without_parts(svg: &str) -> Option<String> {
-    let open = format!(r#"<g id="{PART}"#);
     let mut out = String::with_capacity(svg.len());
     let mut rest = svg;
     let mut found = false;
-    while let Some(start) = rest.find(&open) {
+    while let Some((start, _)) = part_starts(rest).next() {
         let length = group_length(&rest[start..])?;
         out.push_str(&rest[..start]);
         rest = &rest[start + length..];
@@ -1830,14 +1889,13 @@ pub fn without_parts(svg: &str) -> Option<String> {
 /// `svg` with its parts drawn as they are, their groups gone around them
 /// ([`Canvas::part`]): the picture as a file or an export shows it.
 pub fn unmarked(svg: &str) -> String {
-    let open = format!(r#"<g id="{PART}"#);
     let mut out = String::with_capacity(svg.len());
     // For each group open, whether it is a part's, whose close goes too.
     let mut groups: Vec<bool> = Vec::new();
     let mut index = 0;
     while index < svg.len() {
         let here = &svg[index..];
-        if here.starts_with(&open) {
+        if part_class(here).is_some() {
             let end = here.find('>').map_or(here.len(), |at| at + 1);
             groups.push(true);
             index += end;
@@ -1859,14 +1917,39 @@ pub fn unmarked(svg: &str) -> String {
     out
 }
 
-/// The name of the part whose group has the id `id`, if it is one.
-pub fn part_name(id: &str) -> Option<String> {
-    let hex = id.strip_prefix(PART)?.rsplit_once('-')?.0;
-    let bytes = (0..hex.len())
-        .step_by(2)
-        .map(|at| u8::from_str_radix(hex.get(at..at + 2)?, 16).ok())
-        .collect::<Option<Vec<u8>>>()?;
-    String::from_utf8(bytes).ok()
+/// The name of the part whose groups have the class `class`, as
+/// [`part_id`] wrote it.
+pub fn part_name(class: &str) -> Option<String> {
+    if class.is_empty() {
+        return None;
+    }
+    let mut out = String::with_capacity(class.len());
+    let mut rest = class;
+    while let Some(at) = rest.find('_') {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + 1..];
+        let code = after
+            .find('_')
+            .filter(|&end| end > 0 && end <= 6)
+            .and_then(|end| {
+                Some((
+                    end,
+                    char::from_u32(u32::from_str_radix(&after[..end], 16).ok()?)?,
+                ))
+            });
+        match code {
+            Some((end, c)) => {
+                out.push(c);
+                rest = &after[end + 1..];
+            }
+            None => {
+                out.push('_');
+                rest = after;
+            }
+        }
+    }
+    out.push_str(rest);
+    Some(out)
 }
 
 /// The part the words of the line at `slot` of the container at `path` of
@@ -1920,13 +2003,18 @@ fn part_path(path: &[usize]) -> String {
         .join(".")
 }
 
-/// What the ids of the groups of the part `name` start with; a `-` and
-/// the group's number among the picture's follow.
+/// The class of the groups of the part `name`, and the id of its first:
+/// letters, digits, `-` and `.` as written, any other character as `_`,
+/// its code in hex and `_` (a space is `_20_`), so it is valid in XML and
+/// CSS ([`part_name`] reads it back).
 pub fn part_id(name: &str) -> String {
-    let mut id = String::with_capacity(PART.len() + name.len() * 2);
-    id.push_str(PART);
-    for byte in name.bytes() {
-        let _ = write!(id, "{byte:02x}");
+    let mut id = String::with_capacity(name.len() + 8);
+    for c in name.chars() {
+        if c.is_alphanumeric() || matches!(c, '-' | '.') {
+            id.push(c);
+        } else {
+            let _ = write!(id, "_{:x}_", c as u32);
+        }
     }
     id
 }
@@ -2196,16 +2284,15 @@ mod tests {
             svg.matches("</a>").count(),
             "{svg}"
         );
-        let named: Vec<String> = svg
-            .match_indices(r#"<g id=""#)
-            .filter_map(|(at, open)| {
-                let id = &svg[at + open.len()..];
-                part_name(&id[..id.find('"')?])
-            })
+        let named: Vec<String> = part_groups(&svg)
+            .into_iter()
+            .map(|(name, _)| name)
             .collect();
         assert_eq!(named, ["Brewing", "Grinding", "Brewing", "mark:0.1"]);
         // Brewing's group of its frame holds its own box, not Grinding's.
-        let brewing = &svg[svg.find(&part_id("Brewing")).unwrap()..];
+        let brewing = &svg[svg
+            .find(&format!(r#"class="{}""#, part_id("Brewing")))
+            .unwrap()..];
         let brewing = &brewing[..brewing.find("</g>").unwrap()];
         assert_eq!(brewing.matches("<rect").count(), 1, "{brewing}");
         // The ground keeps what no part drew.
@@ -2258,16 +2345,46 @@ mod tests {
             !svg[a..close].contains("<g") && !svg[a..close].contains("</g>"),
             "{svg}"
         );
-        assert!(has_parts(&svg) && !svg.contains(&part_id("B")), "{svg}");
-        assert!(!has_parts("<text>part-of</text>"));
+        assert!(has_parts(&svg) && !svg.contains(r#"class="B""#), "{svg}");
+        assert!(!has_parts(r#"<text class="x">part-of</text>"#));
     }
 
     #[test]
     fn a_part_s_name_is_read_back_from_its_group() {
-        let id = format!("{}-7", part_id("Ready → Brewing"));
+        let id = part_id("Ready → Brewing");
+        assert_eq!(id, "Ready_20__2192__20_Brewing");
         assert_eq!(part_name(&id).as_deref(), Some("Ready → Brewing"));
-        assert_eq!(part_name("lines"), None);
-        assert_eq!(part_name("part-zz-1"), None);
+        assert_eq!(part_id("state-Idle"), "state-Idle");
+        assert_eq!(part_name("a_b").as_deref(), Some("a_b"));
+        assert_eq!(part_name(""), None);
+    }
+
+    /// Each group of a part carries its name as a class; the first group of
+    /// its shape carries it as its id too, its shadow none (docs/adr/0037).
+    #[test]
+    fn a_part_s_first_group_is_named_by_its_id() {
+        let mut canvas = Canvas::new("sans-serif", false);
+        canvas.mark_parts();
+        canvas.shadows(true);
+        let ink = Stroke::new(Color::BLACK, 1.0);
+        canvas.part("Idle", |canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (0.0, 0.0, 40.0, 20.0),
+                4.0,
+                Some(Color::WHITE),
+                Some(ink),
+            );
+            canvas.line(Layer::Front, (0.0, 0.0), (9.0, 9.0), ink);
+        });
+        let svg = canvas.finish(4.0, None);
+        assert_eq!(svg.matches(r#"class="Idle""#).count(), 3, "{svg}");
+        assert_eq!(svg.matches(r#"id="Idle""#).count(), 1, "{svg}");
+        let named = svg.find(r#"id="Idle""#).unwrap();
+        let shadow = svg.find(r#"opacity="0.22""#).unwrap();
+        let shape = svg[shadow..].find(PART).unwrap() + shadow;
+        assert!(named > shape, "the shadow is no shape: {svg}");
+        assert_eq!(part_groups(&svg).len(), 3);
     }
     use crate::text::{Font, block};
 

@@ -91,7 +91,10 @@ impl Drawn {
                     .and_then(|svg| export::parse(&svg).ok())
                     .map(Arc::new)
             });
-            let tree = export::parse(cards.unwrap_or(&rendered.svg));
+            // Each group of a part with an id of its own: usvg keeps no
+            // classes (docs/adr/0037).
+            let numbered = parts.then(|| omaspec_uml::numbered(&rendered.svg));
+            let tree = export::parse(cards.or(numbered.as_deref()).unwrap_or(&rendered.svg));
             (tree, bare.join().ok().flatten())
         });
         let tree = tree.map_err(|e| RenderError::Engine {

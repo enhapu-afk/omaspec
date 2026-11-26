@@ -486,10 +486,15 @@ if (typeof document !== "undefined") {
         return { matrix, text: text.join(" ") };
       };
       const show = (at) => pictures.forEach((picture, i) => picture.classList.toggle("away", i !== at));
-      /// The groups of the part whose ids start with `prefix`.
-      const groups = (picture, prefix) => [...picture.querySelectorAll(`[id^="${prefix}"]`)];
+      /// The groups of the part whose class is `name`, in its picture.
+      const groups = (picture, name) => [...picture.getElementsByClassName(name)].filter((g) => g.tagName === "g");
+      /// The class of `group` that names its part, none for a page's own.
+      const partOf = (group) => {
+        const name = group.classList[0];
+        return name && !name.startsWith("omaspec-") ? name : null;
+      };
       /// Where a part lies in its picture: the box around its groups.
-      const lies = (picture, prefix) => around(picture, groups(picture, prefix));
+      const lies = (picture, name) => around(picture, groups(picture, name));
       /// The box around `some` groups of `picture`, in its units.
       const around = (picture, some) => {
         let found = null;
@@ -511,21 +516,19 @@ if (typeof document !== "undefined") {
         }
         return found && [found[0], found[1], found[2] - found[0], found[3] - found[1]];
       };
-      const prefixOf = (id) => id.replace(/\d+$/, "");
       /// A part of a picture drawn where the glide has it: its groups, in
       /// a group that is faded. Its shapes are stretched to the place of
       /// the moment. Its words are not: each group of words alone keeps
       /// its size and is moved to where it lay in the box.
-      const piece = (parent, picture, prefix, source) => {
+      const piece = (parent, picture, name, source) => {
         const wrap = make("g", {}, parent);
         const shapes = make("g", { opacity: 0 }, wrap);
         const worded = [];
-        for (const group of groups(picture, prefix)) {
+        for (const group of groups(picture, name)) {
           const { text } = lifted(picture, group);
           const copy = group.cloneNode(true);
           const only = group.children.length > 0 && [...group.children].every((el) => el.tagName === "text");
-          // This group alone: the id of another of the part's may start
-          // with this one's (`…-1`, `…-12`).
+          // This group alone.
           const at = only && around(picture, [group]);
           const into = at ? make("g", { opacity: 0 }, wrap) : shapes;
           if (at) worded.push({ into, at });
@@ -566,24 +569,23 @@ if (typeof document !== "undefined") {
         const sides = [pictures[index], pictures[index + 1]];
         const sizes = [data.sizes[index], data.sizes[index + 1]];
         const taken = [new Set(), new Set()];
-        for (const box of glide.boxes) box.parts.forEach((prefix, side) => taken[side].add(prefix));
+        for (const box of glide.boxes) box.parts.forEach((name, side) => taken[side].add(name));
         for (const line of glide.lines) {
-          line.words.forEach((names, side) => names.forEach((prefix) => prefix && taken[side].add(prefix)));
+          line.words.forEach((names, side) => names.forEach((name) => name && taken[side].add(name)));
         }
         // A part no box and no line takes that is in both pictures, as a
         // title, travels too: from where it lies to where it will.
         const named = (side) => new Set(
-          [...sides[side].querySelectorAll(`[id^="p${index + side}-part-"]`)]
-            .map((group) => prefixOf(group.id).slice(`p${index + side}-`.length)),
+          [...sides[side].querySelectorAll("g[class]")].map(partOf).filter(Boolean),
         );
         const after = named(1);
         const kept = [...named(0)]
           .filter((name) => after.has(name))
-          .map((name) => [`p${index}-${name}`, `p${index + 1}-${name}`])
+          .map((name) => [name, name])
           .filter(([a, b]) => !taken[0].has(a) && !taken[1].has(b))
           .map((parts) => ({ parts, from: lies(sides[0], parts[0]), to: lies(sides[1], parts[1]), role: "stay", into: null }))
           .filter((box) => box.from && box.to);
-        for (const box of kept) box.parts.forEach((prefix, side) => taken[side].add(prefix));
+        for (const box of kept) box.parts.forEach((name, side) => taken[side].add(name));
         const moving = { boxes: [...kept, ...glide.boxes], lines: glide.lines };
 
         // As large as a picture is shown, in the pixels of the page.
@@ -597,8 +599,8 @@ if (typeof document !== "undefined") {
           for (const child of picture.children) {
             if (!["defs", "metadata", "style"].includes(child.tagName)) ground.appendChild(child.cloneNode(true));
           }
-          for (const marked of [...ground.querySelectorAll("[id]")]) {
-            if (marked.id === data.lines[index + side] || taken[side].has(prefixOf(marked.id))) marked.remove();
+          for (const marked of [...ground.querySelectorAll("[id], g[class]")]) {
+            if (marked.id === data.lines[index + side] || taken[side].has(partOf(marked))) marked.remove();
           }
           return ground;
         });
@@ -634,11 +636,11 @@ if (typeof document !== "undefined") {
         const drawn = [new Set(), new Set()];
         const worded = moving.lines.map((line) => [0, 1, 2].map((slot) => {
           const [was, is] = [0, 1].map((side) => {
-            const prefix = line.words[side][slot];
-            if (!prefix || drawn[side].has(prefix)) return null;
-            drawn[side].add(prefix);
-            const at = lies(sides[side], prefix);
-            return at && { at, piece: piece(top, sides[side], prefix, at) };
+            const name = line.words[side][slot];
+            if (!name || drawn[side].has(name)) return null;
+            drawn[side].add(name);
+            const at = lies(sides[side], name);
+            return at && { at, piece: piece(top, sides[side], name, at) };
           });
           return { line, was, is };
         }));

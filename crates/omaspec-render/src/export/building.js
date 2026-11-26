@@ -37,9 +37,7 @@
 
   // Each part's groups, one a layer.
   const parts = data.parts.map((part) => {
-    const groups = [...svg.querySelectorAll(`[id^="${part.prefix}"]`)].filter((g) =>
-      /^\d+$/.test(g.id.slice(part.prefix.length)),
-    );
+    const groups = [...svg.querySelectorAll(`g[class="${part.class}"]`)];
     return { ...part, groups };
   });
   // A point of the picture's own units where `group` draws.

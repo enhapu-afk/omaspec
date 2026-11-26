@@ -151,9 +151,10 @@ fn prefix(at: usize) -> String {
     format!("p{at}-")
 }
 
-/// The id the groups of `part` in picture `at` start with.
-fn part(at: usize, part: &str) -> String {
-    format!("{}{}-", prefix(at), omaspec_uml::part_id(part))
+/// The class of the groups of `part`, which the page finds within the
+/// picture `at` of the glide's two (docs/adr/0037).
+fn part(_at: usize, part: &str) -> String {
+    omaspec_uml::part_id(part)
 }
 
 fn data(folding: &Folding) -> Value {
