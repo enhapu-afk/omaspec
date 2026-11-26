@@ -1,11 +1,8 @@
 # 0037: Every box and every line has an id of its own
 
-Status: accepted, 2026-11-26 (REQ-132); its first step (point 7) is
-done the same day, and of the second its sequence diagrams and the
-lines of structure diagrams, flowcharts, mind maps, WBS and activity
-diagrams, and ER, C4, architecture, block, kanban, journey, timeline,
-flow, network, story map, timing, Gantt and capability diagrams and
-the charts. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
+Status: accepted, 2026-11-26 (REQ-132); both steps of point 7 are
+done the same day. The guide lists the kinds and their ids (*Ids in a
+picture*). Replaces point 2 of [0029](0029-a-glide-by-parts.md),
 the parts only for the pane, and the way its point 1 writes their names.
 
 ## Context
@@ -111,7 +108,9 @@ Measured on a state machine of seven states, 16 part groups made its SVG
 - `data-from`, `data-to` or a line's source line on the groups: the map
   ties words to lines already, and a page finds a transition by its id.
 - Ids for what the Java PlantUML draws: its pictures keep what it writes.
-- Ids for kinds no drawer names yet (point 7).
+- Ids inside a formula, a ditaa picture or a Salt wireframe: their
+  source names nothing in them, and a name from their place in the
+  layout is what point 3 rules out.
 
 ## Decided with it
 

@@ -43,37 +43,48 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
         family,
     };
     let mut top = annotations.top();
+    // Each rule named by its name, one without (a regular expression's)
+    // `rule` (docs/adr/0037); the picture drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
     for (name, node) in &d.rules {
         let laid = rail.measure(node)?;
-        if let Some(name) = name {
-            let block = rail.plain(name, look.font.bold());
-            canvas.text(Layer::Front, &block, (0.0, top), Align::Left);
-            top += block.height + 6.0;
-        }
-        let y = top + laid.up;
-        let line = Stroke::new(look.line, 1.2);
-        // The start, an open circle; the end, a dot.
-        canvas.ellipse(
-            Layer::Frames,
-            (4.0, y),
-            (4.0, 4.0),
-            Some(look.page_or_white()),
-            Some(line),
-        );
-        canvas.line(Layer::Lifelines, (8.0, y), (8.0 + LEAD, y), line);
-        let x = 8.0 + LEAD;
-        rail.paint(&mut canvas, node, (x, y))?;
-        let end = x + laid.w + LEAD;
-        canvas.line(Layer::Lifelines, (x + laid.w, y), (end, y), line);
-        arrow(&mut canvas, (end - 4.0, y), true, look.line);
-        canvas.ellipse(
-            Layer::Frames,
-            (end + 4.0, y),
-            (4.0, 4.0),
-            Some(look.line),
-            None,
-        );
-        top = y + laid.down + 22.0;
+        let part = given.unique(crate::svg::element(
+            "rule",
+            name.as_deref().unwrap_or_default(),
+        ));
+        top = canvas.part(&part, |canvas| -> Result<f32, Declined> {
+            let mut top = top;
+            if let Some(name) = name {
+                let block = rail.plain(name, look.font.bold());
+                canvas.text(Layer::Front, &block, (0.0, top), Align::Left);
+                top += block.height + 6.0;
+            }
+            let y = top + laid.up;
+            let line = Stroke::new(look.line, 1.2);
+            // The start, an open circle; the end, a dot.
+            canvas.ellipse(
+                Layer::Frames,
+                (4.0, y),
+                (4.0, 4.0),
+                Some(look.page_or_white()),
+                Some(line),
+            );
+            canvas.line(Layer::Lifelines, (8.0, y), (8.0 + LEAD, y), line);
+            let x = 8.0 + LEAD;
+            rail.paint(canvas, node, (x, y))?;
+            let end = x + laid.w + LEAD;
+            canvas.line(Layer::Lifelines, (x + laid.w, y), (end, y), line);
+            arrow(canvas, (end - 4.0, y), true, look.line);
+            canvas.ellipse(
+                Layer::Frames,
+                (end + 4.0, y),
+                (4.0, 4.0),
+                Some(look.line),
+                None,
+            );
+            Ok(y + laid.down + 22.0)
+        })?;
     }
     annotations.draw(&mut canvas);
     Ok(canvas.finish(MARGIN, look.page))

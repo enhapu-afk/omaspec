@@ -1,6 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="330" height="522" viewBox="0 0 330 522" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="330" height="522" viewBox="0 0 330 522" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="rule-expression" id="rule-expression">
 <line x1="8" y1="54.92" x2="22" y2="54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="63.94" y1="54.92" x2="75.94" y2="54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="75.94" y1="54.92" x2="273.83" y2="54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
@@ -15,6 +16,8 @@
 <line x1="179.89" y1="83.9" x2="191.89" y2="83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
 <path d="M233.83 83.9Q242.83 83.9 242.83 76.9L242.83 70.92Q242.83 63.92 235.83 63.92L113.94 63.92Q106.94 63.92 106.94 70.92L106.94 76.9Q106.94 83.9 115.94 83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="273.83" y1="54.92" x2="287.83" y2="54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
+</g>
+<g class="rule-term" id="rule-term">
 <line x1="8" y1="178.81" x2="22" y2="178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="71.67" y1="178.81" x2="83.67" y2="178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="83.67" y1="178.81" x2="287.36" y2="178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
@@ -29,6 +32,8 @@
 <line x1="185.68" y1="207.79" x2="197.68" y2="207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
 <path d="M247.36 207.79Q256.36 207.79 256.36 200.79L256.36 194.81Q256.36 187.81 249.36 187.81L121.67 187.81Q114.67 187.81 114.67 194.81L114.67 200.79Q114.67 207.79 123.67 207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="287.36" y1="178.81" x2="301.36" y2="178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
+</g>
+<g class="rule-factor" id="rule-factor">
 <line x1="8" y1="302.7" x2="22" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="22" y1="302.7" x2="83.52" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
 <path d="M22 302.7Q29 302.7 29 309.7L29 315.68Q29 322.68 36 322.68L42 322.68" fill="none" stroke="#000000" stroke-width="1.2"/>
@@ -41,6 +46,8 @@
 <line x1="135.9" y1="333.66" x2="147.9" y2="333.66" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="226.17" y1="333.66" x2="238.17" y2="333.66" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="278.55" y1="302.7" x2="292.55" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+</g>
+<g class="rule-number" id="rule-number">
 <line x1="8" y1="397.6" x2="22" y2="397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="62.43" y1="397.6" x2="74.43" y2="397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="74.43" y1="397.6" x2="194.86" y2="397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
@@ -50,22 +57,30 @@
 <line x1="154.86" y1="426.58" x2="174.86" y2="426.58" fill="none" stroke="#000000" stroke-width="1.2"/>
 <path d="M154.86 426.58Q163.86 426.58 163.86 419.58L163.86 413.6Q163.86 406.6 156.86 406.6L112.43 406.6Q105.43 406.6 105.43 413.6L105.43 419.58Q105.43 426.58 114.43 426.58" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="194.86" y1="397.6" x2="208.86" y2="397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
+</g>
+<g class="rule-digit" id="rule-digit">
 <line x1="8" y1="490.52" x2="22" y2="490.52" fill="none" stroke="#000000" stroke-width="1.2"/>
 <line x1="70.88" y1="490.52" x2="84.88" y2="490.52" fill="none" stroke="#000000" stroke-width="1.2"/>
 </g>
+</g>
 <g>
+<g class="rule-expression">
 <ellipse cx="4" cy="54.92" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
 <rect x="22" y="43.94" width="41.94" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
 <rect x="135.94" y="72.92" width="23.94" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
 <rect x="135.94" y="103.89" width="21.52" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
 <rect x="191.89" y="72.92" width="41.94" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
 <ellipse cx="291.83" cy="54.92" rx="4" ry="4" fill="#000000"/>
+</g>
+<g class="rule-term">
 <ellipse cx="4" cy="178.81" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
 <rect x="22" y="167.82" width="49.67" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
 <rect x="143.67" y="196.81" width="22.01" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
 <rect x="143.67" y="227.78" width="20.32" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
 <rect x="197.68" y="196.81" width="49.67" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
 <ellipse cx="305.36" cy="178.81" rx="4" ry="4" fill="#000000"/>
+</g>
+<g class="rule-factor">
 <ellipse cx="4" cy="302.7" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
 <rect x="42" y="311.7" width="21.52" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
 <rect x="115.52" y="291.71" width="59.55" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
@@ -73,15 +88,21 @@
 <rect x="147.9" y="322.68" width="78.27" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
 <rect x="238.17" y="322.68" width="20.38" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
 <ellipse cx="296.55" cy="302.7" rx="4" ry="4" fill="#000000"/>
+</g>
+<g class="rule-number">
 <ellipse cx="4" cy="397.6" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
 <rect x="22" y="386.62" width="40.43" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
 <rect x="114.43" y="415.6" width="40.43" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
 <ellipse cx="212.86" cy="397.6" rx="4" ry="4" fill="#000000"/>
+</g>
+<g class="rule-digit">
 <ellipse cx="4" cy="490.52" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
 <rect x="22" y="479.54" width="48.88" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1" stroke-dasharray="3,2"/>
 <ellipse cx="88.88" cy="490.52" rx="4" ry="4" fill="#000000"/>
 </g>
+</g>
 <g>
+<g class="rule-expression">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="35.1" font-size="12" fill="#000000" font-weight="bold" textLength="65.23" lengthAdjust="spacing">expression</tspan>
 </text>
@@ -100,6 +121,8 @@
 </text>
 <polygon points="171.39,63.92 177.89,60.92 177.89,66.92" fill="#000000"/>
 <polygon points="287.33,54.92 280.83,51.92 280.83,57.92" fill="#000000"/>
+</g>
+<g class="rule-term">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="158.99" font-size="12" fill="#000000" font-weight="bold" textLength="27.38" lengthAdjust="spacing">term</tspan>
 </text>
@@ -118,6 +141,8 @@
 </text>
 <polygon points="182.01,187.81 188.51,184.81 188.51,190.81" fill="#000000"/>
 <polygon points="300.86,178.81 294.36,175.81 294.36,181.81" fill="#000000"/>
+</g>
+<g class="rule-factor">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="282.88" font-size="12" fill="#000000" font-weight="bold" textLength="35.44" lengthAdjust="spacing">factor</tspan>
 </text>
@@ -138,6 +163,8 @@
 <tspan x="246.17" y="337.82" font-size="12" fill="#000000" textLength="4.38" lengthAdjust="spacing">)</tspan>
 </text>
 <polygon points="292.05,302.7 285.55,299.7 285.55,305.7" fill="#000000"/>
+</g>
+<g class="rule-number">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="377.78" font-size="12" fill="#000000" font-weight="bold" textLength="45.5" lengthAdjust="spacing">number</tspan>
 </text>
@@ -150,6 +177,8 @@
 </text>
 <polygon points="131.15,406.6 137.65,403.6 137.65,409.6" fill="#000000"/>
 <polygon points="208.36,397.6 201.86,394.6 201.86,400.6" fill="#000000"/>
+</g>
+<g class="rule-digit">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="470.7" font-size="12" fill="#000000" font-weight="bold" textLength="26.04" lengthAdjust="spacing">digit</tspan>
 </text>
@@ -157,6 +186,7 @@
 <tspan x="30" y="494.67" font-size="12" fill="#000000" textLength="32.88" lengthAdjust="spacing">0 to 9</tspan>
 </text>
 <polygon points="84.38,490.52 77.88,487.52 77.88,493.52" fill="#000000"/>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="123.79" y="11.14" font-size="12" fill="#000000" font-weight="bold" textLength="61.78" lengthAdjust="spacing">Arithmetic</tspan>

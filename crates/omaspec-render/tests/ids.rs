@@ -319,3 +319,22 @@ fn the_charts_name_what_they_show() {
         &["bar-Bread", "line-Margin"],
     );
 }
+
+#[test]
+fn a_grammar_names_its_rules_and_a_marble_diagram_its_lanes() {
+    named(
+        "@startebnf\nvalue = object | number;\nnumber = digit, { digit };\n@endebnf\n",
+        Language::PlantUml,
+        &["rule-value", "rule-number"],
+    );
+    named(
+        "@startregex\n/a+b/\n@endregex\n",
+        Language::PlantUml,
+        &["rule"],
+    );
+    named(
+        "marble-beta\n  keys    : -a-b--|\n  results : ---r--|\n",
+        Language::Mermaid,
+        &["lane-keys", "lane-results"],
+    );
+}

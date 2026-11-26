@@ -1193,3 +1193,47 @@ of its own goes in quotes. A step may carry a color (`levels Risk : low #2F9E44,
 accent. Dots under a capability's name count its step, so the map reads in black and
 white too; one with no value and nothing in it has a dashed edge, *not rated* in the
 legend. The areas stand side by side as columns, a few to a row where there are many.
+
+### Ids in a picture
+
+Every picture Omaspec draws names what it shows from the source
+([ADR 0037](../adr/0037-an-id-for-every-box-and-line.md)): each element is a group with an
+id, and every group of it, the id's one too, carries the same name as a class. A page links
+to `door.svg#state-Idle`, styles `.state-Idle` or finds `#transition-Idle-Busy-start`, the
+transition a trace or `omaspec diff` names. A name is the element's kind and what the
+source calls it, a line what it joins and what it says (`link-Order-Customer-places`);
+letters, digits, `_` and `.` stand as written, any other character as `_`, its code in hex
+and `_` (`Order parts` is `Order_20_parts`); a name given twice takes `-2`. The same
+source gives the same ids on every render, and renaming an element in the source renames
+its id. `--id-prefix door-` starts every id and class with `door-`, so two pictures share
+none on one page.
+
+| Kind | Its ids |
+|---|---|
+| State machine | `state-Idle`, `start-Brewing`, `end`, `region-On-2`, `transition-Idle-Busy-start`, `note-state-Idle-right-1` |
+| Sequence | `participant-Web`, `actor-User` (head, foot, lifeline, bars), `message-User-Web-log_20_in`, `note-actor-User-over-1`, `alt-ok`, `divider-Done`, `delay-later`, `ref-more`, `box-Back` |
+| Activity | `action-Pay`, `test-ok_3f_`, `start`, `stop`, `label-yes`, `lane-Shop`, `link-Build-green_3f_` (a run many lines share has none) |
+| Class, component, use case, deployment, object | `class-Order`, `package-Shop`, `link-Order-Customer-places` and its multiplicities `….from`, `….to` |
+| Flowchart, swimlane | `node-A`, `subgraph-Back`, `link-A-B-go` |
+| Mind map, WBS | `node-Pack`, `link-Trip-Pack` (a WBS's shared spine has none) |
+| JSON, YAML | `json`, `json-home_2f_street` |
+| Git graph | `branch-main`, `commit-init` |
+| ER | `entity-CUSTOMER`, `link-CUSTOMER-ORDER-places` |
+| C4 | `person-customer`, `system-bank`, `container-…`, `component-…`, `boundary-b1`, `link-customer-bank-Uses` |
+| Architecture | `group-api`, `service-db`, `junction-hub`, `link-db-server` |
+| Block | `group-…`, `block-a`, `link-a-b` |
+| Kanban | `column-todo`, `card-t1` (by its words where it has no id) |
+| Journey, timeline | `section-Morning`, `task-Read`, `period-2020`, `event-Launch` |
+| Flow | `input-sensor`, `output-valve`, `block-Filter`, `link-sensor-Filter.sensor` |
+| Network | `network-home`, `server-router`, `group-…`, `link-home-router` |
+| Story map, capability map | `activity-Enrol`, `step-Sign_20_up`, `release-Pilot`, `story-By_20_email`, `capability-Lending` |
+| Timing | `concise-P`, `binary-L`, `note-concise-P-top-1`, `link-P-L-lock` |
+| Gantt | `section-Plan`, `task-D` (by its words where it has no id), `milestone-Review`, `vert-Freeze`, `link-D-B` |
+| Charts | `slice-Sleep`, `node-Solar`, `link-Solar-Grid`, `quadrant-1`, `point-…`, `axis-Design`, `curve-Ada`, `field-…`, `bar`, `line`, `bar-Bread` |
+| EBNF, regex, marble | `rule-value`, `rule`, `lane-keys` |
+| A title and the like | `title`, `header`, `footer`, `caption`, `legend` |
+
+A formula, a ditaa picture and a Salt wireframe carry only their frame's ids: their source
+names nothing inside them. Nor does what the Java PlantUML or mmdr draw. The root of a
+picture says `data-omaspec="parts"` where the editor glides its boxes when it changes, and
+`data-omaspec="named"` where it is drawn as a whole.

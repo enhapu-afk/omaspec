@@ -51,12 +51,24 @@ pub fn draw(d: &Diagram) -> (String, Map) {
         }
     }
     let mut said = vec![false; d.labels.len()];
+    // Each lane named by its name (docs/adr/0037), the picture drawn as a
+    // whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
     for (lane, at) in d.lanes.iter().zip(&laid.lanes) {
-        draw_lane(&mut canvas, d, &laid, lane, at, &mut said);
+        let part = given.unique(crate::svg::element(
+            "lane",
+            crate::svg::first_line(&lane.name),
+        ));
+        canvas.part(&part, |canvas| {
+            draw_lane(canvas, d, &laid, lane, at, &mut said)
+        });
     }
     if let Some(title) = &laid.title {
         let middle = (laid.x0 + right.max(laid.x0)) / 2.0;
-        canvas.text(Layer::Front, title, (middle, 0.0), Align::Center);
+        canvas.part("title", |canvas| {
+            canvas.text(Layer::Front, title, (middle, 0.0), Align::Center);
+        });
     }
     // Room for a marble at either end of the time.
     canvas.include(laid.x0 - radius, laid.top);

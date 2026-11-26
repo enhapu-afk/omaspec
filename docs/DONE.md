@@ -2449,6 +2449,13 @@ is open and the reasoning around it.
       series `bar`, `line` (the second of a kind `-2`), a PlantUML
       chart's `bar-Bread`, `line-Margin`, `area-…`, `scatter-…`; their
       titles `title`.
+- [x] An id for every box and line, step 2, done (2026-11-26,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)): an EBNF's rules
+      (`rule-value`, a regular expression's `rule`) and a marble
+      diagram's lanes (`lane-keys`) are named too, and the guide lists
+      the kinds and their ids (*Ids in a picture*). A formula, a ditaa
+      picture and a Salt wireframe carry only their frame's ids, as
+      their source names nothing in them.
 
 ## Next
 
