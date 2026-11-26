@@ -20,6 +20,7 @@ pub use draw::{draw, draw_mapped};
 pub use parse::{is_salt, parse};
 
 use crate::common::Frame;
+use crate::text::Written;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Diagram {
@@ -59,19 +60,20 @@ pub enum Widget {
     Grid {
         lines: Lines,
         rows: Vec<Row>,
-        /// The zero-based line of the source each row starts on: its words
-        /// are tied to it ([`crate::svg::Canvas::tie`]).
-        written: Vec<usize>,
+        /// Where each cell of each row is written: its line, and the byte
+        /// its words start at there, so they are tied to it
+        /// ([`crate::text::Block::written_at`]).
+        written: Vec<Vec<Written>>,
     },
     /// `{^"Title" … }`: a frame with its title in its top line.
     Group {
         title: String,
         body: Box<Widget>,
     },
-    /// `{/ a | b }`: the first is the one shown.
-    Tabs(Vec<String>),
-    /// `{* File | Edit }`.
-    Menu(Vec<String>),
+    /// `{/ a | b }`: the first is the one shown; each where it is written.
+    Tabs(Vec<(String, Written)>),
+    /// `{* File | Edit }`, each where it is written.
+    Menu(Vec<(String, Written)>),
     /// `{T + a | x ++ b | y }`: its items, and the lines of a grid.
     Tree {
         lines: Lines,
@@ -99,8 +101,8 @@ pub struct Item {
     pub depth: usize,
     pub label: String,
     pub cells: Vec<String>,
-    /// The zero-based line of the source it is written on.
-    pub line: usize,
+    /// Where its label and each of its cells are written.
+    pub at: Vec<Written>,
 }
 
 /// A row of a grid: its cells, or a rule across it.

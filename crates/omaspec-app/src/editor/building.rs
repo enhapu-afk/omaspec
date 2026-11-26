@@ -606,6 +606,12 @@ mod tests {
         );
         assert_eq!(ebnf.reach, [(3, ebnf.size.1)]);
         assert_eq!(ebnf.first_reach(), 0.0);
+        // It comes with its own `@end…`, not with what follows it.
+        let commented = picture(
+            "@startebnf\ndigit = \"0\" | \"1\" ;\n@endebnf\n' a note\n' and more\n",
+            Language::PlantUml,
+        );
+        assert_eq!(commented.reach, [(2, commented.size.1)]);
     }
 
     #[test]
@@ -756,7 +762,7 @@ mod tests {
             parts: Vec::new(),
             wires: Vec::new(),
             reach: vec![(1, 40.0)],
-            first: 20.0,
+            untied: false,
             lines_group: None,
             root: export::usvg::Transform::identity(),
         };

@@ -5,7 +5,8 @@
 use super::{Diagram, Item, Lines, Row, Rule, Widget};
 use crate::Declined;
 use crate::common::{Frame, squeezed_eq};
-use crate::source::Line;
+use crate::source::{Line, offset_in};
+use crate::text::Written;
 
 /// How deep blocks may stand in each other.
 const MAX_DEPTH: usize = 64;
@@ -30,9 +31,81 @@ enum Unit {
         no: usize,
     },
     Closes(usize),
-    Row(String, usize),
+    Row(Piece),
     /// The rest of a row after the block in it closed: `} | 3 files`.
-    More(String, usize),
+    More(Piece),
+}
+
+/// A row's words as one line writes them: the line, and the byte its
+/// words start at there.
+#[derive(Debug, Clone, PartialEq)]
+struct Piece {
+    text: String,
+    line: usize,
+    col: usize,
+}
+
+/// Where `text`, a slice of the line `whole` whose words start at its
+/// byte `at` in the source, is written there.
+fn piece(whole: &str, at: usize, line: usize, text: &str) -> Piece {
+    Piece {
+        text: text.to_owned(),
+        line,
+        col: at + offset_in(whole, text),
+    }
+}
+
+/// A row as a block reads it: its text, joined from the pieces after a
+/// block in it closes, and where each piece starts in that text.
+struct RowText {
+    text: String,
+    line: usize,
+    pieces: Vec<(usize, Written)>,
+}
+
+impl RowText {
+    fn new(piece: Piece) -> Self {
+        let at = Written {
+            line: piece.line,
+            col: Some(piece.col),
+        };
+        Self {
+            text: piece.text,
+            line: piece.line,
+            pieces: vec![(0, at)],
+        }
+    }
+
+    /// Where each of its cells is written: the line, and the byte its
+    /// words start at, so words amid others on a line say where they
+    /// stand (`Block::written_at`).
+    fn spots(&self) -> Vec<Written> {
+        cells(&self.text)
+            .into_iter()
+            .map(|cell| {
+                let at = offset_in(&self.text, cell) + (cell.len() - cell.trim_start().len());
+                match self.pieces.iter().rev().find(|(start, _)| *start <= at) {
+                    Some(&(start, piece)) => Written {
+                        line: piece.line,
+                        col: piece.col.map(|col| col + at - start),
+                    },
+                    None => Written {
+                        line: self.line,
+                        col: None,
+                    },
+                }
+            })
+            .collect()
+    }
+
+    /// Its cells, trimmed, each with where it is written.
+    fn placed(&self) -> Vec<(String, Written)> {
+        cells(&self.text)
+            .into_iter()
+            .map(|cell| cell.trim().to_owned())
+            .zip(self.spots())
+            .collect()
+    }
 }
 
 pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
@@ -41,7 +114,9 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
     let mut at = 0;
     let mut started = false;
     while at < lines.len() {
-        let Line { no, text, .. } = lines[at];
+        let Line {
+            no, text, at: col, ..
+        } = lines[at];
         if !started && squeezed_eq(text, "salt") {
             at += 1;
             continue;
@@ -54,13 +129,17 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
             continue;
         }
         started = true;
-        cut(text, no, &mut units)?;
+        cut(text, no, col, &mut units)?;
         at += 1;
     }
     let mut cursor = 0;
     let root = match units.first() {
         Some(Unit::Opens { .. }) => block(&units, &mut cursor, 0)?,
-        Some(Unit::Row(_, no) | Unit::More(_, no) | Unit::Closes(no)) => {
+        Some(
+            Unit::Row(Piece { line: no, .. })
+            | Unit::More(Piece { line: no, .. })
+            | Unit::Closes(no),
+        ) => {
             return Err(Declined::at(*no, "a Salt window starts with `{`"));
         }
         None => {
@@ -73,7 +152,10 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
     };
     if let Some(unit) = units.get(cursor) {
         let no = match unit {
-            Unit::Opens { no, .. } | Unit::Closes(no) | Unit::Row(_, no) | Unit::More(_, no) => *no,
+            Unit::Opens { no, .. }
+            | Unit::Closes(no)
+            | Unit::Row(Piece { line: no, .. })
+            | Unit::More(Piece { line: no, .. }) => *no,
         };
         return Err(Declined::at(no, "a Salt diagram has one window"));
     }
@@ -93,15 +175,17 @@ fn units_closed(units: &[Unit]) -> bool {
     !units.is_empty() && opened == closed
 }
 
-/// A line cut into units.
-fn cut(text: &str, no: usize, units: &mut Vec<Unit>) -> Result<(), Declined> {
+/// A line cut into units; its words start at the byte `col` of the
+/// source's line.
+fn cut(text: &str, no: usize, col: usize, units: &mut Vec<Unit>) -> Result<(), Declined> {
+    let whole = text;
     let mut rest = text.trim();
     // The block in a row closes, and the row goes on.
     if let Some(after) = rest.strip_prefix('}')
         && after.trim_start().starts_with('|')
     {
         units.push(Unit::Closes(no));
-        return row_text(after.trim(), no, units, true);
+        return row_text(after.trim(), (whole, no, col), units, true);
     }
     if let Some(after) = rest.strip_prefix('{') {
         rest = opener(after, no, units)?;
@@ -113,12 +197,12 @@ fn cut(text: &str, no: usize, units: &mut Vec<Unit>) -> Result<(), Declined> {
     match closing(rest) {
         Some(before) => {
             if !before.trim().is_empty() {
-                units.push(Unit::Row(before.trim().to_owned(), no));
+                units.push(Unit::Row(piece(whole, col, no, before.trim())));
             }
             units.push(Unit::Closes(no));
             Ok(())
         }
-        None => row_text(rest, no, units, false),
+        None => row_text(rest, (whole, no, col), units, false),
     }
 }
 
@@ -167,25 +251,30 @@ fn opener<'a>(after: &'a str, no: usize, units: &mut Vec<Unit>) -> Result<&'a st
 
 /// A row, or the rest of one (`more`). A block that opens in its last
 /// cell, `Files | {T`, stands in it as a slot, and opens.
-fn row_text(text: &str, no: usize, units: &mut Vec<Unit>, more: bool) -> Result<(), Declined> {
+fn row_text(
+    text: &str,
+    (whole, no, col): (&str, usize, usize),
+    units: &mut Vec<Unit>,
+    more: bool,
+) -> Result<(), Declined> {
     let all = cells(text);
     let opens = all
         .last()
         .filter(|last| all.len() > 1 && last.trim_start().starts_with('{') && !last.contains('}'))
         .copied();
-    let written = match opens {
-        Some(last) => format!("{}{SLOT}", &text[..text.len() - last.len()]),
-        None => text.to_owned(),
-    };
+    let mut written = piece(whole, col, no, text);
+    if let Some(last) = opens {
+        written.text = format!("{}{SLOT}", &text[..text.len() - last.len()]);
+    }
     units.push(if more {
-        Unit::More(written, no)
+        Unit::More(written)
     } else {
-        Unit::Row(written, no)
+        Unit::Row(written)
     });
     if let Some(last) = opens {
         let rest = opener(&last.trim_start()[1..], no, units)?;
         if !rest.trim().is_empty() {
-            units.push(Unit::Row(rest.trim().to_owned(), no));
+            units.push(Unit::Row(piece(whole, col, no, rest.trim())));
         }
     }
     Ok(())
@@ -217,7 +306,7 @@ fn block(units: &[Unit], at: &mut usize, depth: usize) -> Result<Widget, Decline
         return Err(Declined::at(no, "Salt blocks nest too deep"));
     }
     *at += 1;
-    let mut rows: Vec<(String, usize)> = Vec::new();
+    let mut rows: Vec<RowText> = Vec::new();
     // The blocks inside, each in its row's slot: a block on a line of its
     // own starts a row of its own, which may go on after its close.
     let mut slotted: Vec<(usize, Widget)> = Vec::new();
@@ -229,23 +318,36 @@ fn block(units: &[Unit], at: &mut usize, depth: usize) -> Result<Widget, Decline
                 *at += 1;
                 break;
             }
-            Some(Unit::Row(text, line)) => {
-                open_slots = text.matches(SLOT).count();
-                rows.push((text, line));
+            Some(Unit::Row(piece)) => {
+                open_slots = piece.text.matches(SLOT).count();
+                rows.push(RowText::new(piece));
                 *at += 1;
             }
-            Some(Unit::More(text, line)) => {
-                let Some((row, _)) = rows.last_mut() else {
-                    return Err(Declined::at(line, "this `}` closes no block in a row"));
+            Some(Unit::More(piece)) => {
+                let Some(row) = rows.last_mut() else {
+                    return Err(Declined::at(
+                        piece.line,
+                        "this `}` closes no block in a row",
+                    ));
                 };
-                open_slots += text.matches(SLOT).count();
-                row.push_str(&text);
+                open_slots += piece.text.matches(SLOT).count();
+                // What follows the close is that line's (`} | 3 files`).
+                let spot = Written {
+                    line: piece.line,
+                    col: Some(piece.col),
+                };
+                row.pieces.push((row.text.len(), spot));
+                row.text.push_str(&piece.text);
                 *at += 1;
             }
             Some(Unit::Opens { no: opened, .. }) => {
                 // A block on a line of its own is a row of that line.
                 if open_slots == 0 {
-                    rows.push((SLOT.to_owned(), opened));
+                    rows.push(RowText::new(Piece {
+                        text: SLOT.to_owned(),
+                        line: opened,
+                        col: 0,
+                    }));
                     open_slots = 1;
                 }
                 let inner = block(units, at, depth + 1)?;
@@ -261,20 +363,15 @@ fn block(units: &[Unit], at: &mut usize, depth: usize) -> Result<Widget, Decline
         ));
     }
     match kind {
-        '/' => Ok(Widget::Tabs(all_cells(&rows))),
+        '/' => Ok(Widget::Tabs(
+            rows.iter().flat_map(RowText::placed).collect(),
+        )),
         '*' => Ok(Widget::Menu(
-            rows.first()
-                .map(|(text, _)| {
-                    cells(text)
-                        .into_iter()
-                        .map(|c| c.trim().to_owned())
-                        .collect()
-                })
-                .unwrap_or_default(),
+            rows.first().map(RowText::placed).unwrap_or_default(),
         )),
         'T' => Ok(Widget::Tree {
             lines: lines_of(lines),
-            items: rows.iter().map(|(text, line)| item(text, *line)).collect(),
+            items: rows.iter().map(item).collect(),
         }),
         'S' => Err(Declined::at(
             no,
@@ -283,17 +380,17 @@ fn block(units: &[Unit], at: &mut usize, depth: usize) -> Result<Widget, Decline
         _ => {
             let mut grid = Vec::with_capacity(rows.len());
             let mut slotted = slotted.into_iter().peekable();
-            for (i, (text, line)) in rows.iter().enumerate() {
+            for (i, written) in rows.iter().enumerate() {
                 let mut blocks = Vec::new();
                 while let Some((_, widget)) = slotted.next_if(|(at, _)| *at == i) {
                     blocks.push(widget);
                 }
-                grid.push(row(text, *line, blocks)?);
+                grid.push(row(&written.text, written.line, blocks)?);
             }
             let body = Widget::Grid {
                 lines: lines_of(kind),
                 rows: grid,
-                written: rows.iter().map(|(_, line)| *line).collect(),
+                written: rows.iter().map(RowText::spots).collect(),
             };
             Ok(match (kind, title) {
                 ('^', title) => Widget::Group {
@@ -317,24 +414,23 @@ fn lines_of(kind: char) -> Lines {
     }
 }
 
-/// A tree's item: `++ Europe | 744` stands at 2, with a cell beside it.
-fn item(text: &str, line: usize) -> Item {
-    let mut all = cells(text).into_iter();
+/// A tree's item: `++ Europe | 744` stands at 2, with a cell beside it;
+/// its label written after its `+`s.
+fn item(row: &RowText) -> Item {
+    let mut all = cells(&row.text).into_iter();
     let first = all.next().unwrap_or_default();
+    let mut at = row.spots();
+    if let Some(label) = at.first_mut() {
+        let marked = first.trim_start();
+        let skip = marked.len() - marked.trim_start_matches('+').trim_start().len();
+        label.col = label.col.map(|col| col + skip);
+    }
     Item {
         depth: first.chars().take_while(|c| *c == '+').count().max(1),
         label: first.trim_start_matches('+').trim().to_owned(),
         cells: all.map(|cell| cell.trim().to_owned()).collect(),
-        line,
+        at,
     }
-}
-
-/// Every cell of `rows`, in order.
-fn all_cells(rows: &[(String, usize)]) -> Vec<String> {
-    rows.iter()
-        .flat_map(|(text, _)| cells(text))
-        .map(|cell| cell.trim().to_owned())
-        .collect()
 }
 
 /// One row: a rule, or its cells; `blocks` stand in its slots.
@@ -461,8 +557,11 @@ mod tests {
             panic!("a grid");
         };
         assert_eq!(lines, Lines::Frame);
-        // Each row by the line it starts on: a block's, its opening line.
-        assert_eq!(written, [1, 2, 3, 4, 7, 8, 12]);
+        // Each row by the line it starts on: a block's, its opening line;
+        // each cell by the byte its words start at.
+        let starts: Vec<usize> = written.iter().map(|row| row[0].line).collect();
+        assert_eq!(starts, [1, 2, 3, 4, 7, 8, 12]);
+        assert_eq!(written[0], [at(1, 0), at(1, 8)]);
         assert_eq!(
             rows[0],
             Row::Cells(vec![
@@ -490,13 +589,16 @@ mod tests {
         assert!(matches!(&group[0], Widget::Group { title, .. } if title == "Box"));
         assert_eq!(
             rows[4],
-            Row::Cells(vec![Widget::Tabs(vec!["General".into(), "Fonts".into()])])
+            Row::Cells(vec![Widget::Tabs(vec![
+                ("General".into(), at(7, 3)),
+                ("Fonts".into(), at(7, 13))
+            ])])
         );
         assert_eq!(
             rows[5],
             Row::Cells(vec![Widget::Tree {
                 lines: Lines::None,
-                items: vec![item(1, "a", &[], 9), item(2, "b", &[], 10)]
+                items: vec![item(1, "a", &[], 9, &[2]), item(2, "b", &[], 10, &[3])]
             }])
         );
         assert_eq!(
@@ -508,12 +610,21 @@ mod tests {
         );
     }
 
-    fn item(depth: usize, label: &str, cells: &[&str], line: usize) -> Item {
+    fn at(line: usize, col: usize) -> Written {
+        Written {
+            line,
+            col: Some(col),
+        }
+    }
+
+    /// An item of a tree on `line`, its label and its cells from the
+    /// bytes `cols` on.
+    fn item(depth: usize, label: &str, cells: &[&str], line: usize, cols: &[usize]) -> Item {
         Item {
             depth,
             label: label.into(),
             cells: cells.iter().map(|c| (*c).into()).collect(),
-            line,
+            at: cols.iter().map(|&col| at(line, col)).collect(),
         }
     }
 
@@ -531,8 +642,8 @@ mod tests {
             Row::Cells(vec![Widget::Tree {
                 lines: Lines::All,
                 items: vec![
-                    item(1, "World", &["Population"], 3),
-                    item(2, "Europe", &["744"], 4)
+                    item(1, "World", &["Population"], 3, &[2, 10]),
+                    item(2, "Europe", &["744"], 4, &[3, 12])
                 ]
             }])
         );
@@ -551,17 +662,23 @@ mod tests {
             "{#\nFolder | Size\nFiles | {T\n+ src\n++ main.rs\n} | 3 files\nNotes | {\n[OK] | [Cancel]\n}\nLast | end\n}",
         ))
         .unwrap();
-        let Widget::Grid { rows, .. } = d.root else {
+        let Widget::Grid { rows, written, .. } = d.root else {
             panic!("a grid");
         };
         assert_eq!(rows.len(), 4, "{rows:?}");
+        // What follows the block's close is that line's.
+        assert_eq!(written[1][0], at(2, 0));
+        assert_eq!(written[1][2], at(5, 4));
         assert_eq!(
             rows[1],
             Row::Cells(vec![
                 Widget::Text("Files".into()),
                 Widget::Tree {
                     lines: Lines::None,
-                    items: vec![item(1, "src", &[], 3), item(2, "main.rs", &[], 4)]
+                    items: vec![
+                        item(1, "src", &[], 3, &[2]),
+                        item(2, "main.rs", &[], 4, &[3])
+                    ]
                 },
                 Widget::Text("3 files".into())
             ])
@@ -595,7 +712,7 @@ Notes | 12 KB
             Row::Cells(vec![
                 Widget::Tree {
                     lines: Lines::None,
-                    items: vec![item(1, "src", &[], 2)]
+                    items: vec![item(1, "src", &[], 2, &[2])]
                 },
                 Widget::Text("3 files".into())
             ])

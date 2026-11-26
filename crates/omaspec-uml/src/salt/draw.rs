@@ -8,7 +8,7 @@ use crate::color::{self, Color, Paint};
 use crate::common::{Skinparam, normalize_key};
 use crate::map::Map;
 use crate::svg::{Align, Canvas, Layer, Stroke};
-use crate::text::{self, Block, Family, Font};
+use crate::text::{self, Block, Family, Font, Written};
 
 const MARGIN: f32 = 10.0;
 /// Between two columns of a grid, and between two rows.
@@ -46,7 +46,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
         family,
     };
     let size = painter.size(&d.root)?;
-    painter.paint(&mut canvas, &d.root, (0.0, annotations.top()), size)?;
+    painter.paint(&mut canvas, &d.root, (0.0, annotations.top()), size, None)?;
     annotations.draw(&mut canvas);
     let map = canvas.place(Map::default(), MARGIN);
     Ok((canvas.finish(MARGIN, look.page), map))
@@ -116,7 +116,7 @@ impl Painter<'_> {
             Widget::Tabs(tabs) => {
                 let mut w = 0.0;
                 let mut h: f32 = 0.0;
-                for tab in tabs {
+                for (tab, _) in tabs {
                     let b = self.words(tab, font)?;
                     w += b.width + 12.0;
                     h = h.max(b.height + 4.0);
@@ -126,7 +126,7 @@ impl Painter<'_> {
             Widget::Menu(items) => {
                 let mut w = 6.0;
                 let mut h: f32 = 0.0;
-                for item in items {
+                for (item, _) in items {
                     let b = self.words(item, font)?;
                     w += b.width + 12.0;
                     h = h.max(b.height + 2.0);
@@ -234,13 +234,16 @@ impl Painter<'_> {
         Ok((widths, heights))
     }
 
-    /// Paints `widget` with its top left at `(x, y)` in a room `(w, h)`.
+    /// Paints `widget` with its top left at `(x, y)` in a room `(w, h)`,
+    /// its words tied to where they are written, `at`, where it is a
+    /// cell's.
     fn paint(
         &self,
         canvas: &mut Canvas,
         widget: &Widget,
         (x, y): (f32, f32),
         (w, h): (f32, f32),
+        at: Option<Written>,
     ) -> Result<(), Declined> {
         let look = self.look;
         let font = look.font;
@@ -248,11 +251,11 @@ impl Painter<'_> {
         match widget {
             Widget::Empty => {}
             Widget::Text(text) => {
-                let b = self.words(text, font)?;
+                let b = tied(self.words(text, font)?, at);
                 canvas.text(Layer::Front, &b, (x, y + (h - b.height) / 2.0), Align::Left);
             }
             Widget::Button(text) => {
-                let b = self.words(text, font)?;
+                let b = tied(self.words(text, font)?, at);
                 let (bw, bh) = ((b.width + 20.0).max(44.0), b.height + 6.0);
                 let top = y + (h - bh) / 2.0;
                 canvas.rect(
@@ -265,7 +268,7 @@ impl Painter<'_> {
                 canvas.text(Layer::Front, &b, (x + bw / 2.0, top + 3.0), Align::Center);
             }
             Widget::Field(text) => {
-                let b = self.plain(text, font);
+                let b = tied(self.plain(text, font), at);
                 let bottom = y + (h + b.height) / 2.0 + 1.0;
                 canvas.text(
                     Layer::Front,
@@ -318,7 +321,7 @@ impl Painter<'_> {
                     }
                 }
                 if !label.is_empty() {
-                    let b = self.words(label, font)?;
+                    let b = tied(self.words(label, font)?, at);
                     canvas.text(
                         Layer::Front,
                         &b,
@@ -328,7 +331,7 @@ impl Painter<'_> {
                 }
             }
             Widget::Drop(text) => {
-                let b = self.words(text, font)?;
+                let b = tied(self.words(text, font)?, at);
                 let (bw, bh) = (b.width + 12.0 + 16.0, b.height + 4.0);
                 let top = y + (h - bh) / 2.0;
                 canvas.rect(
@@ -371,22 +374,28 @@ impl Painter<'_> {
                     canvas.text(Layer::Front, &t, (x + 9.0, y), Align::Left);
                 }
                 let inner = self.size(body)?;
-                self.paint(canvas, body, (x + PAD + 2.0, y + t.height + PAD), inner)?;
+                self.paint(
+                    canvas,
+                    body,
+                    (x + PAD + 2.0, y + t.height + PAD),
+                    inner,
+                    None,
+                )?;
             }
             Widget::Tabs(tabs) => {
-                let mut at = x;
+                let mut left = x;
                 let mut bottom = y;
-                for (i, tab) in tabs.iter().enumerate() {
-                    let b = self.words(tab, font)?;
+                for (i, (tab, written)) in tabs.iter().enumerate() {
+                    let b = tied(self.words(tab, font)?, Some(*written));
                     let (tw, th) = (b.width + 12.0, b.height + 4.0);
                     let stroke = if i == 0 {
                         Stroke::new(look.ink, 1.6)
                     } else {
                         line
                     };
-                    canvas.rect(Layer::Frames, (at, y, tw, th), 0.0, None, Some(stroke));
-                    canvas.text(Layer::Front, &b, (at + 6.0, y + 2.0), Align::Left);
-                    at += tw;
+                    canvas.rect(Layer::Frames, (left, y, tw, th), 0.0, None, Some(stroke));
+                    canvas.text(Layer::Front, &b, (left + 6.0, y + 2.0), Align::Left);
+                    left += tw;
                     bottom = y + th;
                 }
                 canvas.line(
@@ -398,11 +407,11 @@ impl Painter<'_> {
             }
             Widget::Menu(items) => {
                 canvas.rect(Layer::Frames, (x, y, w, h), 0.0, Some(look.bar), Some(line));
-                let mut at = x + 6.0;
-                for item in items {
-                    let b = self.words(item, font)?;
-                    canvas.text(Layer::Front, &b, (at, y + 1.0), Align::Left);
-                    at += b.width + 12.0;
+                let mut left = x + 6.0;
+                for (item, written) in items {
+                    let b = tied(self.words(item, font)?, Some(*written));
+                    canvas.text(Layer::Front, &b, (left, y + 1.0), Align::Left);
+                    left += b.width + 12.0;
                 }
             }
             Widget::Tree { lines, items } => {
@@ -420,10 +429,9 @@ impl Painter<'_> {
                 // Where the last item of each level stood, for the lines.
                 let mut last: Vec<f32> = Vec::new();
                 for (r, item) in items.iter().enumerate() {
-                    let before = canvas.tie(Some(item.line));
                     let rh = heights[r];
                     let depth = item.depth;
-                    let b = self.words(&item.label, font)?;
+                    let b = tied(self.words(&item.label, font)?, item.at.first().copied());
                     let words_top = top + (rh - b.height) / 2.0;
                     let middle = words_top + b.height / 2.0;
                     let at = x + inner + pad_x + INDENT * depth as f32;
@@ -448,7 +456,7 @@ impl Painter<'_> {
                     // The item's other columns, as a grid's words.
                     let mut left = x + inner + widths[0] + GAP.0;
                     for (c, cell) in item.cells.iter().enumerate() {
-                        let b = self.words(cell, font)?;
+                        let b = tied(self.words(cell, font)?, item.at.get(c + 1).copied());
                         canvas.text(
                             Layer::Front,
                             &b,
@@ -457,7 +465,6 @@ impl Painter<'_> {
                         );
                         left += widths[c + 1] + GAP.0;
                     }
-                    canvas.tie(before);
                     top += rh;
                     if r + 1 < items.len() && matches!(lines, Lines::All | Lines::Rows) {
                         canvas.line(Layer::Frames, (x, top), (x + w, top), line);
@@ -526,21 +533,28 @@ impl Painter<'_> {
                             }
                         }
                         Row::Cells(cells) => {
-                            // Its words are its line's; a block in it
-                            // ties its own rows.
-                            let before = canvas.tie(written.get(r).copied());
+                            // Beside a block the other cells stand at the
+                            // row's top, by the block's first line, as
+                            // PlantUML stands them.
+                            let blocked = cells.iter().any(is_block);
                             let mut left = x + inner;
                             for (c, cell) in cells.iter().enumerate() {
                                 let cw = widths[c];
+                                let room = if blocked && !is_block(cell) {
+                                    self.size(cell)?.1.min(rh)
+                                } else {
+                                    rh
+                                };
+                                let at = written.get(r).and_then(|row| row.get(c)).copied();
                                 self.paint(
                                     canvas,
                                     cell,
                                     (left + pad_x, top),
-                                    (cw - 2.0 * pad_x, rh),
+                                    (cw - 2.0 * pad_x, room),
+                                    at,
                                 )?;
                                 left += cw + GAP.0;
                             }
-                            canvas.tie(before);
                         }
                     }
                     top += rh;
@@ -565,6 +579,22 @@ impl Painter<'_> {
         }
         Ok(())
     }
+}
+
+/// `b`, the words of a cell written at `at`, tied to where they stand.
+fn tied(b: Block, at: Option<Written>) -> Block {
+    match at {
+        Some(at) => b.written_at(at.line, at.col),
+        None => b,
+    }
+}
+
+/// Whether `widget` is a block of rows that a row holds in a cell.
+fn is_block(widget: &Widget) -> bool {
+    matches!(
+        widget,
+        Widget::Grid { .. } | Widget::Group { .. } | Widget::Tree { .. }
+    )
 }
 
 /// Room inside a grid's frame.

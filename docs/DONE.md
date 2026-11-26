@@ -2274,11 +2274,13 @@ is open and the reasoning around it.
       … not supported yet: only the Java PlantUML draws this diagram",
       and the Java PlantUML refuses it: "The state BREWING cannot be used
       here". It is an error now, which lint and render say alike, with
-      the line the state was made on: "`BREWING` is a state of another
-      region already (line 4), and PlantUML cannot use it here either:
-      declare it where it is, or give this one a name of its own". Of
-      five forms tried with PlantUML 1.2026.8, it refuses the four
-      Omaspec declines, and both draw the fifth.
+      the line the state was made on: "`BREWING`, made on line 4, cannot
+      move into a concurrent region or out of one, in PlantUML neither:
+      declare it where it was made, or give this one a name of its own".
+      Of seven forms tried with PlantUML 1.2026.8 (two of them the
+      review's: into a state inside the same later region, and from
+      outside into a later region), it refuses the six Omaspec declines,
+      and both draw the seventh.
 - [x] A Salt window builds row by row (REQ-142, 2026-11-26): `play
       --build` uncovers a picture without parts from the top down, as far
       as the words each line wrote (`Map::tied`), but Salt tied none: the
@@ -2291,7 +2293,12 @@ is open and the reasoning around it.
       a click finds a widget's line. A picture whose drawer ties nothing
       (timing, signal flow, formulas, networks, railroads, ditaa) comes
       whole as its last line is written, rather than all of it but its
-      foot from the first line.
+      foot from the first line. After the review: each cell is tied to
+      the line and the byte its words start at (`Block::written_at`), so
+      `} | 3 files` is the close's line and cells side by side say where
+      they stand, tabs and a tree's items too; beside a block the other
+      cells of a row stand at its top, as PlantUML stands them, not in
+      its middle; an untied picture comes with its own `@end…` line.
 
 ## Next
 

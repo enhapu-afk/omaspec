@@ -23,8 +23,9 @@ pub(super) struct Picture {
     /// How far down each source line has drawn, by line: what a picture
     /// without parts is uncovered to.
     pub(super) reach: Vec<(usize, f32)>,
-    /// Down to where it shows before any line ([`Self::first_reach`]).
-    pub(super) first: f32,
+    /// Its drawer tied nothing to its lines: it comes whole with the line
+    /// that closes the diagram, and nothing of it shows before.
+    pub(super) untied: bool,
     /// The transform the lines' group draws in, to draw the lines anew in
     /// its place.
     pub(super) lines_group: Option<usvg::Transform>,
@@ -166,19 +167,14 @@ impl Picture {
         }
         let mut reach: Vec<(usize, f32)> = reach.into_iter().collect();
         reach.sort_by_key(|&(line, _)| line);
-        // Above the first thing a line wrote, the heads of a sequence.
-        let mut first = reach
-            .iter()
-            .map(|&(_, bottom)| bottom)
-            .fold(size.1, f32::min);
-        first = (first - LINE_HEIGHT).max(0.0);
         // A drawer that ties no words to their lines says nothing of
-        // what each line drew: the picture comes whole as the last line
-        // is written, rather than all of it but its foot from the first
-        // line on, a row cut in half to the end (REQ-142).
-        if reach.is_empty() && parts.is_empty() {
-            reach.push((text.lines().count().saturating_sub(1), size.1));
-            first = 0.0;
+        // what each line drew: the picture comes whole as the line that
+        // closes the diagram is written, rather than all of it but its
+        // foot from the first line on, a row cut in half to the end
+        // (REQ-142).
+        let untied = reach.is_empty() && parts.is_empty();
+        if untied {
+            reach.push((closing_line(text), size.1));
         }
         Ok(Picture {
             svg: svg.to_owned(),
@@ -187,7 +183,7 @@ impl Picture {
             parts,
             wires,
             reach,
-            first,
+            untied,
             lines_group,
             root: root_of(svg, size),
         })
@@ -210,7 +206,15 @@ impl Picture {
     /// Down to where the picture shows before any line: above the first
     /// thing a line wrote, the heads of a sequence.
     pub(super) fn first_reach(&self) -> f32 {
-        self.first
+        if self.untied {
+            return 0.0;
+        }
+        let top = self
+            .reach
+            .iter()
+            .map(|&(_, bottom)| bottom)
+            .fold(self.size.1, f32::min);
+        (top - LINE_HEIGHT).max(0.0)
     }
 
     /// Whether `line` sets down something: a box, a line or, from the top
@@ -410,4 +414,20 @@ pub(super) fn line_at(parts: &[Part], at: (f32, f32)) -> Option<usize> {
             d(a).total_cmp(&d(b))
         })
         .map(|part| part.line)
+}
+
+/// The zero-based line that closes the diagram of `text`: its first
+/// `@end…`, else its last line that is neither blank nor a comment.
+fn closing_line(text: &str) -> usize {
+    let lines: Vec<&str> = text.lines().map(str::trim).collect();
+    let end = lines.iter().position(|line| {
+        line.get(..4)
+            .is_some_and(|head| head.eq_ignore_ascii_case("@end"))
+    });
+    end.or_else(|| {
+        lines.iter().rposition(|line| {
+            !line.is_empty() && !line.starts_with('\'') && !line.starts_with("%%")
+        })
+    })
+    .unwrap_or(0)
 }

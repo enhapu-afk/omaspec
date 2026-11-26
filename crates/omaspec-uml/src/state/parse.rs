@@ -756,14 +756,15 @@ impl Parser {
         if !self.implicit.remove(key) || path[..path.len() - 1] == here[..] {
             return Ok(path);
         }
-        // Across a concurrent region PlantUML does not move it: "The
-        // state … cannot be used here" (REQ-140).
+        // Into a concurrent region after the first, or out of one, PlantUML
+        // does not move it: "The state … cannot be used here" (REQ-140),
+        // also within that region, into a state inside it.
         if !self.late_region(&path).is_empty() || !self.late_region(&here).is_empty() {
             let first = self.node(&path).line + 1;
             return Err(Declined::refused(
                 line,
                 format!(
-                    "`{key}` is a state of another region already (line {first}), and PlantUML cannot use it here either: declare it where it is, or give this one a name of its own"
+                    "`{key}`, made on line {first}, cannot move into a concurrent region or out of one, in PlantUML neither: declare it where it was made, or give this one a name of its own"
                 ),
             ));
         }
@@ -2610,14 +2611,34 @@ mod tests {
         assert_eq!(err.line, Some(7));
         assert!(
             err.reason
-                .starts_with("`C` is a state of another region already (line 6)"),
+                .starts_with("`C`, made on line 6, cannot move into a concurrent region"),
             "{}",
             err.reason
         );
-        let err = declined(
-            "@startuml\nstate M {\n  [*] --> Idle\n  Idle --> BREWING : start\n  --\n  [*] --> Heat\n  state BREWING #LightBlue\n}\n@enduml\n",
-        );
-        assert!(err.refused && err.reason.contains("(line 4)"), "{err:?}");
+        // So do these, which PlantUML 1.2026.8 refuses alike: made in the
+        // first region, declared in the second; made in the second and
+        // described in a state inside it; made outside, described in the
+        // second.
+        for (source, made) in [
+            (
+                "state M {\n  [*] --> Idle\n  Idle --> BREWING : start\n  --\n  [*] --> Heat\n  state BREWING #LightBlue\n}",
+                4,
+            ),
+            (
+                "state On {\n  [*] --> A\n  --\n  [*] --> B\n  state Inner {\n    B : x\n  }\n}",
+                5,
+            ),
+            (
+                "[*] --> A\nA --> C\nstate On {\n  [*] --> X\n  --\n  C : here\n}",
+                3,
+            ),
+        ] {
+            let err = declined(&format!("@startuml\n{source}\n@enduml\n"));
+            assert!(
+                err.refused && err.reason.contains(&format!("made on line {made},")),
+                "{source}: {err:?}"
+            );
+        }
     }
 
     /// PlantUML's own example: a quoted name is shown, on either side of
