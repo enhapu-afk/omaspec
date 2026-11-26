@@ -30,9 +30,10 @@ const Present = (() => {
         this.at = Math.max(0, Math.min(this.count, at | 0));
       },
       /// Where the veil starts: the first message's top, then the bottom
-      /// of the message played.
+      /// of the message played; past the last, nowhere: nothing is to
+      /// come under it, the lifelines' feet neither (REQ-139).
       edge() {
-        if (this.count === 0) return Infinity;
+        if (this.count === 0 || this.at >= this.count) return Infinity;
         return this.at === 0 ? steps[0].top : steps[this.at - 1].bottom;
       },
       lit() {

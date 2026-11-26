@@ -125,7 +125,7 @@ impl Play {
             onward: true,
             leave: None,
             wrong: Vec::new(),
-            from_end: false,
+            veil_from: 1.0,
         }))
     }
 

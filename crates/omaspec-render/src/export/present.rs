@@ -462,7 +462,7 @@ const assert = require("assert");
 const s = P.scenario([{{top: 10, bottom: 20, points: [[0, 15], [5, 15]]}}, {{top: 30, bottom: 40, points: [[0, 35], [5, 35]]}}]);
 assert.strictEqual(s.edge(), 10); assert.strictEqual(s.lit(), null);
 assert.ok(s.next()); assert.strictEqual(s.edge(), 20); assert.strictEqual(s.lit().top, 10);
-assert.ok(s.next()); assert.ok(!s.next()); assert.strictEqual(s.edge(), 40);
+assert.ok(s.next()); assert.ok(!s.next()); assert.strictEqual(s.edge(), Infinity); // past the last, no veil (REQ-139)
 assert.ok(s.back()); assert.strictEqual(s.at, 1); s.home(); assert.ok(!s.back()); s.go(9); assert.strictEqual(s.at, 2);
 const places = [
   {{at: "Closed", lit: [1], options: [{{label: "open", to: "Open", next: 1, taken: [[1], [2, 3]]}}, {{label: "far", to: "X", next: null, taken: []}}]}},

@@ -780,13 +780,9 @@ impl Stage {
         let mut taken = Vec::new();
         let mut walked = Vec::new();
         let mut script = Script::default();
-        let start = {
-            let text = args.read()?;
-            let (_, language) = args.named(&text);
-            omaspec_model::Machine::read(&text, language)
-                .map(|machine| machine.start_options())
-                .unwrap_or_default()
-        };
+        let start = omaspec_model::Machine::read(&self.text, self.language)
+            .map(|machine| machine.start_options())
+            .unwrap_or_default();
         // Where a scenario stood when the play stopped, of all its steps;
         // its notes of their own are steps too, and the default counts
         // its messages (REQ-106).
@@ -837,7 +833,8 @@ impl Stage {
                 continue;
             };
             if step == 0
-                && let Some(label) = script.begin(&start, &options, &args.events)
+                && step < args.machine_steps()
+                && let Some(label) = script.begin(&start, &options, &args.events)?
             {
                 taken.push(label);
             }
@@ -1111,25 +1108,37 @@ impl Script {
     }
 
     /// Takes the first event of `--events` as the machine's start where it
-    /// names a way out of the top start (`[*] --> Idle : power`, then
-    /// `--events power`) and the state it starts in does not offer it:
-    /// the start goes by itself, and the label is the writer's word for
-    /// what starts it (REQ-141). The label taken.
+    /// names the one way out of the top start (`[*] --> Idle : power`,
+    /// then `--events power`) and the state it starts in does not offer
+    /// it: the start goes by itself, and the label is the writer's word
+    /// for what starts it (REQ-141). Several ways out of the start are all
+    /// taken, whatever is named, and one without an event of its own is
+    /// no `go on` to name. The label taken; an event cut from the start's
+    /// at a comma says how to write it.
     fn begin(
         &mut self,
         start: &[(String, String)],
         first: &[(String, String)],
         events: &[String],
-    ) -> Option<String> {
-        let wanted = events.first()?.trim();
-        let names =
-            |(label, _): &&(String, String)| label.trim() == wanted || event_of(label) == wanted;
-        if self.next > 0 || first.iter().any(|option| names(&option)) {
-            return None;
+    ) -> Result<Option<String>> {
+        let (Some(wanted), [(label, _)]) = (events.first().map(|e| e.trim()), start) else {
+            return Ok(None);
+        };
+        let names = |label: &str| label.trim() == wanted || event_of(label) == wanted;
+        if self.next > 0 || event_of(label) == GO_ON || first.iter().any(|(l, _)| names(l)) {
+            return Ok(None);
         }
-        let (label, _) = start.iter().find(names)?;
-        self.next = 1;
-        Some(label.trim().to_owned())
+        if names(label) {
+            self.next = 1;
+            return Ok(Some(label.trim().to_owned()));
+        }
+        if let Some(hint) = cut_at_comma(std::iter::once(label.as_str()), wanted) {
+            bail!(
+                "step 1: {wanted} is not offered here; the machine starts on {} ({hint})",
+                label.trim()
+            );
+        }
+        Ok(None)
     }
 
     /// The event the play ended before, by the step it would have been.
@@ -1263,7 +1272,7 @@ fn rehearse(args: &Moving) -> Result<()> {
         let ways = run.options(&machine);
         let options: Vec<(String, String)> = ways.iter().map(|&way| machine.option(way)).collect();
         if steps == 0 {
-            script.begin(&start, &options, &args.events);
+            script.begin(&start, &options, &args.events)?;
         }
         if run.ended(&machine) || ways.is_empty() {
             break;
@@ -2543,14 +2552,42 @@ mod tests {
         let start = [("power".to_owned(), "Idle".to_owned())];
         let power = ["power".to_owned()];
         let mut script = Script::default();
-        assert_eq!(script.begin(&start, &start, &power), None);
+        assert_eq!(script.begin(&start, &start, &power).unwrap(), None);
         assert_eq!(script.next, 0);
         let first = [("work".to_owned(), "Busy".to_owned())];
-        assert_eq!(
-            script.begin(&start, &first, &power).as_deref(),
-            Some("power")
-        );
+        let begun = script.begin(&start, &first, &power).unwrap();
+        assert_eq!(begun.as_deref(), Some("power"));
         assert_eq!(script.next, 1);
+        // A start without an event is no `go on`; two ways out of it are
+        // both taken, whatever is named.
+        let bare = [("go on".to_owned(), "Idle".to_owned())];
+        let go_on = ["go on".to_owned()];
+        assert_eq!(
+            Script::default().begin(&bare, &first, &go_on).unwrap(),
+            None
+        );
+        let two = [
+            ("power".to_owned(), "A".to_owned()),
+            ("reset".to_owned(), "B".to_owned()),
+        ];
+        assert_eq!(Script::default().begin(&two, &first, &power).unwrap(), None);
+        // A label cut at its comma says how to write it.
+        let comma = [("hello, world".to_owned(), "Idle".to_owned())];
+        let cut = ["hello".to_owned(), "world".to_owned()];
+        let err = Script::default()
+            .begin(&comma, &first, &cut)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("starts on hello, world"), "{err}");
+        assert!(
+            err.contains("an event with a comma in its name is written"),
+            "{err}"
+        );
+        // `--steps 0` takes no step, the start's neither.
+        let mut none = moving(&["power"]);
+        none.steps = Some(0);
+        let said = play(&none).unwrap();
+        assert!(!said.contains("power"), "{said}");
         let _ = std::fs::remove_dir_all(&work);
     }
 

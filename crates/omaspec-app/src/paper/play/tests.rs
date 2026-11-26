@@ -996,4 +996,21 @@ fn the_veil_goes_once_the_last_message_is_shown() {
     play.ask(Ask::Back, t2);
     assert!(standing(&play, t2) < 0.01, "back, it fades in");
     assert!(standing(&play, later(t2)) > 0.99);
+    // Back before the last light has come: the veil stood, and stays.
+    let t3 = later(t2);
+    play.ask(Ask::Next, t3);
+    let t4 = t3 + Duration::from_millis(5);
+    play.ask(Ask::Back, t4);
+    assert!(standing(&play, t4) > 0.99, "{}", standing(&play, t4));
+    // Two steps back while it fades in go on from where it stood.
+    let t5 = later(t4);
+    play.ask(Ask::Next, t5);
+    let t6 = later(t5);
+    play.ask(Ask::Back, t6);
+    let t7 = t6 + Duration::from_millis(100);
+    let was = standing(&play, t7);
+    play.ask(Ask::Back, t7);
+    let now = standing(&play, t7);
+    assert!(was > 0.05 && was < 0.95, "{was}");
+    assert!((now - was).abs() < 0.01, "{was} then {now}");
 }

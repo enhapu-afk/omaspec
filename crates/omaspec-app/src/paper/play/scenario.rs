@@ -64,8 +64,9 @@ pub struct ScenarioPlay {
     pub(super) wrong: Vec<usize>,
     /// The message the highlight just left, so it can fade instead of vanishing.
     pub(super) leave: Option<Leaving>,
-    /// The last move went back from the end, where the veil had gone.
-    pub(super) from_end: bool,
+    /// How much of the veil stood at the last move, the play's beginning
+    /// aside ([`Self::standing`]): it goes on from there.
+    pub(super) veil_from: f32,
 }
 
 /// A message the highlight is leaving: the light as it stood, and the band
@@ -184,7 +185,7 @@ impl ScenarioPlay {
         // Sample the light before the clocks move, so the fade starts from
         // the brightness on screen.
         self.leave = self.leaving(now);
-        self.from_end = self.at == self.steps.len();
+        self.veil_from = self.left_standing(now);
         self.from_y = self.edge(now);
         self.onward = matches!(ask, Ask::Next | Ask::Take(_));
         self.moved = now;
@@ -282,14 +283,18 @@ impl ScenarioPlay {
     /// veiled to the end, their heads bright over them (REQ-139). A step
     /// back from there brings it back.
     pub(super) fn standing(&self, now: Instant) -> f32 {
-        let up = ramp(now, self.begun, VEIL_FADE);
-        let lit = ramp(now, self.moved + REVEAL.max(self.travel()), VEIL_FADE);
+        ramp(now, self.begun, VEIL_FADE) * self.left_standing(now)
+    }
+
+    /// [`Self::standing`] without the veil's coming up at the beginning:
+    /// from what stood at the last move toward all of it, or, at the end,
+    /// as it stood until the last light has come, then away.
+    fn left_standing(&self, now: Instant) -> f32 {
         if self.at >= self.steps.len() {
-            up * (1.0 - lit)
-        } else if self.from_end {
-            up * ramp(now, self.moved, VEIL_FADE)
+            let lit = ramp(now, self.moved + REVEAL.max(self.travel()), VEIL_FADE);
+            self.veil_from * (1.0 - lit)
         } else {
-            up
+            lerp(self.veil_from, 1.0, ramp(now, self.moved, VEIL_FADE))
         }
     }
 

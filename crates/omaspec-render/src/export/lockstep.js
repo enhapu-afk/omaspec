@@ -125,6 +125,11 @@
       : bottom(current - 1) + (bottom(current) - bottom(current - 1)) * easeOut((t - messages[current].start) / REVEAL);
     veil.setAttribute("y", edge);
     veil.setAttribute("height", Math.max(0, box.y + box.height - edge));
+    // Once the last message has arrived nothing is to come: the veil goes,
+    // off the lifelines' feet too (REQ-139).
+    const last = messages[messages.length - 1];
+    const gone = last && current === messages.length - 1 ? easeOut((t - last.arrive) / FADE) : 0;
+    veil.setAttribute("opacity", 1 - gone);
     sent.forEach((m, i) => {
       // A note has no arrow for a light: its band alone lights it.
       if (i !== current || m.points.length < 2) {

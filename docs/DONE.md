@@ -2259,7 +2259,14 @@ is open and the reasoning around it.
       shown and its light has come, the veil fades away
       (`ScenarioPlay::standing`), a git graph's too; a step back from
       the end fades it in again. A film's last frame shows the whole
-      diagram unveiled; its first frame has the veil, as before.
+      diagram unveiled; its first frame has the veil, as before. After
+      the review: the veil goes on from what stood at a step (a step
+      back before the last light has come keeps it, two steps back while
+      it fades in do not make it jump); a presentation (`render -o
+      .html`) and a lockstep page lift it after the last message too;
+      the start's label is taken only where one way leaves the start and
+      it has an event (no `go on`), not with `--steps 0`, from the text
+      the film draws, and a label cut at its comma says how to write it.
 
 ## Next
 
