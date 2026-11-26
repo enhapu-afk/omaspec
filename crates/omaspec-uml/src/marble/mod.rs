@@ -256,7 +256,9 @@ pub struct Look {
     pub error: Color,
     pub cancel: Color,
     pub break_mark: Color,
-    pub break_ground: Color,
+    /// The gap under a break's strokes; none on a page left open, where
+    /// a gap of a color would show.
+    pub break_ground: Option<Color>,
     /// The colors of the labelled characters, in turn.
     pub palette: Vec<Color>,
 }
@@ -287,7 +289,7 @@ impl Default for Look {
             error: Color::hex(0xD64550),
             cancel: line,
             break_mark: line,
-            break_ground: Color::WHITE,
+            break_ground: None,
             palette: crate::chart::PALETTE.into_iter().map(Color::hex).collect(),
         }
     }

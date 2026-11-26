@@ -69,7 +69,7 @@ fn look(theme: &Theme, source: &str) -> Look {
         error: var("marbleErrorColor").unwrap_or(error),
         cancel: var("marbleCancelColor").unwrap_or(line),
         break_mark: var("marbleBreakColor").unwrap_or(line),
-        break_ground: var("marbleBreakBkg").unwrap_or(ground),
+        break_ground: var("marbleBreakBkg").or(page),
         palette: stock.palette,
     }
 }

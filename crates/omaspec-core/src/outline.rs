@@ -732,7 +732,7 @@ fn mermaid(lines: &[&str], mut b: Builder) -> (Vec<Entry>, Vec<(usize, usize)>) 
             }
             // A marble diagram's lanes and what its labels say (REQ-105),
             // past what is said for accessibility.
-            "marble-beta" | "marble" => {
+            h if h.eq_ignore_ascii_case("marble-beta") || h.eq_ignore_ascii_case("marble") => {
                 if acc_descr {
                     acc_descr = !l.contains('}');
                     continue;
@@ -1062,7 +1062,7 @@ mod tests {
     /// labels, not its axis nor a lane named `title` taken for the title.
     #[test]
     fn a_marble_diagram_lists_its_lanes_and_labels() {
-        let code = "marble-beta\n  title switchMap\n  accDescr {\n  hidden : -\n  }\n  axis : 0  5\n  input : -a-|\n  \"search a\" :  [==!\n  title : --t\n  label ! \"cancelled\"\n";
+        let code = "Marble-Beta\n  title switchMap\n  accDescr {\n  hidden : -\n  }\n  axis : 0  5\n  input : -a-|\n  \"search a\" :  [==!\n  title : --t\n  label ! \"cancelled\"\n";
         assert_eq!(
             tags(code, Language::Mermaid),
             [

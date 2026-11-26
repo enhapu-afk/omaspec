@@ -244,7 +244,8 @@ const MERMAID_KINDS: [(&str, Kind, &str); 24] = [
     ("radar-beta", Kind::Other, "Radar chart"),
     ("treemap-beta", Kind::Other, "Treemap"),
     ("gitGraph", Kind::Other, "Git graph"),
-    ("marble-beta", Kind::Other, "Marble diagram"),
+    // `marble-beta`, and `marble`, which Omaspec draws as well.
+    ("marble", Kind::Other, "Marble diagram"),
 ];
 
 /// A head word: the keyword followed by a non-word character or the end.
@@ -442,6 +443,8 @@ mod tests {
         assert_eq!(m("flowchart TD\nA{ok?} --> B").kind, Kind::Activity);
         assert_eq!(m("flowchart TD\nA{{hex}} --> B").kind, Kind::Structure);
         assert_eq!(m("C4Context\ntitle x").name, "C4 diagram");
+        assert_eq!(m("marble-beta\n  a : -a-|").name, "Marble diagram");
+        assert_eq!(m("marble\n  a : -a-|").name, "Marble diagram");
         assert_eq!(m("stateDiagram-v2\n[*] --> A").kind, Kind::State);
         assert_eq!(m("pie\n\"a\": 1").name, "Pie chart");
         let lanes = m("swimlane-beta LR\n  subgraph Desk\n    a\n  end\n");

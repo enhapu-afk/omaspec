@@ -590,9 +590,6 @@ mod tests {
         assert!(!mirrors_actors(&both), "{both}");
     }
 
-    /// A git graph's settings from the front matter and a directive over
-    /// it, its switches tested as Mermaid tests them; what they set is
-    /// carried out, so lint says nothing of it, and of the rest it does.
     /// A marble diagram's sizes within reach and its switch are carried
     /// out, its colors too; a size out of reach or of no number keeps its
     /// default and is said (REQ-105).
@@ -617,6 +614,9 @@ mod tests {
         }
     }
 
+    /// A git graph's settings from the front matter and a directive over
+    /// it, its switches tested as Mermaid tests them; what they set is
+    /// carried out, so lint says nothing of it, and of the rest it does.
     #[test]
     fn a_git_graph_s_settings_are_read_and_carried_out() {
         let code = "---\nconfig:\n  gitGraph:\n    mainBranchName: trunk\n    mainBranchOrder: 2\n    showBranches: 0\n---\n%%{init: {\"gitGraph\": {\"rotateCommitLabel\": true, \"showCommitLabel\": \"\", \"parallelCommits\": true}}}%%\ngitGraph\n  commit\n";

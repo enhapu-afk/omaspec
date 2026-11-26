@@ -365,15 +365,17 @@ fn cross(canvas: &mut Canvas, (x, y): (f32, f32), size: f32, stroke: Stroke) {
 /// A break in time: two strokes over a gap in the lane.
 fn cut(canvas: &mut Canvas, d: &Diagram, x: f32, y: f32) {
     let look = &d.look;
-    canvas.plain(|canvas| {
-        canvas.rect(
-            Layer::Lifelines,
-            (x - 4.0, y - 3.0, 8.0, 6.0),
-            0.0,
-            Some(look.break_ground),
-            None,
-        );
-    });
+    if let Some(gap) = look.break_ground {
+        canvas.plain(|canvas| {
+            canvas.rect(
+                Layer::Lifelines,
+                (x - 4.0, y - 3.0, 8.0, 6.0),
+                0.0,
+                Some(gap),
+                None,
+            );
+        });
+    }
     let stroke = Stroke::new(look.break_mark, 1.5);
     canvas.line(
         Layer::Lifelines,
@@ -486,6 +488,16 @@ mod tests {
         assert_eq!(map.echoes.len(), 2);
         let label_lines = map.tied.iter().filter(|t| t.line == 2).count();
         assert_eq!(label_lines, 1);
+    }
+
+    #[test]
+    fn a_break_has_a_gap_of_the_page_only_where_there_is_one() {
+        let mut d = from_mermaid("marble-beta\n  a : -a-/-b 10ms c\n").unwrap();
+        let gap = r#"width="8" height="6""#;
+        assert!(!draw(&d).0.contains(gap));
+        d.look.break_ground = Some(Color::hex(0x1a1b26));
+        let (svg, _) = draw(&d);
+        assert_eq!(svg.matches(gap).count(), 2, "{svg}");
     }
 
     #[test]

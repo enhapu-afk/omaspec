@@ -33,7 +33,7 @@ pub fn from_mermaid(source: &str) -> Result<Diagram, (usize, String)> {
         .split('\n')
         .map(|l| l.strip_suffix('\r').unwrap_or(l))
         .collect();
-    let Some((header, mut title)) = head(&lines) else {
+    let Some((header, title)) = head(&lines) else {
         return Err((0, "a marble diagram starts with `marble-beta`".into()));
     };
     let head = lines[header].trim_start_matches('\u{feff}').trim();
@@ -49,112 +49,136 @@ pub fn from_mermaid(source: &str) -> Result<Diagram, (usize, String)> {
                 .into(),
         ));
     }
-    let mut lanes: Vec<Raw> = Vec::new();
-    let mut axis: Option<Raw> = None;
-    let mut labels: Vec<Label> = Vec::new();
+    let mut read = Read {
+        title,
+        lanes: Vec::new(),
+        axis: None,
+        labels: Vec::new(),
+    };
+    // Past a line Mermaid refuses, so the first such line is said, as its
+    // lanes' marbles are read once every lane's origin is known.
+    let mut first: Option<Wrong> = None;
     let mut no = header + 1;
     while no < lines.len() {
-        let line = lines[no];
-        let lead = line.len() - line.trim_start().len();
-        let t = line.trim();
-        if t.is_empty() || t.starts_with("%%") {
-            no += 1;
-            continue;
-        }
-        let word_len = identifier(t);
-        let word = &t[..word_len];
-        let after = t[word_len..].trim_start();
-        if word == "accTitle" && after.starts_with(':') {
-            no += 1;
-            continue;
-        }
-        if word == "accDescr" && after.starts_with(':') {
-            no += 1;
-            continue;
-        }
-        if word == "accDescr" && after.starts_with('{') {
-            // To its `}`, which ends its line.
-            let mut end = no;
-            let mut rest = &after[1..];
-            loop {
-                if let Some(close) = rest.find('}') {
-                    if !rest[close + 1..].trim().is_empty() {
-                        return Err((end, "`accDescr { … }` ends its line".into()));
-                    }
-                    break;
-                }
-                end += 1;
-                let Some(&next) = lines.get(end) else {
-                    return Err((no, "`accDescr {` is never closed with `}`".into()));
-                };
-                rest = next;
+        match statement(&lines, no, &mut read) {
+            Ok(next) => no = next,
+            Err(wrong) => {
+                first.get_or_insert(wrong);
+                no += 1;
             }
-            no = end + 1;
-            continue;
         }
-        // `title` and the rest of its line; `title : …` is a lane.
-        if word == "title"
-            && !after.starts_with(':')
-            && (word_len == t.len() || t[word_len..].starts_with(char::is_whitespace))
-        {
-            title = Some(Text {
-                value: after.to_owned(),
-                line: no,
-                col: (!after.is_empty()).then(|| offset(line, after)),
-            });
-            no += 1;
-            continue;
-        }
-        let keyword = matches!(word, "axis" | "label" | "marble" | "marble-beta");
-        if word == "axis" {
-            let Some(body) = after.strip_prefix(':') else {
-                return Err((no, "the axis is written `axis : 0   5   10`".into()));
-            };
-            if axis.is_some() {
-                return Err((no, "a second axis: a marble diagram has one".into()));
-            }
-            axis = Some(raw("axis".into(), line, no, lead, body));
-            no += 1;
-            continue;
-        }
-        if word == "label" {
-            labels.push(label(t, lead, word_len, no, &labels)?);
-            no += 1;
-            continue;
-        }
-        if keyword {
-            return Err((
-                no,
-                format!("`{word}` is a word of the syntax: a lane of that name is quoted"),
-            ));
-        }
-        // A lane: a name, or one in quotes, and its marbles.
-        let (name, rest) = if let Some(quoted) = t.strip_prefix('"') {
-            let Some(close) = quoted.find('"') else {
-                return Err((no, "a lane's name in quotes ends with `\"`".into()));
-            };
-            (quoted[..close].trim().to_owned(), &quoted[close + 1..])
-        } else if word_len > 0 {
-            (word.to_owned(), &t[word_len..])
-        } else {
-            return Err((
-                no,
-                "a lane is written `name : marbles`: its name starts with a letter or `_`, or is in quotes".into(),
-            ));
-        };
-        let Some(body) = rest.trim_start().strip_prefix(':') else {
-            return Err((
-                no,
-                format!("the lane `{name}` has no marbles: they follow a colon, `{name} : -a-|`"),
-            ));
-        };
-        if lanes.iter().any(|lane| lane.name == name) {
-            return Err((no, format!("the lane `{name}` is written twice")));
-        }
-        lanes.push(raw(name, line, no, lead, body));
-        no += 1;
     }
-    timeline(title, lanes, axis, labels)
+    let drawn = timeline(read);
+    match (first, drawn) {
+        (Some(wrong), Err(later)) if later.0 < wrong.0 => Err(later),
+        (Some(wrong), _) => Err(wrong),
+        (None, drawn) => drawn,
+    }
+}
+
+/// What the lines have said so far.
+struct Read<'a> {
+    title: Option<Text>,
+    lanes: Vec<Raw<'a>>,
+    axis: Option<Raw<'a>>,
+    labels: Vec<Label>,
+}
+
+/// The statement on line `no` into `read`; the line after it.
+fn statement<'a>(lines: &[&'a str], no: usize, read: &mut Read<'a>) -> Result<usize, Wrong> {
+    let line = lines[no];
+    let lead = line.len() - line.trim_start().len();
+    let t = line.trim();
+    if t.is_empty() || t.starts_with("%%") {
+        return Ok(no + 1);
+    }
+    let word_len = identifier(t);
+    let word = &t[..word_len];
+    let after = t[word_len..].trim_start();
+    if word == "accTitle" && after.starts_with(':') {
+        return Ok(no + 1);
+    }
+    if word == "accDescr" && after.starts_with(':') {
+        return Ok(no + 1);
+    }
+    if word == "accDescr" && after.starts_with('{') {
+        // To its `}`, which ends its line.
+        let mut end = no;
+        let mut rest = &after[1..];
+        loop {
+            if let Some(close) = rest.find('}') {
+                if !rest[close + 1..].trim().is_empty() {
+                    return Err((end, "`accDescr { … }` ends its line".into()));
+                }
+                break;
+            }
+            end += 1;
+            let Some(&next) = lines.get(end) else {
+                return Err((no, "`accDescr {` is never closed with `}`".into()));
+            };
+            rest = next;
+        }
+        return Ok(end + 1);
+    }
+    // `title` and the rest of its line; `title : …` is a lane.
+    if word == "title"
+        && !after.starts_with(':')
+        && (word_len == t.len() || t[word_len..].starts_with(char::is_whitespace))
+    {
+        read.title = Some(Text {
+            value: after.to_owned(),
+            line: no,
+            col: (!after.is_empty()).then(|| offset(line, after)),
+        });
+        return Ok(no + 1);
+    }
+    let keyword = matches!(word, "axis" | "label" | "marble" | "marble-beta");
+    if word == "axis" {
+        let Some(body) = after.strip_prefix(':') else {
+            return Err((no, "the axis is written `axis : 0   5   10`".into()));
+        };
+        if read.axis.is_some() {
+            return Err((no, "a second axis: a marble diagram has one".into()));
+        }
+        read.axis = Some(raw("axis".into(), line, no, lead, body));
+        return Ok(no + 1);
+    }
+    if word == "label" {
+        let label = label(t, lead, word_len, no, &read.labels)?;
+        read.labels.push(label);
+        return Ok(no + 1);
+    }
+    if keyword {
+        return Err((
+            no,
+            format!("`{word}` is a word of the syntax: a lane of that name is quoted"),
+        ));
+    }
+    // A lane: a name, or one in quotes, and its marbles.
+    let (name, rest) = if let Some(quoted) = t.strip_prefix('"') {
+        let Some(close) = quoted.find('"') else {
+            return Err((no, "a lane's name in quotes ends with `\"`".into()));
+        };
+        (quoted[..close].trim().to_owned(), &quoted[close + 1..])
+    } else if word_len > 0 {
+        (word.to_owned(), &t[word_len..])
+    } else {
+        return Err((
+            no,
+            "a lane is written `name : marbles`: its name starts with a letter or `_`, or is in quotes".into(),
+        ));
+    };
+    let Some(body) = rest.trim_start().strip_prefix(':') else {
+        return Err((
+            no,
+            format!("the lane `{name}` has no marbles: they follow a colon, `{name} : -a-|`"),
+        ));
+    };
+    if read.lanes.iter().any(|lane| lane.name == name) {
+        return Err((no, format!("the lane `{name}` is written twice")));
+    }
+    read.lanes.push(raw(name, line, no, lead, body));
+    Ok(no + 1)
 }
 
 /// What Mermaid refuses in a marble diagram, and its line: the diagram is
@@ -187,7 +211,11 @@ fn head(lines: &[&str]) -> Option<(usize, Option<Text>)> {
                 if line.trim() == "---" {
                     break;
                 }
-                if let Some(t) = line.trim().strip_prefix("title:") {
+                // The front matter's own title, not one of a section in it.
+                if let Some(t) = line
+                    .strip_prefix("title:")
+                    .filter(|_| !line.starts_with([' ', '\t']))
+                {
                     let value = crate::chart::unquote(t.trim());
                     title = Some(Text {
                         value: value.to_owned(),
@@ -308,12 +336,13 @@ fn label(
 
 /// The lanes and the axis measured from one origin: the leftmost
 /// character of any of them that is no blank.
-fn timeline(
-    title: Option<Text>,
-    lanes: Vec<Raw>,
-    axis: Option<Raw>,
-    labels: Vec<Label>,
-) -> Result<Diagram, Wrong> {
+fn timeline(read: Read) -> Result<Diagram, Wrong> {
+    let Read {
+        title,
+        lanes,
+        axis,
+        labels,
+    } = read;
     let origin = lanes
         .iter()
         .chain(&axis)
@@ -325,11 +354,30 @@ fn timeline(
         })
         .min()
         .unwrap_or(0);
+    // The axis's tab and each lane's marbles, the first line wrong among
+    // them said.
+    let mut wrong: Option<Wrong> = axis
+        .as_ref()
+        .filter(|axis| cells(axis, origin).iter().any(|c| c.0 == '\t'))
+        .map(|axis| {
+            (
+                axis.line,
+                "a tab in the axis: its ticks line up with spaces only".into(),
+            )
+        });
     let mut breaks: Vec<usize> = Vec::new();
     let mut columns = 0;
     let mut read = Vec::with_capacity(lanes.len());
     for raw in &lanes {
-        let lane = lane::read(&cells(raw, origin)).map_err(|said| (raw.line, said))?;
+        let lane = match lane::read(&cells(raw, origin)) {
+            Ok(lane) => lane,
+            Err(said) => {
+                if wrong.as_ref().is_none_or(|w| raw.line < w.0) {
+                    wrong = Some((raw.line, said));
+                }
+                continue;
+            }
+        };
         columns = columns.max(lane.columns);
         breaks.extend(&lane.breaks);
         read.push(Lane {
@@ -340,15 +388,12 @@ fn timeline(
             segments: lane.segments,
         });
     }
+    if let Some(wrong) = wrong {
+        return Err(wrong);
+    }
     let mut ticks = Vec::new();
     if let Some(axis) = &axis {
         let cells = cells(axis, origin);
-        if cells.iter().any(|c| c.0 == '\t') {
-            return Err((
-                axis.line,
-                "a tab in the axis: its ticks line up with spaces only".into(),
-            ));
-        }
         columns = columns.max(cells.len());
         let mut col = 0;
         while col < cells.len() {
@@ -519,6 +564,14 @@ mod tests {
             assert_eq!(at, line, "{text}: {message}");
             assert!(message.contains(said), "{text}: {message}");
         }
+        // The first line wrong is said, whichever is read first.
+        assert_eq!(wrong("marble-beta\n  a : -(a\n  a : -b\n").0, 1);
+        assert_eq!(wrong("marble-beta\n  axis : 0\t5\n  b : -(b\n").0, 1);
+        assert_eq!(wrong("marble-beta\n  b : -(b\n  axis : 0\t5\n").0, 1);
+        assert_eq!(wrong("marble-beta\n  b : -b\n  1x : -\n  c : -(c\n").0, 2);
+        // A title of a section in the front matter is not the diagram's.
+        let d = read("---\nconfig:\n  any:\n    title: x\n---\nmarble-beta\n a: -a-|\n");
+        assert!(d.title.is_none());
         // A tab before the leftmost lane's first marble decides no column.
         assert!(from_mermaid("marble-beta\n  b :\t-b\n").is_ok());
         assert!(from_mermaid("marble-beta\n").unwrap().lanes.is_empty());
