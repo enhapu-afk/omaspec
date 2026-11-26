@@ -45,14 +45,14 @@ pub(super) fn paint(
     (curve, names): (f32, &super::Names),
 ) {
     paint_shapes(canvas, scene, (&mut Vec::new(), names));
-    paint_edges(canvas, scene, curve);
+    paint_edges(canvas, scene, (curve, names));
     paint_labels(
         canvas,
         scene,
         Some(palette.background),
         (&mut Vec::new(), names),
     );
-    paint_caps(canvas, scene);
+    paint_caps(canvas, scene, names);
 }
 
 /// Each node's and subgraph's shape, in its part (docs/adr/0029); `path` is
@@ -180,20 +180,24 @@ fn num(value: f32) -> String {
     format!("{rounded}")
 }
 
-fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
+/// Each line in its part (docs/adr/0037), which its words and its caps
+/// are drawn in too.
+fn paint_edges(canvas: &mut Canvas, scene: &Scene, (curve, names): (f32, &super::Names)) {
     for edge in &scene.edges {
         if edge.points.len() < 2 {
             continue;
         }
-        canvas.curve(
-            Layer::Lines,
-            &shortened(&edge.points, edge.look.caps),
-            curve,
-            edge.look.stroke,
-        );
+        canvas.part(&names.edge(edge.look.edge), |canvas| {
+            canvas.curve(
+                Layer::Lines,
+                &shortened(&edge.points, edge.look.caps),
+                curve,
+                edge.look.stroke,
+            );
+        });
     }
     for node in &scene.nodes {
-        paint_edges(canvas, &node.children, curve);
+        paint_edges(canvas, &node.children, (curve, names));
     }
 }
 
@@ -299,14 +303,17 @@ fn paint_stack(canvas: &mut Canvas, title: &Block, description: &[Block], x: f32
     }
 }
 
-fn paint_caps(canvas: &mut Canvas, scene: &Scene) {
+/// Each line's caps, in its part.
+fn paint_caps(canvas: &mut Canvas, scene: &Scene, names: &super::Names) {
     for edge in &scene.edges {
         let (start, end) = edge.look.caps;
-        paint_cap(canvas, &edge.points, false, end, edge.look.stroke);
-        paint_cap(canvas, &edge.points, true, start, edge.look.stroke);
+        canvas.part(&names.edge(edge.look.edge), |canvas| {
+            paint_cap(canvas, &edge.points, false, end, edge.look.stroke);
+            paint_cap(canvas, &edge.points, true, start, edge.look.stroke);
+        });
     }
     for node in &scene.nodes {
-        paint_caps(canvas, &node.children);
+        paint_caps(canvas, &node.children, names);
     }
 }
 

@@ -289,7 +289,12 @@ impl Geometry<'_> {
         for (child, &offset) in finger.children.iter().zip(&finger.offsets) {
             let p2 = self.at(start, dir * (finger.elongation + x1 + x2), offset);
             self.draw_finger(canvas, child, p2, dir, found);
-            let points = self.link(canvas, p1, p2, dir);
+            // In its part, by what it joins (docs/adr/0037).
+            let name = match self.glides {
+                true => super::link(&finger.key, &child.key),
+                false => String::new(),
+            };
+            let points = canvas.part(&name, |canvas| self.link(canvas, p1, p2, dir));
             if let (true, Some(own), Some(to)) = (self.glides, own, rect_of(found, &child.key)) {
                 found.wires.extend(super::wire(
                     (&finger.key, own),
@@ -575,6 +580,19 @@ mod tests {
         assert_eq!(names, ["node-title", "node-start"]);
     }
 
+    /// A link is named by what it joins, on the piece of its line that is
+    /// its own (docs/adr/0037).
+    #[test]
+    fn a_link_is_named_by_what_it_joins() {
+        let svg =
+            crate::render("@startmindmap\n* Trip\n** Pack\n*** Socks\n@endmindmap\n").unwrap();
+        for name in ["link-Trip-Pack", "link-Pack-Socks"] {
+            let own = format!(r#"<g class="{name}" id="{name}">"#);
+            let at = svg.find(&own).unwrap_or_else(|| panic!("{name}: {svg}"));
+            assert!(svg[at + own.len()..].starts_with("<path"), "{name}: {svg}");
+        }
+    }
+
     #[test]
     fn a_mind_map_s_boxes_are_parts_named_as_its_map_names_them() {
         let source = "@startmindmap\n* Trip\n** Pack\n*** Socks\n** Book\n@endmindmap\n";
@@ -599,7 +617,7 @@ mod tests {
         }
         let ground = crate::without_parts(&svg).unwrap();
         assert!(
-            !ground.contains("Socks") && ground.contains("<path"),
+            !ground.contains(">Socks<") && ground.contains("<path"),
             "{ground}"
         );
     }

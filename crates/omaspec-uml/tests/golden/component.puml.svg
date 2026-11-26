@@ -38,12 +38,24 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Light_20_switch-Lamp" id="link-Light_20_switch-Lamp">
 <polyline points="464.21,60.59 464.21,105.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Api-Billing-charge" id="link-Api-Billing-charge">
 <path d="M200.57,60.59 L200.57,60.59 C200.57,67.22 205.94,72.59 212.57,72.59 L296.25,72.59 C310.6,72.59 322.24,84.23 322.24,98.58 L322.24,98.58" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Front-Sessions" id="link-Front-Sessions">
 <polyline points="53.69,60.59 53.69,96.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Light_20_switch-Lamp">
 <polygon points="460.21,105.56 464.21,115.56 468.21,105.56 464.21,110.06" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Api-Billing-charge">
 <polygon points="318.24,98.58 322.24,108.58 326.24,98.58 322.24,103.08" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Front-Sessions">
 <polygon points="49.69,96.56 53.69,106.56 57.69,96.56 53.69,101.06" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="package-shop">
@@ -84,7 +96,7 @@
 <tspan x="424.34" y="51.29" font-size="14" fill="#000000" textLength="79.74" lengthAdjust="spacing">Light switch</tspan>
 </text>
 </g>
-<g class="link-Api-Billing-charge" id="link-Api-Billing-charge">
+<g class="link-Api-Billing-charge">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="328.24" y="87.73" font-size="12" fill="#000000" textLength="39.55" lengthAdjust="spacing">charge</tspan>
 </text>

@@ -16,12 +16,24 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-A-B" id="link-A-B">
 <polyline points="69.97,18.15 91.97,18.15" fill="none" stroke="#E8590C" stroke-width="2"/>
+</g>
+<g class="link-B-C" id="link-B-C">
 <polyline points="166.46,18.15 188.46,18.15" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-D" id="link-C-D">
 <polyline points="259.68,18.15 281.68,18.15" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-A-B">
 <polygon points="91.97,22.15 101.97,18.15 91.97,14.15 95.97,18.15" fill="#E8590C" stroke="#E8590C" stroke-width="1.5"/>
+</g>
+<g class="link-B-C">
 <polygon points="188.46,22.15 198.46,18.15 188.46,14.15 192.46,18.15" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-D">
 <polygon points="281.68,22.15 291.68,18.15 281.68,14.15 285.68,18.15" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="node-A">

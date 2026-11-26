@@ -25,14 +25,30 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Renderer-Clipboard" id="link-Renderer-Clipboard">
 <polyline points="103.23,54.59 103.23,96.71" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
+</g>
+<g class="link-Renderer-F" id="link-Renderer-F">
 <polyline points="9.64,54.59 9.64,96.71" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Editor-Plugin" id="link-Editor-Plugin">
 <polyline points="267.77,128.86 267.77,150.86" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-HTTP-Editor-serves" id="link-HTTP-Editor-serves">
 <polyline points="267.77,48.44 267.77,90.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Renderer-Clipboard">
 <polygon points="99.23,96.71 103.23,106.71 107.23,96.71 103.23,101.21" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Renderer-F">
 <polygon points="5.64,96.71 9.64,106.71 13.64,96.71 9.64,101.21" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Editor-Plugin">
 <polygon points="263.77,150.86 267.77,160.86 271.77,150.86 267.77,155.36" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-HTTP-Editor-serves">
 <polygon points="263.77,90.56 267.77,100.56 271.77,90.56 267.77,95.06" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="interface-F">
@@ -65,7 +81,7 @@
 <tspan x="278.77" y="45.29" font-size="14" fill="#000000" textLength="37.44" lengthAdjust="spacing">HTTP</tspan>
 </text>
 </g>
-<g class="link-HTTP-Editor-serves" id="link-HTTP-Editor-serves">
+<g class="link-HTTP-Editor-serves">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="273.77" y="81.73" font-size="12" fill="#000000" textLength="37.92" lengthAdjust="spacing">serves</tspan>
 </text>

@@ -505,6 +505,19 @@ const CLOUD_RIM: f32 = 12.0;
 /// inside that circle, and the points stick out to the box.
 const BANG_INNER: f32 = 0.68;
 
+/// The part the link from the box called `from` to the one called `to`
+/// is drawn in (docs/adr/0037): what it joins, `link-Move-Pack`; none
+/// where a box has no name.
+pub(crate) fn link(from: &str, to: &str) -> String {
+    match (
+        part(from).strip_prefix("node-"),
+        part(to).strip_prefix("node-"),
+    ) {
+        (Some(from), Some(to)) => format!("link-{from}-{to}"),
+        _ => String::new(),
+    }
+}
+
 /// A cloud whose left and right middles are the box edges, so a link
 /// meets the outline. The bumps stay in the outer rim.
 fn cloud_path(x: f32, y: f32, w: f32, h: f32) -> String {

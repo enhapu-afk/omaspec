@@ -34,16 +34,36 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Shelf-Product-holds" id="link-Shelf-Product-holds">
 <path d="M336.64,350.81 L336.64,266.55 C336.64,240.04 315.15,218.55 288.64,218.55 L271.04,218.55 C251.16,218.55 235.04,202.43 235.04,182.55 L235.04,182.55" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Shelf-Book" id="link-Shelf-Book">
 <polyline points="373.97,350.81 373.97,266.84" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Book-Shelf-sits" id="link-Book-Shelf-sits">
 <path d="M389.97,266.84 L389.97,310.01 C389.97,312.68 387.81,314.84 385.14,314.84 L385.14,314.84 C382.47,314.84 380.31,317.01 380.31,319.68 L380.31,354.81" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Product-Book" id="link-Product-Book">
 <path d="M251.04,196.55 L251.04,196.55 C251.04,203.18 256.41,208.55 263.04,208.55 L343.97,208.55 C360.54,208.55 373.97,221.98 373.97,238.55 L373.97,238.55" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Sellable-Book" id="link-Sellable-Book">
 <path d="M535.96,155.7 L535.96,160.55 C535.96,187.06 514.47,208.55 487.96,208.55 L459.97,208.55 C443.4,208.55 429.97,221.98 429.97,238.55 L429.97,238.55" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
+</g>
+<g class="link-Shelf-Product-holds">
 <polygon points="336.64,364.81 330.64,357.81 336.64,350.81 342.64,357.81" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Shelf-Book">
 <polygon points="373.97,364.81 367.97,357.81 373.97,350.81 379.97,357.81" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Book-Shelf-sits">
 <polygon points="376.31,354.81 380.31,364.81 384.31,354.81 380.31,359.31" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Product-Book">
 <polygon points="258.04,196.55 251.04,182.55 244.04,196.55" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Sellable-Book">
 <polygon points="542.96,155.7 535.96,141.7 528.96,155.7" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="package-catalog">
@@ -116,7 +136,7 @@
 <tspan x="347.64" y="383.8" font-size="14" fill="#000000" textLength="33.99" lengthAdjust="spacing">Shelf</tspan>
 </text>
 </g>
-<g class="link-Shelf-Product-holds" id="link-Shelf-Product-holds">
+<g class="link-Shelf-Product-holds">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="299.76" y="329.98" font-size="12" fill="#000000" textLength="30.88" lengthAdjust="spacing">holds</tspan>
 </text>
@@ -131,7 +151,7 @@
 <tspan x="339.88" y="291" font-size="12" fill="#000000" textLength="31.09" lengthAdjust="spacing">many</tspan>
 </text>
 </g>
-<g class="link-Book-Shelf-sits" id="link-Book-Shelf-sits">
+<g class="link-Book-Shelf-sits">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="386.31" y="329.98" font-size="12" fill="#000000" textLength="19.5" lengthAdjust="spacing">sits</tspan>
 </text>

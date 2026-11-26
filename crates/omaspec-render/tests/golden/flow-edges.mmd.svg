@@ -28,29 +28,71 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-A-B" id="link-A-B">
 <path d="M41.66,51.37 L47.2,51.37 C50.77,51.37 53.66,48.48 53.66,44.91 L53.66,44.91 C53.66,41.34 56.55,38.44 60.12,38.44 L63.66,38.44" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-C" id="link-B-C">
 <path d="M114.82,38.44 L114.82,38.44 C121.44,38.44 126.82,43.82 126.82,50.44 L126.82,53.77 C126.82,62.23 133.68,69.09 142.14,69.09 L178.19,69.09" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-D" id="link-C-D">
 <path d="M220.41,69.09 L220.41,69.09 C227.04,69.09 232.41,63.71 232.41,57.09 L232.41,53.77 C232.41,45.3 239.27,38.44 247.73,38.44 L267.37,38.44" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="1.5,3"/>
+</g>
+<g class="link-D-E" id="link-D-E">
 <path d="M319.48,38.44 L319.48,38.44 C326.11,38.44 331.48,43.82 331.48,50.44 L331.48,53.77 C331.48,62.23 338.34,69.09 346.8,69.09 L413.23,69.09" fill="none" stroke="#64748B" stroke-width="2"/>
+</g>
+<g class="link-E-F" id="link-E-F">
 <path d="M463.64,69.09 L465,69.09 C470.88,69.09 475.64,64.32 475.64,58.44 L475.64,58.44 C475.64,52.57 480.41,47.8 486.29,47.8 L548.46,47.8" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-F-G" id="link-F-G">
 <polyline points="596.72,38.73 622.72,38.73" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-G-H" id="link-G-H">
 <polyline points="681.16,38.73 693.16,38.73" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-A-C-label" id="link-A-C-label">
 <path d="M41.66,69.52 L45.88,69.52 C50.17,69.52 53.66,73 53.66,77.3 L53.66,77.3 C53.66,81.6 57.15,85.09 61.44,85.09 L168.19,85.09" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-D-text" id="link-B-D-text">
 <polyline points="114.82,20.3 267.37,20.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-E-dotted_20_text" id="link-C-E-dotted_20_text">
 <polyline points="220.41,87.23 413.23,87.23" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="1.5,3"/>
+</g>
+<g class="link-D-F-thick_20_text" id="link-D-F-thick_20_text">
 <path d="M319.48,20.3 L469.89,20.3 C473.07,20.3 475.64,22.87 475.64,26.05 L475.64,26.05 C475.64,29.23 478.22,31.8 481.4,31.8 L546.46,31.8" fill="none" stroke="#64748B" stroke-width="2"/>
+</g>
+<g class="link-A-B">
 <polygon points="63.66,42.44 73.66,38.44 63.66,34.44 67.66,38.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-D">
 <polygon points="267.37,42.44 277.37,38.44 267.37,34.44 271.37,38.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-D-E">
 <polygon points="413.23,73.09 423.23,69.09 413.23,65.09 417.23,69.09" fill="#64748B" stroke="#64748B" stroke-width="1.5"/>
+</g>
+<g class="link-E-F">
 <ellipse cx="552.46" cy="47.8" rx="4" ry="4" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-F-G">
 <polyline points="618.72,34.73 626.72,42.73" fill="none" stroke="#64748B" stroke-width="1.5"/>
 <polyline points="618.72,42.73 626.72,34.73" fill="none" stroke="#64748B" stroke-width="1.5"/>
+</g>
+<g class="link-G-H">
 <polygon points="693.16,42.73 703.16,38.73 693.16,34.73 697.16,38.73" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="681.16,34.73 671.16,38.73 681.16,42.73 677.16,38.73" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-A-C-label">
 <polygon points="168.19,89.09 178.19,85.09 168.19,81.09 172.19,85.09" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-D-text">
 <polygon points="267.37,24.3 277.37,20.3 267.37,16.3 271.37,20.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-E-dotted_20_text">
 <polygon points="413.23,91.23 423.23,87.23 413.23,83.23 417.23,87.23" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-D-F-thick_20_text">
 <polygon points="546.46,35.8 556.46,31.8 546.46,27.8 550.46,31.8" fill="#64748B" stroke="#64748B" stroke-width="1.5"/>
+</g>
 </g>
 <g>
 <g class="node-A">
@@ -93,25 +135,25 @@
 <tspan x="719.16" y="43.57" font-size="14" fill="#0F172A" textLength="10.4" lengthAdjust="spacing">H</tspan>
 </text>
 </g>
-<g class="link-A-C-label" id="link-A-C-label">
+<g class="link-A-C-label">
 <rect x="128.82" y="87.09" width="35.37" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="130.82" y="102.08" font-size="14" fill="#0F172A" textLength="31.37" lengthAdjust="spacing">label</tspan>
 </text>
 </g>
-<g class="link-B-D-text" id="link-B-D-text">
+<g class="link-B-D-text">
 <rect x="234.41" y="-2" width="28.96" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="236.41" y="12.99" font-size="14" fill="#0F172A" textLength="24.96" lengthAdjust="spacing">text</tspan>
 </text>
 </g>
-<g class="link-C-E-dotted_20_text" id="link-C-E-dotted_20_text">
+<g class="link-C-E-dotted_20_text">
 <rect x="333.48" y="89.23" width="75.75" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="335.48" y="104.23" font-size="14" fill="#0F172A" textLength="71.75" lengthAdjust="spacing">dotted text</tspan>
 </text>
 </g>
-<g class="link-D-F-thick_20_text" id="link-D-F-thick_20_text">
+<g class="link-D-F-thick_20_text">
 <rect x="477.64" y="9.51" width="64.82" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="479.64" y="24.5" font-size="14" fill="#0F172A" textLength="60.82" lengthAdjust="spacing">thick text</tspan>

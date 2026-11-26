@@ -2,9 +2,15 @@
 <rect x="0" y="0" width="313" height="139" fill="#121212"/>
 <g transform="translate(10,10)">
 <g id="lines">
+<g class="link-Skinned-a_20_centered_20_label" id="link-Skinned-a_20_centered_20_label">
 <path d="M151.33,64.44 L161.33,64.44 C176.33,64.44 176.33,36.3 191.33,36.3 L201.33,36.3" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="7,7"/>
+</g>
+<g class="link-Skinned-b" id="link-Skinned-b">
 <path d="M151.33,64.44 L161.33,64.44 C176.33,64.44 176.33,100.74 191.33,100.74 L201.33,100.74" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="7,7"/>
+</g>
+<g class="link-Skinned-c" id="link-Skinned-c">
 <path d="M77.99,64.44 L67.99,64.44 C52.99,64.44 52.99,64.44 37.99,64.44 L27.99,64.44" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="7,7"/>
+</g>
 </g>
 <g>
 <g class="node-Skinned" id="node-Skinned">

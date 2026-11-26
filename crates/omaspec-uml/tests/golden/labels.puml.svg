@@ -15,12 +15,24 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Customer-Order-places" id="link-Customer-Order-places">
 <path d="M76.55,28.3 L76.55,28.3 C76.55,34.92 81.93,40.3 88.55,40.3 L111.12,40.3 C130.2,40.3 145.68,55.77 145.68,74.86 L145.68,90.26" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Invoice-Order-bills" id="link-Invoice-Order-bills">
 <polyline points="157.68,28.3 157.68,90.26" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Shipment-Order-delivers" id="link-Shipment-Order-delivers">
 <path d="M260.41,28.3 L260.41,33.62 C260.41,53.86 244,70.26 223.76,70.26 L207.12,70.26 C196.08,70.26 187.12,79.22 187.12,90.26 L187.12,90.26" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Customer-Order-places">
 <polygon points="141.68,90.26 145.68,100.26 149.68,90.26 145.68,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Invoice-Order-bills">
 <polygon points="153.68,90.26 157.68,100.26 161.68,90.26 157.68,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Shipment-Order-delivers">
 <polygon points="183.12,90.26 187.12,100.26 191.12,90.26 187.12,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="class-Order">
@@ -43,17 +55,17 @@
 <tspan x="260.41" y="18.99" font-size="14" fill="#000000" textLength="62.5" lengthAdjust="spacing">Shipment</tspan>
 </text>
 </g>
-<g class="link-Customer-Order-places" id="link-Customer-Order-places">
+<g class="link-Customer-Order-places">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="102.5" y="68.09" font-size="12" fill="#000000" textLength="37.18" lengthAdjust="spacing">places</tspan>
 </text>
 </g>
-<g class="link-Invoice-Order-bills" id="link-Invoice-Order-bills">
+<g class="link-Invoice-Order-bills">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="163.68" y="55.43" font-size="12" fill="#000000" textLength="22.39" lengthAdjust="spacing">bills</tspan>
 </text>
 </g>
-<g class="link-Shipment-Order-delivers" id="link-Shipment-Order-delivers">
+<g class="link-Shipment-Order-delivers">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="266.41" y="55.43" font-size="12" fill="#000000" textLength="44.74" lengthAdjust="spacing">delivers</tspan>
 </text>

@@ -55,22 +55,54 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-rider-app-_3c_b_3e_Uses_3c__2f_b_3e_" id="link-rider-app-_3c_b_3e_Uses_3c__2f_b_3e_">
 <polyline points="319.9,170.5 319.9,312.04" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-locks-events-_3c_b_3e_Reports_3c__2f_b_3e_" id="link-locks-events-_3c_b_3e_Reports_3c__2f_b_3e_">
 <path d="M817.38,156.5 L817.38,566.94 C817.38,593.45 795.89,614.94 769.38,614.94 L723.67,614.94 C718.15,614.94 713.67,619.41 713.67,624.94 L713.67,624.94" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-api-payments-_3c_b_3e_Charges_3c__2f_b_3e_" id="link-api-payments-_3c_b_3e_Charges_3c__2f_b_3e_">
 <path d="M231.52,550 L231.52,550 C231.52,561.6 222.12,571 210.52,571 L129.76,571 C103.25,571 81.76,592.49 81.76,619 L81.76,633.08" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-mechanic-workshop-_3c_b_3e_Uses_3c__2f_b_3e_" id="link-mechanic-workshop-_3c_b_3e_Uses_3c__2f_b_3e_">
 <polyline points="688.45,170.5 688.45,312.04" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-app-api-_3c_b_3e_Calls_3c__2f_b_3e_" id="link-app-api-_3c_b_3e_Calls_3c__2f_b_3e_">
 <polyline points="298.33,401.55 298.33,460.49" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-api-db-_3c_b_3e_Reads_20_and_20_writes_3c__2f_b_3e_" id="link-api-db-_3c_b_3e_Reads_20_and_20_writes_3c__2f_b_3e_">
 <polyline points="377.14,510.24 507.72,510.24" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-api-events-_3c_b_3e_Listens_20_to_3c__2f_b_3e_" id="link-api-events-_3c_b_3e_Listens_20_to_3c__2f_b_3e_">
 <path d="M365.14,550 L365.14,550 C365.14,561.6 374.54,571 386.14,571 L504.72,571 C531.23,571 552.72,592.49 552.72,619 L552.72,624.94" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-workshop-events-_3c_b_3e_Low_20_battery_2c__20_flat_20_tyre_3c__2f_b_3e_" id="link-workshop-events-_3c_b_3e_Low_20_battery_2c__20_flat_20_tyre_3c__2f_b_3e_">
 <path d="M731.99,411.55 L731.99,523 C731.99,549.51 710.5,571 683.99,571 L675.8,571 C649.29,571 627.8,592.49 627.8,619 L627.8,634.94" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-rider-app-_3c_b_3e_Uses_3c__2f_b_3e_">
 <polygon points="315.9,312.04 319.9,322.04 323.9,312.04 319.9,316.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-locks-events-_3c_b_3e_Reports_3c__2f_b_3e_">
 <polygon points="709.67,624.94 713.67,634.94 717.67,624.94 713.67,629.44" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-api-payments-_3c_b_3e_Charges_3c__2f_b_3e_">
 <polygon points="77.76,633.08 81.76,643.08 85.76,633.08 81.76,637.58" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-mechanic-workshop-_3c_b_3e_Uses_3c__2f_b_3e_">
 <polygon points="684.45,312.04 688.45,322.04 692.45,312.04 688.45,316.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-app-api-_3c_b_3e_Calls_3c__2f_b_3e_">
 <polygon points="294.33,460.49 298.33,470.49 302.33,460.49 298.33,464.99" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-api-db-_3c_b_3e_Reads_20_and_20_writes_3c__2f_b_3e_">
 <polygon points="507.72,514.24 517.72,510.24 507.72,506.24 512.22,510.24" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-api-events-_3c_b_3e_Listens_20_to_3c__2f_b_3e_">
 <polygon points="548.72,624.94 552.72,634.94 556.72,624.94 552.72,629.44" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-workshop-events-_3c_b_3e_Low_20_battery_2c__20_flat_20_tyre_3c__2f_b_3e_">
 <polygon points="735.99,411.55 731.99,401.55 727.99,411.55 731.99,407.05" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="person-rider">
@@ -158,46 +190,46 @@
 <tspan x="1024.94" y="202.18" font-size="12" fill="#FFFFFF" textLength="53.32" lengthAdjust="spacing">container</tspan>
 </text>
 </g>
-<g class="link-rider-app-_3c_b_3e_Uses_3c__2f_b_3e_" id="link-rider-app-_3c_b_3e_Uses_3c__2f_b_3e_">
+<g class="link-rider-app-_3c_b_3e_Uses_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="325.9" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="29.38" lengthAdjust="spacing">Uses</tspan>
 </text>
 </g>
-<g class="link-locks-events-_3c_b_3e_Reports_3c__2f_b_3e_" id="link-locks-events-_3c_b_3e_Reports_3c__2f_b_3e_">
+<g class="link-locks-events-_3c_b_3e_Reports_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="768.44" y="440.19" font-size="12" fill="#000000" font-weight="bold" textLength="45.95" lengthAdjust="spacing">Reports</tspan>
 <tspan x="768.44" y="454.16" font-size="12" fill="#000000" font-style="italic" textLength="44.28" lengthAdjust="spacing">[MQTT]</tspan>
 </text>
 </g>
-<g class="link-api-payments-_3c_b_3e_Charges_3c__2f_b_3e_" id="link-api-payments-_3c_b_3e_Charges_3c__2f_b_3e_">
+<g class="link-api-payments-_3c_b_3e_Charges_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="26.09" y="586.14" font-size="12" fill="#000000" font-weight="bold" textLength="49.67" lengthAdjust="spacing">Charges</tspan>
 <tspan x="26.09" y="600.1" font-size="12" fill="#000000" font-style="italic" textLength="48.55" lengthAdjust="spacing">[HTTPS]</tspan>
 </text>
 </g>
-<g class="link-mechanic-workshop-_3c_b_3e_Uses_3c__2f_b_3e_" id="link-mechanic-workshop-_3c_b_3e_Uses_3c__2f_b_3e_">
+<g class="link-mechanic-workshop-_3c_b_3e_Uses_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="694.45" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="29.38" lengthAdjust="spacing">Uses</tspan>
 </text>
 </g>
-<g class="link-app-api-_3c_b_3e_Calls_3c__2f_b_3e_" id="link-app-api-_3c_b_3e_Calls_3c__2f_b_3e_">
+<g class="link-app-api-_3c_b_3e_Calls_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="304.33" y="428.69" font-size="12" fill="#000000" font-weight="bold" textLength="29.08" lengthAdjust="spacing">Calls</tspan>
 <tspan x="304.33" y="442.66" font-size="12" fill="#000000" font-style="italic" textLength="85.64" lengthAdjust="spacing">[JSON/HTTPS]</tspan>
 </text>
 </g>
-<g class="link-api-db-_3c_b_3e_Reads_20_and_20_writes_3c__2f_b_3e_" id="link-api-db-_3c_b_3e_Reads_20_and_20_writes_3c__2f_b_3e_">
+<g class="link-api-db-_3c_b_3e_Reads_20_and_20_writes_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="397.14" y="489.44" font-size="12" fill="#000000" font-weight="bold" textLength="100.58" lengthAdjust="spacing">Reads and writes</tspan>
 <tspan x="397.14" y="503.41" font-size="12" fill="#000000" font-style="italic" textLength="32.42" lengthAdjust="spacing">[SQL]</tspan>
 </text>
 </g>
-<g class="link-api-events-_3c_b_3e_Listens_20_to_3c__2f_b_3e_" id="link-api-events-_3c_b_3e_Listens_20_to_3c__2f_b_3e_">
+<g class="link-api-events-_3c_b_3e_Listens_20_to_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="558.72" y="593.12" font-size="12" fill="#000000" font-weight="bold" textLength="57.08" lengthAdjust="spacing">Listens to</tspan>
 </text>
 </g>
-<g class="link-workshop-events-_3c_b_3e_Low_20_battery_2c__20_flat_20_tyre_3c__2f_b_3e_" id="link-workshop-events-_3c_b_3e_Low_20_battery_2c__20_flat_20_tyre_3c__2f_b_3e_">
+<g class="link-workshop-events-_3c_b_3e_Low_20_battery_2c__20_flat_20_tyre_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="633.8" y="608.81" font-size="12" fill="#000000" font-weight="bold" textLength="122.5" lengthAdjust="spacing">Low battery, flat tyre</tspan>
 </text>

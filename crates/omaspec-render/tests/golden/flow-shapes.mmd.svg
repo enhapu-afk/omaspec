@@ -46,30 +46,78 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-A-B" id="link-A-B">
 <polyline points="72.26,36.3 72.26,58.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-C" id="link-B-C">
 <polyline points="72.26,104.59 72.26,126.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-D" id="link-C-D">
 <polyline points="72.26,172.89 72.26,194.89" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-D-E" id="link-D-E">
 <polyline points="72.26,241.18 72.26,263.18" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-E-F" id="link-E-F">
 <polyline points="72.26,330.99 72.26,352.99" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-F-G" id="link-F-G">
 <polyline points="72.26,416.72 72.26,438.72" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-G-H" id="link-G-H">
 <polyline points="72.26,485.02 72.26,507.02" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-H-I" id="link-H-I">
 <polyline points="72.26,591.01 72.26,613.01" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-I-J" id="link-I-J">
 <polyline points="72.26,659.3 72.26,681.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-J-K" id="link-J-K">
 <polyline points="72.26,727.6 72.26,749.6" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-K-L" id="link-K-L">
 <polyline points="72.26,795.9 72.26,817.9" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-L-M" id="link-L-M">
 <polyline points="72.26,864.19 72.26,886.19" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-A-B">
 <polygon points="68.26,58.3 72.26,68.3 76.26,58.3 72.26,62.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-C">
 <polygon points="68.26,126.59 72.26,136.59 76.26,126.59 72.26,130.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-D">
 <polygon points="68.26,194.89 72.26,204.89 76.26,194.89 72.26,198.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-D-E">
 <polygon points="68.26,263.18 72.26,273.18 76.26,263.18 72.26,267.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-E-F">
 <polygon points="68.26,352.99 72.26,362.99 76.26,352.99 72.26,356.99" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-F-G">
 <polygon points="68.26,438.72 72.26,448.72 76.26,438.72 72.26,442.72" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-G-H">
 <polygon points="68.26,507.02 72.26,517.02 76.26,507.02 72.26,511.02" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-H-I">
 <polygon points="68.26,613.01 72.26,623.01 76.26,613.01 72.26,617.01" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-I-J">
 <polygon points="68.26,681.3 72.26,691.3 76.26,681.3 72.26,685.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-J-K">
 <polygon points="68.26,749.6 72.26,759.6 76.26,749.6 72.26,753.6" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-K-L">
 <polygon points="68.26,817.9 72.26,827.9 76.26,817.9 72.26,821.9" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-L-M">
 <polygon points="68.26,886.19 72.26,896.19 76.26,886.19 72.26,890.19" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="node-A">

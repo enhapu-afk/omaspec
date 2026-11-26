@@ -19,16 +19,36 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-A-B" id="link-A-B">
 <polyline points="130.95,204.89 130.95,182.89" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-C" id="link-B-C">
 <polyline points="95.23,136.59 95.23,114.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-D" id="link-B-D">
 <path d="M166.67,136.59 L166.67,127.73 C166.67,126 168.08,124.59 169.81,124.59 L169.81,124.59 C171.55,124.59 172.95,123.19 172.95,121.45 L172.95,114.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-E" id="link-C-E">
 <path d="M104.95,68.3 L104.95,59.55 C104.95,57.75 106.41,56.3 108.2,56.3 L108.2,56.3 C110,56.3 111.45,54.84 111.45,53.05 L111.45,52.3 C111.45,50.09 113.24,48.3 115.45,48.3 L148.45,48.3 C149.55,48.3 150.45,47.4 150.45,46.3 L150.45,46.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-D-E" id="link-D-E">
 <path d="M172.95,68.3 L172.95,67.55 C172.95,61.33 167.91,56.3 161.7,56.3 L160.45,56.3 C154.93,56.3 150.45,51.82 150.45,46.3 L150.45,46.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-A-B">
 <polygon points="134.95,182.89 130.95,172.89 126.95,182.89 130.95,178.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-C">
 <polygon points="99.23,114.59 95.23,104.59 91.23,114.59 95.23,110.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-B-D">
 <polygon points="176.95,114.59 172.95,104.59 168.95,114.59 172.95,110.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-C-E">
 <polygon points="154.45,46.3 150.45,36.3 146.45,46.3 150.45,42.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-D-E">
 <polygon points="154.45,46.3 150.45,36.3 146.45,46.3 150.45,42.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="node-A">

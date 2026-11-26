@@ -1,7 +1,8 @@
 # 0037: Every box and every line has an id of its own
 
 Status: accepted, 2026-11-26 (REQ-132); its first step (point 7) is
-done the same day, and of the second its sequence diagrams. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
+done the same day, and of the second its sequence diagrams and the
+lines of structure diagrams, flowcharts, mind maps and WBS. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
 the parts only for the pane, and the way its point 1 writes their names.
 
 ## Context
@@ -124,3 +125,6 @@ Measured on a state machine of seven states, 16 part groups made its SVG
   its veil message by message. A participant's head, foot, lifeline and
   bars are its element; a note beside a message is one of its own.
   Whether messages should glide is a question of its own.
+- A line many links share (a WBS's spine, the bar over a row) is no
+  one link's: it stays in the lines' group without an id, and each
+  link's id is on the piece that is its own.

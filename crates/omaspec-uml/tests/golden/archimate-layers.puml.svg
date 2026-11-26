@@ -24,10 +24,18 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-c-crm" id="link-c-crm">
 <polyline points="47.46,47.6 47.46,69.6" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-crm-mf" id="link-crm-mf">
 <polyline points="47.46,127.2 47.46,149.2" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-c-crm">
 <polygon points="43.46,69.6 47.46,79.6 51.46,69.6 47.46,74.1" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-crm-mf">
 <polygon points="43.46,149.2 47.46,159.2 51.46,149.2 47.46,153.7" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="rectangle-c">

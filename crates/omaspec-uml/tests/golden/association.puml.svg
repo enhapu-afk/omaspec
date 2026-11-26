@@ -14,9 +14,15 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Student-_28_Student_2c__20_Course_29_" id="link-Student-_28_Student_2c__20_Course_29_">
 <polyline points="37.71,53.43 37.71,119.71" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-_28_Student_2c__20_Course_29_-Course" id="link-_28_Student_2c__20_Course_29_-Course">
 <polyline points="37.71,119.71 37.71,185.99" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-_28_Student_2c__20_Course_29_-Enrollment" id="link-_28_Student_2c__20_Course_29_-Enrollment">
 <path d="M37.71,119.71 L59.71,119.71 L59.71,119.71 L81.71,119.71" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
+</g>
 </g>
 <g>
 <g class="class-Student">

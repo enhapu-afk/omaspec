@@ -26,6 +26,26 @@ fn draw(source: &str) -> Option<String> {
     try_draw(&parsed.graph, &RenderOptions::default().theme, source)
 }
 
+/// A line carries its id on its path, its words and its head its class
+/// (docs/adr/0037).
+#[test]
+fn a_line_carries_its_id() {
+    let svg = draw("flowchart LR\n  A -->|go| B\n  B --> C\n").unwrap();
+    for name in ["link-A-B-go", "link-B-C"] {
+        let own = format!(r#"<g class="{name}" id="{name}">"#);
+        let at = svg.find(&own).unwrap_or_else(|| panic!("{name}: {svg}"));
+        assert!(
+            svg[at + own.len()..].starts_with("<polyline"),
+            "{name}: {svg}"
+        );
+        assert_eq!(svg.matches(&format!(r#"id="{name}""#)).count(), 1, "{name}");
+    }
+    assert!(
+        svg.matches(r#"<g class="link-A-B-go">"#).count() >= 2,
+        "{svg}"
+    );
+}
+
 #[test]
 fn the_shop_steps_down_and_loops_back_beside_it() {
     let scene = laid(include_str!("../../../../../../examples/shop.mmd"));

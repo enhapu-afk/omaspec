@@ -1233,10 +1233,10 @@ fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
 
 fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene, names: &Names) {
     paint_shapes(canvas, skin, scene, (&mut Vec::new(), names));
-    paint_edges(canvas, scene, skin.curve);
+    paint_edges(canvas, scene, skin.curve, (&mut Vec::new(), names));
     paint_notes(canvas, skin, scene, (&mut Vec::new(), names));
     paint_labels(canvas, scene, &containers(scene), (&mut Vec::new(), names));
-    paint_heads(canvas, skin, scene);
+    paint_heads(canvas, skin, scene, (&mut Vec::new(), names));
 }
 
 /// Each element in its part (docs/adr/0029): its shape and its words;
@@ -2052,20 +2052,31 @@ fn text_area(node: &Placed) -> (Rect, Place) {
     (area, place)
 }
 
-fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
-    for edge in &scene.edges {
+/// Each line in its part (docs/adr/0037), which its words and its heads
+/// are drawn in too; `path` is where `scene` is in the tree.
+fn paint_edges(
+    canvas: &mut Canvas,
+    scene: &Scene,
+    curve: f32,
+    (path, names): (&mut Vec<usize>, &Names),
+) {
+    for (slot, edge) in scene.edges.iter().enumerate() {
         if edge.points.len() < 2 || edge.look.hidden {
             continue;
         }
-        canvas.curve(
-            Layer::Lines,
-            &shortened(&edge.points, edge.look.from_head, edge.look.to_head),
-            curve,
-            edge.look.stroke,
-        );
+        canvas.part(&names.edge(path, slot), |canvas| {
+            canvas.curve(
+                Layer::Lines,
+                &shortened(&edge.points, edge.look.from_head, edge.look.to_head),
+                curve,
+                edge.look.stroke,
+            );
+        });
     }
-    for node in &scene.nodes {
-        paint_edges(canvas, &node.children, curve);
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        paint_edges(canvas, &node.children, curve, (path, names));
+        path.pop();
     }
 }
 
@@ -2174,31 +2185,41 @@ fn paint_labels(
     }
 }
 
-fn paint_heads(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
-    for edge in &scene.edges {
+/// Each line's heads, in its part; `path` is where `scene` is in the tree.
+fn paint_heads(
+    canvas: &mut Canvas,
+    skin: &Skin,
+    scene: &Scene,
+    (path, names): (&mut Vec<usize>, &Names),
+) {
+    for (slot, edge) in scene.edges.iter().enumerate() {
         if edge.points.len() < 2 {
             continue;
         }
         let last = edge.points.len() - 1;
-        draw_head(
-            canvas,
-            skin,
-            edge.points[0],
-            edge.points[1],
-            edge.look.from_head,
-            edge.look.stroke,
-        );
-        draw_head(
-            canvas,
-            skin,
-            edge.points[last],
-            edge.points[last - 1],
-            edge.look.to_head,
-            edge.look.stroke,
-        );
+        canvas.part(&names.edge(path, slot), |canvas| {
+            draw_head(
+                canvas,
+                skin,
+                edge.points[0],
+                edge.points[1],
+                edge.look.from_head,
+                edge.look.stroke,
+            );
+            draw_head(
+                canvas,
+                skin,
+                edge.points[last],
+                edge.points[last - 1],
+                edge.look.to_head,
+                edge.look.stroke,
+            );
+        });
     }
-    for node in &scene.nodes {
-        paint_heads(canvas, skin, &node.children);
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        paint_heads(canvas, skin, &node.children, (path, names));
+        path.pop();
     }
 }
 
@@ -3203,5 +3224,32 @@ mod tests {
             .unwrap()
             .parse()
             .unwrap()
+    }
+
+    /// A line's path carries its id, in the lines' group; its heads and
+    /// its words carry its class (docs/adr/0037).
+    #[test]
+    fn a_line_carries_its_id() {
+        let svg = crate::render("@startuml\nclass A\nclass B\nA --> B : uses\nA -- B\n@enduml\n")
+            .unwrap();
+        let lines_at = svg.find(r#"<g id="lines">"#).unwrap();
+        let lines = &svg[lines_at..lines_at + crate::svg::group_length(&svg[lines_at..]).unwrap()];
+        for name in ["link-A-B-uses", "link-A-B"] {
+            let own = format!(r#"<g class="{name}" id="{name}">"#);
+            let at = lines
+                .find(&own)
+                .unwrap_or_else(|| panic!("{name}: {lines}"));
+            let drawn = &lines[at + own.len()..];
+            assert!(
+                drawn.starts_with("<path") || drawn.starts_with("<polyline"),
+                "{name}: {lines}"
+            );
+            assert_eq!(svg.matches(&format!(r#"id="{name}""#)).count(), 1, "{name}");
+        }
+        // Its head and its words: the class alone.
+        assert!(
+            svg.matches(r#"<g class="link-A-B-uses">"#).count() >= 2,
+            "{svg}"
+        );
     }
 }

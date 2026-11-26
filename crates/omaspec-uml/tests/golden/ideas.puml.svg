@@ -1,18 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="792" height="262" viewBox="0 0 792 262" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g id="lines">
+<g class="link-Editor-Snippets" id="link-Editor-Snippets">
 <path d="M515.95,82.59 L525.95,82.59 C540.95,82.59 540.95,54.44 555.95,54.44 L565.95,54.44" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Editor-Find_20_in_20_all_20_tabs" id="link-Editor-Find_20_in_20_all_20_tabs">
 <path d="M515.95,82.59 L525.95,82.59 C540.95,82.59 540.95,110.74 555.95,110.74 L565.95,110.74" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Next_20_release-Editor" id="link-Next_20_release-Editor">
 <path d="M407.34,138.89 L417.34,138.89 C432.34,138.89 432.34,82.59 447.34,82.59 L457.34,82.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Diagrams-Mind_20_maps_20_without_20_Java" id="link-Diagrams-Mind_20_maps_20_without_20_Java">
 <path d="M540.07,195.18 L550.07,195.18 C565.07,195.18 565.07,167.04 580.07,167.04 L590.07,167.04" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Diagrams-WBS_20_without_20_Java" id="link-Diagrams-WBS_20_without_20_Java">
 <path d="M540.07,195.18 L550.07,195.18 C565.07,195.18 565.07,223.33 580.07,223.33 L590.07,223.33" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Next_20_release-Diagrams" id="link-Next_20_release-Diagrams">
 <path d="M407.34,138.89 L417.34,138.89 C432.34,138.89 432.34,195.18 447.34,195.18 L457.34,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Next_20_release-Maybe_20_later" id="link-Next_20_release-Maybe_20_later">
 <path d="M407.34,138.89 L417.34,138.89 C432.34,138.89 432.34,232.48 447.34,232.48 L457.34,232.48" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Docs-A_20_tour_20_of_20_the_20_editor" id="link-Docs-A_20_tour_20_of_20_the_20_editor">
 <path d="M200.19,110.74 L190.19,110.74 C175.19,110.74 175.19,82.59 160.19,82.59 L150.19,82.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Docs-Keyboard_20_shortcuts" id="link-Docs-Keyboard_20_shortcuts">
 <path d="M200.19,110.74 L190.19,110.74 C175.19,110.74 175.19,138.89 160.19,138.89 L150.19,138.89" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Next_20_release-Docs" id="link-Next_20_release-Docs">
 <path d="M304.08,138.89 L294.08,138.89 C279.08,138.89 279.08,110.74 264.08,110.74 L254.08,110.74" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Packaging-Flatpak" id="link-Packaging-Flatpak">
 <path d="M164.89,195.18 L154.89,195.18 C139.89,195.18 139.89,195.18 124.89,195.18 L114.89,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Next_20_release-Packaging" id="link-Next_20_release-Packaging">
 <path d="M304.08,138.89 L294.08,138.89 C279.08,138.89 279.08,195.18 264.08,195.18 L254.08,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="node-Next_20_release" id="node-Next_20_release">

@@ -11,10 +11,18 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-order-payment-pays" id="link-order-payment-pays">
 <polyline points="49.04,83.69 49.04,119.66" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-order-order-again" id="link-order-order-again">
 <path d="M98.07,34.85 L107.07,34.85 C110.94,34.85 114.07,37.98 114.07,41.85 L114.07,42.85 C114.07,46.16 111.39,48.85 108.07,48.85 L108.07,48.85" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-order-payment-pays">
 <polygon points="45.04,119.66 49.04,129.66 53.04,119.66 49.04,124.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-order-order-again">
 <polygon points="108.07,44.85 98.07,48.85 108.07,52.85 103.57,48.85" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="object-order">
@@ -39,12 +47,12 @@
 <tspan x="20.25" y="174.02" font-size="13" fill="#000000" textLength="35.85" lengthAdjust="spacing">paid()</tspan>
 </text>
 </g>
-<g class="link-order-payment-pays" id="link-order-payment-pays">
+<g class="link-order-payment-pays">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="55.04" y="110.83" font-size="12" fill="#000000" textLength="27.17" lengthAdjust="spacing">pays</tspan>
 </text>
 </g>
-<g class="link-order-order-again" id="link-order-order-again">
+<g class="link-order-order-again">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="118.07" y="46" font-size="12" fill="#000000" textLength="30.84" lengthAdjust="spacing">again</tspan>
 </text>

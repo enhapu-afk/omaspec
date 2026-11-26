@@ -185,6 +185,26 @@ impl Drawer<'_> {
         self.canvas.line(layer, from, to, self.skin.link);
     }
 
+    /// The piece of the link from `from` to `to` that is its own, in its
+    /// part (docs/adr/0037): the drop into a box of a row, the stub out
+    /// of a spine. A spine and a row's bar many links share are no one's.
+    fn own_line(&mut self, (parent, child): (&Branch, &Branch), from: (f32, f32), to: (f32, f32)) {
+        let name = match self.glides {
+            true => super::link(&parent.key, &child.key),
+            false => String::new(),
+        };
+        let (layer, link) = (
+            if self.glides {
+                Layer::Lines
+            } else {
+                Layer::Lifelines
+            },
+            self.skin.link,
+        );
+        self.canvas
+            .part(&name, |canvas| canvas.line(layer, from, to, link));
+    }
+
     /// The box of `b`, whose branch has its top left corner at `(x, y)`.
     fn rect(b: &Branch, (x, y): (f32, f32)) -> Rect {
         Rect {
@@ -246,7 +266,7 @@ impl Drawer<'_> {
         let mut x = 0.0;
         for b in row {
             last = x + b.middle;
-            self.line((last, y1), (last, y2));
+            self.own_line((root, b), (last, y1), (last, y2));
             self.branch(b, (x, y2));
             x += b.width + ROW_GAP;
         }
@@ -291,7 +311,7 @@ impl Drawer<'_> {
             cy += b.margin;
             let (_, right, mid) = c.sides();
             let cx = spine - c.width - SPINE_GAP;
-            self.line((cx + right, cy + mid), (spine, cy + mid));
+            self.own_line((b, c), (cx + right, cy + mid), (spine, cy + mid));
             let points = vec![(spine, below), (spine, cy + mid), (cx + right, cy + mid)];
             self.wire((b, own), (c, Self::rect(c, (cx, cy))), points);
             bottom = bottom.max(cy + mid);
@@ -302,7 +322,11 @@ impl Drawer<'_> {
         for c in &b.right {
             cy += b.margin;
             let (left, _, mid) = c.sides();
-            self.line((spine, cy + mid), (spine + SPINE_GAP + left, cy + mid));
+            self.own_line(
+                (b, c),
+                (spine, cy + mid),
+                (spine + SPINE_GAP + left, cy + mid),
+            );
             let points = vec![
                 (spine, below),
                 (spine, cy + mid),
@@ -325,6 +349,19 @@ impl Drawer<'_> {
 mod tests {
     /// Asked for its parts, a WBS draws each box in a group of its own,
     /// named as its map names it, the lines between them outside.
+    /// A link is named by what it joins, on the piece of its line that is
+    /// its own (docs/adr/0037).
+    #[test]
+    fn a_link_is_named_by_what_it_joins() {
+        let svg =
+            crate::render("@startwbs\n* Move\n** Pack\n*** Books\n** Clean\n@endwbs\n").unwrap();
+        for name in ["link-Move-Pack", "link-Pack-Books", "link-Move-Clean"] {
+            let own = format!(r#"<g class="{name}" id="{name}">"#);
+            let at = svg.find(&own).unwrap_or_else(|| panic!("{name}: {svg}"));
+            assert!(svg[at + own.len()..].starts_with("<line"), "{name}: {svg}");
+        }
+    }
+
     #[test]
     fn a_wbs_s_boxes_are_parts_named_as_its_map_names_them() {
         let source = "@startwbs\n* Move\n** Pack\n*** Books\n** Clean\n@endwbs\n";
@@ -348,6 +385,6 @@ mod tests {
             "{groups:?}"
         );
         let ground = crate::without_parts(&svg).unwrap();
-        assert!(!ground.contains("Books"), "{ground}");
+        assert!(!ground.contains(">Books<"), "{ground}");
     }
 }

@@ -23,15 +23,33 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Usuario-Cliente" id="link-Usuario-Cliente">
 <path d="M158.65,82.56 L158.65,86.56 L158.65,100.36 C158.65,107.98 152.47,114.16 144.85,114.16 L88.57,114.16 C71.78,114.16 58.17,127.77 58.17,144.56 L58.17,144.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Usuario-Empleado" id="link-Usuario-Empleado">
 <path d="M158.65,82.56 L158.65,86.56 L158.65,114.16 L158.65,144.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Usuario-Admin" id="link-Usuario-Admin">
 <path d="M158.65,82.56 L158.65,86.56 L158.65,100.36 C158.65,107.98 164.83,114.16 172.45,114.16 L229.4,114.16 C246.19,114.16 259.8,127.77 259.8,144.56 L259.8,144.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Usuario-Usuario-supervisa_20__3e_" id="link-Usuario-Usuario-supervisa_20__3e_">
 <path d="M215.27,25.28 L246.27,25.28 C251.24,25.28 255.27,29.31 255.27,34.28 L255.27,34.28 C255.27,39.25 251.24,43.28 246.27,43.28 L215.27,43.28" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Cliente-Account" id="link-Cliente-Account">
 <polyline points="53.62,172.86 53.62,194.86" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Usuario-Cliente">
 <polygon points="165.65,82.56 158.65,68.56 151.65,82.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Usuario-Empleado">
 <polygon points="165.65,82.56 158.65,68.56 151.65,82.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Usuario-Admin">
 <polygon points="165.65,82.56 158.65,68.56 151.65,82.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Cliente-Account">
 <polygon points="49.62,194.86 53.62,204.86 57.62,194.86 53.62,199.36" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="class-Usuario">
@@ -76,7 +94,7 @@
 <tspan x="381.59" y="39.12" font-size="14" fill="#000000" textLength="50.61" lengthAdjust="spacing">Archive</tspan>
 </text>
 </g>
-<g class="link-Usuario-Usuario-supervisa_20__3e_" id="link-Usuario-Usuario-supervisa_20__3e_">
+<g class="link-Usuario-Usuario-supervisa_20__3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="259.27" y="38.43" font-size="12" fill="#000000" textLength="66.32" lengthAdjust="spacing">supervisa &gt;</tspan>
 </text>

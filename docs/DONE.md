@@ -2360,6 +2360,17 @@ is open and the reasoning around it.
       as a whole, as before: its root says `data-omaspec="named"`, so the
       pane fades it and a build uncovers it from the top down. 21 golden
       SVGs changed, by their groups and their root alone.
+- [x] An id for every box and line, step 2, the lines of structure
+      diagrams, flowcharts and trees (2026-11-26,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)): a structure
+      diagram's line (class, component, use case, deployment, object;
+      Mermaid's class diagram too) carries its id on its path in the lines' group,
+      its heads and words its class (`link-Order-Customer-places`, one
+      without words `link-Order-Item`); so does a flowchart's
+      (`link-A-B-go`). A mind map's and a WBS's link is named by what it
+      joins (`link-Trip-Pack`); a WBS's spine and a row's bar, which
+      many links share, are no one link's. 36 golden SVGs changed, by
+      their groups alone.
 
 ## Next
 

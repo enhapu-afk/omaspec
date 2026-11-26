@@ -58,12 +58,24 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Server-CDN-ships" id="link-Server-CDN-ships">
 <polyline points="58.69,191.18 58.69,227.15" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-CDN-Docs" id="link-CDN-Docs">
 <polyline points="58.69,281.15 58.69,303.15" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-jar-Sessions" id="link-jar-Sessions">
 <polyline points="53.69,100.89 53.69,122.89" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Server-CDN-ships">
 <polygon points="54.69,227.15 58.69,237.15 62.69,227.15 58.69,231.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-CDN-Docs">
 <polygon points="54.69,303.15 58.69,313.15 62.69,303.15 58.69,307.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-jar-Sessions">
 <polygon points="49.69,122.89 53.69,132.89 57.69,122.89 53.69,127.39" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="node-Server">
@@ -131,7 +143,7 @@
 <tspan x="984.76" y="113.58" font-size="14" fill="#000000" textLength="32.56" lengthAdjust="spacing">Rack</tspan>
 </text>
 </g>
-<g class="link-Server-CDN-ships" id="link-Server-CDN-ships">
+<g class="link-Server-CDN-ships">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="64.69" y="218.32" font-size="12" fill="#000000" textLength="30.01" lengthAdjust="spacing">ships</tspan>
 </text>

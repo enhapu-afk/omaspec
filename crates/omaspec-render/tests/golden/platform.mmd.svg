@@ -71,40 +71,108 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Browser-CDN" id="link-Browser-CDN">
 <path d="M345.28,36.3 L345.28,36.3 C345.28,56.18 329.16,72.3 309.28,72.3 L265.77,72.3 C239.26,72.3 217.77,93.79 217.77,120.3 L217.77,154.89" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Mailer-Browser-receipt" id="link-Mailer-Browser-receipt">
 <path d="M545.6,443.81 L545.6,66.15 C545.6,39.64 524.11,18.15 497.6,18.15 L407.9,18.15" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="1.5,3"/>
+</g>
+<g class="link-WAF-Gateway" id="link-WAF-Gateway">
 <path d="M144.48,302.07 L144.48,309.59 C144.48,318.69 151.86,326.07 160.97,326.07 L160.97,326.07 C170.07,326.07 177.45,333.45 177.45,342.56 L177.45,401.18 C177.45,410.28 170.07,417.66 160.97,417.66 L152.48,417.66 C148.06,417.66 144.48,421.25 144.48,425.66 L144.48,425.66" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Orders-Db" id="link-Orders-Db">
 <path d="M511.78,653.29 L511.78,739.74 C511.78,766.25 490.29,787.74 463.78,787.74 L440.76,787.74 C414.25,787.74 392.76,809.23 392.76,835.74 L392.76,871.03" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Billing-Db" id="link-Billing-Db">
 <path d="M392.76,741.74 L392.76,768.56 C392.76,773.63 388.66,777.74 383.59,777.74 L383.59,777.74 C378.52,777.74 374.42,781.84 374.42,786.91 L374.42,843.86 C374.42,848.92 378.52,853.03 383.59,853.03 L383.59,853.03 C388.66,853.03 392.76,857.14 392.76,862.21 L392.76,871.03" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Auth-Db" id="link-Auth-Db">
 <path d="M220.05,661.44 L220.05,815.03 C220.05,841.54 241.54,863.03 268.05,863.03 L384.76,863.03 C389.18,863.03 392.76,866.61 392.76,871.03 L392.76,871.03" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Search-Index" id="link-Search-Index">
 <path d="M312.05,653.29 L312.05,761.74 C312.05,776.1 300.41,787.74 286.05,787.74 L286.05,787.74 C271.69,787.74 260.05,799.38 260.05,813.74 L260.05,884.57" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Orders-Queue" id="link-Orders-Queue">
 <polyline points="570.77,653.29 570.77,884.57" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="1.5,3"/>
+</g>
+<g class="link-Queue-Mailer" id="link-Queue-Mailer">
 <path d="M636.17,894.57 L636.17,786.1 C636.17,781.48 639.92,777.74 644.54,777.74 L644.54,777.74 C649.15,777.74 652.9,773.99 652.9,769.37 L652.9,537.39 C652.9,531.24 647.92,526.26 641.77,526.26 L641.77,526.26 C635.62,526.26 630.64,521.27 630.64,515.13 L630.64,490.11" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Queue-Reports" id="link-Queue-Reports">
 <path d="M652.17,894.57 L652.17,810.97 C652.17,798.14 662.57,787.74 675.41,787.74 L675.41,787.74 C688.24,787.74 698.64,777.33 698.64,764.5 L698.64,490.11" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Reports-Replica" id="link-Reports-Replica">
 <path d="M714.64,480.11 L714.64,918.41 C714.64,944.92 693.15,966.41 666.64,966.41 L584.12,966.41 C578.6,966.41 574.12,970.88 574.12,976.41 L574.12,976.41" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-CDN-WAF" id="link-CDN-WAF">
 <polyline points="144.97,217.48 144.97,255.78" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Gateway-Orders-orders" id="link-Gateway-Orders-orders">
 <path d="M220.05,488.26 L220.05,488.26 C220.05,509.24 237.07,526.26 258.05,526.26 L487.83,526.26 C514.34,526.26 535.83,547.75 535.83,574.26 L535.83,607" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Gateway-Search-queries" id="link-Gateway-Search-queries">
 <path d="M204.05,488.26 L204.05,488.26 C204.05,514.77 225.54,536.26 252.05,536.26 L317.41,536.26 C343.92,536.26 365.41,557.75 365.41,584.26 L365.41,607" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Gateway-Auth" id="link-Gateway-Auth">
 <polyline points="139.01,488.26 139.01,598.85" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Orders-Billing" id="link-Orders-Billing">
 <path d="M486.77,653.29 L486.77,669.95 C486.77,678.5 479.83,685.44 471.27,685.44 L465.78,685.44 C460.26,685.44 455.78,689.92 455.78,695.44 L455.78,695.44" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Db-Replica" id="link-Db-Replica">
 <path d="M392.76,944.41 L392.76,944.41 C392.76,951.03 398.14,956.41 404.76,956.41 L554.12,956.41 C565.16,956.41 574.12,965.36 574.12,976.41 L574.12,976.41" fill="none" stroke="#64748B" stroke-width="2"/>
+</g>
+<g class="link-Browser-CDN">
 <polygon points="213.77,154.89 217.77,164.89 221.77,154.89 217.77,158.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Mailer-Browser-receipt">
 <polygon points="407.9,14.15 397.9,18.15 407.9,22.15 403.9,18.15" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-WAF-Gateway">
 <polygon points="140.48,425.66 144.48,435.66 148.48,425.66 144.48,429.66" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Orders-Db">
 <polygon points="388.76,871.03 392.76,881.03 396.76,871.03 392.76,875.03" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Billing-Db">
 <polygon points="388.76,871.03 392.76,881.03 396.76,871.03 392.76,875.03" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Auth-Db">
 <polygon points="388.76,871.03 392.76,881.03 396.76,871.03 392.76,875.03" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Search-Index">
 <polygon points="256.05,884.57 260.05,894.57 264.05,884.57 260.05,888.57" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Orders-Queue">
 <polygon points="566.77,884.57 570.77,894.57 574.77,884.57 570.77,888.57" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Queue-Mailer">
 <polygon points="634.64,490.11 630.64,480.11 626.64,490.11 630.64,486.11" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Queue-Reports">
 <polygon points="702.64,490.11 698.64,480.11 694.64,490.11 698.64,486.11" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Reports-Replica">
 <polygon points="570.12,976.41 574.12,986.41 578.12,976.41 574.12,980.41" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-CDN-WAF">
 <polygon points="140.97,255.78 144.97,265.78 148.97,255.78 144.97,259.78" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Gateway-Orders-orders">
 <polygon points="531.83,607 535.83,617 539.83,607 535.83,611" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Gateway-Search-queries">
 <polygon points="361.41,607 365.41,617 369.41,607 365.41,611" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Gateway-Auth">
 <polygon points="135.01,598.85 139.01,608.85 143.01,598.85 139.01,602.85" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Orders-Billing">
 <polygon points="451.78,695.44 455.78,705.44 459.78,695.44 455.78,699.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Db-Replica">
 <polygon points="570.12,976.41 574.12,986.41 578.12,976.41 574.12,980.41" fill="#64748B" stroke="#64748B" stroke-width="1.5"/>
+</g>
 </g>
 <g>
 <g class="node-Browser">
@@ -190,13 +258,13 @@
 <tspan x="702.64" y="466.8" font-size="14" fill="#0F172A" textLength="93.53" lengthAdjust="spacing">Report builder</tspan>
 </text>
 </g>
-<g class="link-Gateway-Orders-orders" id="link-Gateway-Orders-orders">
+<g class="link-Gateway-Orders-orders">
 <rect x="539.83" y="538.26" width="47.05" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="541.83" y="553.25" font-size="14" fill="#0F172A" textLength="43.05" lengthAdjust="spacing">orders</tspan>
 </text>
 </g>
-<g class="link-Gateway-Search-queries" id="link-Gateway-Search-queries">
+<g class="link-Gateway-Search-queries">
 <rect x="369.41" y="538.26" width="53.21" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="371.41" y="553.25" font-size="14" fill="#0F172A" textLength="49.21" lengthAdjust="spacing">queries</tspan>
@@ -227,7 +295,7 @@
 <tspan x="172.41" y="917.56" font-size="14" fill="#0F172A" textLength="86.52" lengthAdjust="spacing">Search index</tspan>
 </text>
 </g>
-<g class="link-Mailer-Browser-receipt" id="link-Mailer-Browser-receipt">
+<g class="link-Mailer-Browser-receipt">
 <rect x="549.6" y="231.48" width="50.12" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="551.6" y="246.47" font-size="14" fill="#0F172A" textLength="46.12" lengthAdjust="spacing">receipt</tspan>

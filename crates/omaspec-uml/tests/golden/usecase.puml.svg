@@ -31,10 +31,18 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Clerk-Login" id="link-Clerk-Login">
 <polyline points="67.62,217.58 103.24,217.58" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Guest-Refund" id="link-Guest-Refund">
 <polyline points="67.62,34.15 103.24,34.15" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Clerk-Login">
 <polygon points="103.24,221.58 113.24,217.58 103.24,213.58 107.74,217.58" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Guest-Refund">
 <polygon points="103.24,38.15 113.24,34.15 103.24,30.15 107.74,34.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="actor-Guest">

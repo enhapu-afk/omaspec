@@ -25,16 +25,36 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Test-Package" id="link-Test-Package">
 <path d="M85.78,182.89 L114.32,182.89 C132.03,182.89 146.39,168.53 146.39,150.81 L146.39,135.74 C146.39,126.35 154,118.74 163.39,118.74 L178.39,118.74 C179.49,118.74 180.39,117.84 180.39,116.74 L180.39,116.74" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Build-Ship" id="link-Build-Ship">
 <polyline points="110.39,110.59 148.39,110.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Fetch-Compile" id="link-Fetch-Compile">
 <polyline points="55.19,72.59 55.19,94.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Compile-Test" id="link-Compile-Test">
 <polyline points="55.19,140.89 55.19,162.89" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Package-Publish" id="link-Package-Publish">
 <polyline points="214.94,106.74 214.94,128.74" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Test-Package">
 <polygon points="184.39,116.74 180.39,106.74 176.39,116.74 180.39,112.74" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Build-Ship">
 <polygon points="148.39,114.59 158.39,110.59 148.39,106.59 152.39,110.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Fetch-Compile">
 <polygon points="51.19,94.59 55.19,104.59 59.19,94.59 55.19,98.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Compile-Test">
 <polygon points="51.19,162.89 55.19,172.89 59.19,162.89 55.19,166.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="link-Package-Publish">
 <polygon points="210.94,128.74 214.94,138.74 218.94,128.74 214.94,132.74" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="subgraph-Build">
