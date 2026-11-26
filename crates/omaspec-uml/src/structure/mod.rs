@@ -319,6 +319,11 @@ pub enum Shape {
     /// `interface` without members beside components): a small circle,
     /// its name under it.
     Lollipop,
+    /// The middle of a line an association class meets (`(A, B) .. C`),
+    /// as PlantUML makes one: laid out as a box of no size, drawn as
+    /// nothing. The line between the two runs through it, and the class's
+    /// line starts there. Its key is the pair as written, `(A, B)`.
+    Point,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

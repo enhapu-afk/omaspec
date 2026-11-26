@@ -121,7 +121,12 @@ pub struct Rule {
 /// The kind a shape's look is kept under.
 fn kind_of(shape: Shape) -> &'static str {
     match shape {
-        Shape::Class | Shape::Abstract | Shape::Enum | Shape::Entity | Shape::Annotation => "class",
+        Shape::Class
+        | Shape::Abstract
+        | Shape::Enum
+        | Shape::Entity
+        | Shape::Annotation
+        | Shape::Point => "class",
         Shape::Interface | Shape::Lollipop => "interface",
         Shape::Component => "component",
         Shape::UseCase => "usecase",
@@ -206,9 +211,12 @@ impl Skin {
     /// on top of it.
     pub fn of(&self, shape: Shape) -> &Look {
         match shape {
-            Shape::Class | Shape::Abstract | Shape::Enum | Shape::Entity | Shape::Annotation => {
-                &self.class_box
-            }
+            Shape::Class
+            | Shape::Abstract
+            | Shape::Enum
+            | Shape::Entity
+            | Shape::Annotation
+            | Shape::Point => &self.class_box,
             Shape::Interface | Shape::Lollipop => &self.interface_box,
             Shape::Component => &self.component,
             Shape::UseCase => &self.usecase,

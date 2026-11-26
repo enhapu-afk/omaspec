@@ -2213,6 +2213,26 @@ is open and the reasoning around it.
       (`lang::PLANTUML_BLOCKS`, each with its kind's name), which the
       language, the kind and a Markdown file's blocks read; a test holds
       it to every block the engine draws (`omaspec_uml::start_words`).
+- [x] Association classes (REQ-131, 2026-11-26): `(Student, Course) ..
+      Enrollment` drew a use case called "Student, Course" with a dashed
+      line to the class, and lint said nothing. Now, as PlantUML lays it,
+      the line between the pair runs through a point of no size
+      (`Shape::Point`, `structure/parse/association.rs`), drawn as
+      nothing, and the class's dashed line starts there: beside the point
+      where the pair's line runs along the flow, under it where it runs
+      within a rank (`-right-`); a class written first stands before the
+      point, and every second class of one pair on the other side. A pair
+      without a line gets a plain one; the line's label and first
+      multiplicity stay on its first half, its head and second
+      multiplicity on its second. `(A, B)` is a pair only where both name
+      boxes of the diagram, else a use case as before. `remove` or `hide`
+      on either box of the pair takes the point and the class's line with
+      it. A dot alone between two names is a dotted line (`A . B`), as
+      the guide's second example writes it. Declined on their line: a
+      line between two pairs, a pair of a box with itself, a pair in two
+      packages. Where the pair stands in a package and its class outside,
+      the pair's line bends at the point (left in the ROADMAP). The
+      guide's example is a golden diagram (`tests/structure/association.puml`).
 
 ## Next
 

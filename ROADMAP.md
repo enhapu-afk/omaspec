@@ -85,13 +85,14 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       diagrams place it (`graph::open::Note::on`, the room of the words), `set separator none` and `::`,
       `!pragma useIntermediatePackages`, a note on the last class
       (`note left: …`) and on a line, `{abstract}` and `{static}` inside a
-      member, association classes (`(Student, Course) . Enrollment`), lines
-      between members (`Foo::field1 --> Bar::field3`), qualified ends
+      member, lines between members (`Foo::field1 --> Bar::field3`), qualified ends
       (`Shop [customerId: long] ---> …`), `circle` and `diamond` (`<>`),
       names with `$`, `-class`, `#--`, `page 2x2`, a spot with its letter
       and color (`<< (S,#FF7700) Singleton >>`). Drawn but different: the
-      circled letters (C, I, A, E, @) as PlantUML draws them, and a line with
-      one dash (`<|-`) keeps its ends side by side.
+      circled letters (C, I, A, E, @) as PlantUML draws them, a line with
+      one dash (`<|-`) keeps its ends side by side, and an association
+      class outside the package of its pair bends the pair's line at the
+      point it meets.
 - [ ] Object (4 of 13): `map`, `diamond`.
 - [ ] Component and deployment (22 of 35, 9 of 50): ports (`port`,
       `portin`, `portout`), long descriptions in brackets (`comp1 [ … ]`), a

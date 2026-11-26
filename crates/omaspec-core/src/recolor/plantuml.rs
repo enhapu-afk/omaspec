@@ -420,7 +420,7 @@ fn element_line(shape: Shape, name: &str) -> Option<String> {
     let word = match shape {
         Shape::Component => return Some(format!("[{name}]")),
         Shape::UseCase => return Some(format!("({name})")),
-        Shape::Note => return None,
+        Shape::Note | Shape::Point => return None,
         Shape::Class | Shape::Abstract => "class",
         Shape::Interface | Shape::Lollipop => "interface",
         Shape::Enum => "enum",

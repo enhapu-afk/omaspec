@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="197" height="235" viewBox="0 0 197 235">
+<g transform="translate(10,10)">
+<g>
+<rect x="0" y="0" width="75.42" height="53.43" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<line x1="0" y1="27.3" x2="75.42" y2="27.3" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="81.71" y="85.43" width="94.41" height="68.56" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<line x1="81.71" y1="112.72" x2="176.12" y2="112.72" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="1.85" y="185.99" width="71.71" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
+<polyline points="37.71,53.43 37.71,119.71" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="37.71,119.71 37.71,185.99" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M37.71,119.71 L59.71,119.71 L59.71,119.71 L81.71,119.71" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
+</g>
+<g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="12" y="18.99" font-size="14" fill="#000000" textLength="51.42" lengthAdjust="spacing">Student</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="12" y="44.36" font-size="13" fill="#000000" textLength="36.06" lengthAdjust="spacing">Name</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="93.71" y="104.42" font-size="14" fill="#000000" textLength="70.41" lengthAdjust="spacing">Enrollment</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="93.71" y="129.79" font-size="13" fill="#000000" textLength="38.09" lengthAdjust="spacing">drop()</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="93.71" y="144.92" font-size="13" fill="#000000" textLength="50.05" lengthAdjust="spacing">cancel()</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="13.85" y="204.98" font-size="14" fill="#000000" textLength="47.71" lengthAdjust="spacing">Course</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="14.22" y="65.58" font-size="12" fill="#000000" textLength="20.5" lengthAdjust="spacing">0..*</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="40.71" y="182.14" font-size="12" fill="#000000" textLength="17.81" lengthAdjust="spacing">1..*</tspan>
+</text>
+</g>
+</g>
+</svg>

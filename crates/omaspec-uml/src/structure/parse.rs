@@ -16,6 +16,11 @@ use crate::common::{
 };
 use crate::graph::across::meeting;
 use crate::source::{Line, offset_in, starts_with_ci};
+use std::collections::HashSet;
+
+mod association;
+
+use association::Association;
 
 /// Whether the lines of an `@startuml` diagram are a class, component,
 /// use case, deployment or object diagram.
@@ -407,14 +412,59 @@ impl Parser {
             return Err(Declined::at(*line, "`together` has no `}`"));
         }
         let pending = std::mem::take(&mut self.pending);
+        // `(A, B)` is an association class's pair where both name boxes
+        // of the diagram, declared or at the end of a line.
+        let named: HashSet<&str> = pending
+            .iter()
+            .flat_map(|item| [&item.from, &item.to])
+            .filter(|raw| raw.pair().is_none())
+            .map(|raw| raw.key.as_str())
+            .collect();
+        let known = |name: &str| named.contains(name) || self.find(name).is_some();
+        let pairs: Vec<[bool; 2]> = pending
+            .iter()
+            .map(|item| {
+                [&item.from, &item.to]
+                    .map(|raw| raw.pair().is_some_and(|(a, b)| known(a) && known(b)))
+            })
+            .collect();
         let mut resolved = Vec::with_capacity(pending.len());
-        for item in pending {
-            let from = self.ensure(&item.from, &item.home, item.line)?;
-            let to = self.ensure(&item.to, &item.home, item.line)?;
-            resolved.push((from, to, item));
+        let mut associations = Vec::new();
+        for (item, pair) in pending.into_iter().zip(pairs) {
+            match pair {
+                [false, false] => {
+                    let from = self.ensure(&item.from, &item.home, item.line)?;
+                    let to = self.ensure(&item.to, &item.home, item.line)?;
+                    resolved.push((from, to, item));
+                }
+                [true, true] => {
+                    return Err(Declined::at(
+                        item.line,
+                        "a line between two association classes is not supported yet",
+                    ));
+                }
+                [pair_first, _] => {
+                    let (pair, class) = if pair_first {
+                        (&item.from, &item.to)
+                    } else {
+                        (&item.to, &item.from)
+                    };
+                    let class = self.ensure(class, &item.home, item.line)?;
+                    let (a, b) = pair.pair().expect("a pair");
+                    associations.push(Association {
+                        pair: (a.to_owned(), b.to_owned()),
+                        class,
+                        pair_first,
+                        item,
+                    });
+                }
+            }
         }
         for (from, to, item) in resolved {
             self.place_link(from, to, &item)?;
+        }
+        for association in associations {
+            self.associate(association)?;
         }
         self.place_notes()?;
         lollipops(&mut self.root);
@@ -1409,6 +1459,7 @@ fn shape_word(shape: Shape) -> &'static str {
         Shape::Person => "person",
         Shape::Queue => "queue",
         Shape::Note => "note",
+        Shape::Point => "point",
     }
 }
 
@@ -2283,6 +2334,8 @@ fn find_arrow(text: &str) -> Option<(usize, usize)> {
     let chars: Vec<(usize, char)> = text.char_indices().collect();
     let mut i = 0;
     let mut quote = false;
+    // Past a `:` that closes nothing: a label, or a member's words.
+    let mut words = false;
     while i < chars.len() {
         let (b, c) = chars[i];
         if quote {
@@ -2307,6 +2360,17 @@ fn find_arrow(text: &str) -> Option<(usize, usize)> {
                 i += end + 2;
                 continue;
             }
+            words |= c == ':';
+        }
+        // A dot alone between two names is a dotted line (`A . B`), as
+        // one in a name is not (`net.Socket`).
+        let lone = c == '.'
+            && !words
+            && i > 0
+            && chars[i - 1].1.is_whitespace()
+            && chars.get(i + 1).is_some_and(|(_, ch)| ch.is_whitespace());
+        if lone {
+            return Some((b, b + 1));
         }
         if arrow_at(&chars, i) {
             return Some((b, consume_arrow(text, &chars, i)));
@@ -2722,6 +2786,16 @@ mod tests {
 
     fn declined(source: &str) -> crate::Declined {
         parse(&lines_of(source)).unwrap_err()
+    }
+
+    #[test]
+    fn a_dot_alone_between_names_is_a_dotted_line() {
+        let d = diagram("@startuml\nA . B\nnet.Socket --> A\nA : x . y\n@enduml\n");
+        let keys: Vec<&str> = d.root.nodes.iter().map(|n| n.key.as_str()).collect();
+        assert_eq!(keys, ["A", "B", "net.Socket"]);
+        assert_eq!(d.root.edges[0].dash, Dash::Dashed);
+        // After a member's colon the dot is the member's.
+        assert_eq!(d.root.nodes[0].members.len(), 1);
     }
 
     #[test]

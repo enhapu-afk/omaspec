@@ -325,6 +325,19 @@ pub(super) fn apply(
         }
         plans.push(world.plan(path, el));
     }
+    // An association class's point goes, and is hidden, with either box
+    // of its pair, whose line runs through it.
+    for path in &boxes {
+        if node(root, path).shape == Shape::Point {
+            let pair = pair_of(root, path);
+            if pair.iter().any(|end| within(&gone, end)) {
+                gone.insert(path.clone());
+            }
+            if pair.iter().any(|end| within(&unseen, end)) {
+                unseen.insert(path.clone());
+            }
+        }
+    }
     for (path, plan) in boxes.iter().zip(plans) {
         plan.lay(node_mut(root, path));
     }
@@ -576,6 +589,34 @@ fn lines_of(group: &Group, path: &mut Vec<usize>, out: &mut HashSet<Vec<usize>>)
         lines_of(&node.children, path, out);
         path.pop();
     }
+}
+
+/// The two boxes of the pair whose line runs through the point at
+/// `path`, by their paths: those its key names, `(A, B)`, among the boxes
+/// its lines meet.
+fn pair_of(root: &Group, path: &[usize]) -> Vec<Vec<usize>> {
+    let (&index, home) = path.split_last().expect("a box has a path");
+    let mut group = root;
+    for &at in home {
+        group = &group.nodes[at].children;
+    }
+    let key = &group.nodes[index].key;
+    let ends: Vec<usize> = group
+        .edges
+        .iter()
+        .filter_map(|edge| match (edge.from == index, edge.to == index) {
+            (true, false) => Some(edge.to),
+            (false, true) => Some(edge.from),
+            _ => None,
+        })
+        .collect();
+    let named =
+        |a: usize, b: usize| *key == format!("({}, {})", group.nodes[a].key, group.nodes[b].key);
+    ends.iter()
+        .flat_map(|&a| ends.iter().map(move |&b| (a, b)))
+        .find(|&(a, b)| named(a, b))
+        .map(|(a, b)| vec![[home, &[a]].concat(), [home, &[b]].concat()])
+        .unwrap_or_default()
 }
 
 fn node<'a>(root: &'a Group, path: &[usize]) -> &'a Element {

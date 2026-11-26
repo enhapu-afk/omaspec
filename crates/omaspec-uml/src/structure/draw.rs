@@ -455,7 +455,11 @@ fn measure_element(
     }
     // An actor's and a use case's words belong to their figure.
     let left = skin.left && !matches!(el.shape, Shape::Actor | Shape::UseCase | Shape::Lollipop);
-    let (mut rows, mut body) = rows_of(el, &look, family, left)?;
+    let (mut rows, mut body) = if el.shape == Shape::Point {
+        (Vec::new(), 0)
+    } else {
+        rows_of(el, &look, family, left)?
+    };
     // A package holding nothing has its name in the tab and its
     // stereotypes, or what a fold says it holds, in the body, as
     // PlantUML draws one.
@@ -528,6 +532,8 @@ fn measure_element(
             }
             // The circle alone: its name has the room beside it.
             Shape::Lollipop => (LOLLIPOP, LOLLIPOP, 0.0, 0.0),
+            // A point on a line, no box: the lines meet there.
+            Shape::Point => (0.0, 0.0, 0.0, 0.0),
             Shape::UseCase => {
                 let mut width = (all_w + PAD_X * 3.0).max(min_w.max(84.0));
                 let height = (all_h + PAD_Y * 3.0).max(40.0);
@@ -1191,6 +1197,7 @@ fn is_flat(shape: Shape) -> bool {
             | Shape::Storage
             | Shape::Hexagon
             | Shape::Lollipop
+            | Shape::Point
     )
 }
 
@@ -1235,7 +1242,9 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        if !node.item.hidden {
+        // An association class's point is drawn as nothing: the lines
+        // that meet there are.
+        if !node.item.hidden && node.item.shape != Shape::Point {
             canvas.part(&crate::svg::place_part(path), |canvas| {
                 paint_shape(canvas, skin, node);
             });
@@ -1278,6 +1287,7 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
         }
         Shape::Actor => paint_actor(canvas, rect, node.item.fill, node.item.border),
         Shape::Lollipop => paint_lollipop(canvas, rect, node.item.fill, node.item.border),
+        Shape::Point => {}
         Shape::Node => paint_node(canvas, rect, node.item.fill, node.item.border),
         Shape::Database | Shape::Storage => {
             paint_cylinder(canvas, rect, node.item.fill, node.item.border)

@@ -43,6 +43,7 @@ crates/omaspec-uml/tests/state/stereotypes.puml 8 0 0 0 0 0 2 426 0 26.5
 crates/omaspec-uml/tests/state/styled-states.puml 4 0 0 0 0 0 0 156 0 19.7
 crates/omaspec-uml/tests/state/top-regions.puml 10 0 0 0 0 0 0 404 0 -
 crates/omaspec-uml/tests/structure/archimate-layers.puml 2 0 0 0 0 0 0 64 0 19.0
+crates/omaspec-uml/tests/structure/association.puml 3 0 0 0 0 0 0 177 0 37.4
 crates/omaspec-uml/tests/structure/c4.puml 8 0 0 0 0 0 8 1948 0 11.0
 crates/omaspec-uml/tests/structure/class.puml 5 0 0 0 0 0 8 871 0 0.0
 crates/omaspec-uml/tests/structure/component.puml 3 0 0 0 0 0 2 271 0 29.6
@@ -66,7 +67,7 @@ examples/gallery/crossing.mmd 9 0 0 0 0 0 8 774 0 7.6
 examples/gallery/elevator.puml 25 0 0 0 0 0 24 7247 0 15.0
 examples/gallery/friday.mmd 9 0 0 0 0 0 16 1410 0 10.0
 examples/gallery/insurance.puml 7 0 0 0 0 0 2 328 0 58.9
-examples/gallery/library.puml 9 0 0 0 0 0 6 1280 0 12.2
+examples/gallery/library.puml 9 0 0 0 0 0 8 1367 0 12.2
 examples/gallery/media-player.mmd 18 0 0 0 0 0 8 2382 0 8.1
 examples/gallery/parcel.puml 11 0 0 0 1 0 6 1131 0 13.0
 examples/gallery/pipeline.mmd 16 0 0 0 0 0 27 2850 1 8.5
@@ -79,4 +80,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 12.9
 examples/platform.mmd 17 1 0 0 4 0 33 5250 6 43.9
 examples/player.puml 8 0 0 0 0 0 14 1022 0 15.4
 examples/shop.mmd 6 0 0 0 0 0 4 595 0 16.7
-total 671 10 0 2 24 1 648 111271 23 1519.0
+total 674 10 0 2 24 1 650 111534 23 1556.4
