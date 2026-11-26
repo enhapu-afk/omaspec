@@ -2462,7 +2462,14 @@ is open and the reasoning around it.
       diagram's lanes (`lane-keys`) are named too, and the guide lists
       the kinds and their ids (*Ids in a picture*). A formula, a ditaa
       picture and a Salt wireframe carry only their frame's ids, as
-      their source names nothing in them.
+      their source names nothing in them. After the review: a timing
+      diagram's parser reads a name as a row's key before another row's
+      label too, as PlantUML 1.2026.8 does (`B is off` stood on the
+      wrong row before), one `row_of` for the parser and the drawer; a
+      wire between two blocks inside a block is named by the way down to
+      both ends (`link-A.C.o-A.D.i`); a marble lane's id is on its name
+      and marbles, not on the ground behind a label; a radar's axis or
+      curve without an id is named by its words.
 
 ## Next
 

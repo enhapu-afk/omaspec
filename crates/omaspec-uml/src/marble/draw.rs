@@ -60,6 +60,10 @@ pub fn draw(d: &Diagram) -> (String, Map) {
             "lane",
             crate::svg::first_line(&lane.name),
         ));
+        // Its id on its name and its marbles, not on the ground behind a
+        // label of it; a label is said once, in the lane that first shows
+        // its character.
+        canvas.id_on(&part, Layer::Front);
         canvas.part(&part, |canvas| {
             draw_lane(canvas, d, &laid, lane, at, &mut said)
         });

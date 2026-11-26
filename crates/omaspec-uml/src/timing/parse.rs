@@ -643,17 +643,11 @@ impl Builder {
     }
 
     fn row_index(&self, name: &str, no: usize) -> Result<usize, Declined> {
-        self.rows
-            .iter()
-            .position(|row| row.key == name || row.label == name)
-            .ok_or_else(|| fail(no, format!("no participant `{name}`")))
+        super::row_of(&self.rows, name).ok_or_else(|| fail(no, format!("no participant `{name}`")))
     }
 
     fn last_of(&self, name: &str) -> Option<f64> {
-        self.rows
-            .iter()
-            .position(|row| row.key == name || row.label == name)
-            .and_then(|index| self.last[index])
+        super::row_of(&self.rows, name).and_then(|index| self.last[index])
     }
 
     fn finish(mut self) -> Result<Diagram, Declined> {
@@ -984,6 +978,19 @@ mod tests {
             Kind::Timing(diagram) => diagram,
             other => panic!("not timing: {other:?}"),
         }
+    }
+
+    /// A name is a row's key before it is another row's label, as
+    /// PlantUML 1.2026.8 reads it: `B is off` is the row `X`'s, keyed `B`.
+    #[test]
+    fn a_name_is_a_key_before_a_label() {
+        let diagram = timing(
+            "@startuml\nconcise \"B\" as A\nconcise \"X\" as B\n@0\nA is on\nB is off\n@enduml\n",
+        );
+        let names =
+            |row: &Row| -> Vec<String> { row.states.iter().map(|s| s.mark.name.clone()).collect() };
+        assert_eq!(names(&diagram.rows[0]), ["on"]);
+        assert_eq!(names(&diagram.rows[1]), ["off"]);
     }
 
     #[test]

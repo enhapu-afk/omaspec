@@ -118,3 +118,13 @@ pub struct Note {
     pub text: String,
     pub line: usize,
 }
+
+/// The row of `rows` that `name` is the key of, else the first it is the
+/// label of: PlantUML reads a state's row and a message's ends so
+/// (1.2026.8: with `concise "B" as A` and `concise "X" as B`, `B is off`
+/// is the second row's).
+fn row_of(rows: &[Row], name: &str) -> Option<usize> {
+    rows.iter()
+        .position(|row| row.key == name)
+        .or_else(|| rows.iter().position(|row| row.label == name))
+}

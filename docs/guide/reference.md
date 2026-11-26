@@ -1224,7 +1224,7 @@ none on one page.
 | Block | `group-…`, `block-a`, `link-a-b` |
 | Kanban | `column-todo`, `card-t1` (by its words where it has no id) |
 | Journey, timeline | `section-Morning`, `task-Read`, `period-2020`, `event-Launch` |
-| Flow | `input-sensor`, `output-valve`, `block-Filter`, `link-sensor-Filter.sensor`, inside a block `link-Filter.in-Core.x` |
+| Flow | `input-sensor`, `output-valve`, `block-Filter`, `link-sensor-Filter.sensor`, inside a block `link-Filter.in-Filter.Core.x` |
 | Network | `network-home`, `server-router`, `group-…`, `link-home-router` |
 | Story map, capability map | `activity-Enrol`, `step-Sign_20_up`, `release-Pilot`, `story-By_20_email`, `capability-Lending` |
 | Timing | `concise-P`, `binary-L`, `note-concise-P-top-1`, `link-P-L-lock` |

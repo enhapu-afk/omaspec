@@ -361,23 +361,14 @@ fn loose_index(diagram: &Diagram, constraint: &Constraint) -> f32 {
         .unwrap_or(0) as f32
 }
 
-/// The row `name` is the key of, else the first it is the label of, as
-/// PlantUML reads a message's ends.
-fn row_of(diagram: &Diagram, name: &str) -> Option<usize> {
-    let rows = &diagram.rows;
-    rows.iter()
-        .position(|row| row.key == name)
-        .or_else(|| rows.iter().position(|row| row.label == name))
-}
-
-/// The key of the row `name` stands for ([`row_of`]); `name` where none
-/// is.
+/// The key of the row `name` stands for ([`super::row_of`]); `name`
+/// where none is.
 fn row_key<'a>(diagram: &'a Diagram, name: &'a str) -> &'a str {
-    row_of(diagram, name).map_or(name, |at| diagram.rows[at].key.as_str())
+    super::row_of(&diagram.rows, name).map_or(name, |at| diagram.rows[at].key.as_str())
 }
 
 fn row_center(diagram: &Diagram, place: &Place, name: &str) -> f32 {
-    let index = row_of(diagram, name).unwrap_or(0);
+    let index = super::row_of(&diagram.rows, name).unwrap_or(0);
     let lane = &place.lanes[index];
     lane.body + (lane.height - lane.constraints) / 2.0
 }

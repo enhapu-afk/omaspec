@@ -237,7 +237,7 @@ fn a_flow_names_what_a_block_holds_by_the_block() {
             "block-Outer",
             "block-Inner",
             "link-a-Outer.a",
-            "link-Outer.a-Inner.x",
+            "link-Outer.a-Outer.Inner.x",
         ],
     );
 }
@@ -353,6 +353,25 @@ fn a_name_holds_when_what_the_source_calls_it_is_not_its_words() {
         Language::PlantUml,
         &["link-A.Inner.x-A.Inner.y", "link-B.Inner.x-B.Inner.y"],
     );
+    // A wire between two blocks inside one is named by the way down too.
+    named(
+        "@startflow\nblock A {\n  block C {\n    out o\n  }\n  block D {\n    in i\n  }\n  C.o -> D.i\n}\nblock B {\n  block C {\n    out o\n  }\n  block D {\n    in i\n  }\n  C.o -> D.i\n}\n@endflow\n",
+        Language::PlantUml,
+        &["link-A.C.o-A.D.i", "link-B.C.o-B.D.i"],
+    );
+    // A radar's axis without an id is named by its words.
+    named(
+        "radar-beta\n  axis [\"Math\"], [\"Art\"], C\n  curve [\"Ada\"]{1, 2, 3}\n",
+        Language::Mermaid,
+        &["axis-Math", "axis-Art", "axis-C", "curve-Ada"],
+    );
+    // A marble lane's id is on its name and marbles, not on a label's
+    // ground.
+    let svg = drawn(
+        "marble-beta\n  keys : -a-|\n  label a \"press\"\n",
+        Language::Mermaid,
+    );
+    assert!(first_drawn(&svg, "lane-keys").starts_with("<text"), "{svg}");
     // A chart's line of the legend is its series'.
     let svg = drawn(
         "@startchart\nlegend right\nh-axis [Q1, Q2]\nbar \"Bread\" [3, 4]\n@endchart\n",

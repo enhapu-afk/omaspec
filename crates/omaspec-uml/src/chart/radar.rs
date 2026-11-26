@@ -38,6 +38,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
     let mut axes: Vec<String> = Vec::new();
     let mut raw: Vec<(String, String)> = Vec::new();
     let mut curve_ids: Vec<String> = Vec::new();
+    let mut axis_ids: Vec<String> = Vec::new();
     let (mut min, mut max, mut ticks, mut polygon, mut legend) = (None, None, 5, false, true);
     for (_, line) in lines {
         let (word, rest) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
@@ -46,7 +47,10 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
             "axis" => {
                 for item in split(rest, ',') {
                     let (id, label) = labelled(item)?;
+                    // Values may name an axis by its id; a name for its
+                    // part, by its words where it has no id.
                     ids.push(id.to_owned());
+                    axis_ids.push(if id.is_empty() { label } else { id }.to_owned());
                     axes.push(label.to_owned());
                 }
             }
@@ -54,7 +58,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
                 let open = rest.find('{')?;
                 let close = rest.rfind('}').filter(|close| *close > open)?;
                 let (id, label) = labelled(rest[..open].trim())?;
-                curve_ids.push(id.to_owned());
+                curve_ids.push(if id.is_empty() { label } else { id }.to_owned());
                 raw.push((label.to_owned(), rest[open + 1..close].to_owned()));
             }
             "min" => min = Some(number(rest)?),
@@ -93,7 +97,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         title,
         axes,
         curves,
-        axis_ids: ids,
+        axis_ids,
         curve_ids,
         min,
         max,

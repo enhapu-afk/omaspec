@@ -3,8 +3,8 @@
 //! (`input-x`, `output-y`), a block by its name (`block-Filter`, one
 //! inside another as well), a wire by what it joins and says, a block's
 //! port as `Block.port` (`link-x-Filter.in`). A name given twice takes
-//! `-2`. A wire inside a block names that block's own port by the way
-//! down to it (`link-Charger.voltage-Limit.voltage`, deeper
+//! `-2`. A wire inside a block names its ends by the way down to them
+//! (`link-Charger.voltage-Charger.Limit.voltage`, deeper
 //! `Outer.Inner.x`), so two blocks of one wiring keep their names
 //! wherever they stand.
 
@@ -113,12 +113,16 @@ impl Names {
 }
 
 /// An end of a wire as its name holds it: a port of the diagram by its
-/// name, a block's port as `Block.port`, the port of the block `holder`
-/// a wire inside it ends on as `Holder.port`.
+/// name, a block's port as `Block.port`; inside the block `holder` (the
+/// way down to it, `A.Inner`) its own port as `A.Inner.port` and a port
+/// of a block it holds as `A.Inner.Block.port`.
 fn end(end: &End, holder: Option<&str>) -> String {
-    match (end, holder) {
-        (End::Boundary(name), None) => name.clone(),
-        (End::Boundary(name), Some(holder)) => format!("{holder}.{name}"),
-        (End::Port { block, port }, _) => format!("{block}.{port}"),
+    let own = match end {
+        End::Boundary(name) => name.clone(),
+        End::Port { block, port } => format!("{block}.{port}"),
+    };
+    match holder {
+        Some(holder) => format!("{holder}.{own}"),
+        None => own,
     }
 }
