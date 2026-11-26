@@ -1,6 +1,6 @@
 pkgbase = omaspec
 	pkgdesc = Native PlantUML and Mermaid editor and live preview for Omarchy
-	pkgver = 1.2.1
+	pkgver = 1.3.0
 	pkgrel = 1
 	url = https://github.com/enhapu-afk/omaspec
 	arch = x86_64
@@ -19,7 +19,7 @@ pkgbase = omaspec
 	optdepends = git: compare a diagram with a git commit
 	optdepends = libnotify: notifications outside Omarchy
 	optdepends = noto-fonts-emoji: emoji in diagrams, where no emoji font is installed
-	source = omaspec-1.2.1.tar.gz::https://github.com/enhapu-afk/omaspec/archive/refs/tags/v1.2.1.tar.gz
-	sha256sums = e52980bdc8d4ad8ac87279aa1fbaa634c0396b55a711800abf64cae5e27fc540
+	source = omaspec-1.3.0.tar.gz::https://github.com/enhapu-afk/omaspec/archive/refs/tags/v1.3.0.tar.gz
+	sha256sums = f82f9e332ce3a49bc5cbb6a5dd8559968839dfd5e4d28037f5a66fb42a66ca94
 
 pkgname = omaspec
