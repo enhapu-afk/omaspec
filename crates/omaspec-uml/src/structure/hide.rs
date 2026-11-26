@@ -317,16 +317,19 @@ pub(super) fn apply(
     let mut plans = Vec::with_capacity(boxes.len());
     for path in &boxes {
         let el = node(root, path);
-        if world.last(path, el, kept) == Some(false) {
-            gone.insert(path.clone());
-        }
-        if world.last(path, el, seen) == Some(false) {
-            unseen.insert(path.clone());
+        // A point has no name to restore it by: its pair decides it.
+        if el.shape != Shape::Point {
+            if world.last(path, el, kept) == Some(false) {
+                gone.insert(path.clone());
+            }
+            if world.last(path, el, seen) == Some(false) {
+                unseen.insert(path.clone());
+            }
         }
         plans.push(world.plan(path, el));
     }
     // An association class's point goes, and is hidden, with either box
-    // of its pair, whose line runs through it.
+    // of its pair, whose line runs through it, and only so.
     for path in &boxes {
         if node(root, path).shape == Shape::Point {
             let pair = pair_of(root, path);

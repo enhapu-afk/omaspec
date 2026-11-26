@@ -2233,6 +2233,12 @@ is open and the reasoning around it.
       packages. Where the pair stands in a package and its class outside,
       the pair's line bends at the point (left in the ROADMAP). The
       guide's example is a golden diagram (`tests/structure/association.puml`).
+      After the review: `remove *` or `hide *` no longer takes the point
+      for good, so the pair and its class restored by name come back with
+      their lines; a member's dot after a second colon (`A : x : y . z`)
+      stays the member's; a fold counts neither the point nor the pair's
+      line twice; and the kind of a diagram with a pair is a class
+      diagram, not a use case diagram.
 
 ## Next
 

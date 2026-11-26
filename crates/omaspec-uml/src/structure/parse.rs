@@ -2334,7 +2334,8 @@ fn find_arrow(text: &str) -> Option<(usize, usize)> {
     let chars: Vec<(usize, char)> = text.char_indices().collect();
     let mut i = 0;
     let mut quote = false;
-    // Past a `:` that closes nothing: a label, or a member's words.
+    // Past a `:` that closes nothing or stands before a space: a label,
+    // or a member's words (`A : x : y`); an actor's (`:User:`) is a name.
     let mut words = false;
     while i < chars.len() {
         let (b, c) = chars[i];
@@ -2349,6 +2350,9 @@ fn find_arrow(text: &str) -> Option<(usize, usize)> {
             quote = true;
             i += 1;
             continue;
+        }
+        if c == ':' && chars.get(i + 1).is_none_or(|(_, ch)| ch.is_whitespace()) {
+            words = true;
         }
         if c == '(' || (c == '[' && !bracket_is_arrow(&chars, i)) || c == ':' {
             let close = match c {
@@ -2790,12 +2794,15 @@ mod tests {
 
     #[test]
     fn a_dot_alone_between_names_is_a_dotted_line() {
-        let d = diagram("@startuml\nA . B\nnet.Socket --> A\nA : x . y\n@enduml\n");
+        let d = diagram(
+            "@startuml\nA . B\nnet.Socket --> A\nA : x . y\nA : x : y . z\n:User: . B\n@enduml\n",
+        );
         let keys: Vec<&str> = d.root.nodes.iter().map(|n| n.key.as_str()).collect();
-        assert_eq!(keys, ["A", "B", "net.Socket"]);
+        assert_eq!(keys, ["A", "B", "net.Socket", "User"]);
         assert_eq!(d.root.edges[0].dash, Dash::Dashed);
+        assert_eq!(d.root.edges.len(), 3);
         // After a member's colon the dot is the member's.
-        assert_eq!(d.root.nodes[0].members.len(), 1);
+        assert_eq!(d.root.nodes[0].members.len(), 2);
     }
 
     #[test]

@@ -61,9 +61,12 @@ impl Group {
     /// note of its own is no element.
     fn counts(&self) -> (usize, usize) {
         let mut elements = 0;
-        let mut lines = self.edges.len() + self.crossings.len();
+        // An association class's point is no element, and the line it
+        // splits in two is one.
+        let points = self.nodes.iter().filter(|n| n.shape == Shape::Point);
+        let mut lines = (self.edges.len() + self.crossings.len()).saturating_sub(points.count());
         for node in &self.nodes {
-            if node.shape != Shape::Note {
+            if !matches!(node.shape, Shape::Note | Shape::Point) {
                 elements += 1;
             }
             let (e, l) = node.children.counts();

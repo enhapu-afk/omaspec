@@ -74,16 +74,22 @@ const STRUCTURE_NAMES: [&str; 6] = [
 ];
 
 fn structure_hit(i: usize, lead: &str) -> bool {
+    // `(A, B)`, two plain names: an association class's pair, which only
+    // a class diagram has.
+    let pair = |c: &str| re!(r"^\s*[\p{L}\p{N}_.]+\s*,\s*[\p{L}\p{N}_.]+\s*$").is_match(c);
+    let paren = |ok: &dyn Fn(&str) -> bool| {
+        capture_is(re!(r"^\(([^)]+)\)"), lead, ok)
+            || capture_is(re!(r"[\s>-]\(([^)]+)\)\s*$"), lead, ok)
+    };
     match i {
-        0 => re!(
-            r"(?i)^(?:abstract|class|interface|enum|annotation|protocol|struct|exception|metaclass|dataclass|record)\s"
-        )
-        .is_match(lead),
-        1 => {
-            re!(r"(?i)^usecase\s").is_match(lead)
-                || capture_is(re!(r"^\(([^)]+)\)"), lead, |c| c != "*")
-                || capture_is(re!(r"[\s>-]\(([^)]+)\)\s*$"), lead, |c| c != "*")
+        0 => {
+            re!(
+                r"(?i)^(?:abstract|class|interface|enum|annotation|protocol|struct|exception|metaclass|dataclass|record)\s"
+            )
+            .is_match(lead)
+                || paren(&pair)
         }
+        1 => re!(r"(?i)^usecase\s").is_match(lead) || paren(&|c| c != "*" && !pair(c)),
         2 => {
             re!(r"(?i)^(?:component|port|portin|portout)\s").is_match(lead)
                 || capture_is(re!(r"^\[([^\]]+)\]"), lead, |c| {
@@ -320,6 +326,15 @@ mod tests {
         assert_eq!(
             classify("@startchart\nbar [1]\n@endchart", Language::PlantUml).name,
             "Chart"
+        );
+        // An association class's pair is a class diagram's, no use case.
+        assert_eq!(
+            classify(
+                "@startuml\nStudent -- Course\n(Student, Course) .. Enrollment\n@enduml",
+                Language::PlantUml
+            )
+            .name,
+            "Class diagram"
         );
         assert_eq!(puml("@startuml\n- one\n- two\n@enduml"), Kind::Activity);
         assert_eq!(puml("@startuml\n* one\n** two\n@enduml"), Kind::Activity);

@@ -336,10 +336,28 @@ mod tests {
         // Without its class the pair's line still runs through it.
         let d = diagram("Student -- Course\n(Student, Course) .. Enrollment\nremove Enrollment");
         assert_eq!(d.root.edges.len(), 2);
+        // Removed by a pattern and restored by name, the three come back
+        // with their lines; so do they shown again.
+        for (out, back) in [("remove", "restore"), ("hide", "show")] {
+            let d = diagram(&format!(
+                "A -- B\n(A, B) .. C\n{out} *\n{back} A\n{back} B\n{back} C"
+            ));
+            assert_eq!(d.root.edges.len(), 3, "{out}");
+            assert!(d.root.edges.iter().all(|edge| !edge.hidden), "{out}");
+        }
         // A pair hidden hides its line and its class's.
         let d = diagram("Student -- Course\n(Student, Course) .. Enrollment\nhide Student");
         assert!(d.root.nodes[index(&d.root, PAIR)].hidden);
         assert!(d.root.edges.iter().all(|edge| edge.hidden));
+    }
+
+    #[test]
+    fn a_fold_counts_the_pairs_line_once_and_no_point() {
+        let mut d = diagram("package P {\n  class A\n  class B\n  A -- B\n  (A, B) .. C\n}");
+        d.fold(&["P".to_owned()]);
+        let folded = &d.root.nodes[index(&d.root, "P")];
+        let said = folded.stereotypes.last().unwrap();
+        assert_eq!(said.value, "3 elements · 2 lines");
     }
 
     #[test]
