@@ -2250,6 +2250,16 @@ is open and the reasoning around it.
       the machine. The film and its rehearsal take it alike; `--help` and
       the reference say so. `omaspec trace` reads such a trace as before:
       `power` is no event of the machine there.
+- [x] The veil goes once a scenario is played (REQ-139, 2026-11-26):
+      the veil's edge stopped under the last message, so the lifelines'
+      feet stayed veiled to the end of a play and its film. With the
+      file's own colors kept in a film (since the looks of 2026-11-25) it
+      showed: an actor's head `#F3D19C` at the top, `#6F6254` at its
+      foot, read as one white and one gold. Now, once the last step is
+      shown and its light has come, the veil fades away
+      (`ScenarioPlay::standing`), a git graph's too; a step back from
+      the end fades it in again. A film's last frame shows the whole
+      diagram unveiled; its first frame has the veil, as before.
 
 ## Next
 

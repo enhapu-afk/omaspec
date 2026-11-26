@@ -968,3 +968,32 @@ fn a_note_comes_through_with_its_state() {
         [(named("Paid"), 1.0)]
     );
 }
+
+/// Once a scenario's last message is shown and its light has come, the
+/// veil goes: the lifelines' feet under it are not still to come, and a
+/// head bright over its veiled foot read as two colors (REQ-139). A step
+/// back from the end brings it back, faded in.
+#[test]
+fn the_veil_goes_once_the_last_message_is_shown() {
+    let source = "@startuml\nactor Uncle\nparticipant Dev\nUncle -> Dev : hello\nDev -> Uncle : hi\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    let standing = |play: &Play, now: Instant| match play {
+        Play::Scenario(scenario) => scenario.standing(now),
+        _ => panic!("a scenario"),
+    };
+    let later = |at: Instant| at + Duration::from_secs(10);
+    assert!(standing(&play, later(t0)) > 0.99);
+    play.ask(Ask::Next, t0);
+    assert!(standing(&play, later(t0)) > 0.99, "a message is to come");
+    let t1 = later(t0);
+    play.ask(Ask::Next, t1);
+    // While the last message's light runs, the veil stands; then it goes.
+    assert!(standing(&play, t1 + Duration::from_millis(1)) > 0.99);
+    assert!(standing(&play, later(t1)) < 0.01);
+    let t2 = later(t1);
+    play.ask(Ask::Back, t2);
+    assert!(standing(&play, t2) < 0.01, "back, it fades in");
+    assert!(standing(&play, later(t2)) > 0.99);
+}

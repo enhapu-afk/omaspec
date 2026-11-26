@@ -64,6 +64,8 @@ pub struct ScenarioPlay {
     pub(super) wrong: Vec<usize>,
     /// The message the highlight just left, so it can fade instead of vanishing.
     pub(super) leave: Option<Leaving>,
+    /// The last move went back from the end, where the veil had gone.
+    pub(super) from_end: bool,
 }
 
 /// A message the highlight is leaving: the light as it stood, and the band
@@ -182,6 +184,7 @@ impl ScenarioPlay {
         // Sample the light before the clocks move, so the fade starts from
         // the brightness on screen.
         self.leave = self.leaving(now);
+        self.from_end = self.at == self.steps.len();
         self.from_y = self.edge(now);
         self.onward = matches!(ask, Ask::Next | Ask::Take(_));
         self.moved = now;
@@ -273,8 +276,25 @@ impl ScenarioPlay {
         }
     }
 
+    /// How much of the veil stands at `now`. It comes up as the play
+    /// begins; once the last step is shown and its light has come, it
+    /// goes, as nothing is to come under it: the lifelines' feet stood
+    /// veiled to the end, their heads bright over them (REQ-139). A step
+    /// back from there brings it back.
+    pub(super) fn standing(&self, now: Instant) -> f32 {
+        let up = ramp(now, self.begun, VEIL_FADE);
+        let lit = ramp(now, self.moved + REVEAL.max(self.travel()), VEIL_FADE);
+        if self.at >= self.steps.len() {
+            up * (1.0 - lit)
+        } else if self.from_end {
+            up * ramp(now, self.moved, VEIL_FADE)
+        } else {
+            up
+        }
+    }
+
     pub(super) fn draw_under(&self, frame: &mut Frame, look: &Look, view: &Viewer, now: Instant) {
-        let veil = ramp(now, self.begun, VEIL_FADE);
+        let veil = self.standing(now);
         if self.run != Run::Down {
             self.draw_back(frame, look, view, now, veil);
             return;
