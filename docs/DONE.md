@@ -2408,6 +2408,18 @@ is open and the reasoning around it.
       none; a name stops at Mermaid's `<br>`; an activity diagram's line
       is named by the first line of the words the map gives it, and its
       lines are found once for the map and the names.
+- [x] An id for every box and line, step 2, flow, network and story map
+      diagrams (2026-11-26,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)), drawn as a
+      whole as before: a flow's `input-sensor`, `output-valve`,
+      `block-Filter` (one inside another too) and its wires by what they
+      join, a block's port as `Block.port` (`link-sensor-Filter.sensor`);
+      a network's `network-home`, `server-router`, a group by its
+      description, a server's line to a network and a peer line by what
+      they join (`link-home-router`); a story map's `activity-Enrol`,
+      `step-Sign_20_up`, `release-Pilot` (the band of none
+      `release-unplanned`) and `story-By_20_email`. Six golden SVGs
+      changed, by their groups alone.
 
 ## Next
 

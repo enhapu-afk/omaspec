@@ -6,6 +6,7 @@
 //! graph edge ends at the center of a box.
 
 mod draw;
+mod names;
 mod parse;
 pub(crate) mod skin;
 

@@ -145,3 +145,47 @@ fn a_timeline_names_its_sections_periods_and_events() {
         );
     }
 }
+
+#[test]
+fn a_flow_names_its_ports_blocks_and_wires() {
+    named(
+        "@startflow\nin sensor\nout valve\nblock Filter \"Filter\" {\n  in sensor\n  out room\n}\nsensor -> Filter.sensor\nFilter.room -> valve\n@endflow\n",
+        Language::PlantUml,
+        &[
+            "input-sensor",
+            "output-valve",
+            "block-Filter",
+            "link-sensor-Filter.sensor",
+            "link-Filter.room-valve",
+        ],
+    );
+}
+
+#[test]
+fn a_network_names_its_networks_servers_and_lines() {
+    named(
+        "@startnwdiag\nnwdiag {\n  network home {\n    router;\n    laptop;\n  }\n}\n@endnwdiag\n",
+        Language::PlantUml,
+        &[
+            "network-home",
+            "server-router",
+            "server-laptop",
+            "link-home-router",
+            "link-home-laptop",
+        ],
+    );
+}
+
+#[test]
+fn a_story_map_names_its_activities_steps_releases_and_stories() {
+    named(
+        "@startstorymap\nrelease Pilot : first\nactivity Enrol\n  step Sign up\n    * By email : Pilot\n@endstorymap\n",
+        Language::PlantUml,
+        &[
+            "activity-Enrol",
+            "step-Sign_20_up",
+            "release-Pilot",
+            "story-By_20_email",
+        ],
+    );
+}

@@ -277,60 +277,81 @@ fn paint(
         canvas.line(Layer::Background, (0.0, bottom), (right, bottom), rule);
     }
     canvas.end_group(Layer::Background);
+    // Each activity, step, release and story named by its words
+    // (docs/adr/0037), the map drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
+    let mut part = |kind: &str, words: &str| {
+        given.unique(crate::svg::element(kind, crate::svg::first_line(words)))
+    };
     // The backbone.
     for ((activity, &(from, to)), words) in diagram.activities.iter().zip(&spans).zip(&names) {
-        canvas.named(&format!("activity {}", activity.name), |c| {
-            c.rect(
-                Layer::Bars,
-                (from, top, to - from, activity_h),
-                skin.round,
-                Some(skin.accent),
-                Some(Stroke::new(skin.accent, 1.0)),
-            );
-            c.text(
-                Layer::Front,
-                words,
-                ((from + to) / 2.0, top + (activity_h - words.height) / 2.0),
-                Align::Center,
-            );
+        let name = part("activity", &activity.name);
+        canvas.part(&name, |canvas| {
+            canvas.named(&format!("activity {}", activity.name), |c| {
+                c.rect(
+                    Layer::Bars,
+                    (from, top, to - from, activity_h),
+                    skin.round,
+                    Some(skin.accent),
+                    Some(Stroke::new(skin.accent, 1.0)),
+                );
+                c.text(
+                    Layer::Front,
+                    words,
+                    ((from + to) / 2.0, top + (activity_h - words.height) / 2.0),
+                    Align::Center,
+                );
+            });
         });
     }
     for (c, words) in columns.iter().zip(&steps) {
         let (Some(step), Some(words)) = (c.step, words) else {
             continue;
         };
-        canvas.named(
-            &format!("step {}", step.name.as_deref().unwrap_or_default()),
-            |canvas| {
-                canvas.rect(
-                    Layer::Bars,
-                    (c.x, steps_top, column, step_h),
-                    skin.round,
-                    Some(skin.card),
-                    Some(Stroke::new(skin.card_border, 1.0)),
-                );
-                canvas.text(
-                    Layer::Front,
-                    words,
-                    (
-                        c.x + column / 2.0,
-                        steps_top + (step_h - words.height) / 2.0,
-                    ),
-                    Align::Center,
-                );
-            },
-        );
+        let name = part("step", step.name.as_deref().unwrap_or_default());
+        canvas.part(&name, |canvas| {
+            canvas.named(
+                &format!("step {}", step.name.as_deref().unwrap_or_default()),
+                |canvas| {
+                    canvas.rect(
+                        Layer::Bars,
+                        (c.x, steps_top, column, step_h),
+                        skin.round,
+                        Some(skin.card),
+                        Some(Stroke::new(skin.card_border, 1.0)),
+                    );
+                    canvas.text(
+                        Layer::Front,
+                        words,
+                        (
+                            c.x + column / 2.0,
+                            steps_top + (step_h - words.height) / 2.0,
+                        ),
+                        Align::Center,
+                    );
+                },
+            );
+        });
     }
     // The releases' names, and the stories in their bands.
     for (slice, (y, _, stacks)) in slices.iter().zip(&laid) {
         if gutter > 0.0 {
-            canvas.text(Layer::Front, &slice.name, (PAD, y + BAND_PAD), Align::Left);
-            canvas.text(
-                Layer::Front,
-                &slice.goal,
-                (PAD, y + BAND_PAD + slice.name.height + 2.0),
-                Align::Left,
-            );
+            // The stories of no release stand in a band of their own.
+            let said = slice
+                .release
+                .and_then(|at| diagram.releases.get(at))
+                .map_or("unplanned", |release| release.name.as_str());
+            let name = part("release", said);
+            canvas.part(&name, |canvas| {
+                canvas.text(Layer::Front, &slice.name, (PAD, y + BAND_PAD), Align::Left);
+                canvas.text(
+                    Layer::Front,
+                    &slice.goal,
+                    (PAD, y + BAND_PAD + slice.name.height + 2.0),
+                    Align::Left,
+                );
+            });
         }
         for (c, stack) in columns.iter().zip(stacks) {
             let mut at = y + BAND_PAD;
@@ -338,15 +359,18 @@ fn paint(
                 let h = words.height + 2.0 * PAD;
                 // Seeded by its words, not its line: a line written above
                 // it does not redraw its hand (docs/adr/0023).
-                canvas.named(&format!("story {text}"), |canvas| {
-                    canvas.rect(
-                        Layer::Bars,
-                        (c.x, at, column, h),
-                        skin.round.min(3.0),
-                        Some(skin.note),
-                        Some(Stroke::new(skin.note_border, 1.0)),
-                    );
-                    canvas.text(Layer::Front, words, (c.x + PAD, at + PAD), Align::Left);
+                let name = part("story", text);
+                canvas.part(&name, |canvas| {
+                    canvas.named(&format!("story {text}"), |canvas| {
+                        canvas.rect(
+                            Layer::Bars,
+                            (c.x, at, column, h),
+                            skin.round.min(3.0),
+                            Some(skin.note),
+                            Some(Stroke::new(skin.note_border, 1.0)),
+                        );
+                        canvas.text(Layer::Front, words, (c.x + PAD, at + PAD), Align::Left);
+                    });
                 });
                 at += h + GAP;
             }

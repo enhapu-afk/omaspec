@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1345" height="414" viewBox="0 0 1345 414" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="1345" height="414" viewBox="0 0 1345 414" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
 <g id="grid">
@@ -12,135 +12,251 @@
 </g>
 </g>
 <g>
+<g class="activity-Find_20_a_20_book" id="activity-Find_20_a_20_book">
 <rect x="130.62" y="26.3" width="322" height="32.8" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="activity-Choose" id="activity-Choose">
 <rect x="476.62" y="26.3" width="322" height="32.8" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="activity-Buy" id="activity-Buy">
 <rect x="822.62" y="26.3" width="322" height="32.8" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="activity-Get_20_it" id="activity-Get_20_it">
 <rect x="1168.62" y="26.3" width="156" height="32.8" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="step-Search" id="step-Search">
 <rect x="130.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="step-Browse" id="step-Browse">
 <rect x="296.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="step-Read_20_about_20_it" id="step-Read_20_about_20_it">
 <rect x="476.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="step-Keep_20_it_20_for_20_later" id="step-Keep_20_it_20_for_20_later">
 <rect x="642.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="step-Basket" id="step-Basket">
 <rect x="822.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="step-Pay" id="step-Pay">
 <rect x="988.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="step-Delivery" id="step-Delivery">
 <rect x="1168.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-By_20_title" id="story-By_20_title">
 <rect x="130.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-By_20_author" id="story-By_20_author">
 <rect x="130.62" y="169.83" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-The_20_new_20_books" id="story-The_20_new_20_books">
 <rect x="296.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-A_20_page_20_of_20_its_20_own" id="story-A_20_page_20_of_20_its_20_own">
 <rect x="476.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-Put_20_it_20_in_20_the_20_basket" id="story-Put_20_it_20_in_20_the_20_basket">
 <rect x="822.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-Change_20_how_20_many" id="story-Change_20_how_20_many">
 <rect x="822.62" y="169.83" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-By_20_card" id="story-By_20_card">
 <rect x="988.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-By_20_what_20_it_20_is_20_about" id="story-By_20_what_20_it_20_is_20_about">
 <rect x="130.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-By_20_topic" id="story-By_20_topic">
 <rect x="296.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-A_20_wish_20_list" id="story-A_20_wish_20_list">
 <rect x="642.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-By_20_invoice" id="story-By_20_invoice">
 <rect x="988.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-Track_20_the_20_parcel" id="story-Track_20_the_20_parcel">
 <rect x="1168.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-What_20_others_20_bought_20_too" id="story-What_20_others_20_bought_20_too">
 <rect x="296.62" y="280.09" width="156" height="46.26" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-A_20_look_20_inside" id="story-A_20_look_20_inside">
 <rect x="476.62" y="280.09" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-Send_20_it_20_back" id="story-Send_20_it_20_back">
 <rect x="1168.62" y="280.09" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="story-With_20_a_20_gift_20_card" id="story-With_20_a_20_gift_20_card">
 <rect x="988.62" y="350.36" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="activity-Find_20_a_20_book">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="252.4" y="47.54" font-size="14" fill="#FFFFFF" font-weight="bold" textLength="78.43" lengthAdjust="spacing">Find a book</tspan>
 </text>
+</g>
+<g class="activity-Choose">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="611.4" y="47.54" font-size="14" fill="#FFFFFF" font-weight="bold" textLength="52.43" lengthAdjust="spacing">Choose</tspan>
 </text>
+</g>
+<g class="activity-Buy">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="970.41" y="47.54" font-size="14" fill="#FFFFFF" font-weight="bold" textLength="26.42" lengthAdjust="spacing">Buy</tspan>
 </text>
+</g>
+<g class="activity-Get_20_it">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1228.51" y="47.54" font-size="14" fill="#FFFFFF" font-weight="bold" textLength="36.2" lengthAdjust="spacing">Get it</tspan>
 </text>
+</g>
+<g class="step-Search">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="186.19" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="44.85" lengthAdjust="spacing">Search</tspan>
 </text>
+</g>
+<g class="step-Browse">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="350.64" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="47.94" lengthAdjust="spacing">Browse</tspan>
 </text>
+</g>
+<g class="step-Read_20_about_20_it">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="513.09" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="83.04" lengthAdjust="spacing">Read about it</tspan>
 </text>
+</g>
+<g class="step-Keep_20_it_20_for_20_later">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="671.68" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="97.86" lengthAdjust="spacing">Keep it for later</tspan>
 </text>
+</g>
+<g class="step-Basket">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="878.87" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="43.49" lengthAdjust="spacing">Basket</tspan>
 </text>
+</g>
+<g class="step-Pay">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1054.71" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="23.8" lengthAdjust="spacing">Pay</tspan>
 </text>
+</g>
+<g class="step-Delivery">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1220.19" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="52.85" lengthAdjust="spacing">Delivery</tspan>
 </text>
+</g>
+<g class="release-MVP" id="release-MVP">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="8" y="140.76" font-size="13" fill="#000000" font-weight="bold" textLength="30.25" lengthAdjust="spacing">MVP</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="8" y="156.96" font-size="12" fill="#595959" font-style="italic" textLength="97.72" lengthAdjust="spacing">sell the first book</tspan>
 </text>
+</g>
+<g class="story-By_20_title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="138.62" y="148.76" font-size="13" fill="#000000" textLength="41.83" lengthAdjust="spacing">By title</tspan>
 </text>
+</g>
+<g class="story-By_20_author">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="138.62" y="189.89" font-size="13" fill="#000000" textLength="59.07" lengthAdjust="spacing">By author</tspan>
 </text>
+</g>
+<g class="story-The_20_new_20_books">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="304.62" y="148.76" font-size="13" fill="#000000" textLength="94.42" lengthAdjust="spacing">The new books</tspan>
 </text>
+</g>
+<g class="story-A_20_page_20_of_20_its_20_own">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="484.62" y="148.76" font-size="13" fill="#000000" textLength="107.38" lengthAdjust="spacing">A page of its own</tspan>
 </text>
+</g>
+<g class="story-Put_20_it_20_in_20_the_20_basket">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="830.62" y="148.76" font-size="13" fill="#000000" textLength="113.68" lengthAdjust="spacing">Put it in the basket</tspan>
 </text>
+</g>
+<g class="story-Change_20_how_20_many">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="830.62" y="189.89" font-size="13" fill="#000000" textLength="114.82" lengthAdjust="spacing">Change how many</tspan>
 </text>
+</g>
+<g class="story-By_20_card">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="996.62" y="148.76" font-size="13" fill="#000000" textLength="47.03" lengthAdjust="spacing">By card</tspan>
 </text>
+</g>
+<g class="release-Spring" id="release-Spring">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="8" y="237.02" font-size="13" fill="#000000" font-weight="bold" textLength="41.83" lengthAdjust="spacing">Spring</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="8" y="253.23" font-size="12" fill="#595959" font-style="italic" textLength="104.62" lengthAdjust="spacing">people come back</tspan>
 </text>
+</g>
+<g class="story-By_20_what_20_it_20_is_20_about">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="138.62" y="245.02" font-size="13" fill="#000000" textLength="112.7" lengthAdjust="spacing">By what it is about</tspan>
 </text>
+</g>
+<g class="story-By_20_topic">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="304.62" y="245.02" font-size="13" fill="#000000" textLength="50.04" lengthAdjust="spacing">By topic</tspan>
 </text>
+</g>
+<g class="story-A_20_wish_20_list">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="650.62" y="245.02" font-size="13" fill="#000000" textLength="62.01" lengthAdjust="spacing">A wish list</tspan>
 </text>
+</g>
+<g class="story-By_20_invoice">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="996.62" y="245.02" font-size="13" fill="#000000" textLength="63.54" lengthAdjust="spacing">By invoice</tspan>
 </text>
+</g>
+<g class="story-Track_20_the_20_parcel">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1176.62" y="245.02" font-size="13" fill="#000000" textLength="100.27" lengthAdjust="spacing">Track the parcel</tspan>
 </text>
+</g>
+<g class="release-Later" id="release-Later">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="8" y="292.16" font-size="13" fill="#000000" font-weight="bold" textLength="32.69" lengthAdjust="spacing">Later</tspan>
 </text>
+</g>
+<g class="story-What_20_others_20_bought_20_too">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="304.62" y="300.16" font-size="13" fill="#000000" textLength="121.76" lengthAdjust="spacing">What others bought</tspan>
 <tspan x="304.62" y="315.29" font-size="13" fill="#000000" textLength="19.85" lengthAdjust="spacing">too</tspan>
 </text>
+</g>
+<g class="story-A_20_look_20_inside">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="484.62" y="300.16" font-size="13" fill="#000000" textLength="78.53" lengthAdjust="spacing">A look inside</tspan>
 </text>
+</g>
+<g class="story-Send_20_it_20_back">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1176.62" y="300.16" font-size="13" fill="#000000" textLength="76.09" lengthAdjust="spacing">Send it back</tspan>
 </text>
+</g>
+<g class="release-unplanned" id="release-unplanned">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="8" y="361.49" font-size="12" fill="#595959" font-style="italic" textLength="67.1" lengthAdjust="spacing">not planned</tspan>
 </text>
+</g>
+<g class="story-With_20_a_20_gift_20_card">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="996.62" y="370.42" font-size="13" fill="#000000" textLength="93.9" lengthAdjust="spacing">With a gift card</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="598.75" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="127.12" lengthAdjust="spacing">A bookshop online</tspan>

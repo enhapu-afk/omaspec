@@ -229,37 +229,56 @@ fn paint(
     // After the shift, so a jump uses the coordinates that are drawn.
     hop_paths(&mut paths);
 
+    // Each port, block and wire named from the source (docs/adr/0037),
+    // the picture drawn as a whole.
+    canvas.whole();
+    let names = super::names::Names::of(diagram);
     let n_blocks = diagram.blocks.len();
     for (index, port) in diagram.inputs.iter().enumerate() {
-        boundary(canvas, skin, family, port, &placed[index].rect, true)?;
+        canvas.part(names.input(index), |canvas| {
+            boundary(canvas, skin, family, port, &placed[index].rect, true)
+        })?;
     }
     for (index, block) in diagram.blocks.iter().enumerate() {
-        draw_block(canvas, skin, family, block, &placed[n_in + index])?;
+        let path = &mut vec![index];
+        canvas.part(names.block(path), |canvas| {
+            draw_block(
+                canvas,
+                (skin, family),
+                block,
+                &placed[n_in + index],
+                (&names, path),
+            )
+        })?;
     }
     for (index, port) in diagram.outputs.iter().enumerate() {
-        boundary(
-            canvas,
-            skin,
-            family,
-            port,
-            &placed[n_in + n_blocks + index].rect,
-            false,
-        )?;
+        canvas.part(names.output(index), |canvas| {
+            boundary(
+                canvas,
+                skin,
+                family,
+                port,
+                &placed[n_in + n_blocks + index].rect,
+                false,
+            )
+        })?;
     }
     let mut junctions = Vec::new();
-    for wire in &paths {
-        if let Some(at) = wire.junction {
-            paint_junction(canvas, skin, at, &mut junctions);
-        }
-        paint_path(
-            canvas,
-            skin,
-            family,
-            Layer::Lifelines,
-            &wire.points,
-            wire.label.as_deref(),
-            wire.line,
-        )?;
+    for (index, wire) in paths.iter().enumerate() {
+        canvas.part(names.wire(&[], index), |canvas| {
+            if let Some(at) = wire.junction {
+                paint_junction(canvas, skin, at, &mut junctions);
+            }
+            paint_path(
+                canvas,
+                skin,
+                family,
+                Layer::Lifelines,
+                &wire.points,
+                wire.label.as_deref(),
+                wire.line,
+            )
+        })?;
     }
     Ok(())
 }
@@ -745,15 +764,17 @@ fn boundary(
     Ok(())
 }
 
+/// `block` where it is `placed`; `path` is where it is in the tree, by
+/// which `names` names what it holds.
 fn draw_block(
     canvas: &mut Canvas,
-    skin: &Skin,
-    family: Family,
+    (skin, family): (&Skin, Family),
     block: &Block,
     placed: &Placed,
+    (names, path): (&super::names::Names, &mut Vec<usize>),
 ) -> Result<(), Declined> {
     if placed.inner.is_some() {
-        return draw_frame(canvas, skin, family, block, placed);
+        return draw_frame(canvas, (skin, family), block, placed, (names, path));
     }
     let rect = placed.rect;
     canvas.rect(
@@ -796,10 +817,10 @@ fn draw_block(
 
 fn draw_frame(
     canvas: &mut Canvas,
-    skin: &Skin,
-    family: Family,
+    (skin, family): (&Skin, Family),
     block: &Block,
     placed: &Placed,
+    (names, path): (&super::names::Names, &mut Vec<usize>),
 ) -> Result<(), Declined> {
     let inner = placed.inner.as_ref().expect("a frame has contents");
     let rect = placed.rect;
@@ -817,7 +838,7 @@ fn draw_frame(
         (rect.x + rect.w / 2.0, rect.y + PAD_Y),
         Align::Center,
     );
-    for (child, at) in block.blocks.iter().zip(&inner.children) {
+    for (index, (child, at)) in block.blocks.iter().zip(&inner.children).enumerate() {
         let child_placed = Placed {
             rect: graph::Rect {
                 x: rect.x + at.x,
@@ -828,28 +849,37 @@ fn draw_frame(
             name_h: Some(at.layout.name_h),
             inner: at.layout.inner.clone(),
         };
-        draw_block(canvas, skin, family, child, &child_placed)?;
+        path.push(index);
+        let name = names.block(path).to_owned();
+        canvas.part(&name, |canvas| {
+            draw_block(canvas, (skin, family), child, &child_placed, (names, path))
+        })?;
+        path.pop();
     }
     let mut junctions = Vec::new();
-    for wire in &inner.wires {
+    for (at, wire) in inner.wires.iter().enumerate() {
         let points: Vec<(f32, f32)> = wire
             .points
             .iter()
             .map(|(x, y)| (rect.x + x, rect.y + y))
             .collect();
-        // Above the frame fill, which would hide a wire on the lifeline layer.
-        paint_path(
-            canvas,
-            skin,
-            family,
-            Layer::Bars,
-            &points,
-            wire.label.as_deref(),
-            wire.line,
-        )?;
-        if let Some((x, y)) = wire.junction {
-            paint_junction(canvas, skin, (rect.x + x, rect.y + y), &mut junctions);
-        }
+        canvas.part(names.wire(path, at), |canvas| {
+            // Above the frame fill, which would hide a wire on the lifeline
+            // layer.
+            paint_path(
+                canvas,
+                skin,
+                family,
+                Layer::Bars,
+                &points,
+                wire.label.as_deref(),
+                wire.line,
+            )?;
+            if let Some((x, y)) = wire.junction {
+                paint_junction(canvas, skin, (rect.x + x, rect.y + y), &mut junctions);
+            }
+            Ok(())
+        })?;
     }
     paint_frame_ports(
         canvas,

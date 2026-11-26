@@ -1,27 +1,48 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="644" height="153" viewBox="0 0 644 153" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="644" height="153" viewBox="0 0 644 153" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="link-voltage-Charger.voltage" id="link-voltage-Charger.voltage">
 <polyline points="57.36,107.69 81.36,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g class="link-Charger.current-current" id="link-Charger.current-current">
 <polyline points="535.57,107.69 559.57,107.69" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="block-Charger" id="block-Charger">
 <rect x="89.36" y="26.3" width="446.22" height="106.4" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+</g>
+<g class="block-Limit" id="block-Limit">
 <rect x="156.71" y="69.56" width="121.97" height="55.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+</g>
+<g class="block-Measure" id="block-Measure">
 <rect x="348.17" y="69.56" width="121.01" height="55.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
 </g>
-<g>
-<polyline points="89.36,107.69 148.71,107.69" fill="none" stroke="#000000" stroke-width="1"/>
-<polyline points="278.68,107.69 340.17,107.69" fill="none" stroke="#000000" stroke-width="1"/>
-<polyline points="469.18,107.69 527.57,107.69" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
 <g>
+<g class="link-voltage-Limit.voltage" id="link-voltage-Limit.voltage">
+<polyline points="89.36,107.69 148.71,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g class="link-Limit.limited-Measure.limited-limited" id="link-Limit.limited-Measure.limited-limited">
+<polyline points="278.68,107.69 340.17,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g class="link-Measure.current-current" id="link-Measure.current-current">
+<polyline points="469.18,107.69 527.57,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+</g>
+<g>
+<g class="input-voltage" id="input-voltage">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="112.19" font-size="13" fill="#000000" textLength="45.36" lengthAdjust="spacing">voltage</tspan>
 </text>
 <ellipse cx="57.36" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+</g>
+<g class="block-Charger">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="286.56" y="46.36" font-size="13" fill="#000000" font-weight="bold" textLength="51.82" lengthAdjust="spacing">Charger</tspan>
 </text>
+</g>
+<g class="block-Limit">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="202.19" y="89.62" font-size="13" fill="#000000" font-weight="bold" textLength="31.02" lengthAdjust="spacing">Limit</tspan>
 </text>
@@ -33,6 +54,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="230.07" y="112.19" font-size="13" fill="#000000" textLength="40.61" lengthAdjust="spacing">limited</tspan>
 </text>
+</g>
+<g class="block-Measure">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="380.76" y="89.62" font-size="13" fill="#000000" font-weight="bold" textLength="55.83" lengthAdjust="spacing">Measure</tspan>
 </text>
@@ -44,12 +67,20 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="416.78" y="112.19" font-size="13" fill="#000000" textLength="44.4" lengthAdjust="spacing">current</tspan>
 </text>
+</g>
+<g class="link-voltage-Limit.voltage">
 <polygon points="148.71,111.19 156.71,107.69 148.71,104.19" fill="#000000"/>
+</g>
+<g class="link-Limit.limited-Measure.limited-limited">
 <polygon points="340.17,111.19 348.17,107.69 340.17,104.19" fill="#000000"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="290.68" y="96.86" font-size="12" fill="#000000" textLength="37.49" lengthAdjust="spacing">limited</tspan>
 </text>
+</g>
+<g class="link-Measure.current-current">
 <polygon points="527.57,111.19 535.57,107.69 527.57,104.19" fill="#000000"/>
+</g>
+<g class="block-Charger">
 <ellipse cx="89.36" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="97.36" y="96.62" font-size="13" fill="#000000" textLength="45.36" lengthAdjust="spacing">voltage</tspan>
@@ -58,12 +89,19 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="483.18" y="96.62" font-size="13" fill="#000000" textLength="44.4" lengthAdjust="spacing">current</tspan>
 </text>
+</g>
+<g class="output-current" id="output-current">
 <ellipse cx="567.57" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="579.57" y="112.19" font-size="13" fill="#000000" textLength="44.4" lengthAdjust="spacing">current</tspan>
 </text>
+</g>
+<g class="link-voltage-Charger.voltage">
 <polygon points="81.36,111.19 89.36,107.69 81.36,104.19" fill="#000000"/>
+</g>
+<g class="link-Charger.current-current">
 <polygon points="559.57,111.19 567.57,107.69 559.57,104.19" fill="#000000"/>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="260.9" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="102.16" lengthAdjust="spacing">Charge control</tspan>

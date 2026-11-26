@@ -1,82 +1,140 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="474" height="263" viewBox="0 0 474 263" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="474" height="263" viewBox="0 0 474 263" data-omaspec="named">
 <g transform="translate(10,21.13)">
 <g>
+<g class="group-app_20_cluster" id="group-app_20_cluster">
 <rect x="249.67" y="33" width="195.36" height="72.26" rx="4" ry="4" fill="#FFE3E3"/>
 </g>
-<g>
-<line x1="157.19" y1="8" x2="157.19" y2="38" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="291.67" y1="8" x2="291.67" y2="43" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="403.03" y1="8" x2="403.03" y2="43" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="291.67" y1="77.3" x2="291.67" y2="112.3" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="403.03" y1="77.3" x2="403.03" y2="112.3" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="157.19" y1="120.3" x2="157.19" y2="161.3" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="291.67" y1="120.3" x2="291.67" y2="150.3" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="link-frontend-lb" id="link-frontend-lb">
+<line x1="157.19" y1="8" x2="157.19" y2="38" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-frontend-app1" id="link-frontend-app1">
+<line x1="291.67" y1="8" x2="291.67" y2="43" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-frontend-app2" id="link-frontend-app2">
+<line x1="403.03" y1="8" x2="403.03" y2="43" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-backend-app1" id="link-backend-app1">
+<line x1="291.67" y1="77.3" x2="291.67" y2="112.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-backend-app2" id="link-backend-app2">
+<line x1="403.03" y1="77.3" x2="403.03" y2="112.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-backend-cache" id="link-backend-cache">
+<line x1="157.19" y1="120.3" x2="157.19" y2="161.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-backend-pg" id="link-backend-pg">
+<line x1="291.67" y1="120.3" x2="291.67" y2="150.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+</g>
+<g>
+<g class="network-frontend" id="network-frontend">
 <rect x="84.07" y="0" width="368.96" height="8" rx="4" ry="4" fill="#D0EBFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="network-backend" id="network-backend">
 <rect x="84.07" y="112.3" width="368.96" height="8" rx="4" ry="4" fill="#D0EBFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-lb" id="server-lb">
 <polygon points="102.07,48 112.07,38 212.31,38 202.31,48" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
 <polygon points="202.31,48 212.31,38 212.31,72.3 202.31,82.3" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
 <rect x="102.07" y="48" width="100.24" height="34.3" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-app1" id="server-app1">
 <rect x="259.67" y="43" width="64" height="34.3" rx="4" ry="4" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-app2" id="server-app2">
 <rect x="371.03" y="43" width="64" height="34.3" rx="4" ry="4" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-cache" id="server-cache">
 <rect x="133.04" y="161.3" width="58.29" height="24.3" rx="4" ry="4" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
 <rect x="128.04" y="166.3" width="58.29" height="24.3" rx="4" ry="4" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
 <rect x="123.04" y="171.3" width="58.29" height="24.3" rx="4" ry="4" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-pg" id="server-pg">
 <ellipse cx="291.67" cy="197.59" rx="43.36" ry="9" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
 <rect x="248.31" y="159.3" width="86.72" height="38.3" fill="#F8F9FA"/>
 <line x1="248.31" y1="159.3" x2="248.31" y2="197.59" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="335.03" y1="159.3" x2="335.03" y2="197.59" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="291.67" cy="159.3" rx="43.36" ry="9" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="group-app_20_cluster">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="315.64" y="96.43" font-size="12" fill="#000000" textLength="63.42" lengthAdjust="spacing">app cluster</tspan>
 </text>
+</g>
+<g class="network-frontend">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="23.42" y="0.93" font-size="13" fill="#000000" textLength="52.65" lengthAdjust="spacing">frontend</tspan>
 <tspan x="8.64" y="16.06" font-size="13" fill="#000000" textLength="67.43" lengthAdjust="spacing">10.0.1.0/24</tspan>
 </text>
+</g>
+<g class="link-frontend-lb">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="162.19" y="21.21" font-size="11" fill="#000000" textLength="14.59" lengthAdjust="spacing">.10</tspan>
 </text>
+</g>
+<g class="link-frontend-app1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="296.67" y="21.21" font-size="11" fill="#000000" textLength="14.35" lengthAdjust="spacing">.21</tspan>
 </text>
+</g>
+<g class="link-frontend-app2">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="408.03" y="21.21" font-size="11" fill="#000000" textLength="16.59" lengthAdjust="spacing">.22</tspan>
 </text>
+</g>
+<g class="network-backend">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="23.03" y="113.23" font-size="13" fill="#000000" textLength="53.04" lengthAdjust="spacing">backend</tspan>
 <tspan x="6" y="128.36" font-size="13" fill="#000000" textLength="70.07" lengthAdjust="spacing">10.0.2.0/24</tspan>
 </text>
+</g>
+<g class="link-backend-app1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="296.67" y="106.7" font-size="11" fill="#000000" textLength="14.35" lengthAdjust="spacing">.21</tspan>
 </text>
+</g>
+<g class="link-backend-app2">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="408.03" y="106.7" font-size="11" fill="#000000" textLength="16.59" lengthAdjust="spacing">.22</tspan>
 </text>
+</g>
+<g class="link-backend-pg">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="296.67" y="133.5" font-size="11" fill="#000000" textLength="17.22" lengthAdjust="spacing">.40</tspan>
 </text>
+</g>
+<g class="server-lb">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="131.99" y="64.99" font-size="14" fill="#000000" textLength="61.32" lengthAdjust="spacing"> balancer</tspan>
 </text>
 <g id="icon">
 <path d="M6 0v1h-6v1h6v1l2-1.5-2-1.5zm-4 4l-2 1.5 2 1.5v-1h6v-1h-6v-1z" transform="translate(121.07 54.07) scale(1.365) translate(0 0)" fill="#000000"/>
 </g>
+</g>
+<g class="server-app1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="276.32" y="64.99" font-size="14" fill="#000000" textLength="30.7" lengthAdjust="spacing">app1</tspan>
 </text>
+</g>
+<g class="server-app2">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="386.25" y="64.99" font-size="14" fill="#000000" textLength="33.54" lengthAdjust="spacing">app2</tspan>
 </text>
+</g>
+<g class="server-cache">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="137.04" y="183.29" font-size="14" fill="#000000" textLength="40.29" lengthAdjust="spacing">cache</tspan>
 </text>
+</g>
+<g class="server-pg">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="262.31" y="187.79" font-size="14" fill="#000000" textLength="58.72" lengthAdjust="spacing">Postgres</tspan>
 </text>
+</g>
 <g class="caption" id="caption">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="140.83" y="227.58" font-size="14" fill="#000000" textLength="171.36" lengthAdjust="spacing">two networks, one cluster</tspan>

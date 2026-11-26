@@ -1,19 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="511" height="102" viewBox="0 0 511 102" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="511" height="102" viewBox="0 0 511 102" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="link-voltage-Limit.voltage" id="link-voltage-Limit.voltage">
 <polyline points="57.36,64.43 81.36,64.43" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g class="link-Limit.limited-Measure.limited-limited" id="link-Limit.limited-Measure.limited-limited">
 <polyline points="211.33,64.43 272.81,64.43" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g class="link-Measure.current-current" id="link-Measure.current-current">
 <polyline points="401.82,64.43 425.82,64.43" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
-<g>
-<rect x="89.36" y="26.3" width="121.97" height="55.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
-<rect x="280.81" y="26.3" width="121.01" height="55.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
 </g>
 <g>
+<g class="block-Limit" id="block-Limit">
+<rect x="89.36" y="26.3" width="121.97" height="55.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+</g>
+<g class="block-Measure" id="block-Measure">
+<rect x="280.81" y="26.3" width="121.01" height="55.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+</g>
+</g>
+<g>
+<g class="input-voltage" id="input-voltage">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="68.93" font-size="13" fill="#000000" textLength="45.36" lengthAdjust="spacing">voltage</tspan>
 </text>
 <ellipse cx="57.36" cy="64.43" rx="2.5" ry="2.5" fill="#000000"/>
+</g>
+<g class="block-Limit">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="134.83" y="46.36" font-size="13" fill="#000000" font-weight="bold" textLength="31.02" lengthAdjust="spacing">Limit</tspan>
 </text>
@@ -25,6 +38,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="162.71" y="68.93" font-size="13" fill="#000000" textLength="40.61" lengthAdjust="spacing">limited</tspan>
 </text>
+</g>
+<g class="block-Measure">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="313.4" y="46.36" font-size="13" fill="#000000" font-weight="bold" textLength="55.83" lengthAdjust="spacing">Measure</tspan>
 </text>
@@ -36,16 +51,25 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="349.43" y="68.93" font-size="13" fill="#000000" textLength="44.4" lengthAdjust="spacing">current</tspan>
 </text>
+</g>
+<g class="output-current" id="output-current">
 <ellipse cx="433.82" cy="64.43" rx="2.5" ry="2.5" fill="#000000"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="445.82" y="68.93" font-size="13" fill="#000000" textLength="44.4" lengthAdjust="spacing">current</tspan>
 </text>
+</g>
+<g class="link-voltage-Limit.voltage">
 <polygon points="81.36,67.93 89.36,64.43 81.36,60.93" fill="#000000"/>
+</g>
+<g class="link-Limit.limited-Measure.limited-limited">
 <polygon points="272.81,67.93 280.81,64.43 272.81,60.93" fill="#000000"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="223.33" y="53.6" font-size="12" fill="#000000" textLength="37.49" lengthAdjust="spacing">limited</tspan>
 </text>
+</g>
+<g class="link-Measure.current-current">
 <polygon points="425.82,67.93 433.82,64.43 425.82,60.93" fill="#000000"/>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="194.03" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="102.16" lengthAdjust="spacing">Charge control</tspan>

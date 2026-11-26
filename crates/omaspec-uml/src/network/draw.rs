@@ -263,8 +263,12 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
         })
         .collect();
 
+    // Each network, server, group and line named from the source
+    // (docs/adr/0037), the picture drawn as a whole.
+    canvas.whole();
+    let named = Names::of(d);
     // Groups behind their servers.
-    for group in &d.groups {
+    for (g, group) in d.groups.iter().enumerate() {
         let members: Vec<Rect> = group.members.iter().map(|&s| boxes[s]).collect();
         let Some(first) = members.first().copied() else {
             continue;
@@ -295,13 +299,16 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
             x1 - x0 + 2.0 * GROUP_PAD,
             y1 - y0 + 2.0 * GROUP_PAD + head,
         );
-        canvas.rect(
-            Layer::Background,
-            rect,
-            look.round.min(8.0),
-            Some(fill),
-            look.group_border.map(|c| Stroke::new(c, 1.0)),
-        );
+        let part = at(&named.groups, g);
+        canvas.part(part, |canvas| {
+            canvas.rect(
+                Layer::Background,
+                rect,
+                look.round.min(8.0),
+                Some(fill),
+                look.group_border.map(|c| Stroke::new(c, 1.0)),
+            );
+        });
         if let Some(block) = description {
             let ink = legible(look.group_font.color, fill);
             let block = words(
@@ -313,12 +320,14 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
                 group.line,
             )
             .unwrap_or(block);
-            canvas.text(
-                Layer::Front,
-                &block,
-                (rect.0 + rect.2 / 2.0, y1 + GROUP_PAD - 2.0),
-                Align::Center,
-            );
+            canvas.part(part, |canvas| {
+                canvas.text(
+                    Layer::Front,
+                    &block,
+                    (rect.0 + rect.2 / 2.0, y1 + GROUP_PAD - 2.0),
+                    Align::Center,
+                );
+            });
         }
     }
 
@@ -342,71 +351,82 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
             (lo - reach(lo), hi + reach(hi))
         };
         let fill = network.color.unwrap_or(look.network_fill);
-        canvas.rect(
-            Layer::Frames,
-            (x0, bar_y[n], x1 - x0, BAR),
-            BAR / 2.0,
-            Some(fill),
-            Some(Stroke::new(look.network_border, look.network_width)),
-        );
         let name = &names[n];
-        canvas.text(
-            Layer::Front,
-            name,
-            (x0 - 8.0, bar_y[n] + BAR / 2.0 - name.height / 2.0),
-            Align::Right,
-        );
+        canvas.part(at(&named.networks, n), |canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (x0, bar_y[n], x1 - x0, BAR),
+                BAR / 2.0,
+                Some(fill),
+                Some(Stroke::new(look.network_border, look.network_width)),
+            );
+            canvas.text(
+                Layer::Front,
+                name,
+                (x0 - 8.0, bar_y[n] + BAR / 2.0 - name.height / 2.0),
+                Align::Right,
+            );
+        });
         // The line from each server to the bar, its address beside it.
-        for (s, address) in &network.members {
-            let b = boxes[*s];
-            let cx = b.x + b.w / 2.0;
-            let below = b.y > bar_y[n];
-            let (from, to) = if below {
-                (bar_y[n] + BAR, b.y)
-            } else {
-                (b.y + b.h, bar_y[n])
-            };
-            canvas.line(Layer::Lifelines, (cx, from), (cx, to), line);
-            if let Some(address) = address {
-                let block = words(address, look.address_font, network.line)?;
-                let y = if below {
-                    bar_y[n] + BAR + 3.0
+        for (m, (s, address)) in network.members.iter().enumerate() {
+            let link = named.joins.get(&(n, m)).map_or("", String::as_str);
+            canvas.part(link, |canvas| -> Result<(), Declined> {
+                let b = boxes[*s];
+                let cx = b.x + b.w / 2.0;
+                let below = b.y > bar_y[n];
+                let (from, to) = if below {
+                    (bar_y[n] + BAR, b.y)
                 } else {
-                    bar_y[n] - block.height - 3.0
+                    (b.y + b.h, bar_y[n])
                 };
-                canvas.text(Layer::Front, &block, (cx + 5.0, y), Align::Left);
-            }
+                canvas.line(Layer::Lifelines, (cx, from), (cx, to), line);
+                if let Some(address) = address {
+                    let block = words(address, look.address_font, network.line)?;
+                    let y = if below {
+                        bar_y[n] + BAR + 3.0
+                    } else {
+                        bar_y[n] - block.height - 3.0
+                    };
+                    canvas.text(Layer::Front, &block, (cx + 5.0, y), Align::Left);
+                }
+                Ok(())
+            })?;
         }
     }
 
     // Peer lines.
-    for &(a, b, _) in &d.peers {
-        let (ra, rb) = (boxes[a], boxes[b]);
-        let (ca, cb) = (centre(ra), centre(rb));
-        let (from, to) = if (ca.0 - cb.0).abs() < 0.5 {
-            let (upper, lower) = if ra.y < rb.y { (ra, rb) } else { (rb, ra) };
-            ((ca.0, upper.y + upper.h), (ca.0, lower.y))
-        } else {
-            (ca, cb)
-        };
-        canvas.line(Layer::Lifelines, from, to, line);
-        // An address the server has outside a network, on its line.
-        for (s, r) in [(a, ra), (b, rb)] {
-            if let Some(address) = &d.servers[s].address {
-                let block = words(address, look.address_font, d.servers[s].line)?;
-                let y = if r.y > from.1.min(to.1) {
-                    r.y - block.height - 3.0
-                } else {
-                    r.y + r.h + 3.0
-                };
-                canvas.text(Layer::Front, &block, (centre(r).0 + 5.0, y), Align::Left);
+    for (p, &(a, b, _)) in d.peers.iter().enumerate() {
+        canvas.part(at(&named.peers, p), |canvas| -> Result<(), Declined> {
+            let (ra, rb) = (boxes[a], boxes[b]);
+            let (ca, cb) = (centre(ra), centre(rb));
+            let (from, to) = if (ca.0 - cb.0).abs() < 0.5 {
+                let (upper, lower) = if ra.y < rb.y { (ra, rb) } else { (rb, ra) };
+                ((ca.0, upper.y + upper.h), (ca.0, lower.y))
+            } else {
+                (ca, cb)
+            };
+            canvas.line(Layer::Lifelines, from, to, line);
+            // An address the server has outside a network, on its line.
+            for (s, r) in [(a, ra), (b, rb)] {
+                if let Some(address) = &d.servers[s].address {
+                    let block = words(address, look.address_font, d.servers[s].line)?;
+                    let y = if r.y > from.1.min(to.1) {
+                        r.y - block.height - 3.0
+                    } else {
+                        r.y + r.h + 3.0
+                    };
+                    canvas.text(Layer::Front, &block, (centre(r).0 + 5.0, y), Align::Left);
+                }
             }
-        }
+            Ok(())
+        })?;
     }
 
     // The servers over their lines.
     for (s, server) in d.servers.iter().enumerate() {
-        paint_server(&mut canvas, &look, server, boxes[s], &labels[s], family)?;
+        canvas.part(at(&named.servers, s), |canvas| {
+            paint_server(canvas, &look, server, boxes[s], &labels[s], family)
+        })?;
     }
     annotations.draw(&mut canvas);
     Ok(canvas.finish(MARGIN, look.page))
@@ -459,6 +479,68 @@ fn paint_server(
 }
 
 /// `ink`, or black or white where it does not read on `ground`.
+/// Each network, server and group named from the source (docs/adr/0037):
+/// `network-dmz`, `server-web01`, a group by its description; a server's
+/// line to a network by what it joins (`link-dmz-web01`), a peer line
+/// too.
+struct Names {
+    networks: Vec<String>,
+    servers: Vec<String>,
+    groups: Vec<String>,
+    /// By the network and the member.
+    joins: std::collections::HashMap<(usize, usize), String>,
+    peers: Vec<String>,
+}
+
+impl Names {
+    fn of(d: &Diagram) -> Names {
+        let mut given = crate::svg::Given::default();
+        let networks = d
+            .networks
+            .iter()
+            .map(|n| given.unique(crate::svg::element("network", &n.name)))
+            .collect();
+        let servers = d
+            .servers
+            .iter()
+            .map(|s| given.unique(crate::svg::element("server", &s.name)))
+            .collect();
+        let groups = d
+            .groups
+            .iter()
+            .map(|g| {
+                let said = crate::svg::first_line(g.description.as_deref().unwrap_or_default());
+                given.unique(crate::svg::element("group", said))
+            })
+            .collect();
+        let server = |at: usize| d.servers.get(at).map_or("", |s| s.name.as_str());
+        let mut joins = std::collections::HashMap::new();
+        for (n, network) in d.networks.iter().enumerate() {
+            for (m, (s, _)) in network.members.iter().enumerate() {
+                let name = crate::svg::link_name(&network.name, server(*s), "");
+                joins.insert((n, m), given.unique(name));
+            }
+        }
+        let peers = d
+            .peers
+            .iter()
+            .map(|&(a, b, _)| given.unique(crate::svg::link_name(server(a), server(b), "")))
+            .collect();
+        Names {
+            networks,
+            servers,
+            groups,
+            joins,
+            peers,
+        }
+    }
+}
+
+/// The name at `slot` of `names`; none past its end.
+fn at(names: &[String], slot: usize) -> &str {
+    names.get(slot).map_or("", String::as_str)
+}
+
 fn legible(ink: Color, ground: Color) -> Color {
     if ink.contrast(ground) >= 4.5 {
         return ink;

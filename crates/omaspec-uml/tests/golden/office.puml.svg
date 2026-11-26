@@ -1,78 +1,138 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="390" height="409" viewBox="0 0 390 409" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="409" viewBox="0 0 390 409" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="group" id="group">
 <rect x="118.07" y="312.33" width="224.22" height="76.3" rx="4" ry="4" fill="#FFAAAA"/>
 </g>
-<g>
-<line x1="160.07" y1="152.04" x2="160.07" y2="182.04" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="160.07" y1="190.04" x2="160.07" y2="220.04" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="300.29" y1="190.04" x2="300.29" y2="220.04" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="160.07" y1="254.33" x2="160.07" y2="284.33" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="300.29" y1="254.33" x2="300.29" y2="284.33" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="160.07" y1="292.33" x2="160.07" y2="322.33" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="300.29" y1="292.33" x2="300.29" y2="322.33" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="160.07" y1="83.74" x2="160.07" y2="117.74" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="link-dmz-router" id="link-dmz-router">
+<line x1="160.07" y1="152.04" x2="160.07" y2="182.04" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-dmz-web01" id="link-dmz-web01">
+<line x1="160.07" y1="190.04" x2="160.07" y2="220.04" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-dmz-web02" id="link-dmz-web02">
+<line x1="300.29" y1="190.04" x2="300.29" y2="220.04" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-internal-web01" id="link-internal-web01">
+<line x1="160.07" y1="254.33" x2="160.07" y2="284.33" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-internal-web02" id="link-internal-web02">
+<line x1="300.29" y1="254.33" x2="300.29" y2="284.33" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-internal-db01" id="link-internal-db01">
+<line x1="160.07" y1="292.33" x2="160.07" y2="322.33" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-internal-db02" id="link-internal-db02">
+<line x1="300.29" y1="292.33" x2="300.29" y2="322.33" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-internet-router" id="link-internet-router">
+<line x1="160.07" y1="83.74" x2="160.07" y2="117.74" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+</g>
+<g>
+<g class="network-dmz" id="network-dmz">
 <rect x="88.96" y="182.04" width="280.45" height="8" rx="4" ry="4" fill="#E2E2F0" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="network-internal" id="network-internal">
 <rect x="88.96" y="284.33" width="280.45" height="8" rx="4" ry="4" fill="#FFFFCC" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-internet" id="server-internet">
 <path d="M112.96,38.3 C112.96,30.3 136.51,30.3 136.51,38.3 C136.51,30.3 160.07,30.3 160.07,38.3 C160.07,30.3 183.62,30.3 183.62,38.3 C183.62,30.3 207.18,30.3 207.18,38.3 C215.18,38.3 215.18,58.02 207.18,58.02 C215.18,58.02 215.18,77.74 207.18,77.74 C207.18,85.74 183.62,85.74 183.62,77.74 C183.62,85.74 160.07,85.74 160.07,77.74 C160.07,85.74 136.51,85.74 136.51,77.74 C136.51,85.74 112.96,85.74 112.96,77.74 C104.96,77.74 104.96,58.02 112.96,58.02 C104.96,58.02 104.96,38.3 112.96,38.3Z" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-router" id="server-router">
 <rect x="126.1" y="117.74" width="67.94" height="34.3" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-web01" id="server-web01">
 <rect x="124.71" y="220.04" width="70.71" height="34.3" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-web02" id="server-web02">
 <rect x="249.18" y="220.04" width="102.23" height="34.3" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-db01" id="server-db01">
 <ellipse cx="160.07" cy="369.63" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="128.07" y="331.33" width="64" height="38.3" fill="#F1F1F1"/>
 <line x1="128.07" y1="331.33" x2="128.07" y2="369.63" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="192.07" y1="331.33" x2="192.07" y2="369.63" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="160.07" cy="331.33" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="server-db02" id="server-db02">
 <ellipse cx="300.29" cy="369.63" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="268.29" y="331.33" width="64" height="38.3" fill="#F1F1F1"/>
 <line x1="268.29" y1="331.33" x2="268.29" y2="369.63" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="332.29" y1="331.33" x2="332.29" y2="369.63" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="300.29" cy="331.33" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="network-dmz">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="54.44" y="182.97" font-size="13" fill="#000000" textLength="26.52" lengthAdjust="spacing">dmz</tspan>
 <tspan x="6" y="198.1" font-size="13" fill="#000000" textLength="74.96" lengthAdjust="spacing">210.x.x.x/24</tspan>
 </text>
+</g>
+<g class="link-dmz-router">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="165.07" y="176.44" font-size="11" fill="#000000" textLength="44.12" lengthAdjust="spacing">210.x.x.1</tspan>
 </text>
+</g>
+<g class="link-dmz-web01">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="165.07" y="203.24" font-size="11" fill="#000000" textLength="46.35" lengthAdjust="spacing">210.x.x.2</tspan>
 </text>
+</g>
+<g class="link-dmz-web02">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="305.29" y="203.24" font-size="11" fill="#000000" textLength="46.44" lengthAdjust="spacing">210.x.x.3</tspan>
 </text>
+</g>
+<g class="network-internal">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="35.28" y="285.26" font-size="13" fill="#000000" textLength="45.68" lengthAdjust="spacing">internal</tspan>
 <tspan x="6.84" y="300.4" font-size="13" fill="#000000" textLength="74.11" lengthAdjust="spacing">172.x.x.x/24</tspan>
 </text>
+</g>
+<g class="link-internal-web01">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="165.07" y="278.74" font-size="11" fill="#000000" textLength="43.41" lengthAdjust="spacing">172.x.x.1</tspan>
 </text>
+</g>
+<g class="link-internal-web02">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="305.29" y="278.74" font-size="11" fill="#000000" textLength="45.64" lengthAdjust="spacing">172.x.x.2</tspan>
 </text>
+</g>
+<g class="server-internet">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="134.73" y="62.86" font-size="14" fill="#000000" textLength="50.68" lengthAdjust="spacing">internet</tspan>
 </text>
+</g>
+<g class="server-router">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="140.1" y="139.73" font-size="14" fill="#000000" textLength="39.94" lengthAdjust="spacing">router</tspan>
 </text>
+</g>
+<g class="server-web01">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="138.71" y="242.03" font-size="14" fill="#000000" textLength="42.71" lengthAdjust="spacing">web01</tspan>
 </text>
+</g>
+<g class="server-web02">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="263.18" y="242.03" font-size="14" fill="#000000" textLength="74.23" lengthAdjust="spacing">web server</tspan>
 </text>
+</g>
+<g class="server-db01">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="144.23" y="359.82" font-size="14" fill="#000000" textLength="31.67" lengthAdjust="spacing">db01</tspan>
 </text>
+</g>
+<g class="server-db02">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="283.03" y="359.82" font-size="14" fill="#000000" textLength="34.51" lengthAdjust="spacing">db02</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="133.64" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="102.12" lengthAdjust="spacing">Office network</tspan>

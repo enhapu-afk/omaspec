@@ -3,8 +3,8 @@
 Status: accepted, 2026-11-26 (REQ-132); its first step (point 7) is
 done the same day, and of the second its sequence diagrams and the
 lines of structure diagrams, flowcharts, mind maps, WBS and activity
-diagrams, and ER, C4, architecture, block, kanban, journey and timeline
-diagrams. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
+diagrams, and ER, C4, architecture, block, kanban, journey, timeline,
+flow, network and story map diagrams. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
 the parts only for the pane, and the way its point 1 writes their names.
 
 ## Context
