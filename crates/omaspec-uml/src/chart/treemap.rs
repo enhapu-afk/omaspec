@@ -96,15 +96,44 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
         h: HEIGHT,
     };
     let values: Vec<f64> = d.items.iter().map(Item::total).collect();
+    // Each box named by its name (docs/adr/0037), the chart drawn as a
+    // whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
     for (k, (item, rect)) in d.items.iter().zip(squarify(&values, area)).enumerate() {
-        paint(&mut canvas, look, item, rect, look.color(k), 0);
+        paint(
+            &mut canvas,
+            (look, &mut given),
+            item,
+            rect,
+            look.color(k),
+            0,
+        );
     }
     Ok(canvas.finish(10.0, look.page))
 }
 
+/// `item` in its part, and what it holds in theirs.
 fn paint(
     canvas: &mut Canvas,
-    look: &Look,
+    (look, given): (&Look, &mut crate::svg::Given),
+    item: &Item,
+    rect: Rect,
+    color: crate::color::Color,
+    depth: usize,
+) {
+    let part = given.unique(crate::svg::element(
+        "node",
+        crate::svg::first_line(&item.name),
+    ));
+    canvas.part(&part, |canvas| {
+        paint_in(canvas, (look, given), item, rect, color, depth)
+    });
+}
+
+fn paint_in(
+    canvas: &mut Canvas,
+    (look, given): (&Look, &mut crate::svg::Given),
     item: &Item,
     rect: Rect,
     color: crate::color::Color,
@@ -168,7 +197,7 @@ fn paint(
     };
     let values: Vec<f64> = item.children.iter().map(Item::total).collect();
     for (child, place) in item.children.iter().zip(squarify(&values, inner)) {
-        paint(canvas, look, child, place, color, depth + 1);
+        paint(canvas, (look, given), child, place, color, depth + 1);
     }
 }
 

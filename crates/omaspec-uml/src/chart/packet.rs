@@ -58,43 +58,53 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
     let ink = look.ink_on(look.fill);
     let small = crate::text::Font::new((look.size - 4.0).max(8.0), look.ink);
     let label_font = crate::text::Font::new(look.size - 1.0, ink);
-    for (from, to, label) in &d.fields {
+    // Each field named by its words (docs/adr/0037), on every row it
+    // takes.
+    let fields = super::names(
+        &mut canvas,
+        "field",
+        d.fields.iter().map(|(_, _, l)| l.as_str()),
+    );
+    for (at, (from, to, label)) in d.fields.iter().enumerate() {
         // The field, cut where its rows end.
         let mut bit = *from;
         while bit <= *to {
-            let row = bit / ROW;
-            let last = (*to).min(row * ROW + ROW - 1);
-            let y = top + row as f32 * (HEIGHT + NUMBERS + GAP) + NUMBERS;
-            let x = (bit % ROW) as f32 * BIT;
-            let w = (last - bit + 1) as f32 * BIT;
-            canvas.rect(
-                Layer::Frames,
-                (x, y, w, HEIGHT),
-                0.0,
-                Some(look.fill),
-                Some(stroke),
-            );
-            // A name wider than its field is set smaller until it fits.
-            let mut block = words(label, label_font, family);
-            if block.width + 4.0 > w {
-                let size = (label_font.size * (w - 4.0) / block.width).max(6.0);
-                block = words(label, crate::text::Font { size, ..label_font }, family);
-            }
-            if block.width + 4.0 <= w || bit == *from {
-                canvas.text(
-                    Layer::Front,
-                    &block,
-                    (x + w / 2.0, y + (HEIGHT - block.height) / 2.0),
-                    Align::Center,
+            let last = canvas.part(super::at(&fields, at), |canvas| {
+                let row = bit / ROW;
+                let last = (*to).min(row * ROW + ROW - 1);
+                let y = top + row as f32 * (HEIGHT + NUMBERS + GAP) + NUMBERS;
+                let x = (bit % ROW) as f32 * BIT;
+                let w = (last - bit + 1) as f32 * BIT;
+                canvas.rect(
+                    Layer::Frames,
+                    (x, y, w, HEIGHT),
+                    0.0,
+                    Some(look.fill),
+                    Some(stroke),
                 );
-            }
-            // The bit numbers over its ends.
-            let first = words(&said(bit as f64), small, family);
-            canvas.text(Layer::Front, &first, (x + 2.0, y - NUMBERS), Align::Left);
-            if last != bit {
-                let end = words(&said(last as f64), small, family);
-                canvas.text(Layer::Front, &end, (x + w - 2.0, y - NUMBERS), Align::Right);
-            }
+                // A name wider than its field is set smaller until it fits.
+                let mut block = words(label, label_font, family);
+                if block.width + 4.0 > w {
+                    let size = (label_font.size * (w - 4.0) / block.width).max(6.0);
+                    block = words(label, crate::text::Font { size, ..label_font }, family);
+                }
+                if block.width + 4.0 <= w || bit == *from {
+                    canvas.text(
+                        Layer::Front,
+                        &block,
+                        (x + w / 2.0, y + (HEIGHT - block.height) / 2.0),
+                        Align::Center,
+                    );
+                }
+                // The bit numbers over its ends.
+                let first = words(&said(bit as f64), small, family);
+                canvas.text(Layer::Front, &first, (x + 2.0, y - NUMBERS), Align::Left);
+                if last != bit {
+                    let end = words(&said(last as f64), small, family);
+                    canvas.text(Layer::Front, &end, (x + w - 2.0, y - NUMBERS), Align::Right);
+                }
+                last
+            });
             bit = last + 1;
         }
     }

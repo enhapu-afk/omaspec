@@ -116,28 +116,37 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
     let half = SIDE / 2.0;
     // Quadrants 2, 1 above, 3, 4 below, each in a light color of its own.
     let places = [(half, 0.0), (0.0, 0.0), (0.0, half), (half, half)];
+    // Each quadrant by its number as the source writes it, each point by
+    // its name (docs/adr/0037).
+    let points = super::names(
+        &mut canvas,
+        "point",
+        d.points.iter().map(|p| p.name.as_str()),
+    );
     for (q, (dx, dy)) in places.iter().enumerate() {
         let fill = look.color(q).mix(look.ground(), 0.82);
-        // Apart by a gap of the page; drawn by hand, with a line.
-        canvas.rect(
-            Layer::Background,
-            (left + dx + 1.0, top + dy + 1.0, half - 2.0, half - 2.0),
-            0.0,
-            Some(fill),
-            look.sketch
-                .then(|| Stroke::new(fill.mix(look.ink, 0.3), 1.0)),
-        );
-        let name = words(
-            &d.quadrants[q],
-            Font::new(look.size, look.ink_on(fill)).bold(),
-            family,
-        );
-        canvas.text(
-            Layer::Front,
-            &name,
-            (left + dx + half / 2.0, top + dy + 8.0),
-            Align::Center,
-        );
+        canvas.part(&format!("quadrant-{}", q + 1), |canvas| {
+            // Apart by a gap of the page; drawn by hand, with a line.
+            canvas.rect(
+                Layer::Background,
+                (left + dx + 1.0, top + dy + 1.0, half - 2.0, half - 2.0),
+                0.0,
+                Some(fill),
+                look.sketch
+                    .then(|| Stroke::new(fill.mix(look.ink, 0.3), 1.0)),
+            );
+            let name = words(
+                &d.quadrants[q],
+                Font::new(look.size, look.ink_on(fill)).bold(),
+                family,
+            );
+            canvas.text(
+                Layer::Front,
+                &name,
+                (left + dx + half / 2.0, top + dy + 8.0),
+                Align::Center,
+            );
+        });
     }
     // The axes' ends: low and high under the square and beside it.
     let under = top + SIDE + 6.0;
@@ -155,31 +164,33 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
         );
     }
     // The points, each with its name under it.
-    for p in &d.points {
-        let x = left + p.x as f32 * SIDE;
-        let y = top + SIDE - p.y as f32 * SIDE;
-        let r = p.radius.unwrap_or(5.0);
-        let color = p.color.unwrap_or_else(|| look.ink.mix(look.color(0), 0.4));
-        canvas.ellipse(
-            Layer::Front,
-            (x, y),
-            (r, r),
-            Some(color),
-            look.sketch.then(|| Stroke::new(color, 1.0)),
-        );
-        let quadrant = match (p.x >= 0.5, p.y >= 0.5) {
-            (true, true) => 0,
-            (false, true) => 1,
-            (false, false) => 2,
-            (true, false) => 3,
-        };
-        let ground = look.color(quadrant).mix(look.ground(), 0.82);
-        let label = words(
-            &p.name,
-            Font::new(look.size - 2.0, look.ink_on(ground)),
-            family,
-        );
-        canvas.text(Layer::Front, &label, (x, y + r + 2.0), Align::Center);
+    for (at, p) in d.points.iter().enumerate() {
+        canvas.part(super::at(&points, at), |canvas| {
+            let x = left + p.x as f32 * SIDE;
+            let y = top + SIDE - p.y as f32 * SIDE;
+            let r = p.radius.unwrap_or(5.0);
+            let color = p.color.unwrap_or_else(|| look.ink.mix(look.color(0), 0.4));
+            canvas.ellipse(
+                Layer::Front,
+                (x, y),
+                (r, r),
+                Some(color),
+                look.sketch.then(|| Stroke::new(color, 1.0)),
+            );
+            let quadrant = match (p.x >= 0.5, p.y >= 0.5) {
+                (true, true) => 0,
+                (false, true) => 1,
+                (false, false) => 2,
+                (true, false) => 3,
+            };
+            let ground = look.color(quadrant).mix(look.ground(), 0.82);
+            let label = words(
+                &p.name,
+                Font::new(look.size - 2.0, look.ink_on(ground)),
+                family,
+            );
+            canvas.text(Layer::Front, &label, (x, y + r + 2.0), Align::Center);
+        });
     }
     Ok(canvas.finish(10.0, look.page))
 }

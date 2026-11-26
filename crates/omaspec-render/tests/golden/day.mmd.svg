@@ -1,43 +1,81 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="438" height="238" viewBox="0 0 438 238" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="438" height="238" viewBox="0 0 438 238" data-omaspec="named">
 <rect x="0" y="0" width="438" height="238" fill="#FFFFFF"/>
 <g transform="translate(31.57,10)">
 <g>
+<g class="slice-Sleep" id="slice-Sleep">
 <path d="M 88,129.1 L 88,41.1 A 88,88 0 0,1 164.21,173.1 Z" fill="#F9FBFC" stroke="#334155" stroke-width="1.6"/>
+</g>
+<g class="slice-Work" id="slice-Work">
 <path d="M 88,129.1 L 164.21,173.1 A 88,88 0 0,1 11.79,173.1 Z" fill="#E6EBF2" stroke="#334155" stroke-width="1.6"/>
+</g>
+<g class="slice-Family_20_and_20_friends" id="slice-Family_20_and_20_friends">
 <path d="M 88,129.1 L 11.79,173.1 A 88,88 0 0,1 11.79,85.1 Z" fill="#A8A8A8" stroke="#334155" stroke-width="1.6"/>
+</g>
+<g class="slice-Food" id="slice-Food">
 <path d="M 88,129.1 L 11.79,85.1 A 88,88 0 0,1 44,52.89 Z" fill="#DAE6F0" stroke="#334155" stroke-width="1.6"/>
+</g>
+<g class="slice-Reading" id="slice-Reading">
 <path d="M 88,129.1 L 44,52.89 A 88,88 0 0,1 65.22,44.1 Z" fill="#91A7C6" stroke="#334155" stroke-width="1.6"/>
+</g>
+<g class="slice-Walks" id="slice-Walks">
 <path d="M 88,129.1 L 65.22,44.1 A 88,88 0 0,1 88,41.1 Z" fill="#D4D4D4" stroke="#334155" stroke-width="1.6"/>
+</g>
 <ellipse cx="88" cy="129.1" rx="88" ry="88" fill="none" stroke="#CBD5E1" stroke-width="1.6"/>
+<g class="slice-Sleep">
 <rect x="225.57" y="43.99" width="14" height="14" rx="2" ry="2" fill="#F9FBFC"/>
+</g>
+<g class="slice-Work">
 <rect x="225.57" y="69.78" width="14" height="14" rx="2" ry="2" fill="#E6EBF2"/>
+</g>
+<g class="slice-Family_20_and_20_friends">
 <rect x="225.57" y="95.57" width="14" height="14" rx="2" ry="2" fill="#A8A8A8"/>
+</g>
+<g class="slice-Food">
 <rect x="225.57" y="121.36" width="14" height="14" rx="2" ry="2" fill="#DAE6F0"/>
+</g>
+<g class="slice-Reading">
 <rect x="225.57" y="147.15" width="14" height="14" rx="2" ry="2" fill="#91A7C6"/>
+</g>
+<g class="slice-Walks">
 <rect x="225.57" y="172.93" width="14" height="14" rx="2" ry="2" fill="#D4D4D4"/>
 </g>
+</g>
 <g>
+<g class="title" id="title">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="-21.57" y="23.2" font-size="25" fill="#0F172A" font-weight="bold" textLength="219.15" lengthAdjust="spacing">Where a day goes</tspan>
 </text>
+</g>
+<g class="slice-Sleep">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="247.57" y="56.88" font-size="17" fill="#0F172A" textLength="45.25" lengthAdjust="spacing">Sleep</tspan>
 </text>
+</g>
+<g class="slice-Work">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="247.57" y="82.66" font-size="17" fill="#0F172A" textLength="42.67" lengthAdjust="spacing">Work</tspan>
 </text>
+</g>
+<g class="slice-Family_20_and_20_friends">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="247.57" y="108.45" font-size="17" fill="#0F172A" textLength="147.95" lengthAdjust="spacing">Family and friends</tspan>
 </text>
+</g>
+<g class="slice-Food">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="247.57" y="134.24" font-size="17" fill="#0F172A" textLength="40.83" lengthAdjust="spacing">Food</tspan>
 </text>
+</g>
+<g class="slice-Reading">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="247.57" y="160.03" font-size="17" fill="#0F172A" textLength="65.4" lengthAdjust="spacing">Reading</tspan>
 </text>
+</g>
+<g class="slice-Walks">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="247.57" y="185.82" font-size="17" fill="#0F172A" textLength="48.72" lengthAdjust="spacing">Walks</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

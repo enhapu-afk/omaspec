@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="501" height="383" viewBox="0 0 501 383" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="501" height="383" viewBox="0 0 501 383" data-omaspec="named">
 <rect x="0" y="0" width="501" height="383" fill="#FFFFFF"/>
 <g transform="translate(-25.82,10)">
 <g>
@@ -9,25 +9,55 @@
 <ellipse cx="223.42" cy="196.95" rx="112" ry="112" fill="none" stroke="#B9C0CB" stroke-width="1"/>
 <ellipse cx="223.42" cy="196.95" rx="140" ry="140" fill="none" stroke="#B9C0CB" stroke-width="1"/>
 </g>
+<g class="axis-Design" id="axis-Design">
 <line x1="223.42" y1="196.95" x2="223.42" y2="56.95" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="axis-Rust" id="axis-Rust">
 <line x1="223.42" y1="196.95" x2="344.66" y2="126.95" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="axis-Operations" id="axis-Operations">
 <line x1="223.42" y1="196.95" x2="344.66" y2="266.95" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="axis-Writing" id="axis-Writing">
 <line x1="223.42" y1="196.95" x2="223.42" y2="336.95" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="axis-Testing" id="axis-Testing">
 <line x1="223.42" y1="196.95" x2="102.17" y2="266.95" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="axis-Research" id="axis-Research">
 <line x1="223.42" y1="196.95" x2="102.17" y2="126.95" fill="none" stroke="#64748B" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="curve-Ada" id="curve-Ada">
 <path d="M223.42 84.95L344.66 126.95L271.92 224.95L223.42 308.95L150.67 238.95L174.92 168.95Z" fill="#3E7CB1" fill-opacity="0.25"/>
+</g>
+<g class="curve-Linus" id="curve-Linus">
 <path d="M223.42 140.95L320.41 140.95L344.66 266.95L223.42 252.95L126.42 252.95L199.17 182.95Z" fill="#D9731A" fill-opacity="0.25"/>
+</g>
+<g class="curve-Grace" id="curve-Grace">
 <path d="M223.42 112.95L271.92 168.95L320.41 252.95L223.42 336.95L102.17 266.95L126.42 140.95Z" fill="#3A9A4A" fill-opacity="0.25"/>
+</g>
+<g class="curve-Ada">
 <rect x="458.84" y="45.1" width="12" height="12" rx="2" ry="2" fill="#3E7CB1" stroke="#3E7CB1" stroke-width="1"/>
+</g>
+<g class="curve-Linus">
 <rect x="458.84" y="65.4" width="12" height="12" rx="2" ry="2" fill="#D9731A" stroke="#D9731A" stroke-width="1"/>
+</g>
+<g class="curve-Grace">
 <rect x="458.84" y="85.69" width="12" height="12" rx="2" ry="2" fill="#3A9A4A" stroke="#3A9A4A" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="curve-Ada">
 <polygon points="223.42,84.95 344.66,126.95 271.92,224.95 223.42,308.95 150.67,238.95 174.92,168.95" fill="none" stroke="#3E7CB1" stroke-width="2"/>
+</g>
+<g class="curve-Linus">
 <polygon points="223.42,140.95 320.41,140.95 344.66,266.95 223.42,252.95 126.42,252.95 199.17,182.95" fill="none" stroke="#D9731A" stroke-width="2"/>
+</g>
+<g class="curve-Grace">
 <polygon points="223.42,112.95 271.92,168.95 320.41,252.95 223.42,336.95 102.17,266.95 126.42,140.95" fill="none" stroke="#3A9A4A" stroke-width="2"/>
+</g>
 </g>
 <g>
 <rect x="225.42" y="168.95" width="8.07" height="11.64" rx="2" ry="2" fill="#FFFFFF"/>
@@ -37,27 +67,41 @@
 <rect x="225.42" y="56.95" width="9.93" height="11.64" rx="2" ry="2" fill="#FFFFFF"/>
 </g>
 <g>
+<g class="title" id="title">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="127.73" y="16.7" font-size="18" fill="#0F172A" font-weight="bold" textLength="191.38" lengthAdjust="spacing">What the team can do</tspan>
 </text>
+</g>
+<g class="axis-Design">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="202.1" y="43.88" font-size="13" fill="#0F172A" textLength="42.63" lengthAdjust="spacing">Design</tspan>
 </text>
+</g>
+<g class="axis-Rust">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="353.32" y="118.88" font-size="13" fill="#0F172A" textLength="27.17" lengthAdjust="spacing">Rust</tspan>
 </text>
+</g>
+<g class="axis-Operations">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="353.32" y="284.02" font-size="13" fill="#0F172A" textLength="67.42" lengthAdjust="spacing">Operations</tspan>
 </text>
+</g>
+<g class="axis-Writing">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="201.47" y="359.02" font-size="13" fill="#0F172A" textLength="43.89" lengthAdjust="spacing">Writing</tspan>
 </text>
+</g>
+<g class="axis-Testing">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="47.62" y="284.02" font-size="13" fill="#0F172A" textLength="45.89" lengthAdjust="spacing">Testing</tspan>
 </text>
+</g>
+<g class="axis-Research">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="35.82" y="118.88" font-size="13" fill="#0F172A" textLength="57.69" lengthAdjust="spacing">Research</tspan>
 </text>
+</g>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="227.42" y="178.23" font-size="10" fill="#0F172A" textLength="4.07" lengthAdjust="spacing">1</tspan>
 </text>
@@ -73,15 +117,21 @@
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="227.42" y="66.23" font-size="10" fill="#0F172A" textLength="5.93" lengthAdjust="spacing">5</tspan>
 </text>
+<g class="curve-Ada">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="476.84" y="55.94" font-size="14" fill="#0F172A" textLength="26.1" lengthAdjust="spacing">Ada</tspan>
 </text>
+</g>
+<g class="curve-Linus">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="476.84" y="76.24" font-size="14" fill="#0F172A" textLength="35.24" lengthAdjust="spacing">Linus</tspan>
 </text>
+</g>
+<g class="curve-Grace">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="476.84" y="96.54" font-size="14" fill="#0F172A" textLength="39.73" lengthAdjust="spacing">Grace</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

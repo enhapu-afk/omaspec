@@ -245,35 +245,53 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
             Align::Center,
         );
     }
+    // Each series named by its kind and its name, the second without one
+    // counted (`bar`, `bar-2`, `line-Sales`; docs/adr/0037), the chart
+    // drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
+    let series: Vec<String> = d
+        .series
+        .iter()
+        .map(|s| {
+            let kind = if s.bar { "bar" } else { "line" };
+            let name = s.name.as_deref().map_or("", crate::svg::first_line);
+            given.unique(crate::svg::element(kind, name))
+        })
+        .collect();
     // Bars side by side, then lines over them.
     let bars: Vec<usize> = (0..d.series.len()).filter(|&k| d.series[k].bar).collect();
     let bar_w = slot * 0.7 / bars.len().max(1) as f32;
     for (b, &k) in bars.iter().enumerate() {
         let color = look.color(k);
-        for (i, v) in d.series[k].values.iter().enumerate() {
-            let x = left + slot * i as f32 + slot * 0.15 + bar_w * b as f32;
-            let (y0, y1) = (y_of(low.max(0.0).min(high)), y_of(*v));
-            canvas.rect(
-                Layer::Frames,
-                (x, y0.min(y1), bar_w * 0.92, (y0 - y1).abs()),
-                0.0,
-                Some(color),
-                None,
-            );
-        }
+        canvas.part(super::at(&series, k), |canvas| {
+            for (i, v) in d.series[k].values.iter().enumerate() {
+                let x = left + slot * i as f32 + slot * 0.15 + bar_w * b as f32;
+                let (y0, y1) = (y_of(low.max(0.0).min(high)), y_of(*v));
+                canvas.rect(
+                    Layer::Frames,
+                    (x, y0.min(y1), bar_w * 0.92, (y0 - y1).abs()),
+                    0.0,
+                    Some(color),
+                    None,
+                );
+            }
+        });
     }
-    for (k, series) in d.series.iter().enumerate().filter(|(_, s)| !s.bar) {
+    for (k, line) in d.series.iter().enumerate().filter(|(_, s)| !s.bar) {
         let color = look.color(k).legible_on(look.ground(), look.ink, 3.0);
-        let points: Vec<(f32, f32)> = series
+        let points: Vec<(f32, f32)> = line
             .values
             .iter()
             .enumerate()
             .map(|(i, v)| (left + slot * (i as f32 + 0.5), y_of(*v)))
             .collect();
-        canvas.polyline(Layer::Lines, &points, Stroke::new(color, 2.0));
-        for p in &points {
-            canvas.ellipse(Layer::Lines, *p, (3.0, 3.0), Some(color), None);
-        }
+        canvas.part(super::at(&series, k), |canvas| {
+            canvas.polyline(Layer::Lines, &points, Stroke::new(color, 2.0));
+            for p in &points {
+                canvas.ellipse(Layer::Lines, *p, (3.0, 3.0), Some(color), None);
+            }
+        });
     }
     Ok(canvas.finish(10.0, look.page))
 }

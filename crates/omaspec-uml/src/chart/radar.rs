@@ -124,31 +124,40 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
         }
     }
     canvas.end_group(Layer::Background);
+    // Each axis and curve named by its name (docs/adr/0037).
+    let axes = super::names(&mut canvas, "axis", d.axes.iter().map(String::as_str));
+    let curves = super::names(
+        &mut canvas,
+        "curve",
+        d.curves.iter().map(|(c, _)| c.as_str()),
+    );
     for (i, axis) in d.axes.iter().enumerate() {
-        let end = at(i, RADIUS);
-        canvas.line(
-            Layer::Background,
-            (cx, cy),
-            end,
-            Stroke::new(look.line, 1.0),
-        );
-        let label = words(axis, label_font, family);
-        let (lx, ly) = at(i, RADIUS + 10.0);
-        let align = if (lx - cx).abs() < 4.0 {
-            Align::Center
-        } else if lx > cx {
-            Align::Left
-        } else {
-            Align::Right
-        };
-        let y = if ly < cy - 4.0 {
-            ly - label.height
-        } else if ly > cy + 4.0 {
-            ly
-        } else {
-            ly - label.height / 2.0
-        };
-        canvas.text(Layer::Front, &label, (lx, y), align);
+        canvas.part(super::at(&axes, i), |canvas| {
+            let end = at(i, RADIUS);
+            canvas.line(
+                Layer::Background,
+                (cx, cy),
+                end,
+                Stroke::new(look.line, 1.0),
+            );
+            let label = words(axis, label_font, family);
+            let (lx, ly) = at(i, RADIUS + 10.0);
+            let align = if (lx - cx).abs() < 4.0 {
+                Align::Center
+            } else if lx > cx {
+                Align::Left
+            } else {
+                Align::Right
+            };
+            let y = if ly < cy - 4.0 {
+                ly - label.height
+            } else if ly > cy + 4.0 {
+                ly
+            } else {
+                ly - label.height / 2.0
+            };
+            canvas.text(Layer::Front, &label, (lx, y), align);
+        });
     }
     // Each curve a shape over the axes.
     let span = (d.max - d.min) as f32;
@@ -170,19 +179,21 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
             ));
         }
         path.push('Z');
-        canvas.glaze(
-            Layer::Frames,
-            &path,
-            (cx - RADIUS, cy - RADIUS, cx + RADIUS, cy + RADIUS),
-            color,
-            0.25,
-        );
-        canvas.polygon(
-            Layer::Lines,
-            &points,
-            None,
-            Some(Stroke::new(stroke_color, 2.0)),
-        );
+        canvas.part(super::at(&curves, k), |canvas| {
+            canvas.glaze(
+                Layer::Frames,
+                &path,
+                (cx - RADIUS, cy - RADIUS, cx + RADIUS, cy + RADIUS),
+                color,
+                0.25,
+            );
+            canvas.polygon(
+                Layer::Lines,
+                &points,
+                None,
+                Some(Stroke::new(stroke_color, 2.0)),
+            );
+        });
     }
     // The scale along the first axis.
     let small = Font::new((look.size - 4.0).max(8.0), look.ink);
@@ -206,17 +217,19 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
         for (k, (label, _)) in d.curves.iter().enumerate() {
             let block = words(label, Font::new(look.size, look.ink), family);
             let color: Color = look.color(k);
-            canvas.rect(
-                Layer::Frames,
-                (x, y + (block.height - 12.0) / 2.0, 12.0, 12.0),
-                2.0,
-                Some(color),
-                Some(Stroke::new(
-                    color.legible_on(look.ground(), look.ink, 3.0),
-                    1.0,
-                )),
-            );
-            canvas.text(Layer::Front, &block, (x + 18.0, y), Align::Left);
+            canvas.part(super::at(&curves, k), |canvas| {
+                canvas.rect(
+                    Layer::Frames,
+                    (x, y + (block.height - 12.0) / 2.0, 12.0, 12.0),
+                    2.0,
+                    Some(color),
+                    Some(Stroke::new(
+                        color.legible_on(look.ground(), look.ink, 3.0),
+                        1.0,
+                    )),
+                );
+                canvas.text(Layer::Front, &block, (x + 18.0, y), Align::Left);
+            });
             y += block.height + 4.0;
         }
     }

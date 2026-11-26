@@ -113,13 +113,35 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     };
     let cx = RADIUS;
     let cy = top + RADIUS;
-    paint_slices(&mut canvas, diagram, cx, cy);
+    // Each slice named by its label (docs/adr/0037), its wedge and its
+    // line of the legend; the chart drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
+    let names: Vec<String> = diagram
+        .slices
+        .iter()
+        .map(|s| {
+            given.unique(crate::svg::element(
+                "slice",
+                crate::svg::first_line(&s.label),
+            ))
+        })
+        .collect();
+    paint_slices(&mut canvas, (diagram, &names), cx, cy);
     paint_ring(&mut canvas, &diagram.look, cx, cy);
     if let Some(block) = &title {
-        canvas.text(Layer::Front, block, (cx, 0.0), Align::Center);
+        canvas.part("title", |canvas| {
+            canvas.text(Layer::Front, block, (cx, 0.0), Align::Center);
+        });
     }
     let legend_x = legend_x(cx, title.as_ref());
-    paint_legend(&mut canvas, diagram, family, legend_x, cy - RADIUS)?;
+    paint_legend(
+        &mut canvas,
+        (diagram, &names),
+        family,
+        legend_x,
+        cy - RADIUS,
+    )?;
     Ok(canvas.finish(10.0, diagram.look.background))
 }
 
@@ -133,7 +155,7 @@ fn title_block(diagram: &Diagram, family: Family) -> Result<Option<Block>, Decli
         .map_err(|reason| Declined::at(title.line, reason))
 }
 
-fn paint_slices(canvas: &mut Canvas, diagram: &Diagram, cx: f32, cy: f32) {
+fn paint_slices(canvas: &mut Canvas, (diagram, names): (&Diagram, &[String]), cx: f32, cy: f32) {
     let total: f32 = diagram
         .slices
         .iter()
@@ -156,19 +178,22 @@ fn paint_slices(canvas: &mut Canvas, diagram: &Diagram, cx: f32, cy: f32) {
             continue;
         }
         let fill = Some(fill_of(slice, index));
-        if span >= ALMOST_TURN {
-            canvas.ellipse(Layer::Bars, (cx, cy), (RADIUS, RADIUS), fill, None);
-        } else {
-            let stroke = (diagram.look.stroke_width > 0.0)
-                .then(|| Stroke::new(diagram.look.fill_stroke, diagram.look.stroke_width));
-            canvas.path(
-                Layer::Bars,
-                &wedge(cx, cy, theta, theta + span),
-                (cx - RADIUS, cy - RADIUS, cx + RADIUS, cy + RADIUS),
-                fill,
-                stroke,
-            );
-        }
+        let part = names.get(index).map_or("", String::as_str);
+        canvas.part(part, |canvas| {
+            if span >= ALMOST_TURN {
+                canvas.ellipse(Layer::Bars, (cx, cy), (RADIUS, RADIUS), fill, None);
+            } else {
+                let stroke = (diagram.look.stroke_width > 0.0)
+                    .then(|| Stroke::new(diagram.look.fill_stroke, diagram.look.stroke_width));
+                canvas.path(
+                    Layer::Bars,
+                    &wedge(cx, cy, theta, theta + span),
+                    (cx - RADIUS, cy - RADIUS, cx + RADIUS, cy + RADIUS),
+                    fill,
+                    stroke,
+                );
+            }
+        });
         theta += span;
     }
 }
@@ -218,7 +243,7 @@ fn legend_x(cx: f32, title: Option<&Block>) -> f32 {
 
 fn paint_legend(
     canvas: &mut Canvas,
-    diagram: &Diagram,
+    (diagram, names): (&Diagram, &[String]),
     family: Family,
     x: f32,
     mut y: f32,
@@ -236,18 +261,20 @@ fn paint_legend(
         )
         .map_err(|reason| Declined::at(slice.line, reason))?;
         let row = block.height.max(SWATCH);
-        canvas.card(
-            Layer::Bars,
-            (x, y + (row - SWATCH) / 2.0, SWATCH, SWATCH),
-            2.0,
-            fill_of(slice, index),
-        );
-        canvas.text(
-            Layer::Front,
-            &block,
-            (x + SWATCH + 8.0, y + (row - block.height) / 2.0),
-            Align::Left,
-        );
+        canvas.part(names.get(index).map_or("", String::as_str), |canvas| {
+            canvas.card(
+                Layer::Bars,
+                (x, y + (row - SWATCH) / 2.0, SWATCH, SWATCH),
+                2.0,
+                fill_of(slice, index),
+            );
+            canvas.text(
+                Layer::Front,
+                &block,
+                (x + SWATCH + 8.0, y + (row - block.height) / 2.0),
+                Align::Left,
+            );
+        });
         y += row + ROW_GAP;
     }
     Ok(())

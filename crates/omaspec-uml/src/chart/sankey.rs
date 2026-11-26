@@ -163,7 +163,19 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
     // The bands, stacked in the order written at both ends.
     let mut out_at: Vec<f32> = place.iter().map(|p| p.1).collect();
     let mut in_at: Vec<f32> = place.iter().map(|p| p.1).collect();
-    for &(from, to, value) in &d.flows {
+    // Each node named by its name, each flow by what it joins
+    // (docs/adr/0037).
+    let nodes = super::names(&mut canvas, "node", d.nodes.iter().map(String::as_str));
+    let mut given = crate::svg::Given::default();
+    let flows: Vec<String> = d
+        .flows
+        .iter()
+        .map(|&(from, to, _)| {
+            let name = |at: usize| d.nodes.get(at).map_or("", String::as_str);
+            given.unique(crate::svg::link_name(name(from), name(to), ""))
+        })
+        .collect();
+    for (f, &(from, to, value)) in d.flows.iter().enumerate() {
         let w = (value * scale) as f32;
         let (x0, x1) = (place[from].0 + NODE, place[to].0);
         let (a, b) = (out_at[from], in_at[to]);
@@ -189,49 +201,53 @@ pub fn draw(d: &Diagram, look: &Look) -> Result<String, Declined> {
             n(x0),
             n(a + w)
         );
-        canvas.glaze(
-            Layer::Background,
-            &path,
-            (x0, a.min(b), x1, (a + w).max(b + w)),
-            look.color(from),
-            0.4,
-        );
+        canvas.part(super::at(&flows, f), |canvas| {
+            canvas.glaze(
+                Layer::Background,
+                &path,
+                (x0, a.min(b), x1, (a + w).max(b + w)),
+                look.color(from),
+                0.4,
+            );
+        });
     }
     // The nodes over them, and what they are called.
     for (i, label) in labels.iter().enumerate() {
         let (x, y, h) = place[i];
         let color = look.color(i);
-        canvas.rect(
-            Layer::Frames,
-            (x, y, NODE, h.max(1.0)),
-            0.0,
-            Some(color),
-            // Drawn by hand, a node has its line.
-            look.sketch.then(|| crate::svg::Stroke::new(color, 1.0)),
-        );
-        let ly = y + (h - label.height) / 2.0;
-        let (lx, align, from) = if column[i] == last {
-            (
-                x - LABEL_OFF - LABEL_PAD,
-                Align::Right,
-                x - LABEL_OFF - 2.0 * LABEL_PAD - label.width,
-            )
-        } else {
-            (
-                x + NODE + LABEL_OFF + LABEL_PAD,
-                Align::Left,
-                x + NODE + LABEL_OFF,
-            )
-        };
-        // On the page's color, so it reads over the bands under it.
-        canvas.rect(
-            Layer::Bars,
-            (from, ly, label.width + 2.0 * LABEL_PAD, label.height),
-            3.0,
-            Some(look.ground()),
-            None,
-        );
-        canvas.text(Layer::Front, label, (lx, ly), align);
+        canvas.part(super::at(&nodes, i), |canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (x, y, NODE, h.max(1.0)),
+                0.0,
+                Some(color),
+                // Drawn by hand, a node has its line.
+                look.sketch.then(|| crate::svg::Stroke::new(color, 1.0)),
+            );
+            let ly = y + (h - label.height) / 2.0;
+            let (lx, align, from) = if column[i] == last {
+                (
+                    x - LABEL_OFF - LABEL_PAD,
+                    Align::Right,
+                    x - LABEL_OFF - 2.0 * LABEL_PAD - label.width,
+                )
+            } else {
+                (
+                    x + NODE + LABEL_OFF + LABEL_PAD,
+                    Align::Left,
+                    x + NODE + LABEL_OFF,
+                )
+            };
+            // On the page's color, so it reads over the bands under it.
+            canvas.rect(
+                Layer::Bars,
+                (from, ly, label.width + 2.0 * LABEL_PAD, label.height),
+                3.0,
+                Some(look.ground()),
+                None,
+            );
+            canvas.text(Layer::Front, label, (lx, ly), align);
+        });
     }
     Ok(canvas.finish(10.0, look.page))
 }

@@ -107,8 +107,31 @@ pub(crate) fn title(canvas: &mut Canvas, title: Option<&str>, look: &Look, middl
     };
     let font = Font::new(look.size + 4.0, look.ink).bold();
     let block = words(title, font, canvas.family());
-    canvas.text(Layer::Front, &block, (middle, 0.0), Align::Center);
+    canvas.part("title", |canvas| {
+        canvas.text(Layer::Front, &block, (middle, 0.0), Align::Center);
+    });
     block.height + 14.0
+}
+
+/// The name of each of `labels` (docs/adr/0037), as `kind-label`, given
+/// once each; a chart that names its parts is drawn as a whole, which
+/// this says to `canvas`.
+pub(crate) fn names<'a>(
+    canvas: &mut Canvas,
+    kind: &str,
+    labels: impl IntoIterator<Item = &'a str>,
+) -> Vec<String> {
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
+    labels
+        .into_iter()
+        .map(|label| given.unique(crate::svg::element(kind, crate::svg::first_line(label))))
+        .collect()
+}
+
+/// The name at `at` of `names`; none past its end.
+pub(crate) fn at(names: &[String], at: usize) -> &str {
+    names.get(at).map_or("", String::as_str)
 }
 
 /// A chart's title and its lines, each with its zero-based line.

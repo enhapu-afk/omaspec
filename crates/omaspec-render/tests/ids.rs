@@ -273,3 +273,49 @@ fn a_mermaid_gantt_names_its_tasks_by_their_ids_or_their_words() {
         ],
     );
 }
+
+#[test]
+fn the_charts_name_what_they_show() {
+    for (source, ids) in [
+        (
+            "pie title Day\n  \"Sleep\" : 8\n  \"Work\" : 8\n",
+            &["slice-Sleep", "slice-Work", "title"][..],
+        ),
+        (
+            "sankey-beta\nSolar,Grid,60\nGrid,Homes,40\n",
+            &[
+                "node-Solar",
+                "node-Grid",
+                "link-Solar-Grid",
+                "link-Grid-Homes",
+            ][..],
+        ),
+        (
+            "quadrantChart\n  quadrant-1 Do\n  Dark mode: [0.3, 0.6]\n",
+            &["quadrant-1", "quadrant-4", "point-Dark_20_mode"][..],
+        ),
+        (
+            "radar-beta\n  axis A, B, C\n  curve ada[\"Ada\"]{1, 2, 3}\n",
+            &["axis-A", "axis-C"][..],
+        ),
+        (
+            "treemap-beta\n\"Team\"\n  \"Apps\": 3\n  \"Data\": 2\n",
+            &["node-Team", "node-Apps", "node-Data"][..],
+        ),
+        (
+            "packet-beta\n0-15: \"Source port\"\n16-31: \"Destination port\"\n",
+            &["field-Source_20_port", "field-Destination_20_port"][..],
+        ),
+        (
+            "xychart-beta\n  x-axis [a, b]\n  bar [1, 2]\n  line [2, 1]\n",
+            &["bar", "line"][..],
+        ),
+    ] {
+        named(source, Language::Mermaid, ids);
+    }
+    named(
+        "@startchart\nh-axis [Q1, Q2]\nbar \"Bread\" [3, 4]\nline \"Margin\" [1, 2]\n@endchart\n",
+        Language::PlantUml,
+        &["bar-Bread", "line-Margin"],
+    );
+}

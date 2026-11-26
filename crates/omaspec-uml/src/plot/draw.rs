@@ -62,6 +62,24 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
         ));
     }
     let drawn = drawn(d, &look)?;
+    // Each series named by its kind and its name (`bar-Sales`, `line`;
+    // docs/adr/0037), the chart drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
+    let names: Vec<String> = drawn
+        .iter()
+        .map(|s| {
+            let kind = match s.series.kind {
+                Kind::Bar => "bar",
+                Kind::Line => "line",
+                Kind::Area => "area",
+                Kind::Scatter => "scatter",
+            };
+            let name = s.series.name.as_deref().map_or("", crate::svg::first_line);
+            given.unique(crate::svg::element(kind, name))
+        })
+        .collect();
+    let part = |k: usize| names.get(k).map_or("", String::as_str);
     let (cat_axis, val_axis) = if d.horizontal {
         (&d.v, &d.h)
     } else {
@@ -285,7 +303,11 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
             _ => (i as f32 + 0.5) / count as f32,
         }
     };
-    for s in drawn.iter().filter(|s| s.series.kind == Kind::Area) {
+    for (k, s) in drawn
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.series.kind == Kind::Area)
+    {
         let scale = scale_of(s.series);
         let tops: Vec<(f32, f32)> = s
             .spans
@@ -305,74 +327,92 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
             .style
             .line
             .map(|c| Stroke::new(c, s.style.thickness.unwrap_or(1.0)));
-        canvas.polygon(Layer::Frames, &outline, Some(s.color), stroke);
+        canvas.part(part(k), |canvas| {
+            canvas.polygon(Layer::Frames, &outline, Some(s.color), stroke);
+        });
     }
     let lanes = bar_lanes(d, &drawn);
-    for (s, lane) in drawn.iter().zip(&lanes) {
+    for (k, (s, lane)) in drawn.iter().zip(&lanes).enumerate() {
         let Some((lane, of)) = lane else { continue };
         let scale = scale_of(s.series);
-        for (i, span) in s.spans.iter().enumerate() {
-            let from = if d.stacked { span.0 } else { scale.base() };
-            let (c0, c1) = plot.lane(i, *lane, *of, look.bar_width);
-            let a = pos(c0, scale.at(from).clamp(0.0, 1.0));
-            let b = pos(c1, scale.at(span.1).clamp(0.0, 1.0));
-            let rect = (
-                a.0.min(b.0),
-                a.1.min(b.1),
-                (a.0 - b.0).abs(),
-                (a.1 - b.1).abs(),
-            );
-            canvas.rect(Layer::Frames, rect, 0.0, Some(s.color), look.bar_border);
-        }
+        canvas.part(part(k), |canvas| {
+            for (i, span) in s.spans.iter().enumerate() {
+                let from = if d.stacked { span.0 } else { scale.base() };
+                let (c0, c1) = plot.lane(i, *lane, *of, look.bar_width);
+                let a = pos(c0, scale.at(from).clamp(0.0, 1.0));
+                let b = pos(c1, scale.at(span.1).clamp(0.0, 1.0));
+                let rect = (
+                    a.0.min(b.0),
+                    a.1.min(b.1),
+                    (a.0 - b.0).abs(),
+                    (a.1 - b.1).abs(),
+                );
+                canvas.rect(Layer::Frames, rect, 0.0, Some(s.color), look.bar_border);
+            }
+        });
     }
-    for s in drawn.iter().filter(|s| s.series.kind == Kind::Line) {
+    for (k, s) in drawn
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.series.kind == Kind::Line)
+    {
         let scale = scale_of(s.series);
         let points = series_points(s, scale, &place_of, &pos);
         let width = s.style.thickness.unwrap_or(LINE);
-        canvas.polyline(Layer::Lines, &points, Stroke::new(s.color, width));
+        canvas.part(part(k), |canvas| {
+            canvas.polyline(Layer::Lines, &points, Stroke::new(s.color, width));
+        });
     }
-    for s in drawn.iter().filter(|s| s.series.kind == Kind::Scatter) {
+    for (k, s) in drawn
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.series.kind == Kind::Scatter)
+    {
         let scale = scale_of(s.series);
         let shape = s.style.shape.unwrap_or(Shape::Circle);
         let size = s.style.size.unwrap_or(MARKER);
-        for point in series_points(s, scale, &place_of, &pos) {
-            marker(&mut canvas, Layer::Lines, point, shape, size, s.color);
-        }
+        canvas.part(part(k), |canvas| {
+            for point in series_points(s, scale, &place_of, &pos) {
+                marker(canvas, Layer::Lines, point, shape, size, s.color);
+            }
+        });
     }
     // The values the series write at them.
-    for s in drawn.iter().filter(|s| s.series.labels) {
+    for (k, s) in drawn.iter().enumerate().filter(|(_, s)| s.series.labels) {
         let scale = scale_of(s.series);
         let lanes = lanes_of(&lanes, &drawn, s);
-        for (i, span) in s.spans.iter().enumerate() {
-            let value = span.1
-                - if s.series.kind == Kind::Area || d.stacked && lanes.is_some() {
-                    span.0
-                } else {
-                    0.0
+        canvas.part(part(k), |canvas| {
+            for (i, span) in s.spans.iter().enumerate() {
+                let value = span.1
+                    - if s.series.kind == Kind::Area || d.stacked && lanes.is_some() {
+                        span.0
+                    } else {
+                        0.0
+                    };
+                let c = match lanes {
+                    Some((lane, of)) => {
+                        let (c0, c1) = plot.lane(i, lane, of, look.bar_width);
+                        (c0 + c1) / 2.0
+                    }
+                    None => place_of(i, None),
                 };
-            let c = match lanes {
-                Some((lane, of)) => {
-                    let (c0, c1) = plot.lane(i, lane, of, look.bar_width);
-                    (c0 + c1) / 2.0
-                }
-                None => place_of(i, None),
-            };
-            let end = pos(c, scale.at(span.1).clamp(0.0, 1.0));
-            let block = label(&said(value), look.label_font);
-            let at = if d.horizontal {
-                (end.0 + 4.0, end.1 - block.height / 2.0)
-            } else if value < 0.0 && lanes.is_some() {
-                (end.0, end.1 + 3.0)
-            } else {
-                (end.0, end.1 - block.height - 3.0)
-            };
-            let align = if d.horizontal {
-                Align::Left
-            } else {
-                Align::Center
-            };
-            canvas.text(Layer::Front, &block, at, align);
-        }
+                let end = pos(c, scale.at(span.1).clamp(0.0, 1.0));
+                let block = label(&said(value), look.label_font);
+                let at = if d.horizontal {
+                    (end.0 + 4.0, end.1 - block.height / 2.0)
+                } else if value < 0.0 && lanes.is_some() {
+                    (end.0, end.1 + 3.0)
+                } else {
+                    (end.0, end.1 - block.height - 3.0)
+                };
+                let align = if d.horizontal {
+                    Align::Left
+                } else {
+                    Align::Center
+                };
+                canvas.text(Layer::Front, &block, at, align);
+            }
+        });
     }
 
     // The axes: their lines, where 0 lies, the ticks and their words.

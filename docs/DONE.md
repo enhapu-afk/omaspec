@@ -2438,6 +2438,17 @@ is open and the reasoning around it.
       `Block.port`, so two blocks of one wiring do not trade names; the
       tests take a Mermaid Gantt chart, a block inside a block and a
       note below a row.
+- [x] An id for every box and line, step 2, the charts (2026-11-26,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)), drawn as a
+      whole as before: a pie's `slice-Sleep` (its wedge and its line of
+      the legend), a sankey's `node-Solar` and `link-Solar-Grid`, a
+      quadrant chart's `quadrant-1` to `quadrant-4` and `point-Dark_20_mode`,
+      a radar's `axis-Design` and `curve-Ada` (its shape and its line of
+      the legend), a treemap's `node-Apps`, a packet's
+      `field-Source_20_port` (on each row it takes), an XY chart's
+      series `bar`, `line` (the second of a kind `-2`), a PlantUML
+      chart's `bar-Bread`, `line-Margin`, `area-…`, `scatter-…`; their
+      titles `title`.
 
 ## Next
 

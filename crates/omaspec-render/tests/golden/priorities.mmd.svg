@@ -1,28 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="501" height="477" viewBox="0 0 501 477" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="501" height="477" viewBox="0 0 501 477" data-omaspec="named">
 <rect x="0" y="0" width="501" height="477" fill="#FFFFFF"/>
 <g transform="translate(4,10)">
 <g>
+<g class="quadrant-1" id="quadrant-1">
 <rect x="288.2" y="35.95" width="198" height="198" fill="#DCE7F1"/>
+</g>
+<g class="quadrant-2" id="quadrant-2">
 <rect x="88.2" y="35.95" width="198" height="198" fill="#F8E6D6"/>
+</g>
+<g class="quadrant-3" id="quadrant-3">
 <rect x="88.2" y="235.95" width="198" height="198" fill="#DCEDDE"/>
+</g>
+<g class="quadrant-4" id="quadrant-4">
 <rect x="288.2" y="235.95" width="198" height="198" fill="#F8DEE0"/>
 </g>
+</g>
 <g>
+<g class="title" id="title">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="207.21" y="16.7" font-size="18" fill="#0F172A" font-weight="bold" textLength="159.98" lengthAdjust="spacing">What to build next</tspan>
 </text>
+</g>
+<g class="quadrant-1">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="366.22" y="55.94" font-size="14" fill="#0F172A" font-weight="bold" textLength="41.96" lengthAdjust="spacing">Plan it</tspan>
 </text>
+</g>
+<g class="quadrant-2">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="155.48" y="55.94" font-size="14" fill="#0F172A" font-weight="bold" textLength="63.45" lengthAdjust="spacing">Do it now</tspan>
 </text>
+</g>
+<g class="quadrant-3">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="146.61" y="255.94" font-size="14" fill="#0F172A" font-weight="bold" textLength="81.19" lengthAdjust="spacing">Maybe later</tspan>
 </text>
+</g>
+<g class="quadrant-4">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="360.52" y="255.94" font-size="14" fill="#0F172A" font-weight="bold" textLength="53.37" lengthAdjust="spacing">Leave it</tspan>
 </text>
+</g>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="153.45" y="453.02" font-size="13" fill="#0F172A" textLength="67.51" lengthAdjust="spacing">Little effort</tspan>
 </text>
@@ -35,30 +53,42 @@
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="10.81" y="339.45" font-size="13" fill="#0F172A" textLength="66.39" lengthAdjust="spacing">Little value</tspan>
 </text>
+<g class="point-Dark_20_mode" id="point-Dark_20_mode">
 <ellipse cx="167.2" cy="114.95" rx="5" ry="5" fill="#223F60"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="136.24" y="133.09" font-size="12" fill="#0F172A" textLength="61.93" lengthAdjust="spacing">Dark mode</tspan>
 </text>
+</g>
+<g class="point-Export_20_to_20_PDF" id="point-Export_20_to_20_PDF">
 <ellipse cx="227.2" cy="174.95" rx="5" ry="5" fill="#223F60"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="188.19" y="193.09" font-size="12" fill="#0F172A" textLength="78.02" lengthAdjust="spacing">Export to PDF</tspan>
 </text>
+</g>
+<g class="point-Plugins" id="point-Plugins">
 <ellipse cx="427.2" cy="134.95" rx="5" ry="5" fill="#223F60"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="406.52" y="153.09" font-size="12" fill="#0F172A" textLength="41.35" lengthAdjust="spacing">Plugins</tspan>
 </text>
+</g>
+<g class="point-Offline_20_sync" id="point-Offline_20_sync">
 <ellipse cx="367.2" cy="254.95" rx="5" ry="5" fill="#223F60"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="333.02" y="273.09" font-size="12" fill="#0F172A" textLength="68.35" lengthAdjust="spacing">Offline sync</tspan>
 </text>
+</g>
+<g class="point-Emoji_20_reactions" id="point-Emoji_20_reactions">
 <ellipse cx="147.2" cy="354.95" rx="5" ry="5" fill="#223F60"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="103.87" y="373.09" font-size="12" fill="#0F172A" textLength="86.66" lengthAdjust="spacing">Emoji reactions</tspan>
 </text>
+</g>
+<g class="point-Rewrite_20_in_20_Go" id="point-Rewrite_20_in_20_Go">
 <ellipse cx="447.2" cy="394.95" rx="5" ry="5" fill="#223F60"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="409.32" y="413.09" font-size="12" fill="#0F172A" textLength="75.77" lengthAdjust="spacing">Rewrite in Go</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>
