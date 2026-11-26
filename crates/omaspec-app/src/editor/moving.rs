@@ -477,7 +477,7 @@ fn fold_page(args: &Moving) -> Result<String> {
                 .collect();
             offered_all(&args.folds, &offered)?;
             anyhow::ensure!(
-                omaspec_uml::has_parts(&rendered.svg),
+                omaspec_uml::glides_by_parts(&rendered.svg),
                 "this kind of diagram does not glide by its parts yet: write the fold as .webp, .png or .gif"
             );
         }

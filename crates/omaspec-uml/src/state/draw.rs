@@ -1784,7 +1784,7 @@ mod tests {
     /// transition into a state's inside as well.
     #[test]
     fn a_note_on_link_stands_under_the_words_of_its_transition() {
-        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : start\nnote on link : counts\nstate Busy {\n  [*] --> Working\n}\nWorking --> Idle : fail\nnote on link : a crossing\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : start\nnote on link : counts\nstate Busy {\n  [*] --> Working\n}\nWorking --> Idle : fail\nnote on link : a crossing\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         // Each in a part of its own, by its transition's words: the second
         // line of the diagram, and its first crossing after its two edges.
@@ -1949,7 +1949,7 @@ mod tests {
     /// lines to and from it end on that diamond.
     #[test]
     fn a_choice_is_a_small_diamond_the_lines_meet() {
-        let source = "@startuml\n' parts (Omaspec)\nstate Pick <<choice>>\n[*] --> Idle\nIdle --> Pick : next\nPick --> A : [x]\nPick --> B : [y]\nB --> Idle\n@enduml\n";
+        let source = "@startuml\nstate Pick <<choice>>\n[*] --> Idle\nIdle --> Pick : next\nPick --> A : [x]\nPick --> B : [y]\nB --> Idle\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         assert!(!svg.contains(">Pick<"), "{svg}");
         let place = map.places.iter().find(|p| p.name == "Pick").unwrap().rect;
@@ -2225,7 +2225,7 @@ mod tests {
 
     #[test]
     fn a_note_is_drawn_in_a_part_of_its_own() {
-        let source = "@startuml\nstate Brewing {\n  state Grind\n  note right of Grind : fine\n  note left of Grind : dark\n}\nstate Idle\nnote left of Idle : coarse\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\nstate Brewing {\n  state Grind\n  note right of Grind : fine\n  note left of Grind : dark\n}\nstate Idle\nnote left of Idle : coarse\n@enduml\n";
         let (svg, _) = crate::render_mapped(source, None).unwrap();
         let ground = crate::without_parts(&svg).unwrap();
         assert!(!ground.contains("<path d=\"M"), "{ground}");
@@ -2320,7 +2320,7 @@ mod tests {
     /// a part of its own, the one the map names.
     #[test]
     fn a_state_never_shares_another_part() {
-        let source = "@startuml\ntitle Year\nstate title\nstate start\nstate \"Long name\" as L\n[*] --> L\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\ntitle Year\nstate title\nstate start\nstate \"Long name\" as L\n[*] --> L\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         let title: Vec<&str> = groups
@@ -2354,7 +2354,7 @@ mod tests {
     /// in it.
     #[test]
     fn the_pane_s_parts_are_named_as_the_map_names_them() {
-        let source = "@startuml\n[*] --> Off\nOff --> Brewing : start\nstate Brewing {\n  [*] --> Grinding\n  Grinding --> Pouring : ground\n  Pouring --> [*]\n}\nBrewing --> Off : done\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\n[*] --> Off\nOff --> Brewing : start\nstate Brewing {\n  [*] --> Grinding\n  Grinding --> Pouring : ground\n  Pouring --> [*]\n}\nBrewing --> Off : done\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         let named: std::collections::HashSet<&str> =
@@ -2382,9 +2382,6 @@ mod tests {
             assert!(group.matches("<rect").count() <= 1, "{group}");
             assert!(!group.contains("Grinding"), "{group}");
         }
-        // Every picture marks them, the old line asking for them aside.
-        let plain = crate::render(&source.replace("' parts (Omaspec)\n", "")).unwrap();
-        assert_eq!(plain, svg);
     }
 
     /// A transition is an element of the picture (docs/adr/0037): its
@@ -2393,7 +2390,7 @@ mod tests {
     /// drawn anew.
     #[test]
     fn a_transition_s_line_carries_its_id() {
-        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : start\nBusy --> Idle\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : start\nBusy --> Idle\n@enduml\n";
         let svg = crate::render(source).unwrap();
         let lines_at = svg.find(r#"<g id="lines">"#).unwrap();
         let lines = &svg[lines_at..lines_at + crate::svg::group_length(&svg[lines_at..]).unwrap()];

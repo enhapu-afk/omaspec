@@ -406,7 +406,7 @@ mod tests {
     /// cards are in the map, to glide with them.
     #[test]
     fn a_json_card_is_a_part_and_its_arrows_are_in_the_map() {
-        let source = "@startjson\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}, \"tags\": [\"x\"]}\n' parts (Omaspec)\n@endjson\n";
+        let source = "@startjson\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}, \"tags\": [\"x\"]}\n@endjson\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         let cards: Vec<&str> = map

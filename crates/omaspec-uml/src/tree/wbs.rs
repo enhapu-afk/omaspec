@@ -327,8 +327,7 @@ mod tests {
     /// named as its map names it, the lines between them outside.
     #[test]
     fn a_wbs_s_boxes_are_parts_named_as_its_map_names_them() {
-        let source =
-            "@startwbs\n* Move\n** Pack\n*** Books\n** Clean\n' parts (Omaspec)\n@endwbs\n";
+        let source = "@startwbs\n* Move\n** Pack\n*** Books\n** Clean\n@endwbs\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         assert_eq!(map.places.len(), 4, "{:?}", map.places);

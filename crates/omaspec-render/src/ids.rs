@@ -105,6 +105,9 @@ pub fn is_id_prefix(prefix: &str) -> bool {
         .next()
         .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
         && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+        // A page's own groups start so (`omaspec-links`): a part's class
+        // never does (docs/adr/0037).
+        && !prefix.starts_with("omaspec-")
 }
 
 /// Where the tag `tag` starts with ends: after its `>` outside quotes.

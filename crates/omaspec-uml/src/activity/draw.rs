@@ -824,16 +824,16 @@ mod tests {
         let apart = |a: &crate::graph::Rect, b: &crate::graph::Rect| {
             a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
         };
-        let source = "@startuml\n' parts (Omaspec)\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  -> only words in a;\n(a very long incoming label here) elseif (b?) then (yes)\n  -> into B;\n  :B;\n  -> out of B;\nelseif (c?) then (yes)\n  while (more?)\n    :work;\n  endwhile\nelse\n  :C;\n  -> words after C;\nendif\nstop\n@enduml\n";
+        let source = "@startuml\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  -> only words in a;\n(a very long incoming label here) elseif (b?) then (yes)\n  -> into B;\n  :B;\n  -> out of B;\nelseif (c?) then (yes)\n  while (more?)\n    :work;\n  endwhile\nelse\n  :C;\n  -> words after C;\nendif\nstop\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         for words in ["only words in a", "into B", "out of B", "words after C"] {
             assert!(svg.contains(words), "{words}: {svg}");
         }
         let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
-        let (incoming, b) = (at(6), at(8));
+        let (incoming, b) = (at(5), at(7));
         assert!(apart(&incoming, &b), "{incoming:?} {b:?}");
         assert!(!map.wires.is_empty());
-        let words: Vec<_> = [5, 7, 9, 16].map(at).into_iter().collect();
+        let words: Vec<_> = [4, 6, 8, 15].map(at).into_iter().collect();
         for wire in &map.wires {
             assert!(!wire.key.to.is_empty(), "{:?}", wire.key);
             for run in wire.path.windows(2) {
@@ -898,12 +898,13 @@ mod tests {
     /// empty branch, those on the arrow out of a group below its frame.
     #[test]
     fn words_keep_clear_of_words_and_lines() {
-        let stacked = "@startuml\n' parts (Omaspec)\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  :A;\nelseif (b?) then (yes)\n  -> first line\\nsecond line\\nthird line\\nfourth line;\nelseif (c?) then (yes)\n  :B;\n  :B2;\n  :B3;\nelse\n  -> words on the way out of an empty else that are long;\nendif\nstop\n@enduml\n";
+        let stacked = "@startuml\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  :A;\nelseif (b?) then (yes)\n  -> first line\\nsecond line\\nthird line\\nfourth line;\nelseif (c?) then (yes)\n  :B;\n  :B2;\n  :B3;\nelse\n  -> words on the way out of an empty else that are long;\nendif\nstop\n@enduml\n";
         let full = stacked.replace(
             "else\n  -> words on the way out",
             "else\n  :C;\n  -> long words on the arrow out",
         );
-        let group = "@startuml\n' parts (Omaspec)\nstart\npartition End {\n  :end;\n}\n-> this is the end;\nstop\n@enduml\n";
+        let group =
+            "@startuml\nstart\npartition End {\n  :end;\n}\n-> this is the end;\nstop\n@enduml\n";
         for source in [stacked, full.as_str(), group] {
             let (_, map) = crate::render_mapped(source, None).unwrap();
             let rects: Vec<_> = map.tied.iter().map(|t| t.rect).collect();
@@ -935,7 +936,7 @@ mod tests {
         }
         // The words after a group stand below its frame.
         let (svg, map) = crate::render_mapped(group, None).unwrap();
-        let words = map.tied.iter().find(|t| t.line == 6).unwrap().rect;
+        let words = map.tied.iter().find(|t| t.line == 5).unwrap().rect;
         let frame = svg.split("<rect").nth(1).unwrap();
         let num = |key: &str| -> f32 {
             let at = frame.find(&format!(" {key}=\"")).unwrap() + key.len() + 3;
@@ -1034,8 +1035,8 @@ mod tests {
     #[test]
     fn a_whiles_way_out_turns_no_hairpin() {
         for source in [
-            "@startuml\n' parts (Omaspec)\nstart\nif (x?) then (yes)\n  :left branch long action text here;\nelse (no)\n  while (more?) is (yes)\n    :work;\n  endwhile (done)\nendif\nstop\n@enduml\n",
-            "@startuml\n' parts (Omaspec)\n|Lane A|\nstart\n:a long action in lane A;\n|Lane B|\nwhile (more work to do?) is (yes)\n  :work;\nendwhile (no more)\n|Lane A|\nstop\n@enduml\n",
+            "@startuml\nstart\nif (x?) then (yes)\n  :left branch long action text here;\nelse (no)\n  while (more?) is (yes)\n    :work;\n  endwhile (done)\nendif\nstop\n@enduml\n",
+            "@startuml\n|Lane A|\nstart\n:a long action in lane A;\n|Lane B|\nwhile (more work to do?) is (yes)\n  :work;\nendwhile (no more)\n|Lane A|\nstop\n@enduml\n",
         ] {
             let (_, map) = crate::render_mapped(source, None).unwrap();
             assert!(!map.wires.is_empty());

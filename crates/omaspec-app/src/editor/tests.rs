@@ -2999,6 +2999,12 @@ fn the_drawers_that_mark_parts_mark_them() {
         ),
         ("sequenceDiagram\nA->>B: hi\n", Language::Mermaid),
         ("pie\n\"a\": 1\n", Language::Mermaid),
+        // A title is a part of the frame, which every picture has: no box.
+        ("@startuml\ntitle T\nA -> B\n@enduml\n", Language::PlantUml),
+        (
+            "@startgantt\ntitle T\n[A] lasts 1 day\n@endgantt\n",
+            Language::PlantUml,
+        ),
     ] {
         assert!(!marks(source, language), "{source}");
     }

@@ -375,10 +375,8 @@ mod tests {
         );
     }
 
-    const PARTS: &str = "\n' parts (Omaspec)\n";
-
     fn mapped(source: &str) -> (String, crate::map::Map) {
-        crate::render_mapped(&format!("{source}{PARTS}"), None).unwrap()
+        crate::render_mapped(source, None).unwrap()
     }
 
     /// Asked for its parts, an activity diagram draws each shape in a part
@@ -473,7 +471,7 @@ mod tests {
         for file in std::fs::read_dir(dir).unwrap() {
             let path = file.unwrap().path();
             let source = std::fs::read_to_string(&path).unwrap();
-            let Ok((svg, map)) = crate::render_mapped(&format!("{source}{PARTS}"), None) else {
+            let Ok((svg, map)) = crate::render_mapped(&source, None) else {
                 continue;
             };
             let mut keys = HashSet::new();

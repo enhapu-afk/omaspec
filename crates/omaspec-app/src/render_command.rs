@@ -137,7 +137,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         );
         anyhow::ensure!(
             omaspec_render::is_id_prefix(prefix),
-            "--id-prefix starts with a letter or `_`, then letters, digits, `_`, `-` and `.`"
+            "--id-prefix starts with a letter or `_`, then letters, digits, `_`, `-` and `.`, and not with `omaspec-`, which a page's own groups take"
         );
     }
     if let Some(least) = args.min_font {

@@ -559,8 +559,7 @@ mod tests {
     /// its own all the same: the title glides apart from it.
     #[test]
     fn a_box_never_shares_the_title_s_part() {
-        let source =
-            "@startmindmap\ntitle Year\n* title\n** start\n' parts (Omaspec)\n@endmindmap\n";
+        let source = "@startmindmap\ntitle Year\n* title\n** start\n@endmindmap\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         let title: Vec<&str> = groups
@@ -578,8 +577,7 @@ mod tests {
 
     #[test]
     fn a_mind_map_s_boxes_are_parts_named_as_its_map_names_them() {
-        let source =
-            "@startmindmap\n* Trip\n** Pack\n*** Socks\n** Book\n' parts (Omaspec)\n@endmindmap\n";
+        let source = "@startmindmap\n* Trip\n** Pack\n*** Socks\n** Book\n@endmindmap\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         assert_eq!(map.places.len(), 4, "{:?}", map.places);
@@ -604,9 +602,6 @@ mod tests {
             !ground.contains("Socks") && ground.contains("<path"),
             "{ground}"
         );
-        // Every picture marks them, the old line asking for them aside.
-        let plain = crate::render(&source.replace("' parts (Omaspec)\n", "")).unwrap();
-        assert!(crate::has_parts(&plain));
     }
 
     #[test]

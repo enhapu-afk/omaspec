@@ -180,7 +180,10 @@ impl Picture {
         // closes the diagram is written, rather than all of it but its
         // foot from the first line on, a row cut in half to the end
         // (REQ-142).
-        let untied = reach.is_empty() && parts.is_empty();
+        let boxes = parts
+            .iter()
+            .any(|part| !omaspec_uml::FRAME_PARTS.contains(&part.name.as_str()));
+        let untied = reach.is_empty() && !boxes;
         if untied {
             reach.push((closing_line(text), size.1));
         }
@@ -207,9 +210,12 @@ impl Picture {
         (point.x, point.y)
     }
 
-    /// Whether it builds part by part, else from the top down.
+    /// Whether it builds part by part, else from the top down: it has
+    /// boxes of its own, not only its frame's parts (a titled sequence).
     pub(super) fn by_parts(&self) -> bool {
-        !self.parts.is_empty()
+        self.parts
+            .iter()
+            .any(|part| !omaspec_uml::FRAME_PARTS.contains(&part.name.as_str()))
     }
 
     /// Down to where the picture shows before any line: above the first

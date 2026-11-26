@@ -2710,7 +2710,7 @@ mod tests {
     /// holds, a note inside it goes with it.
     #[test]
     fn a_structure_s_parts_are_named_as_its_map_names_them() {
-        let source = "@startuml\npackage Lending {\n  class Loan\n  class Copy\n  Loan \"1\" --> \"*\" Copy : lends\n  note right of Copy : on the shelf\n}\nclass Member\nMember --> Loan : borrows\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\npackage Lending {\n  class Loan\n  class Copy\n  Loan \"1\" --> \"*\" Copy : lends\n  note right of Copy : on the shelf\n}\nclass Member\nMember --> Loan : borrows\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = part_groups(&svg);
         let named = |name: &str| groups.iter().any(|(n, _)| n == name);
@@ -2752,7 +2752,8 @@ mod tests {
     /// and stays off the ground.
     #[test]
     fn a_shadow_goes_with_its_box() {
-        let source = "@startuml\nskinparam shadowing true\nclass Loan\nclass Copy\nLoan --> Copy\n' parts (Omaspec)\n@enduml\n";
+        let source =
+            "@startuml\nskinparam shadowing true\nclass Loan\nclass Copy\nLoan --> Copy\n@enduml\n";
         let (svg, _) = crate::render_mapped(source, None).unwrap();
         assert!(svg.contains(r##"fill="#000000""##), "shadows drawn: {svg}");
         let ground = crate::without_parts(&svg).unwrap();

@@ -1820,6 +1820,17 @@ pub fn has_parts(svg: &str) -> bool {
     part_starts(svg).next().is_some()
 }
 
+/// The parts of a picture's frame (docs/adr/0029): every drawer draws
+/// them, a sequence diagram's as a state machine's.
+pub const FRAME_PARTS: [&str; 5] = ["title", "header", "footer", "caption", "legend"];
+
+/// Whether `svg` glides by its parts: it marks more than its frame's
+/// ([`FRAME_PARTS`]), its boxes; a picture whose drawer names none of
+/// its own fades, and builds from the top down.
+pub fn glides_by_parts(svg: &str) -> bool {
+    part_starts(svg).any(|(_, class)| !FRAME_PARTS.contains(&class))
+}
+
 /// Each group of a part in `svg`, whole: the part's name and the group.
 pub fn part_groups(svg: &str) -> Vec<(String, &str)> {
     part_starts(svg)

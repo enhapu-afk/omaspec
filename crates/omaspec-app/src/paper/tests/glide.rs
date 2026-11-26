@@ -56,7 +56,7 @@ fn a_fold_fades_and_a_zoomed_box_stays_put() {
 /// part leaves no hole in the ground (docs/adr/0029).
 #[test]
 fn a_fold_glides_each_part_from_a_picture_of_its_own() {
-    let open = "@startuml\n[*] --> Idle\nIdle --> Brewing : start\nstate Brewing {\n  [*] --> Grind\n  Grind --> Pour : ground\n}\nBrewing --> Idle : done\n' parts (Omaspec)\n@enduml\n";
+    let open = "@startuml\n[*] --> Idle\nIdle --> Brewing : start\nstate Brewing {\n  [*] --> Grind\n  Grind --> Pour : ground\n}\nBrewing --> Idle : done\n@enduml\n";
     let folded = open.replace("@enduml", "' fold (Omaspec) Brewing\n@enduml");
     let mut paper = Paper::default();
     paper.send(Message::Viewport(Size::new(800.0, 600.0)));
@@ -119,7 +119,7 @@ fn a_fold_glides_each_part_from_a_picture_of_its_own() {
 /// package itself come from the sheets.
 #[test]
 fn a_package_glides_from_its_parts() {
-    let open = "@startuml\npackage Lending {\n  class Loan\n  class Copy\n  Loan --> Copy : lends\n}\nclass Member\nMember --> Loan : borrows\n' parts (Omaspec)\n@enduml\n";
+    let open = "@startuml\npackage Lending {\n  class Loan\n  class Copy\n  Loan --> Copy : lends\n}\nclass Member\nMember --> Loan : borrows\n@enduml\n";
     let folded = open.replace("@enduml", "' fold (Omaspec) Lending\n@enduml");
     let mut paper = Paper::default();
     paper.send(Message::Viewport(Size::new(800.0, 600.0)));
@@ -156,7 +156,7 @@ fn a_package_glides_from_its_parts() {
 /// words with it.
 #[test]
 fn a_subgraph_glides_from_its_parts() {
-    let open = "flowchart LR\n  A[Cart] -->|pays| B[Till]\n  subgraph Back[Back office]\n    C[Stock] --> D[Ship]\n  end\n  B -->|orders| C\n%% parts (Omaspec)\n";
+    let open = "flowchart LR\n  A[Cart] -->|pays| B[Till]\n  subgraph Back[Back office]\n    C[Stock] --> D[Ship]\n  end\n  B -->|orders| C\n";
     let folded = format!("{open}%% fold (Omaspec) Back\n");
     let mut paper = Paper::default();
     paper.send(Message::Viewport(Size::new(800.0, 600.0)));
@@ -206,8 +206,7 @@ fn a_subgraph_glides_from_its_parts() {
 /// each from its own picture, and nothing is left over.
 #[test]
 fn a_wbs_branch_glides_from_its_parts() {
-    let open =
-        "@startwbs\n* Move\n** Pack\n*** Books\n*** Plates\n** Clean\n' parts (Omaspec)\n@endwbs\n";
+    let open = "@startwbs\n* Move\n** Pack\n*** Books\n*** Plates\n** Clean\n@endwbs\n";
     let folded = format!("{open}' fold (Omaspec) Pack\n");
     let mut paper = Paper::default();
     paper.send(Message::Viewport(Size::new(800.0, 600.0)));
@@ -251,7 +250,7 @@ fn a_wbs_branch_glides_from_its_parts() {
 /// The top card and the title, in both pictures, glide on their own.
 #[test]
 fn a_json_card_folds_from_its_part_into_its_row() {
-    let open = "@startjson\ntitle People\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}}\n' parts (Omaspec)\n@endjson\n";
+    let open = "@startjson\ntitle People\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}}\n@endjson\n";
     let folded = format!("{open}' fold (Omaspec) home/street\n");
     let mut paper = Paper::default();
     paper.send(Message::Viewport(Size::new(800.0, 600.0)));
@@ -631,7 +630,7 @@ fn an_inner_end_s_line_does_not_glide_to_the_diagram_s_end() {
 /// both at once.
 #[test]
 fn a_note_glides_on_its_own_when_its_state_folds() {
-    let open = "stateDiagram-v2\n[*] --> Playing\nstate Playing {\n  [*] --> Live\n  Live --> Multiball\n  state Multiball {\n    [*] --> Three\n    Three --> Two\n    note right of Three : three at once\n  }\n}\nnote right of Multiball\n  then the drain anyway\nend note\n%% parts (Omaspec)\n";
+    let open = "stateDiagram-v2\n[*] --> Playing\nstate Playing {\n  [*] --> Live\n  Live --> Multiball\n  state Multiball {\n    [*] --> Three\n    Three --> Two\n    note right of Three : three at once\n  }\n}\nnote right of Multiball\n  then the drain anyway\nend note\n";
     let folded = format!("{open}%% fold (Omaspec) Multiball\n");
     let mut paper = Paper::default();
     paper.send(Message::Viewport(Size::new(800.0, 600.0)));

@@ -294,7 +294,7 @@ mod tests {
     /// theirs: a card's groups hold its own rows only.
     #[test]
     fn a_nested_card_is_a_part_and_holds_its_own_rows() {
-        let source = "@startjson\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}}\n' layout (Omaspec) nested\n' parts (Omaspec)\n@endjson\n";
+        let source = "@startjson\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}}\n' layout (Omaspec) nested\n@endjson\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         let groups = crate::part_groups(&svg);
         let of = |name: &str| -> String {

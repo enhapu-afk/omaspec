@@ -614,7 +614,7 @@ fn lines_that_arrive_differently_keep_their_own_arrivals() {
 /// a subgraph's groups hold nothing of the nodes in it.
 #[test]
 fn a_flowchart_s_parts_are_named_as_its_map_names_them() {
-    let source = "flowchart LR\n  A[Cart] -->|pays| B[Till]\n  subgraph Back[Back office]\n    C[Stock] --> D[Ship]\n  end\n  B -->|orders| C\n%% parts (Omaspec)\n";
+    let source = "flowchart LR\n  A[Cart] -->|pays| B[Till]\n  subgraph Back[Back office]\n    C[Stock] --> D[Ship]\n  end\n  B -->|orders| C\n";
     let parsed = parse_mermaid_strict(source).unwrap();
     let theme = RenderOptions::default().theme;
     let (svg, map) = super::super::try_draw(
@@ -645,7 +645,4 @@ fn a_flowchart_s_parts_are_named_as_its_map_names_them() {
             "{group}"
         );
     }
-    // Every picture marks them, the old line asking for them aside.
-    let plain = draw(&source.replace("%% parts (Omaspec)\n", "")).unwrap();
-    assert!(omaspec_uml::has_parts(&plain));
 }

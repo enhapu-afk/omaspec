@@ -489,7 +489,7 @@ mod tests {
     /// pixels takes nothing of them.
     #[test]
     fn a_sheet_keeps_its_parts_apart_at_any_scale() {
-        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\nBusy --> Idle : done\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\nBusy --> Idle : done\n@enduml\n";
         let drawn = super::super::testing::drawn(source, omaspec_core::Language::PlantUml);
         assert!(drawn.parts);
         let size = drawn.tree.size();
@@ -524,7 +524,8 @@ mod tests {
     /// from it, and it is on the GPU with the sheet.
     #[test]
     fn a_sheet_has_a_patch_of_each_fill() {
-        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\nnote right of Busy : hot\n' parts (Omaspec)\n@enduml\n";
+        let source =
+            "@startuml\n[*] --> Idle\nIdle --> Busy : go\nnote right of Busy : hot\n@enduml\n";
         let drawn = super::super::testing::drawn(source, omaspec_core::Language::PlantUml);
         let size = drawn.tree.size();
         let plan = Plan::overview(Size::new(size.width(), size.height()), 2.0).unwrap();
@@ -555,8 +556,7 @@ mod tests {
     /// the sheet at that strength, not as solid black.
     #[test]
     fn a_part_s_shadow_is_drawn_at_its_strength() {
-        let source =
-            "@startuml\nskinparam shadowing true\nclass Loan\n' parts (Omaspec)\n@enduml\n";
+        let source = "@startuml\nskinparam shadowing true\nclass Loan\n@enduml\n";
         let drawn = super::super::testing::drawn(source, omaspec_core::Language::PlantUml);
         let size = drawn.tree.size();
         let plan = Plan::overview(Size::new(size.width(), size.height()), 2.0).unwrap();

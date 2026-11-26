@@ -74,7 +74,9 @@ impl Drawn {
         // The picture and its ground are read side by side: each takes as
         // long as the other, a quarter of a second for a tree of some
         // thousand boxes.
-        let parts = cards.is_none() && omaspec_uml::has_parts(&rendered.svg);
+        // Only a picture with boxes of its own glides by its parts; one
+        // whose frame alone is marked (a titled sequence) fades.
+        let parts = cards.is_none() && omaspec_uml::glides_by_parts(&rendered.svg);
         let (tree, bare) = std::thread::scope(|scope| {
             let bare = scope.spawn(|| {
                 parts

@@ -2341,7 +2341,13 @@ is open and the reasoning around it.
       numbers each group for its own reading, `name~n`); every golden SVG
       changed once, by its groups and its root alone. An activity
       diagram's boxes are named so in its map too (`action-Pay`, where
-      it was `action:Pay`).
+      it was `action:Pay`). After the review: a picture glides and builds
+      by its parts only where it has boxes of its own, not only its
+      frame's (`glides_by_parts`, `FRAME_PARTS`), so a titled sequence,
+      timing or Gantt chart still builds from the top down and fades,
+      and `--history` and `--fold` still refuse it; `--id-prefix` takes
+      no `omaspec-`, which a page's own groups start with; the tests no
+      longer write the line that once asked for the parts.
 
 ## Next
 

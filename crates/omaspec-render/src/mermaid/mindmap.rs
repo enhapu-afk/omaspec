@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn a_mind_map_s_boxes_are_parts() {
         let theme = Theme::mermaid_default();
-        let source = "mindmap\n  ((Root))\n    Branch\n      Leaf\n%% parts (Omaspec)\n";
+        let source = "mindmap\n  ((Root))\n    Branch\n      Leaf\n";
         let (svg, map) = try_draw(&theme, source).unwrap();
         let groups = omaspec_uml::part_groups(&svg);
         assert_eq!(map.places.len(), 3, "{:?}", map.places);
@@ -191,7 +191,7 @@ mod tests {
         let plain = try_draw(&theme, "mindmap\n  ((Root))\n    Branch\n")
             .unwrap()
             .0;
-        // Every picture marks them, the old line asking for them aside.
+        // A picture without the line it once took marks them too.
         assert!(omaspec_uml::has_parts(&plain));
     }
 

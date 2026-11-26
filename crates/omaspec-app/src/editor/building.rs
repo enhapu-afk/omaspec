@@ -200,9 +200,12 @@ fn page(
         overlap: OVERLAP,
         pace: script.pace,
         boxes: script.draws.iter().map(|&(boxes, _)| boxes).collect(),
+        // A picture that builds from the top down sets down no parts of
+        // its own, its frame's neither (a titled sequence).
         parts: picture
             .parts
             .iter()
+            .filter(|_| picture.by_parts())
             .map(|part| page::PartAt {
                 class: omaspec_uml::part_id(&part.name),
                 line: part.line,
@@ -571,6 +574,12 @@ mod tests {
 
     #[test]
     fn a_sequence_builds_from_the_top_down() {
+        // With a title too, whose part is the frame's, not a box.
+        let titled = picture(
+            "@startuml\ntitle Hello\nAlice -> Bob : hello\n@enduml\n",
+            Language::PlantUml,
+        );
+        assert!(!titled.parts.is_empty() && !titled.by_parts());
         let sequence = picture(
             "@startuml\nAlice -> Bob : hello\nBob -> Alice : hi\n@enduml\n",
             Language::PlantUml,
