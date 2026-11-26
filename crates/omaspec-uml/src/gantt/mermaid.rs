@@ -255,6 +255,8 @@ impl Days {
 
 struct Raw {
     key: String,
+    /// The source gives the key, not the counter.
+    written: bool,
     label: String,
     line: usize,
     milestone: bool,
@@ -523,6 +525,7 @@ impl Chart {
                 what: "a start",
             });
         }
+        let written = key.is_some();
         let key = match key {
             Some(key) if key.is_empty() => {
                 return Err(Reason {
@@ -545,6 +548,7 @@ impl Chart {
         let index = self.tasks.len();
         self.tasks.push(Raw {
             key,
+            written,
             label: label.to_owned(),
             line,
             milestone,
@@ -605,6 +609,7 @@ impl Chart {
                         .map(|(_, link)| link.clone());
                     rows.push(Row::Bar(Bar {
                         key: task.key.clone(),
+                        written: task.written,
                         label: task.label.clone(),
                         line: task.line,
                         start: place.start - base,

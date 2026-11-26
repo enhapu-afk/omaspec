@@ -36,7 +36,7 @@ impl Names {
             ..Names::default()
         };
         names.blocks_of(&diagram.blocks, &mut Vec::new(), &mut given);
-        names.wires_of(&diagram.wires, &[], &mut given);
+        names.wires_of((&diagram.wires, None), &[], &mut given);
         names.inner_wires(&diagram.blocks, &mut Vec::new(), &mut given);
         names
     }
@@ -71,10 +71,16 @@ impl Names {
         }
     }
 
-    fn wires_of(&mut self, wires: &[Wire], path: &[usize], given: &mut Given) {
+    /// The wires of the block called `holder`, or of the diagram.
+    fn wires_of(
+        &mut self,
+        (wires, holder): (&[Wire], Option<&str>),
+        path: &[usize],
+        given: &mut Given,
+    ) {
         for (at, wire) in wires.iter().enumerate() {
             let said = wire.label.as_deref().unwrap_or_default();
-            let name = link_name(&end(&wire.from), &end(&wire.to), said);
+            let name = link_name(&end(&wire.from, holder), &end(&wire.to, holder), said);
             self.wires.insert((path.to_vec(), at), given.unique(name));
         }
     }
@@ -82,7 +88,7 @@ impl Names {
     fn inner_wires(&mut self, blocks: &[Block], path: &mut Vec<usize>, given: &mut Given) {
         for (index, block) in blocks.iter().enumerate() {
             path.push(index);
-            self.wires_of(&block.wires, path, given);
+            self.wires_of((&block.wires, Some(&block.name)), path, given);
             self.inner_wires(&block.blocks, path, given);
             path.pop();
         }
@@ -90,10 +96,12 @@ impl Names {
 }
 
 /// An end of a wire as its name holds it: a port of the diagram by its
-/// name, a block's port as `Block.port`.
-fn end(end: &End) -> String {
-    match end {
-        End::Boundary(name) => name.clone(),
-        End::Port { block, port } => format!("{block}.{port}"),
+/// name, a block's port as `Block.port`, the port of the block `holder`
+/// a wire inside it ends on as `Holder.port`.
+fn end(end: &End, holder: Option<&str>) -> String {
+    match (end, holder) {
+        (End::Boundary(name), None) => name.clone(),
+        (End::Boundary(name), Some(holder)) => format!("{holder}.{name}"),
+        (End::Port { block, port }, _) => format!("{block}.{port}"),
     }
 }

@@ -297,6 +297,7 @@ impl Builder {
                     let place = &solved[index];
                     rows.push(Row::Bar(Bar {
                         key: task.key.clone(),
+                        written: true,
                         label: task.label.clone(),
                         line: task.line,
                         start: place.start,

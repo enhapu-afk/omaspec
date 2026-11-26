@@ -478,7 +478,6 @@ fn paint_server(
     Ok(())
 }
 
-/// `ink`, or black or white where it does not read on `ground`.
 /// Each network, server and group named from the source (docs/adr/0037):
 /// `network-dmz`, `server-web01`, a group by its description; a server's
 /// line to a network by what it joins (`link-dmz-web01`), a peer line
@@ -541,6 +540,7 @@ fn at(names: &[String], slot: usize) -> &str {
     names.get(slot).map_or("", String::as_str)
 }
 
+/// `ink`, or black or white where it does not read on `ground`.
 fn legible(ink: Color, ground: Color) -> Color {
     if ink.contrast(ground) >= 4.5 {
         return ink;

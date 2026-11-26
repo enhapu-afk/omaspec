@@ -315,7 +315,12 @@ fn paint(
     for message in &diagram.messages {
         let from = row_center(diagram, place, &message.from);
         let to = row_center(diagram, place, &message.to);
-        let name = crate::svg::link_name(&message.from, &message.to, &message.label);
+        // By its rows' keys, however the source names them.
+        let name = crate::svg::link_name(
+            row_key(diagram, &message.from),
+            row_key(diagram, &message.to),
+            &message.label,
+        );
         canvas.part(&given.unique(name), |canvas| {
             arrow(
                 canvas,
@@ -354,6 +359,16 @@ fn loose_index(diagram: &Diagram, constraint: &Constraint) -> f32 {
         .filter(|other| other.row == constraint.row)
         .position(|other| std::ptr::eq(other, constraint))
         .unwrap_or(0) as f32
+}
+
+/// The key of the row `name` is the key or the label of; `name` where
+/// none is.
+fn row_key<'a>(diagram: &'a Diagram, name: &'a str) -> &'a str {
+    diagram
+        .rows
+        .iter()
+        .find(|row| row.key == name || row.label == name)
+        .map_or(name, |row| row.key.as_str())
 }
 
 fn row_center(diagram: &Diagram, place: &Place, name: &str) -> f32 {

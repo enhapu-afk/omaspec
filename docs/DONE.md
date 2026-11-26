@@ -2430,7 +2430,14 @@ is open and the reasoning around it.
       `milestone-Review`, `vert-…` and a link by the tasks it joins
       (`link-D-B`), of both languages; a capability map's
       `capability-Lending`, one inside another too. Nine golden SVGs
-      changed, by their groups alone.
+      changed, by their groups alone. After the review: a Mermaid task
+      without an id is named by its words, not by the count its reader
+      gives it (`task1`), which moves with the tasks before it; a timing
+      message is named by its rows' keys, however it writes them; a
+      wire inside a flow's block names the block's own port
+      `Block.port`, so two blocks of one wiring do not trade names; the
+      tests take a Mermaid Gantt chart, a block inside a block and a
+      note below a row.
 
 ## Next
 

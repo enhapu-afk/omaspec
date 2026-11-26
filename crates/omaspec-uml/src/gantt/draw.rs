@@ -175,7 +175,13 @@ fn paint(
             }
             Row::Bar(bar) => {
                 let kind = if bar.milestone { "milestone" } else { "task" };
-                let part = given.unique(crate::svg::element(kind, &bar.key));
+                // By the name the source gives it, else by its words: a
+                // key made up by counting moves with the tasks before it.
+                let name = match bar.written {
+                    true => bar.key.as_str(),
+                    false => crate::svg::first_line(&bar.label),
+                };
+                let part = given.unique(crate::svg::element(kind, name));
                 canvas.part(&part, |canvas| {
                     paint_bar(canvas, skin, family, &geom, bar, y, row_h)
                 })?;

@@ -96,6 +96,10 @@ pub enum Row {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bar {
     pub key: String,
+    /// Whether the source gives the key (`a1` in Mermaid's
+    /// `Sketch :a1, …`, every PlantUML task's); one made up (`task1`) is
+    /// no name of it (docs/adr/0037).
+    pub written: bool,
     pub label: String,
     pub line: usize,
     pub start: i64,

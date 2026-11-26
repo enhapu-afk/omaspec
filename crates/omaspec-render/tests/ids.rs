@@ -227,3 +227,49 @@ fn a_capability_map_names_its_capabilities() {
         &["capability-Readers", "capability-Lending"],
     );
 }
+
+#[test]
+fn a_flow_names_what_a_block_holds_by_the_block() {
+    named(
+        "@startflow\nin a\nblock Outer {\n  in a\n  block Inner {\n    in x\n  }\n  a -> Inner.x\n}\na -> Outer.a\n@endflow\n",
+        Language::PlantUml,
+        &[
+            "block-Outer",
+            "block-Inner",
+            "link-a-Outer.a",
+            "link-Outer.a-Inner.x",
+        ],
+    );
+}
+
+#[test]
+fn a_timing_diagram_names_a_message_by_its_rows_keys() {
+    // A row written by its label is named by its key; a note below is
+    // counted apart from one above.
+    named(
+        "@startuml\nconcise \"Program\" as P\nbinary \"Lock\" as L\n@0\nP is Idle\nL is low\n@5\nProgram -> L : lock\nnote top of P : starts\nnote bottom of P : ends\n@enduml\n",
+        Language::PlantUml,
+        &[
+            "link-P-L-lock",
+            "note-concise-P-top-1",
+            "note-concise-P-bottom-1",
+        ],
+    );
+}
+
+#[test]
+fn a_mermaid_gantt_names_its_tasks_by_their_ids_or_their_words() {
+    // A task without an id is named by its words, not by a count that
+    // moves with the tasks before it.
+    named(
+        "gantt\n  dateFormat YYYY-MM-DD\n  section Plan\n  Build :b, 2026-01-05, 5d\n  Sketch : 2026-01-01, 4d\n  Freeze :vert, f, after b, 0d\n  Launch :milestone, l, after b, 0d\n",
+        Language::Mermaid,
+        &[
+            "section-Plan",
+            "task-b",
+            "task-Sketch",
+            "vert-Freeze",
+            "milestone-l",
+        ],
+    );
+}
