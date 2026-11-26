@@ -23,6 +23,8 @@ pub(super) struct Picture {
     /// How far down each source line has drawn, by line: what a picture
     /// without parts is uncovered to.
     pub(super) reach: Vec<(usize, f32)>,
+    /// Down to where it shows before any line ([`Self::first_reach`]).
+    pub(super) first: f32,
     /// The transform the lines' group draws in, to draw the lines anew in
     /// its place.
     pub(super) lines_group: Option<usvg::Transform>,
@@ -164,6 +166,20 @@ impl Picture {
         }
         let mut reach: Vec<(usize, f32)> = reach.into_iter().collect();
         reach.sort_by_key(|&(line, _)| line);
+        // Above the first thing a line wrote, the heads of a sequence.
+        let mut first = reach
+            .iter()
+            .map(|&(_, bottom)| bottom)
+            .fold(size.1, f32::min);
+        first = (first - LINE_HEIGHT).max(0.0);
+        // A drawer that ties no words to their lines says nothing of
+        // what each line drew: the picture comes whole as the last line
+        // is written, rather than all of it but its foot from the first
+        // line on, a row cut in half to the end (REQ-142).
+        if reach.is_empty() && parts.is_empty() {
+            reach.push((text.lines().count().saturating_sub(1), size.1));
+            first = 0.0;
+        }
         Ok(Picture {
             svg: svg.to_owned(),
             size,
@@ -171,6 +187,7 @@ impl Picture {
             parts,
             wires,
             reach,
+            first,
             lines_group,
             root: root_of(svg, size),
         })
@@ -193,12 +210,7 @@ impl Picture {
     /// Down to where the picture shows before any line: above the first
     /// thing a line wrote, the heads of a sequence.
     pub(super) fn first_reach(&self) -> f32 {
-        let top = self
-            .reach
-            .iter()
-            .map(|&(_, bottom)| bottom)
-            .fold(self.size.1, f32::min);
-        (top - LINE_HEIGHT).max(0.0)
+        self.first
     }
 
     /// Whether `line` sets down something: a box, a line or, from the top

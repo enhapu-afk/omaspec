@@ -6,6 +6,7 @@ use crate::Declined;
 use crate::annotations::Annotations;
 use crate::color::{self, Color, Paint};
 use crate::common::{Skinparam, normalize_key};
+use crate::map::Map;
 use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::{self, Block, Family, Font};
 
@@ -20,6 +21,12 @@ const MARK: f32 = 11.0;
 const INDENT: f32 = 14.0;
 
 pub fn draw(d: &Diagram) -> Result<String, Declined> {
+    draw_mapped(d).map(|(svg, _)| svg)
+}
+
+/// [`draw`], and the map: each row's words tied to the line it is
+/// written on, so a build uncovers the window row by row.
+pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let look = Look::read(&d.frame.skinparams)?;
     let mut canvas = Canvas::new(&look.font_name, false);
     canvas.sketch(look.sketch);
@@ -41,7 +48,8 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
     let size = painter.size(&d.root)?;
     painter.paint(&mut canvas, &d.root, (0.0, annotations.top()), size)?;
     annotations.draw(&mut canvas);
-    Ok(canvas.finish(MARGIN, look.page))
+    let map = canvas.place(Map::default(), MARGIN);
+    Ok((canvas.finish(MARGIN, look.page), map))
 }
 
 struct Painter<'a> {
@@ -135,7 +143,7 @@ impl Painter<'_> {
                     heights.iter().sum::<f32>() + 2.0 * inner,
                 )
             }
-            Widget::Grid { lines, rows } => {
+            Widget::Grid { lines, rows, .. } => {
                 let (widths, heights) = self.grid(*lines, rows)?;
                 let inner = framed(*lines);
                 (
@@ -412,6 +420,7 @@ impl Painter<'_> {
                 // Where the last item of each level stood, for the lines.
                 let mut last: Vec<f32> = Vec::new();
                 for (r, item) in items.iter().enumerate() {
+                    let before = canvas.tie(Some(item.line));
                     let rh = heights[r];
                     let depth = item.depth;
                     let b = self.words(&item.label, font)?;
@@ -448,6 +457,7 @@ impl Painter<'_> {
                         );
                         left += widths[c + 1] + GAP.0;
                     }
+                    canvas.tie(before);
                     top += rh;
                     if r + 1 < items.len() && matches!(lines, Lines::All | Lines::Rows) {
                         canvas.line(Layer::Frames, (x, top), (x + w, top), line);
@@ -462,7 +472,11 @@ impl Painter<'_> {
                     }
                 }
             }
-            Widget::Grid { lines, rows } => {
+            Widget::Grid {
+                lines,
+                rows,
+                written,
+            } => {
                 let (widths, heights) = self.grid(*lines, rows)?;
                 let inner = framed(*lines);
                 if matches!(lines, Lines::Frame | Lines::All) {
@@ -512,6 +526,9 @@ impl Painter<'_> {
                             }
                         }
                         Row::Cells(cells) => {
+                            // Its words are its line's; a block in it
+                            // ties its own rows.
+                            let before = canvas.tie(written.get(r).copied());
                             let mut left = x + inner;
                             for (c, cell) in cells.iter().enumerate() {
                                 let cw = widths[c];
@@ -523,6 +540,7 @@ impl Painter<'_> {
                                 )?;
                                 left += cw + GAP.0;
                             }
+                            canvas.tie(before);
                         }
                     }
                     top += rh;
@@ -601,5 +619,20 @@ impl Look {
             button: Some(ground),
             bar: ground.mix(ink, 0.14),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// Each row's words are tied to the line it is written on, a tree's
+    /// items to theirs, so a build and a click find them by their line.
+    #[test]
+    fn a_row_s_words_are_tied_to_its_line() {
+        let source = "@startsalt\n{\n  Login | \"name\"\n  [Cancel] | [OK]\n  {T\n  + a\n  ++ b\n  }\n}\n@endsalt\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let mut lines: Vec<usize> = map.tied.iter().map(|t| t.line).collect();
+        lines.sort_unstable();
+        lines.dedup();
+        assert_eq!(lines, [2, 3, 5, 6], "{:?}", map.tied);
     }
 }

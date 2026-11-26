@@ -585,6 +585,29 @@ mod tests {
         assert!(first < second);
     }
 
+    /// REQ-142: a Salt window is uncovered row by row, each at the line
+    /// that writes it, and nothing of it before; a picture whose drawer
+    /// ties nothing to its lines comes whole with the last line, not all
+    /// of it but its foot from the first.
+    #[test]
+    fn a_window_builds_row_by_row_and_an_untied_picture_comes_whole() {
+        let salt = picture(
+            "@startsalt\n{\n  Outside? | [ Touch grass ]\n  Inside | [Stay]\n}\n@endsalt\n",
+            Language::PlantUml,
+        );
+        let reach = |line: usize| salt.reach.iter().find(|r| r.0 == line).map(|r| r.1);
+        let (first, second) = (reach(2).unwrap(), reach(3).unwrap());
+        assert!(first < second, "{:?}", salt.reach);
+        assert!(salt.first_reach() < first - 10.0, "{}", salt.first_reach());
+        // A grammar's railroads tie nothing yet.
+        let ebnf = picture(
+            "@startebnf\ndigit = \"0\" | \"1\" ;\nnumber = digit, { digit } ;\n@endebnf\n",
+            Language::PlantUml,
+        );
+        assert_eq!(ebnf.reach, [(3, ebnf.size.1)]);
+        assert_eq!(ebnf.first_reach(), 0.0);
+    }
+
     #[test]
     fn a_build_is_written_as_a_picture_that_moves() {
         let work = std::env::temp_dir().join(format!("omaspec-build-{}", std::process::id()));
@@ -733,6 +756,7 @@ mod tests {
             parts: Vec::new(),
             wires: Vec::new(),
             reach: vec![(1, 40.0)],
+            first: 20.0,
             lines_group: None,
             root: export::usvg::Transform::identity(),
         };

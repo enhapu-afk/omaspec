@@ -16,7 +16,7 @@
 mod draw;
 mod parse;
 
-pub use draw::draw;
+pub use draw::{draw, draw_mapped};
 pub use parse::{is_salt, parse};
 
 use crate::common::Frame;
@@ -59,6 +59,9 @@ pub enum Widget {
     Grid {
         lines: Lines,
         rows: Vec<Row>,
+        /// The zero-based line of the source each row starts on: its words
+        /// are tied to it ([`crate::svg::Canvas::tie`]).
+        written: Vec<usize>,
     },
     /// `{^"Title" … }`: a frame with its title in its top line.
     Group {
@@ -96,6 +99,8 @@ pub struct Item {
     pub depth: usize,
     pub label: String,
     pub cells: Vec<String>,
+    /// The zero-based line of the source it is written on.
+    pub line: usize,
 }
 
 /// A row of a grid: its cells, or a rule across it.

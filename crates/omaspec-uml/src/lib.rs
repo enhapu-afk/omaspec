@@ -543,7 +543,7 @@ fn draw_mapped(diagram: Diagram, source: &str) -> Result<(String, map::Map), Dec
         }
         Diagram::Formula(d) => unmapped(formula::draw(&d)),
         Diagram::Network(d) => unmapped(network::draw(&d)),
-        Diagram::Salt(d) => unmapped(salt::draw(&d)),
+        Diagram::Salt(d) => salt::draw_mapped(&d),
         Diagram::Railroad(d) => unmapped(railroad::draw(&d)),
         Diagram::Ditaa(d) => unmapped(ditaa::draw(&d)),
     }

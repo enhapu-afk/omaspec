@@ -242,9 +242,10 @@ fn block(units: &[Unit], at: &mut usize, depth: usize) -> Result<Widget, Decline
                 row.push_str(&text);
                 *at += 1;
             }
-            Some(Unit::Opens { .. }) => {
+            Some(Unit::Opens { no: opened, .. }) => {
+                // A block on a line of its own is a row of that line.
                 if open_slots == 0 {
-                    rows.push((SLOT.to_owned(), no));
+                    rows.push((SLOT.to_owned(), opened));
                     open_slots = 1;
                 }
                 let inner = block(units, at, depth + 1)?;
@@ -273,7 +274,7 @@ fn block(units: &[Unit], at: &mut usize, depth: usize) -> Result<Widget, Decline
         )),
         'T' => Ok(Widget::Tree {
             lines: lines_of(lines),
-            items: rows.iter().map(|(text, _)| item(text)).collect(),
+            items: rows.iter().map(|(text, line)| item(text, *line)).collect(),
         }),
         'S' => Err(Declined::at(
             no,
@@ -292,6 +293,7 @@ fn block(units: &[Unit], at: &mut usize, depth: usize) -> Result<Widget, Decline
             let body = Widget::Grid {
                 lines: lines_of(kind),
                 rows: grid,
+                written: rows.iter().map(|(_, line)| *line).collect(),
             };
             Ok(match (kind, title) {
                 ('^', title) => Widget::Group {
@@ -316,13 +318,14 @@ fn lines_of(kind: char) -> Lines {
 }
 
 /// A tree's item: `++ Europe | 744` stands at 2, with a cell beside it.
-fn item(text: &str) -> Item {
+fn item(text: &str, line: usize) -> Item {
     let mut all = cells(text).into_iter();
     let first = all.next().unwrap_or_default();
     Item {
         depth: first.chars().take_while(|c| *c == '+').count().max(1),
         label: first.trim_start_matches('+').trim().to_owned(),
         cells: all.map(|cell| cell.trim().to_owned()).collect(),
+        line,
     }
 }
 
@@ -449,10 +452,17 @@ mod tests {
             "{+\nLogin | \"MyName  \"\n[X] Remember | () Never\n--\n{^\"Box\"\n  Plan | ^Pro^\n}\n{/ General | Fonts }\n{T\n+ a\n++ b\n}\n[Cancel] | [ OK ] }",
         ))
         .unwrap();
-        let Widget::Grid { lines, rows } = d.root else {
+        let Widget::Grid {
+            lines,
+            rows,
+            written,
+        } = d.root
+        else {
             panic!("a grid");
         };
         assert_eq!(lines, Lines::Frame);
+        // Each row by the line it starts on: a block's, its opening line.
+        assert_eq!(written, [1, 2, 3, 4, 7, 8, 12]);
         assert_eq!(
             rows[0],
             Row::Cells(vec![
@@ -486,18 +496,7 @@ mod tests {
             rows[5],
             Row::Cells(vec![Widget::Tree {
                 lines: Lines::None,
-                items: vec![
-                    Item {
-                        depth: 1,
-                        label: "a".into(),
-                        cells: Vec::new()
-                    },
-                    Item {
-                        depth: 2,
-                        label: "b".into(),
-                        cells: Vec::new()
-                    }
-                ]
+                items: vec![item(1, "a", &[], 9), item(2, "b", &[], 10)]
             }])
         );
         assert_eq!(
@@ -509,11 +508,12 @@ mod tests {
         );
     }
 
-    fn item(depth: usize, label: &str, cells: &[&str]) -> Item {
+    fn item(depth: usize, label: &str, cells: &[&str], line: usize) -> Item {
         Item {
             depth,
             label: label.into(),
             cells: cells.iter().map(|c| (*c).into()).collect(),
+            line,
         }
     }
 
@@ -531,8 +531,8 @@ mod tests {
             Row::Cells(vec![Widget::Tree {
                 lines: Lines::All,
                 items: vec![
-                    item(1, "World", &["Population"]),
-                    item(2, "Europe", &["744"])
+                    item(1, "World", &["Population"], 3),
+                    item(2, "Europe", &["744"], 4)
                 ]
             }])
         );
@@ -561,7 +561,7 @@ mod tests {
                 Widget::Text("Files".into()),
                 Widget::Tree {
                     lines: Lines::None,
-                    items: vec![item(1, "src", &[]), item(2, "main.rs", &[])]
+                    items: vec![item(1, "src", &[], 3), item(2, "main.rs", &[], 4)]
                 },
                 Widget::Text("3 files".into())
             ])
@@ -595,7 +595,7 @@ Notes | 12 KB
             Row::Cells(vec![
                 Widget::Tree {
                     lines: Lines::None,
-                    items: vec![item(1, "src", &[])]
+                    items: vec![item(1, "src", &[], 2)]
                 },
                 Widget::Text("3 files".into())
             ])

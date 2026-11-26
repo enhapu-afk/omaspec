@@ -2279,6 +2279,19 @@ is open and the reasoning around it.
       declare it where it is, or give this one a name of its own". Of
       five forms tried with PlantUML 1.2026.8, it refuses the four
       Omaspec declines, and both draw the fifth.
+- [x] A Salt window builds row by row (REQ-142, 2026-11-26): `play
+      --build` uncovers a picture without parts from the top down, as far
+      as the words each line wrote (`Map::tied`), but Salt tied none: the
+      picture showed from the first line on but for its last 20 pixels,
+      `[ Touch grass ]` or the row under it cut in half until the build's
+      end, and `--whole` changed nothing. Salt hands its map now
+      (`salt::draw_mapped`), each row's words tied to the line it starts
+      on (a block on a line of its own, its opening line), a tree's items
+      to theirs: a window is uncovered row by row, each at its line, and
+      a click finds a widget's line. A picture whose drawer ties nothing
+      (timing, signal flow, formulas, networks, railroads, ditaa) comes
+      whole as its last line is written, rather than all of it but its
+      foot from the first line.
 
 ## Next
 
