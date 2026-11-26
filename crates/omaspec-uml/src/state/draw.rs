@@ -1112,10 +1112,10 @@ fn stack_height(title: &Block, description: &[Block]) -> f32 {
 
 fn paint(canvas: &mut Canvas, skin: &Skin, root: &Container, scene: &Scene, names: &Names) {
     paint_shapes(canvas, skin, scene, (&mut Vec::new(), names));
-    paint_edges(canvas, scene, skin.curve);
+    paint_edges(canvas, scene, skin.curve, (&mut Vec::new(), names));
     paint_notes(canvas, skin, scene, (&mut Vec::new(), names));
     paint_labels(canvas, Some(root), scene, (&mut Vec::new(), names));
-    paint_heads(canvas, skin, scene);
+    paint_heads(canvas, skin, scene, (&mut Vec::new(), names));
 }
 
 /// The part of each of `scene`'s notes, at `path` in the tree: a part of
@@ -1372,18 +1372,27 @@ fn paint_divider(canvas: &mut Canvas, node: &Placed) {
     );
 }
 
-fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
-    for edge in &scene.edges {
-        if edge.points.len() < 2 {
+/// Each transition's line in its part (docs/adr/0037): the group of its
+/// shape, which carries its id, in the lines' group; its words and its
+/// head carry its class.
+fn paint_edges(
+    canvas: &mut Canvas,
+    scene: &Scene,
+    curve: f32,
+    (path, names): (&mut Vec<usize>, &Names),
+) {
+    for (slot, edge) in scene.edges.iter().enumerate() {
+        if edge.points.len() < 2 || hidden(edge) {
             continue;
         }
-        if hidden(edge) {
-            continue;
-        }
-        canvas.curve(Layer::Lines, &shortened(&edge.points), curve, edge.look);
+        canvas.part(&names.edge(path, slot), |canvas| {
+            canvas.curve(Layer::Lines, &shortened(&edge.points), curve, edge.look);
+        });
     }
-    for node in &scene.nodes {
-        paint_edges(canvas, &node.children, curve);
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        paint_edges(canvas, &node.children, curve, (path, names));
+        path.pop();
     }
 }
 
@@ -1591,12 +1600,24 @@ fn paint_stack(
     }
 }
 
-fn paint_heads(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
-    for edge in scene.edges.iter().filter(|edge| !hidden(edge)) {
-        arrow_head(canvas, skin, &edge.points, edge.look);
+fn paint_heads(
+    canvas: &mut Canvas,
+    skin: &Skin,
+    scene: &Scene,
+    (path, names): (&mut Vec<usize>, &Names),
+) {
+    for (slot, edge) in scene.edges.iter().enumerate() {
+        if hidden(edge) {
+            continue;
+        }
+        canvas.part(&names.edge(path, slot), |canvas| {
+            arrow_head(canvas, skin, &edge.points, edge.look);
+        });
     }
-    for node in &scene.nodes {
-        paint_heads(canvas, skin, &node.children);
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        paint_heads(canvas, skin, &node.children, (path, names));
+        path.pop();
     }
 }
 
@@ -2367,6 +2388,45 @@ mod tests {
         // Without the line, the same picture has none.
         let plain = crate::render(&source.replace("' parts (Omaspec)\n", "")).unwrap();
         assert!(!crate::has_parts(&plain));
+    }
+
+    /// A transition is an element of the picture (docs/adr/0037): its
+    /// line, in the lines' group, carries its id, its head and its words
+    /// its class; a pane's part of it is its words alone, the lines being
+    /// drawn anew.
+    #[test]
+    fn a_transition_s_line_carries_its_id() {
+        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : start\nBusy --> Idle\n' parts (Omaspec)\n@enduml\n";
+        let svg = crate::render(source).unwrap();
+        let lines_at = svg.find(r#"<g id="lines">"#).unwrap();
+        let lines = &svg[lines_at..lines_at + crate::svg::group_length(&svg[lines_at..]).unwrap()];
+        for name in [
+            "transition-start-Idle",
+            "transition-Idle-Busy-start",
+            "transition-Busy-Idle",
+        ] {
+            assert!(
+                lines.contains(&format!(r#"class="{name}" id="{name}""#)),
+                "{name}: {lines}"
+            );
+            assert_eq!(svg.matches(&format!(r#"id="{name}""#)).count(), 1, "{name}");
+        }
+        let words = r#"class="transition-Idle-Busy-start">"#;
+        assert!(svg[lines_at + lines.len()..].contains(words), "{svg}");
+        let parts = crate::part_groups(&svg);
+        let start: Vec<&str> = parts
+            .iter()
+            .filter(|(n, _)| n == "transition-Idle-Busy-start")
+            .map(|(_, g)| *g)
+            .collect();
+        assert_eq!(start.len(), 1, "{start:?}");
+        assert!(start[0].contains(">start<"), "{start:?}");
+        // The ground keeps the lines, which a pane takes away apart.
+        let ground = crate::without_parts(&svg).unwrap();
+        assert!(
+            ground.contains("transition-Idle-Busy-start\" id"),
+            "{ground}"
+        );
     }
 
     /// A state that holds others is a frame: its fill steps toward the

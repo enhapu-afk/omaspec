@@ -486,8 +486,14 @@ if (typeof document !== "undefined") {
         return { matrix, text: text.join(" ") };
       };
       const show = (at) => pictures.forEach((picture, i) => picture.classList.toggle("away", i !== at));
+      /// The groups of the parts in `picture`, `among` those given, but for
+      /// a line's own in the lines' group: the glide draws the lines anew.
+      const outside = (picture, among) => {
+        const lines = picture.querySelector(`[id="${data.lines[pictures.indexOf(picture)]}"]`);
+        return among.filter((g) => g.tagName === "g" && !(lines && lines.contains(g)));
+      };
       /// The groups of the part whose class is `name`, in its picture.
-      const groups = (picture, name) => [...picture.getElementsByClassName(name)].filter((g) => g.tagName === "g");
+      const groups = (picture, name) => outside(picture, [...picture.getElementsByClassName(name)]);
       /// The class of `group` that names its part, none for a page's own.
       const partOf = (group) => {
         const name = group.classList[0];
@@ -576,7 +582,7 @@ if (typeof document !== "undefined") {
         // A part no box and no line takes that is in both pictures, as a
         // title, travels too: from where it lies to where it will.
         const named = (side) => new Set(
-          [...sides[side].querySelectorAll("g[class]")].map(partOf).filter(Boolean),
+          outside(sides[side], [...sides[side].querySelectorAll("g[class]")]).map(partOf).filter(Boolean),
         );
         const after = named(1);
         const kept = [...named(0)]

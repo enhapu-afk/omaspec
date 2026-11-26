@@ -37,7 +37,8 @@
 
   // Each part's groups, one a layer.
   const parts = data.parts.map((part) => {
-    const groups = [...svg.querySelectorAll(`g[class="${part.class}"]`)];
+    // A line's own groups go with the lines, which are drawn anew.
+    const groups = [...svg.querySelectorAll(`g[class="${part.class}"]`)].filter((g) => !g.closest('[id="lines"]'));
     return { ...part, groups };
   });
   // A point of the picture's own units where `group` draws.

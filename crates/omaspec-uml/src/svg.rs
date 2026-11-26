@@ -1804,11 +1804,17 @@ fn part_class(rest: &str) -> Option<&str> {
 }
 
 /// Where each group of a part starts in `svg`, with its class: none in
-/// a picture Omaspec did not mark ([`MARKED`]).
+/// a picture Omaspec did not mark ([`MARKED`]), and none in its lines'
+/// group ([`LINES`]): a line's own groups, which carry its id, go with
+/// the lines, which a pane and a page draw anew; its words are its part.
 fn part_starts(svg: &str) -> impl Iterator<Item = (usize, &str)> {
     let marked = marked(svg);
+    let open = format!(r#"<g id="{LINES}">"#);
+    let lines = svg
+        .find(&open)
+        .and_then(|at| Some(at..at + group_length(&svg[at..])?));
     svg.match_indices(PART)
-        .filter(move |_| marked)
+        .filter(move |(at, _)| marked && !lines.as_ref().is_some_and(|lines| lines.contains(at)))
         .filter_map(|(at, _)| part_class(&svg[at..]).map(|class| (at, class)))
 }
 
