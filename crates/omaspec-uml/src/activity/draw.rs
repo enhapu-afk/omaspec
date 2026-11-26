@@ -187,7 +187,8 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
             );
         }
     }
-    let mut names = found.run_names().into_iter();
+    let (wires, names) = found.lines();
+    let mut names = names.into_iter();
     for (edge, laid) in tile.edges.iter().zip(&laid) {
         if let Some(laid) = laid {
             let name = names.next().unwrap_or_default();
@@ -217,7 +218,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let map = canvas.place(
         crate::map::Map {
             bands: titles,
-            wires: found.wires(),
+            wires,
             places: found.places,
             ..crate::map::Map::default()
         },

@@ -18,6 +18,13 @@ fn drawn(source: &str, language: Language) -> String {
     out.svg
 }
 
+/// What the group with the id `id` draws first in `svg`.
+fn first_drawn<'a>(svg: &'a str, id: &str) -> &'a str {
+    let own = format!(r#" id="{id}">"#);
+    let at = svg.find(&own).unwrap_or_else(|| panic!("{id}: {svg}"));
+    &svg[at + own.len()..]
+}
+
 /// `source` drawn has an element with each of `ids`, once, and its root
 /// says it is drawn as a whole.
 fn named(source: &str, language: Language, ids: &[&str]) {
@@ -87,15 +94,11 @@ fn a_block_diagram_names_its_blocks_and_edges() {
 
 #[test]
 fn a_kanban_names_its_columns_and_cards() {
+    // By what the source calls them, by their words where it gives none.
     named(
-        "kanban\n  todo[Todo]\n    t1[Write the docs]\n  done[Done]\n    t2[Ship]\n",
+        "kanban\n  todo[Todo]\n    t1[Write the docs]\n  [Done]\n    t2[Ship<br>today]\n",
         Language::Mermaid,
-        &[
-            "column-Todo",
-            "card-Write_20_the_20_docs",
-            "column-Done",
-            "card-Ship",
-        ],
+        &["column-todo", "card-t1", "column-Done", "card-t2"],
     );
 }
 
@@ -106,6 +109,12 @@ fn a_journey_names_its_sections_and_tasks() {
         Language::Mermaid,
         &["section-Morning", "task-Make_20_tea", "task-Read", "title"],
     );
+    // Its id on its card, not on the line drawn under it.
+    let svg = drawn(
+        "journey\n  section Morning\n    Make tea: 5: Me\n",
+        Language::Mermaid,
+    );
+    assert!(!first_drawn(&svg, "task-Make_20_tea").starts_with("<line"));
 }
 
 #[test]
@@ -123,4 +132,16 @@ fn a_timeline_names_its_sections_periods_and_events() {
             "title",
         ],
     );
+    // A period's id on its card, not on the stem drawn under it, across
+    // and down.
+    for source in [
+        "timeline\n  2020 : Idea : Team\n",
+        "timeline TD\n  2020 : Idea : Team\n",
+    ] {
+        let svg = drawn(source, Language::Mermaid);
+        assert!(
+            !first_drawn(&svg, "period-2020").starts_with("<line"),
+            "{source}"
+        );
+    }
 }

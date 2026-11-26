@@ -126,7 +126,8 @@ Measured on a state machine of seven states, 16 part groups made its SVG
   pane fades it, a build uncovers it from the top down and a play lifts
   its veil message by message. A participant's head, foot, lifeline and
   bars are its element, its id on its head; a note beside a message is
-  one of its own.
+  one of its own. So a timeline's period and a journey's task have
+  their id on their card (`Canvas::id_on`), not on the line under it.
   Whether messages should glide is a question of its own. The kinds
   that marked no parts before are named so too: drawn as a whole, as
   they were.

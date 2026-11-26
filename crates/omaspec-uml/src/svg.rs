@@ -2078,10 +2078,15 @@ pub fn link_name(from: &str, to: &str, said: &str) -> String {
 }
 
 /// The first line of `text` as a name holds it, trimmed: up to a written
-/// `\n` or a line break.
+/// `\n`, a line break or Mermaid's `<br>` (`<br/>`, any case).
 pub fn first_line(text: &str) -> &str {
     let first = text.split("\\n").next().unwrap_or_default();
-    first.split('\n').next().unwrap_or_default().trim()
+    let first = first.split('\n').next().unwrap_or_default();
+    let first = match first.to_ascii_lowercase().find("<br") {
+        Some(at) => &first[..at],
+        None => first,
+    };
+    first.trim()
 }
 
 /// `name` onto `id` as [`element`] writes a name.
@@ -2843,5 +2848,19 @@ mod tests {
             None,
         );
         assert!(c.finish(0.0, None).contains("#4D4D4D"));
+    }
+
+    #[test]
+    fn a_name_takes_the_first_line_of_its_words() {
+        for text in [
+            "Idea",
+            " Idea \\nmore",
+            "Idea\nmore",
+            "Idea<br>more",
+            "Idea<BR/>more",
+        ] {
+            assert_eq!(first_line(text), "Idea", "{text}");
+        }
+        assert_eq!(link_name("A", "B", "yes\\nsure"), "link-A-B-yes");
     }
 }

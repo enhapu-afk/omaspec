@@ -34,6 +34,9 @@ pub struct Diagram {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Column {
+    /// What the source calls it (`todo` in `todo[Todo]`); empty where it
+    /// gives no name (`[Todo]`).
+    pub id: String,
     pub label: String,
     pub line: usize,
     pub cards: Vec<Card>,
@@ -41,6 +44,8 @@ pub struct Column {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Card {
+    /// What the source calls it, as a column's.
+    pub id: String,
     pub label: String,
     pub line: usize,
     pub assigned: Option<String>,
@@ -186,16 +191,22 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         })
         .fold(0.0, f32::max);
 
-    // Each column and card named by its words (docs/adr/0037), the
-    // board drawn as a whole.
+    // Each column and card named by what the source calls it, or by its
+    // words where it gives no name (docs/adr/0037); the board drawn as a
+    // whole.
     canvas.whole();
     let mut given = crate::svg::Given::default();
-    let mut named = |kind: &str, label: &str| {
-        given.unique(crate::svg::element(kind, crate::svg::first_line(label)))
+    let mut named = |kind: &str, id: &str, label: &str| {
+        let name = if id.is_empty() {
+            crate::svg::first_line(label)
+        } else {
+            id
+        };
+        given.unique(crate::svg::element(kind, name))
     };
     for (index, (column, (head, cards))) in diagram.columns.iter().zip(&laid).enumerate() {
         let x = index as f32 * (COLUMN_W + COLUMN_GAP);
-        let part = named("column", &column.label);
+        let part = named("column", &column.id, &column.label);
         canvas.part(&part, |canvas| {
             canvas.rect(
                 Layer::Background,
@@ -208,7 +219,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         });
         let mut y = top + PAD + head.height + PAD;
         for (card, laid) in column.cards.iter().zip(cards) {
-            let part = named("card", &card.label);
+            let part = named("card", &card.id, &card.label);
             canvas.part(&part, |canvas| {
                 draw_card(canvas, look, card, laid, (x, y, inner))
             });
@@ -346,11 +357,16 @@ fn read(source: &str) -> Result<Diagram, Stop> {
             None => (text, None),
         };
         let label = label_of(item).ok_or(stop(line, "a kanban item"))?;
+        let id = match item.find('[') {
+            Some(open) => item[..open].trim().to_owned(),
+            None => item.to_owned(),
+        };
         if depth <= *first.get_or_insert(depth) {
             if settings.is_some() {
                 return Err(stop(line, "a column's settings"));
             }
             columns.push(Column {
+                id,
                 label,
                 line,
                 cards: Vec::new(),
@@ -358,6 +374,7 @@ fn read(source: &str) -> Result<Diagram, Stop> {
             continue;
         }
         let mut card = Card {
+            id,
             label,
             line,
             assigned: None,

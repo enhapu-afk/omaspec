@@ -369,6 +369,8 @@ fn paint(
         for (period_index, period) in section.periods.iter().enumerate() {
             let fill = fill_of(diagram, if place.bands { section_index } else { index });
             let at = (section_index, period_index);
+            // Its id on its card, not on the stem drawn under it.
+            canvas.id_on(names.period(at), Layer::Bars);
             canvas.part(names.period(at), |canvas| {
                 paint_period(
                     canvas,
@@ -501,6 +503,7 @@ fn paint_down(
         for (period_index, period) in section.periods.iter().enumerate() {
             let fill = fill_of(diagram, if bands { section_index } else { index });
             let at = (section_index, period_index);
+            canvas.id_on(names.period(at), Layer::Bars);
             canvas.part(names.period(at), |canvas| {
                 paint_period_down(canvas, diagram, (family, names.events(at)), period, fill, y)
             })?;

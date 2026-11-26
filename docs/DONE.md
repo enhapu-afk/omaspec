@@ -2401,6 +2401,13 @@ is open and the reasoning around it.
       `task-Read`; `period-2020`, `event-Launch`; their titles `title`.
       `link_name` and `first_line` name a line alike in every drawer;
       `tests/ids.rs` of omaspec-render holds each kind to its names.
+      After the review: a timeline's period and a journey's task have
+      their id on their card, not on the line under it; a kanban's
+      column and card are named by what the source calls them
+      (`column-todo`, `card-t1`), by their words only where it gives
+      none; a name stops at Mermaid's `<br>`; an activity diagram's line
+      is named by the first line of the words the map gives it, and its
+      lines are found once for the map and the names.
 
 ## Next
 

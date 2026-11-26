@@ -60,7 +60,7 @@ pub(super) struct Found {
     shorts: Vec<String>,
     runs: Vec<Run>,
     /// The words beside lines: each one's part, where it is drawn and
-    /// what it says.
+    /// the first line of what it says.
     labels: Vec<(String, Rect, String)>,
 }
 
@@ -139,8 +139,12 @@ impl Found {
             }
         };
         self.seen.insert(base, nth);
-        if matches!(shape, Shape::Label { .. }) {
-            self.labels.push((name.clone(), rect, said.clone()));
+        if let Shape::Label { text, .. } = shape {
+            // A line is named by the first line of its words.
+            let first = text.lines.first().map_or_else(String::new, |line| {
+                line.runs.iter().map(|run| run.text.as_str()).collect()
+            });
+            self.labels.push((name.clone(), rect, first));
         }
         if place {
             self.shorts.push(match said.is_empty() {
@@ -211,75 +215,81 @@ impl Found {
             .collect()
     }
 
-    /// The lines from shape to shape: each run that leaves a shape,
-    /// followed through the points where runs meet. A run no such way
-    /// takes is a line of its own.
-    pub fn wires(&self) -> Vec<Wire> {
+    /// The lines from shape to shape, and the part each run is drawn in.
+    ///
+    /// A line is each run that leaves a shape, followed through the points
+    /// where runs meet; a run no such way takes is a line of its own. Its
+    /// words are lit with it, and travel with the first line that takes
+    /// their run.
+    ///
+    /// A run is drawn in the part of the line it alone belongs to
+    /// (docs/adr/0037), named by the shapes it joins and the words that
+    /// travel with it (`link-Build-green_3f_`, `link-green_3f_-Publish-yes`).
+    /// A run several lines share, as into a point where branches meet, is
+    /// no one line's; nor is one of a line that ends at no shape.
+    pub fn lines(&self) -> (Vec<Wire>, Vec<String>) {
         let ends = self.ends();
         let ways = self.ways(&ends);
-
-        // A line's words are lit with it; they travel with the first line
-        // that takes their run.
         let labelled = self.labelled();
         let mut given = vec![false; self.labels.len()];
         let mut nth: HashMap<(String, String), usize> = HashMap::new();
-        ways.iter()
-            .map(|way| {
-                let mut labels = Vec::new();
-                let mut words: [Option<String>; 3] = Default::default();
-                for (label, run) in labelled.iter().enumerate() {
-                    if run.is_some_and(|run| way.contains(&run)) {
-                        labels.push(self.labels[label].1);
-                        if !given[label] && words[crate::map::WORDS].is_none() {
-                            words[crate::map::WORDS] = Some(self.labels[label].0.clone());
-                            given[label] = true;
-                        }
-                    }
-                }
-                self.wire(way, &ends, labels, words, &mut nth)
-            })
-            .collect()
-    }
-
-    /// The part each run is drawn in (docs/adr/0037): the line it alone
-    /// belongs to, named by the shapes it joins and its words
-    /// (`link-Build-green_3f_`, `link-green_3f_-Publish-yes`). A run
-    /// several lines share, as into a point where branches meet, is no
-    /// one line's; nor is one of a line that ends at no shape.
-    pub fn run_names(&self) -> Vec<String> {
-        let ends = self.ends();
-        let labelled = self.labelled();
-        let mut given = crate::svg::Given::default();
+        let mut named = crate::svg::Given::default();
         let mut of: Vec<(usize, String)> = vec![(0, String::new()); self.runs.len()];
-        for way in self.ways(&ends) {
-            let (first, last) = (way[0], way[way.len() - 1]);
-            let short = |node: Node| match node {
-                Node::Shape(place) => Some(self.shorts[place].as_str()),
-                Node::Point(..) => None,
-            };
-            let name = match (short(ends[first].0), short(ends[last].1)) {
-                (Some(from), Some(to)) => {
-                    let mut name = format!("link-{from}-{to}");
-                    let said = labelled
-                        .iter()
-                        .position(|run| run.is_some_and(|run| way.contains(&run)))
-                        .map_or("", |label| self.labels[label].2.as_str());
-                    if !said.is_empty() {
-                        name.push('-');
-                        crate::svg::push_written(&mut name, said);
+        let mut wires = Vec::with_capacity(ways.len());
+        for way in &ways {
+            let mut labels = Vec::new();
+            let mut words: [Option<String>; 3] = Default::default();
+            let mut said = "";
+            for (label, run) in labelled.iter().enumerate() {
+                if run.is_some_and(|run| way.contains(&run)) {
+                    labels.push(self.labels[label].1);
+                    if !given[label] && words[crate::map::WORDS].is_none() {
+                        words[crate::map::WORDS] = Some(self.labels[label].0.clone());
+                        given[label] = true;
+                        said = &self.labels[label].2;
                     }
-                    given.unique(name)
                 }
-                _ => String::new(),
-            };
-            for &run in &way {
+            }
+            let name = self.way_name(way, &ends, said, &mut named);
+            for &run in way {
                 of[run].0 += 1;
                 of[run].1.clone_from(&name);
             }
+            wires.push(self.wire(way, &ends, labels, words, &mut nth));
         }
-        of.into_iter()
+        let runs = of
+            .into_iter()
             .map(|(lines, name)| if lines == 1 { name } else { String::new() })
-            .collect()
+            .collect();
+        (wires, runs)
+    }
+
+    /// The name of the line `way` is: the shapes it joins, as their names
+    /// hold them without their kind, and the first line of its words;
+    /// none where an end is no shape.
+    fn way_name(
+        &self,
+        way: &[usize],
+        ends: &[(Node, Node)],
+        said: &str,
+        given: &mut crate::svg::Given,
+    ) -> String {
+        let short = |node: Node| match node {
+            Node::Shape(place) => Some(self.shorts[place].as_str()),
+            Node::Point(..) => None,
+        };
+        let (first, last) = (way[0], way[way.len() - 1]);
+        let (Some(from), Some(to)) = (short(ends[first].0), short(ends[last].1)) else {
+            return String::new();
+        };
+        // The ends are written already (`Build-2`): only the words are.
+        let mut name = format!("link-{from}-{to}");
+        let said = crate::svg::first_line(said);
+        if !said.is_empty() {
+            name.push('-');
+            crate::svg::push_written(&mut name, said);
+        }
+        given.unique(name)
     }
 
     /// Where each run starts and ends.
@@ -470,6 +480,10 @@ mod tests {
             );
             assert_eq!(svg.matches(&format!(r#"id="{name}""#)).count(), 1, "{name}");
         }
+        // Of words over two lines, the first names it.
+        let (svg, _) =
+            mapped("@startuml\nstart\nif (x) then (yes\\nsure)\n  :A;\nendif\nstop\n@enduml");
+        assert!(svg.contains(r#" id="link-x-A-yes""#), "{svg}");
         // A fork's lines too, and no two share a name.
         let (svg, _) =
             mapped("@startuml\nstart\nfork\n  :A;\nfork again\n  :B;\nend fork\nstop\n@enduml");

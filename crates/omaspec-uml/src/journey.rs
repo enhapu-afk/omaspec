@@ -267,6 +267,8 @@ fn paint_tasks(
         })?;
         for task in &section.tasks {
             let part = named("task", &task.label);
+            // Its id on its card, not on the line drawn under it.
+            canvas.id_on(&part, Layer::Bars);
             canvas.part(&part, |canvas| {
                 paint_task(canvas, diagram, family, task, fill, index, place)
             })?;
