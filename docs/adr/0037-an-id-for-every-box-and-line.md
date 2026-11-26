@@ -1,7 +1,7 @@
 # 0037: Every box and every line has an id of its own
 
 Status: accepted, 2026-11-26 (REQ-132); its first step (point 7) is
-done the same day. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
+done the same day, and of the second its sequence diagrams. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
 the parts only for the pane, and the way its point 1 writes their names.
 
 ## Context
@@ -118,3 +118,9 @@ Measured on a state machine of seven states, 16 part groups made its SVG
 - The first step takes every drawer with parts at once, so the pane
   switches once; it is one change of names, in each drawer's calls of
   `Canvas::part` and in `part_name`, held by the glide's tests.
+- A sequence diagram names its elements but is drawn as a whole, as
+  before: its root says `data-omaspec="named"`, not `"parts"`, so the
+  pane fades it, a build uncovers it from the top down and a play lifts
+  its veil message by message. A participant's head, foot, lifeline and
+  bars are its element; a note beside a message is one of its own.
+  Whether messages should glide is a question of its own.

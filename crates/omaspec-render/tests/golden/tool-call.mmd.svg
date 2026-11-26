@@ -1,99 +1,142 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="453" height="738" viewBox="0 0 453 738" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="453" height="738" viewBox="0 0 453 738" data-omaspec="named">
 <rect x="0" y="0" width="453" height="738" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
+<g class="actor-Person" id="actor-Person">
 <line x1="23.22" y1="99.67" x2="23.22" y2="648.4" fill="none" stroke="#64748B" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Agent" id="participant-Agent">
 <line x1="180.71" y1="99.67" x2="180.71" y2="648.4" fill="none" stroke="#64748B" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Omaspec" id="participant-Omaspec">
 <line x1="393.56" y1="99.67" x2="393.56" y2="648.4" fill="none" stroke="#64748B" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
+</g>
 <g>
+<g class="alt-yes" id="alt-yes">
 <rect x="13.22" y="317.44" width="390.34" height="320.96" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
 <line x1="13.22" y1="509.22" x2="403.56" y2="509.22" fill="none" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="2,2"/>
 </g>
+</g>
 <g>
+<g class="actor-Person">
 <ellipse cx="23.22" cy="38.87" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
 <path d="M23.22,46.87 L23.22,65.87 M10.22,52.87 L36.22,52.87 M23.22,65.87 L10.22,79.87 M23.22,65.87 L36.22,79.87" fill="none" stroke="#94A3B8" stroke-width="0.5"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="96.36" font-size="14" fill="#0F172A" textLength="46.44" lengthAdjust="spacing">Person</tspan>
 </text>
+</g>
+<g class="participant-Agent">
 <rect x="154.08" y="69.37" width="53.26" height="30.3" rx="2.5" ry="2.5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="161.08" y="89.36" font-size="14" fill="#0F172A" textLength="39.26" lengthAdjust="spacing">Agent</tspan>
 </text>
+</g>
+<g class="participant-Omaspec">
 <rect x="355.08" y="69.37" width="76.96" height="30.3" rx="2.5" ry="2.5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="362.08" y="89.36" font-size="14" fill="#0F172A" textLength="62.96" lengthAdjust="spacing">Omaspec</tspan>
 </text>
+</g>
+<g class="message-Person-Agent-task" id="message-Person-Agent-task">
 <line x1="23.22" y1="129.96" x2="180.71" y2="129.96" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="170.71,125.96 180.71,129.96 170.71,133.96 174.71,129.96" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="88.2" y="124.66" font-size="14" fill="#0F172A" textLength="27.52" lengthAdjust="spacing">task</tspan>
 </text>
+</g>
+<g class="message-Agent-Agent-picks_20_a_20_tool" id="message-Agent-Agent-picks_20_a_20_tool">
 <polyline points="180.71,160.26 210.71,160.26 210.71,173.26 180.71,173.26" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="190.71,169.26 180.71,173.26 190.71,177.26 186.71,173.26" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="187.71" y="154.95" font-size="14" fill="#0F172A" textLength="75.53" lengthAdjust="spacing">picks a tool</tspan>
 </text>
+</g>
+<g class="message-Agent-Omaspec-lint_20_door.puml" id="message-Agent-Omaspec-lint_20_door.puml">
 <line x1="180.71" y1="203.55" x2="393.56" y2="203.55" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="383.56,199.55 393.56,203.55 383.56,207.55 387.56,203.55" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="241.78" y="198.25" font-size="14" fill="#0F172A" textLength="90.72" lengthAdjust="spacing">lint door.puml</tspan>
 </text>
+</g>
+<g class="message-Omaspec-Agent-2_20_findings_2c__20_each_20_with_20_its_20_fix" id="message-Omaspec-Agent-2_20_findings_2c__20_each_20_with_20_its_20_fix">
 <line x1="393.56" y1="233.85" x2="180.71" y2="233.85" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="190.71,229.85 180.71,233.85 190.71,237.85 186.71,233.85" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="198.71" y="228.55" font-size="14" fill="#0F172A" textLength="176.85" lengthAdjust="spacing">2 findings, each with its fix</tspan>
 </text>
+</g>
+<g class="message-Agent-Agent-wants_20_a_20_change" id="message-Agent-Agent-wants_20_a_20_change">
 <polyline points="180.71,264.15 210.71,264.15 210.71,277.15 180.71,277.15" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="190.71,273.15 180.71,277.15 190.71,281.15 186.71,277.15" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="187.71" y="258.84" font-size="14" fill="#0F172A" textLength="104.45" lengthAdjust="spacing">wants a change</tspan>
 </text>
+</g>
+<g class="message-Agent-Person-make_20_the_20_2_20_fixes_3f_" id="message-Agent-Person-make_20_the_20_2_20_fixes_3f_">
 <line x1="180.71" y1="307.44" x2="23.22" y2="307.44" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="33.22,303.44 23.22,307.44 33.22,311.44 29.22,307.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="43.84" y="302.14" font-size="14" fill="#0F172A" textLength="116.26" lengthAdjust="spacing">make the 2 fixes?</tspan>
 </text>
+</g>
+<g class="message-Person-Agent-approved" id="message-Person-Agent-approved">
 <line x1="23.22" y1="365.03" x2="180.71" y2="365.03" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="170.71,361.03 180.71,365.03 170.71,369.03 174.71,365.03" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="70.33" y="359.73" font-size="14" fill="#0F172A" textLength="63.27" lengthAdjust="spacing">approved</tspan>
 </text>
+</g>
+<g class="message-Agent-Omaspec-lint_20__2d__2d_fix_20_door.puml" id="message-Agent-Omaspec-lint_20__2d__2d_fix_20_door.puml">
 <line x1="180.71" y1="395.33" x2="393.56" y2="395.33" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="383.56,391.33 393.56,395.33 383.56,399.33 387.56,395.33" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="225.26" y="390.03" font-size="14" fill="#0F172A" textLength="123.75" lengthAdjust="spacing">lint --fix door.puml</tspan>
 </text>
+</g>
+<g class="message-Omaspec-Agent-fixed_20_2" id="message-Omaspec-Agent-fixed_20_2">
 <line x1="393.56" y1="425.63" x2="180.71" y2="425.63" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="190.71,421.63 180.71,425.63 190.71,429.63 186.71,425.63" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="264.43" y="420.32" font-size="14" fill="#0F172A" textLength="45.42" lengthAdjust="spacing">fixed 2</tspan>
 </text>
+</g>
+<g class="message-Agent-Agent-answers" id="message-Agent-Agent-answers">
 <polyline points="180.71,455.92 210.71,455.92 210.71,468.92 180.71,468.92" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="190.71,464.92 180.71,468.92 190.71,472.92 186.71,468.92" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="187.71" y="450.62" font-size="14" fill="#0F172A" textLength="55.8" lengthAdjust="spacing">answers</tspan>
 </text>
+</g>
+<g class="message-Agent-Person-door.puml_20_is_20_clean" id="message-Agent-Person-door.puml_20_is_20_clean">
 <line x1="180.71" y1="499.22" x2="23.22" y2="499.22" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="33.22,495.22 23.22,499.22 33.22,503.22 29.22,499.22" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="41.22" y="493.91" font-size="14" fill="#0F172A" textLength="121.49" lengthAdjust="spacing">door.puml is clean</tspan>
 </text>
+</g>
+<g class="message-Person-Agent-denied" id="message-Person-Agent-denied">
 <line x1="23.22" y1="554.81" x2="180.71" y2="554.81" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="170.71,550.81 180.71,554.81 170.71,558.81 174.71,554.81" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="79.4" y="549.51" font-size="14" fill="#0F172A" textLength="45.12" lengthAdjust="spacing">denied</tspan>
 </text>
+</g>
+<g class="message-Agent-Agent-answers-2" id="message-Agent-Agent-answers-2">
 <polyline points="180.71,585.11 210.71,585.11 210.71,598.11 180.71,598.11" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="190.71,594.11 180.71,598.11 190.71,602.11 186.71,598.11" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="187.71" y="579.8" font-size="14" fill="#0F172A" textLength="55.8" lengthAdjust="spacing">answers</tspan>
 </text>
+</g>
+<g class="message-Agent-Person-left_20_as_20_it_20_was" id="message-Agent-Person-left_20_as_20_it_20_was">
 <line x1="180.71" y1="628.4" x2="23.22" y2="628.4" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="33.22,624.4 23.22,628.4 33.22,632.4 29.22,628.4" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="60.44" y="623.1" font-size="14" fill="#0F172A" textLength="83.05" lengthAdjust="spacing">left as it was</tspan>
 </text>
+</g>
+<g class="alt-yes">
 <polygon points="13.22,317.44 48.27,317.44 48.27,331.74 42.27,337.74 13.22,337.74" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.5"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="19.22" y="332.43" font-size="14" fill="#0F172A" font-weight="bold" textLength="17.05" lengthAdjust="spacing">alt</tspan>
@@ -104,19 +147,26 @@
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="18.22" y="523.21" font-size="14" fill="#0F172A" font-weight="bold" textLength="27.86" lengthAdjust="spacing">[no]</tspan>
 </text>
+</g>
+<g class="actor-Person">
 <ellipse cx="23.22" cy="676.2" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
 <path d="M23.22,684.2 L23.22,703.2 M10.22,690.2 L36.22,690.2 M23.22,703.2 L10.22,717.2 M23.22,703.2 L36.22,717.2" fill="none" stroke="#94A3B8" stroke-width="0.5"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="661.39" font-size="14" fill="#0F172A" textLength="46.44" lengthAdjust="spacing">Person</tspan>
 </text>
+</g>
+<g class="participant-Agent">
 <rect x="154.08" y="648.4" width="53.26" height="30.3" rx="2.5" ry="2.5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="161.08" y="668.39" font-size="14" fill="#0F172A" textLength="39.26" lengthAdjust="spacing">Agent</tspan>
 </text>
+</g>
+<g class="participant-Omaspec">
 <rect x="355.08" y="648.4" width="76.96" height="30.3" rx="2.5" ry="2.5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="362.08" y="668.39" font-size="14" fill="#0F172A" textLength="62.96" lengthAdjust="spacing">Omaspec</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="174.06" y="16.24" font-size="17.5" fill="#0F172A" font-weight="bold" textLength="83.91" lengthAdjust="spacing">A tool call</tspan>

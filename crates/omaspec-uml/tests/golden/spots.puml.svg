@@ -1,11 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="278" viewBox="0 0 240 278" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="278" viewBox="0 0 240 278" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="participant-Gate" id="participant-Gate">
 <line x1="52.03" y1="83.26" x2="52.03" y2="154.53" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Store" id="participant-Store">
 <line x1="138.75" y1="83.26" x2="138.75" y2="154.53" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="actor-Visitor" id="actor-Visitor">
 <line x1="196.3" y1="83.26" x2="196.3" y2="154.53" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
+</g>
 <g>
+<g class="participant-Gate">
 <rect x="0" y="35" width="104.06" height="48.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="15.98" cy="50.98" rx="8.98" ry="8.98" fill="#FFB347" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -17,6 +24,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="36.5" y="72.96" font-size="14" fill="#000000" textLength="31.05" lengthAdjust="spacing">Gate</tspan>
 </text>
+</g>
+<g class="participant-Store">
 <rect x="114.06" y="35" width="49.39" height="48.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="138.75" cy="50.98" rx="8.98" ry="8.98" fill="#ADD1B2" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -25,6 +34,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="121.06" y="72.96" font-size="14" fill="#000000" textLength="35.39" lengthAdjust="spacing">Store</tspan>
 </text>
+</g>
+<g class="actor-Visitor">
 <ellipse cx="196.3" cy="8.5" rx="8" ry="8" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M196.3,16.5 L196.3,35.5 M183.3,22.5 L209.3,22.5 M196.3,35.5 L183.3,49.5 M196.3,35.5 L209.3,49.5" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -33,16 +44,22 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="175.26" y="79.96" font-size="14" fill="#000000" textLength="42.07" lengthAdjust="spacing">Visitor</tspan>
 </text>
+</g>
+<g class="message-Visitor-Gate-enter" id="message-Visitor-Gate-enter">
 <line x1="196.3" y1="112.4" x2="52.03" y2="112.4" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="62.03,108.4 52.03,112.4 62.03,116.4 58.03,112.4" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="66.03" y="107.33" font-size="13" fill="#000000" textLength="31.98" lengthAdjust="spacing">enter</tspan>
 </text>
+</g>
+<g class="message-Gate-Store-count" id="message-Gate-Store-count">
 <line x1="52.03" y1="141.53" x2="138.75" y2="141.53" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="128.75,137.53 138.75,141.53 128.75,145.53 132.75,141.53" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="59.03" y="136.46" font-size="13" fill="#000000" textLength="34.84" lengthAdjust="spacing">count</tspan>
 </text>
+</g>
+<g class="participant-Gate">
 <rect x="0" y="154.53" width="104.06" height="48.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="15.98" cy="170.51" rx="8.98" ry="8.98" fill="#FFB347" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -54,6 +71,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="36.5" y="192.49" font-size="14" fill="#000000" textLength="31.05" lengthAdjust="spacing">Gate</tspan>
 </text>
+</g>
+<g class="participant-Store">
 <rect x="114.06" y="154.53" width="49.39" height="48.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="138.75" cy="170.51" rx="8.98" ry="8.98" fill="#ADD1B2" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -62,6 +81,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="121.06" y="192.49" font-size="14" fill="#000000" textLength="35.39" lengthAdjust="spacing">Store</tspan>
 </text>
+</g>
+<g class="actor-Visitor">
 <ellipse cx="196.3" cy="196.29" rx="8" ry="8" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M196.3,204.29 L196.3,223.29 M183.3,210.29 L209.3,210.29 M196.3,223.29 L183.3,237.29 M196.3,223.29 L209.3,237.29" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -70,6 +91,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="175.26" y="181.49" font-size="14" fill="#000000" textLength="42.07" lengthAdjust="spacing">Visitor</tspan>
 </text>
+</g>
 <g class="footer" id="footer">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="84.45" y="255.07" font-size="10" fill="#888888" textLength="50.24" lengthAdjust="spacing">Page 1 of 1</tspan>

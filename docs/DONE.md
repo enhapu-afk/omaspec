@@ -2348,6 +2348,18 @@ is open and the reasoning around it.
       and `--history` and `--fold` still refuse it; `--id-prefix` takes
       no `omaspec-`, which a page's own groups start with; the tests no
       longer write the line that once asked for the parts.
+- [x] An id for every box and line, step 2, sequence diagrams
+      (2026-11-26, [0037](adr/0037-an-id-for-every-box-and-line.md)): a
+      sequence diagram of both languages names its elements from the
+      source: `participant-Web`, `actor-User` (its head, its foot, its
+      lifeline, its bars and the cross that ends it),
+      `message-User-Web-log_20_in` (an edge `left` or `right`),
+      `note-actor-User-over-1`, a note beside a message after the
+      message's (`note-message-User-Web-log_20_in-right-1`), `alt-ok`,
+      `divider-Done`, `delay-later`, `ref-more`, `box-Back`. It is drawn
+      as a whole, as before: its root says `data-omaspec="named"`, so the
+      pane fades it and a build uncovers it from the top down. 21 golden
+      SVGs changed, by their groups and their root alone.
 
 ## Next
 

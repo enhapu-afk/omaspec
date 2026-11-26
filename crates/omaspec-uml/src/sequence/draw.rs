@@ -18,6 +18,7 @@ use crate::map::{Map, Step};
 use crate::svg::{Align, Canvas, Layer, Stroke, n};
 use crate::text::{self, Block, Family, Font};
 
+mod names;
 mod room;
 
 /// Space around the drawing.
@@ -117,6 +118,9 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
 fn laid<'a>(d: &'a Diagram, skin: &'a Skin) -> Result<(Drawer<'a>, Canvas), Declined> {
     let canvas = || {
         let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+        // Its elements named, the picture drawn as a whole: a play lifts
+        // its veil message by message, no box glides (docs/adr/0037).
+        canvas.whole();
         canvas.sketch(skin.sketch);
         canvas.shadows(skin.shadow);
         canvas.faces(&skin.faces);
@@ -405,6 +409,8 @@ struct OpenGroup {
     fill: Paint,
     /// The line that opens it.
     line: usize,
+    /// Its element's name ([`names::Names::item`]).
+    part: String,
     /// Each `else`: where, its words and its line.
     elses: Vec<(f32, Block, usize)>,
     /// The color behind each `else`'s part.
@@ -423,6 +429,10 @@ struct OpenGroup {
 struct Drawer<'a> {
     d: &'a Diagram,
     skin: &'a Skin,
+    /// Each element by its name from the source (docs/adr/0037), and
+    /// each column's participant's.
+    names: names::Names,
+    column_names: Vec<String>,
     cols: Vec<Column>,
     col_of: Vec<Option<usize>>,
     measured: Vec<Measured>,
@@ -453,7 +463,7 @@ struct Drawer<'a> {
     /// and the middle of it, where a duration from it stands.
     anchors: std::collections::HashMap<String, (f32, f32)>,
     groups: Vec<OpenGroup>,
-    dividers: Vec<(f32, Block, usize)>,
+    dividers: Vec<(f32, Block, usize, String)>,
     /// The arrow height of the last message and its columns, while only
     /// activations follow it.
     last_arrow: Option<(f32, [Option<usize>; 2])>,
@@ -901,9 +911,19 @@ impl<'a> Drawer<'a> {
         };
 
         let beside = beside(d, &col_of, n);
+        let names = names::Names::of(d);
+        let column_names = (0..cols.len())
+            .map(|c| {
+                (0..d.participants.len())
+                    .find(|&p| col_of[p] == Some(c))
+                    .map_or_else(String::new, |p| names.participant(p).to_owned())
+            })
+            .collect();
         Ok(Drawer {
             d,
             skin,
+            names,
+            column_names,
             col_of,
             measured,
             boxes,
@@ -1513,14 +1533,17 @@ impl<'a> Drawer<'a> {
         for bar in &self.bars {
             let x = self.x[bar.column] - BAR / 2.0 + BAR_SHIFT * bar.depth as f32;
             let rect = (x, bar.start, BAR, (bar.end - bar.start).max(4.0));
-            canvas.rect(
-                Layer::Bars,
-                rect,
-                0.0,
-                bar.fill,
-                Some(Stroke::new(skin.lifeline, 1.0)),
-            );
-            canvas.shape_of(bar.line, rect);
+            // A bar is its participant's.
+            canvas.part(&self.column_names[bar.column], |canvas| {
+                canvas.rect(
+                    Layer::Bars,
+                    rect,
+                    0.0,
+                    bar.fill,
+                    Some(Stroke::new(skin.lifeline, 1.0)),
+                );
+                canvas.shape_of(bar.line, rect);
+            });
         }
         let mut bottom = end;
         if self.d.footbox {
@@ -1544,7 +1567,8 @@ impl<'a> Drawer<'a> {
         pages.push((page_top, bottom));
         let bands = self.box_bands();
         let mut grounds = Vec::new();
-        for b in &self.boxes {
+        for (at, b) in self.boxes.iter().enumerate() {
+            let part = self.names.group_box(at);
             // Inside another, it keeps the padding of those around it that
             // end at the same column clear, and starts under their titles.
             let (inset_left, inset_right) = inset(&self.boxes, b, skin.box_padding);
@@ -1556,13 +1580,15 @@ impl<'a> Drawer<'a> {
             for (page, &(top, under)) in pages.iter().enumerate() {
                 let top = top + offset;
                 let rect = (left, top, right - left, under + 5.0 - top);
-                canvas.rect(
-                    Layer::Background,
-                    rect,
-                    skin.round,
-                    b.look.fill,
-                    Some(Stroke::new(b.look.border, b.look.thickness)),
-                );
+                canvas.part(part, |canvas| {
+                    canvas.rect(
+                        Layer::Background,
+                        rect,
+                        skin.round,
+                        b.look.fill,
+                        Some(Stroke::new(b.look.border, b.look.thickness)),
+                    );
+                });
                 if let Some(fill) = b.look.fill {
                     grounds.push((
                         b.depth,
@@ -1579,12 +1605,14 @@ impl<'a> Drawer<'a> {
                     ));
                 }
                 let before = canvas.echo(page > 0);
-                canvas.text(
-                    Layer::Background,
-                    &b.title,
-                    ((left + right) / 2.0, top + 4.0),
-                    Align::Center,
-                );
+                canvas.part(part, |canvas| {
+                    canvas.text(
+                        Layer::Background,
+                        &b.title,
+                        ((left + right) / 2.0, top + 4.0),
+                        Align::Center,
+                    );
+                });
                 canvas.echo(before);
             }
         }
@@ -1607,9 +1635,11 @@ impl<'a> Drawer<'a> {
         canvas.include(right, content_top);
         self.annotations.draw(canvas);
         let dividers = std::mem::take(&mut self.dividers);
-        for (cy, label, line) in dividers {
+        for (cy, label, line, part) in dividers {
             canvas.tie(Some(line));
-            self.divider(canvas, cy, &label, left, right);
+            canvas.part(&part, |canvas| {
+                self.divider(canvas, cy, &label, left, right)
+            });
         }
         canvas.tie(None);
     }
@@ -1641,7 +1671,17 @@ impl<'a> Drawer<'a> {
             Item::NewPage { line, .. } | Item::Duration { line, .. } => Some(*line),
             _ => None,
         });
-        let next = self.item_of(canvas, k);
+        // In its element: a group's frame is drawn where it ends.
+        let part = match item {
+            Item::GroupEnd { .. } => self.groups.last().map(|g| g.part.clone()),
+            // The cross that ends a lifeline is its participant's.
+            Item::Destroy { participant, .. } => {
+                Some(self.names.participant(*participant).to_owned())
+            }
+            _ => Some(self.names.item(k).to_owned()),
+        }
+        .unwrap_or_default();
+        let next = canvas.part(&part, |canvas| self.item_of(canvas, k));
         canvas.tie(None);
         next
     }
@@ -1687,6 +1727,7 @@ impl<'a> Drawer<'a> {
                         tab: tab_fill,
                         fill,
                         line: *line,
+                        part: self.names.item(k).to_owned(),
                         elses: Vec::new(),
                         else_fills: Vec::new(),
                         lo: f32::INFINITY,
@@ -1717,7 +1758,8 @@ impl<'a> Drawer<'a> {
                     let label = label.clone();
                     let h = label.height + 6.0;
                     let cy = self.y + 10.0 + h / 2.0;
-                    self.dividers.push((cy, label, written.line));
+                    self.dividers
+                        .push((cy, label, written.line, self.names.item(k).to_owned()));
                     self.y = cy + h / 2.0 + 7.0;
                 }
             }
@@ -2368,14 +2410,18 @@ impl<'a> Drawer<'a> {
                     at: [nx, ny, nx + width, ny + height],
                 });
             }
-            draw_note(
-                canvas,
-                skin,
-                note.shape,
-                (nx, ny, width, height),
-                note_text,
-                *fill,
-            );
+            // In a part of its own within the message's.
+            let part = self.names.item(k + 1).to_owned();
+            canvas.part(&part, |canvas| {
+                draw_note(
+                    canvas,
+                    skin,
+                    note.shape,
+                    (nx, ny, width, height),
+                    note_text,
+                    *fill,
+                );
+            });
             also.push([nx, ny, width, height]);
             self.touch(nx, nx + width);
             after = after.max(ny + height + 3.0);
@@ -2854,6 +2900,23 @@ impl<'a> Drawer<'a> {
             if !self.head_drawn[c] {
                 continue;
             }
+            // A lifeline is its participant's.
+            canvas.part(&self.column_names[c], |canvas| {
+                self.lifeline(canvas, c, end, (dashed, dotted))
+            });
+        }
+    }
+
+    /// Column `c`'s lifeline, down to `end` but where it ends earlier;
+    /// `dashed` where it runs, `dotted` over a delay.
+    fn lifeline(
+        &self,
+        canvas: &mut Canvas,
+        c: usize,
+        end: f32,
+        (dashed, dotted): (Stroke, Stroke),
+    ) {
+        {
             let x = self.x[c];
             let mut y = self.life_start[c];
             let stop = self.life_end[c].unwrap_or(end);
@@ -2915,7 +2978,21 @@ impl<'a> Drawer<'a> {
 
     /// [`Self::head`]; `again` where the name is drawn a second time, at
     /// the foot or on a page after the first.
+    /// [`Self::head_shape_drawn`] in its participant's element.
     fn head_drawn_again(
+        &self,
+        canvas: &mut Canvas,
+        c: usize,
+        top: f32,
+        bottom: bool,
+        again: bool,
+    ) -> (crate::graph::Rect, Paint) {
+        canvas.part(&self.column_names[c], |canvas| {
+            self.head_shape_drawn(canvas, c, top, bottom, again)
+        })
+    }
+
+    fn head_shape_drawn(
         &self,
         canvas: &mut Canvas,
         c: usize,
@@ -4132,6 +4209,38 @@ mod tests {
             assert!(crate::render("").unwrap_err().refused);
             assert!(!crate::render("title alone").unwrap_err().refused);
         }
+    }
+
+    /// Its participants, messages, notes and fragments carry ids from the
+    /// source, but the picture is drawn as a whole: a pane fades it and a
+    /// build uncovers it from the top down (docs/adr/0037).
+    #[test]
+    fn its_elements_have_ids_from_the_source() {
+        let source = "actor User\nparticipant \"Web app\" as Web\nbox Back\nparticipant Api\nend box\nUser -> Web : log in\nnote right : first\nactivate Web\nalt ok\n  Web -> Api : check\nend\n== Done ==\nnote over User : bye\n...later...\nref over User, Web : more\nUser -> Api\ndestroy Api";
+        let svg = crate::render(source).unwrap();
+        for id in [
+            "actor-User",
+            "participant-Web",
+            "participant-Api",
+            "box-Back",
+            "message-User-Web-log_20_in",
+            "note-message-User-Web-log_20_in-right-1",
+            "alt-ok",
+            "message-Web-Api-check",
+            "divider-Done",
+            "note-actor-User-over-1",
+            "delay-later",
+            "ref-more",
+            "message-User-Api",
+        ] {
+            assert_eq!(count(&svg, &format!(" id=\"{id}\"")), 1, "{id}");
+        }
+        // A participant's head, foot, lifeline and bar are all its own.
+        assert!(count(&svg, r#"<g class="participant-Web""#) >= 3, "{svg}");
+        assert!(svg.contains(crate::NAMED) && !svg.contains(crate::svg::MARKED));
+        assert!(crate::has_parts(&svg) && !crate::glides_by_parts(&svg));
+        // The same source, the same ids.
+        assert_eq!(svg, crate::render(source).unwrap());
     }
 
     #[test]

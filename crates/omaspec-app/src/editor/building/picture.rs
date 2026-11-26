@@ -30,6 +30,8 @@ pub(super) struct Picture {
     /// Its drawer tied nothing to its lines: it comes whole with the line
     /// that closes the diagram, and nothing of it shows before.
     pub(super) untied: bool,
+    /// It builds part by part ([`omaspec_uml::glides_by_parts`]).
+    pub(super) glides: bool,
     /// The transform the lines' group draws in, to draw the lines anew in
     /// its place.
     pub(super) lines_group: Option<usvg::Transform>,
@@ -196,6 +198,7 @@ impl Picture {
             wires,
             reach,
             untied,
+            glides: omaspec_uml::glides_by_parts(shown),
             lines_group,
             root: root_of(svg, size),
         })
@@ -211,11 +214,10 @@ impl Picture {
     }
 
     /// Whether it builds part by part, else from the top down: it has
-    /// boxes of its own, not only its frame's parts (a titled sequence).
+    /// boxes of its own, not only its frame's parts (a titled timing
+    /// chart), and they glide (not a sequence's, drawn as a whole).
     pub(super) fn by_parts(&self) -> bool {
-        self.parts
-            .iter()
-            .any(|part| !omaspec_uml::FRAME_PARTS.contains(&part.name.as_str()))
+        self.glides
     }
 
     /// Down to where the picture shows before any line: above the first

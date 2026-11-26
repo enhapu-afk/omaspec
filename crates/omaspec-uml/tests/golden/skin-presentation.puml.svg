@@ -1,84 +1,123 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="626" height="596" viewBox="0 0 626 596" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="626" height="596" viewBox="0 0 626 596" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="actor-User" id="actor-User">
 <line x1="17.85" y1="100.25" x2="17.85" y2="503.74" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Web" id="participant-Web">
 <line x1="207.05" y1="100.25" x2="207.05" y2="503.74" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Auth" id="participant-Auth">
 <line x1="425.64" y1="100.25" x2="425.64" y2="503.74" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="database-Sessions" id="database-Sessions">
 <line x1="571.77" y1="100.25" x2="571.77" y2="503.74" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
+</g>
 <g>
+<g class="alt-password_20_ok" id="alt-password_20_ok">
 <rect x="7.85" y="240.74" width="573.92" height="252.99" fill="none" stroke="#000000" stroke-width="1.5"/>
 <line x1="7.85" y1="400.86" x2="581.77" y2="400.86" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="2,2"/>
 </g>
+</g>
 <g>
+<g class="actor-User">
 <ellipse cx="17.85" cy="37.12" rx="8" ry="8" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M17.85,45.12 L17.85,64.12 M4.85,51.12 L30.85,51.12 M17.85,64.12 L4.85,78.12 M17.85,64.12 L30.85,78.12" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="96.47" font-size="16" fill="#000000" textLength="35.7" lengthAdjust="spacing">User</tspan>
 </text>
+</g>
+<g class="participant-Web">
 <rect x="166.07" y="67.62" width="81.95" height="32.62" rx="6" ry="6" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="173.07" y="89.47" font-size="16" fill="#000000" textLength="67.95" lengthAdjust="spacing">Web app</tspan>
 </text>
+</g>
+<g class="participant-Auth">
 <rect x="401.05" y="67.62" width="49.18" height="32.62" rx="6" ry="6" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="408.05" y="89.47" font-size="16" fill="#000000" textLength="35.18" lengthAdjust="spacing">Auth</tspan>
 </text>
+</g>
+<g class="database-Sessions">
 <path d="M556.77,45.62 L556.77,73.62 A15,5 0 0 0 586.77,73.62 L586.77,45.62" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="571.77" cy="45.62" rx="15" ry="5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="537.83" y="96.47" font-size="16" fill="#000000" textLength="67.87" lengthAdjust="spacing">Sessions</tspan>
 </text>
+</g>
+<g class="message-User-Web-open_20_the_20_login_20_page" id="message-User-Web-open_20_the_20_login_20_page">
 <line x1="17.85" y1="132.87" x2="207.05" y2="132.87" fill="none" stroke="#181818" stroke-width="1.5"/>
 <polygon points="197.05,128.87 207.05,132.87 197.05,136.87 201.05,132.87" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24.85" y="127.1" font-size="16" fill="#000000" textLength="150.21" lengthAdjust="spacing">open the login page</tspan>
 </text>
+</g>
+<g class="message-Web-User-form" id="message-Web-User-form">
 <line x1="207.05" y1="165.5" x2="17.85" y2="165.5" fill="none" stroke="#181818" stroke-width="1.5" stroke-dasharray="2,2"/>
 <polygon points="27.85,161.5 17.85,165.5 27.85,169.5 23.85,165.5" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="31.85" y="159.72" font-size="16" fill="#000000" textLength="35.55" lengthAdjust="spacing">form</tspan>
 </text>
+</g>
+<g class="message-User-Web-name_20_and_20_password" id="message-User-Web-name_20_and_20_password">
 <line x1="17.85" y1="198.12" x2="207.05" y2="198.12" fill="none" stroke="#181818" stroke-width="1.5"/>
 <polygon points="197.05,194.12 207.05,198.12 197.05,202.12 201.05,198.12" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24.85" y="192.34" font-size="16" fill="#000000" textLength="153.2" lengthAdjust="spacing">name and password</tspan>
 </text>
+</g>
+<g class="message-Web-Auth-check_28_name_2c__20_password_29_" id="message-Web-Auth-check_28_name_2c__20_password_29_">
 <line x1="207.05" y1="230.74" x2="425.64" y2="230.74" fill="none" stroke="#181818" stroke-width="1.5"/>
 <polygon points="415.64,226.74 425.64,230.74 415.64,234.74 419.64,230.74" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="214.05" y="224.97" font-size="16" fill="#000000" textLength="182.59" lengthAdjust="spacing">check(name, password)</tspan>
 </text>
+</g>
+<g class="message-Auth-Sessions-create_20_session" id="message-Auth-Sessions-create_20_session">
 <line x1="425.64" y1="292.99" x2="571.77" y2="292.99" fill="none" stroke="#181818" stroke-width="1.5"/>
 <polygon points="561.77,288.99 571.77,292.99 561.77,296.99 565.77,292.99" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="432.64" y="287.22" font-size="16" fill="#000000" textLength="110.13" lengthAdjust="spacing">create session</tspan>
 </text>
+</g>
+<g class="message-Sessions-Auth-session_20_id" id="message-Sessions-Auth-session_20_id">
 <line x1="571.77" y1="325.62" x2="425.64" y2="325.62" fill="none" stroke="#181818" stroke-width="1.5" stroke-dasharray="2,2"/>
 <polygon points="435.64,321.62 425.64,325.62 435.64,329.62 431.64,325.62" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="439.64" y="319.84" font-size="16" fill="#000000" textLength="75.76" lengthAdjust="spacing">session id</tspan>
 </text>
+</g>
+<g class="message-Auth-Web-ok" id="message-Auth-Web-ok">
 <line x1="425.64" y1="358.24" x2="207.05" y2="358.24" fill="none" stroke="#181818" stroke-width="1.5" stroke-dasharray="2,2"/>
 <polygon points="217.05,354.24 207.05,358.24 217.05,362.24 213.05,358.24" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="221.05" y="352.46" font-size="16" fill="#000000" textLength="18.38" lengthAdjust="spacing">ok</tspan>
 </text>
+</g>
+<g class="message-Web-User-welcome_20_page" id="message-Web-User-welcome_20_page">
 <line x1="207.05" y1="390.86" x2="17.85" y2="390.86" fill="none" stroke="#181818" stroke-width="1.5" stroke-dasharray="2,2"/>
 <polygon points="27.85,386.86 17.85,390.86 27.85,394.86 23.85,390.86" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="31.85" y="385.09" font-size="16" fill="#000000" textLength="110.78" lengthAdjust="spacing">welcome page</tspan>
 </text>
+</g>
+<g class="message-Auth-Web-refused" id="message-Auth-Web-refused">
 <line x1="425.64" y1="451.11" x2="207.05" y2="451.11" fill="none" stroke="#181818" stroke-width="1.5" stroke-dasharray="2,2"/>
 <polygon points="217.05,447.11 207.05,451.11 217.05,455.11 213.05,451.11" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="221.05" y="445.34" font-size="16" fill="#000000" textLength="58.29" lengthAdjust="spacing">refused</tspan>
 </text>
+</g>
+<g class="message-Web-User-try_20_again" id="message-Web-User-try_20_again">
 <line x1="207.05" y1="483.74" x2="17.85" y2="483.74" fill="none" stroke="#181818" stroke-width="1.5" stroke-dasharray="2,2"/>
 <polygon points="27.85,479.74 17.85,483.74 27.85,487.74 23.85,483.74" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="31.85" y="477.96" font-size="16" fill="#000000" textLength="65.86" lengthAdjust="spacing">try again</tspan>
 </text>
+</g>
+<g class="alt-password_20_ok">
 <polygon points="7.85,240.74 45.34,240.74 45.34,257.37 39.34,263.37 7.85,263.37" fill="#EEEEEE" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="13.85" y="257.59" font-size="16" fill="#000000" font-weight="bold" textLength="19.49" lengthAdjust="spacing">alt</tspan>
@@ -89,24 +128,33 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12.85" y="416.71" font-size="16" fill="#000000" font-weight="bold" textLength="143.15" lengthAdjust="spacing">[wrong password]</tspan>
 </text>
+</g>
+<g class="actor-User">
 <ellipse cx="17.85" cy="533.86" rx="8" ry="8" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M17.85,541.86 L17.85,560.86 M4.85,547.86 L30.85,547.86 M17.85,560.86 L4.85,574.86 M17.85,560.86 L30.85,574.86" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="518.58" font-size="16" fill="#000000" textLength="35.7" lengthAdjust="spacing">User</tspan>
 </text>
+</g>
+<g class="participant-Web">
 <rect x="166.07" y="503.74" width="81.95" height="32.62" rx="6" ry="6" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="173.07" y="525.58" font-size="16" fill="#000000" textLength="67.95" lengthAdjust="spacing">Web app</tspan>
 </text>
+</g>
+<g class="participant-Auth">
 <rect x="401.05" y="503.74" width="49.18" height="32.62" rx="6" ry="6" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="408.05" y="525.58" font-size="16" fill="#000000" textLength="35.18" lengthAdjust="spacing">Auth</tspan>
 </text>
+</g>
+<g class="database-Sessions">
 <path d="M556.77,530.36 L556.77,558.36 A15,5 0 0 0 586.77,558.36 L586.77,530.36" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="571.77" cy="530.36" rx="15" ry="5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="537.83" y="518.58" font-size="16" fill="#000000" textLength="67.87" lengthAdjust="spacing">Sessions</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="262.06" y="14.85" font-size="16" fill="#000000" font-weight="bold" textLength="81.58" lengthAdjust="spacing">Logging in</tspan>

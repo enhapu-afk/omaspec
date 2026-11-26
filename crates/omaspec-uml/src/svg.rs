@@ -108,6 +108,8 @@ pub struct Canvas {
     shades: [String; LAYERS],
     /// The parts are marked: in every picture, not in one inside a note.
     marks_parts: bool,
+    /// Its elements are named, but it is drawn as a whole ([`NAMED`]).
+    whole: bool,
     /// The part being drawn: its groups' class ([`part_id`]).
     part: Option<String>,
     /// For each layer, the part whose group is open there, among its
@@ -187,6 +189,7 @@ impl Canvas {
             // Every picture marks its parts (docs/adr/0037), but one drawn
             // inside another's note: its names are not the picture's.
             marks_parts: !crate::embedded::inside(),
+            whole: false,
             part: None,
             open: Default::default(),
             open_shades: Default::default(),
@@ -204,6 +207,12 @@ impl Canvas {
             grayed: false,
             written: Vec::new(),
         }
+    }
+
+    /// Names the elements drawn, but draws the picture as a whole: a pane
+    /// fades it and a build uncovers it from the top down ([`NAMED`]).
+    pub fn whole(&mut self) {
+        self.whole = true;
     }
 
     /// Draws with `paint` the part called `name`: a box, a mark or a line's
@@ -1524,11 +1533,12 @@ impl Canvas {
         });
         let mut out =
             String::with_capacity(self.layers.iter().map(String::len).sum::<usize>() + 256);
-        // A picture whose parts are marked says so at its root.
-        let marks = if self.marks_parts {
-            format!(" {MARKED}")
-        } else {
-            String::new()
+        // A picture whose parts are marked says so at its root, and whether
+        // a pane glides it by them.
+        let marks = match (self.marks_parts, self.whole) {
+            (false, _) => String::new(),
+            (true, false) => format!(" {MARKED}"),
+            (true, true) => format!(" {NAMED}"),
         };
         let _ = write!(
             out,
@@ -1779,16 +1789,26 @@ pub fn without_lines(svg: &str) -> Option<String> {
     Some(format!("{}{}", &svg[..start], &svg[end..]))
 }
 
-/// What the root of a picture whose parts Omaspec marked carries: the
-/// groups of other engines' pictures (mmdr's, the Java PlantUML's) have
-/// classes too, which are no parts.
+/// What the root of a picture whose parts Omaspec marked carries, one that
+/// glides by them in the pane: the groups of other engines' pictures
+/// (mmdr's, the Java PlantUML's) have classes too, which are no parts.
 pub const MARKED: &str = r#"data-omaspec="parts""#;
 
-/// Whether the root of `svg` says Omaspec marked its parts ([`MARKED`]).
-fn marked(svg: &str) -> bool {
+/// What the root of a picture carries whose elements Omaspec names, but
+/// which is drawn as a whole: a pane fades it and a build uncovers it from
+/// the top down (a sequence diagram, docs/adr/0037).
+pub const NAMED: &str = r#"data-omaspec="named""#;
+
+/// The root tag of `svg`.
+fn root(svg: &str) -> Option<&str> {
     svg.find("<svg")
         .and_then(|at| svg[at..].find('>').map(|end| &svg[at..at + end]))
-        .is_some_and(|root| root.contains(MARKED))
+}
+
+/// Whether the root of `svg` says Omaspec marked its parts ([`MARKED`],
+/// [`NAMED`]).
+fn marked(svg: &str) -> bool {
+    root(svg).is_some_and(|root| root.contains(MARKED) || root.contains(NAMED))
 }
 
 /// The class of the part whose group `rest` starts with, where it is
@@ -1828,7 +1848,8 @@ pub const FRAME_PARTS: [&str; 5] = ["title", "header", "footer", "caption", "leg
 /// ([`FRAME_PARTS`]), its boxes; a picture whose drawer names none of
 /// its own fades, and builds from the top down.
 pub fn glides_by_parts(svg: &str) -> bool {
-    part_starts(svg).any(|(_, class)| !FRAME_PARTS.contains(&class))
+    root(svg).is_some_and(|root| root.contains(MARKED))
+        && part_starts(svg).any(|(_, class)| !FRAME_PARTS.contains(&class))
 }
 
 /// Each group of a part in `svg`, whole: the part's name and the group.
@@ -1979,6 +2000,7 @@ pub fn unmarked(svg: &str) -> String {
     }
     // Nor does its root say it marks them.
     out.replacen(&format!(" {MARKED}"), "", 1)
+        .replacen(&format!(" {NAMED}"), "", 1)
 }
 
 /// The name of the part whose groups have the class `class`: the class

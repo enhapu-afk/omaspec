@@ -1,69 +1,103 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="428" height="233" viewBox="0 0 428 233" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="428" height="233" viewBox="0 0 428 233" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="box-Internal_20_service" id="box-Internal_20_service">
 <rect x="0" y="0" width="345.6" height="212.25" rx="2.5" ry="2.5" fill="#ADD8E6" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="123.38" y="16.06" font-size="13" fill="#000000" font-weight="bold" textLength="98.84" lengthAdjust="spacing">Internal service</tspan>
 </text>
+</g>
+<g class="box-Billing_20_team_2c__20_invoices_20_and_20_payments" id="box-Billing_20_team_2c__20_invoices_20_and_20_payments">
 <rect x="97.24" y="23.13" width="238.36" height="189.12" rx="2.5" ry="2.5" fill="#FFFFE0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="102.24" y="39.2" font-size="13" fill="#000000" font-weight="bold" textLength="228.36" lengthAdjust="spacing">Billing team, invoices and payments</tspan>
 </text>
 </g>
-<g>
-<line x1="46.12" y1="76.56" x2="46.12" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
-<line x1="141.86" y1="76.56" x2="141.86" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
-<line x1="285.92" y1="76.56" x2="285.92" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
-<line x1="384.09" y1="76.56" x2="384.09" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 <g>
+<g class="participant-Gateway" id="participant-Gateway">
+<line x1="46.12" y1="76.56" x2="46.12" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Invoices" id="participant-Invoices">
+<line x1="141.86" y1="76.56" x2="141.86" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Payments" id="participant-Payments">
+<line x1="285.92" y1="76.56" x2="285.92" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Bank" id="participant-Bank">
+<line x1="384.09" y1="76.56" x2="384.09" y2="176.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+</g>
+<g>
+<g class="participant-Gateway">
 <rect x="10" y="46.26" width="72.24" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="17" y="66.26" font-size="14" fill="#000000" textLength="58.24" lengthAdjust="spacing">Gateway</tspan>
 </text>
+</g>
+<g class="participant-Invoices">
 <rect x="107.24" y="46.26" width="69.24" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="114.24" y="66.26" font-size="14" fill="#000000" textLength="55.24" lengthAdjust="spacing">Invoices</tspan>
 </text>
+</g>
+<g class="participant-Payments">
 <rect x="246.25" y="46.26" width="79.35" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="253.25" y="66.26" font-size="14" fill="#000000" textLength="65.35" lengthAdjust="spacing">Payments</tspan>
 </text>
+</g>
+<g class="participant-Bank">
 <rect x="360.6" y="46.26" width="46.98" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="367.6" y="66.26" font-size="14" fill="#000000" textLength="32.98" lengthAdjust="spacing">Bank</tspan>
 </text>
+</g>
+<g class="message-Gateway-Invoices-bill" id="message-Gateway-Invoices-bill">
 <line x1="46.12" y1="105.69" x2="141.86" y2="105.69" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="131.86,101.69 141.86,105.69 131.86,109.69 135.86,105.69" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="53.12" y="100.62" font-size="13" fill="#000000" textLength="17.39" lengthAdjust="spacing">bill</tspan>
 </text>
+</g>
+<g class="message-Invoices-Payments-charge" id="message-Invoices-Payments-charge">
 <line x1="141.86" y1="134.82" x2="285.92" y2="134.82" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="275.92,130.82 285.92,134.82 275.92,138.82 279.92,134.82" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="148.86" y="129.76" font-size="13" fill="#000000" textLength="42.85" lengthAdjust="spacing">charge</tspan>
 </text>
+</g>
+<g class="message-Payments-Bank-transfer" id="message-Payments-Bank-transfer">
 <line x1="285.92" y1="163.96" x2="384.09" y2="163.96" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="374.09,159.96 384.09,163.96 374.09,167.96 378.09,163.96" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="292.92" y="158.89" font-size="13" fill="#000000" textLength="48.27" lengthAdjust="spacing">transfer</tspan>
 </text>
+</g>
+<g class="participant-Gateway">
 <rect x="10" y="176.96" width="72.24" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="17" y="196.95" font-size="14" fill="#000000" textLength="58.24" lengthAdjust="spacing">Gateway</tspan>
 </text>
+</g>
+<g class="participant-Invoices">
 <rect x="107.24" y="176.96" width="69.24" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="114.24" y="196.95" font-size="14" fill="#000000" textLength="55.24" lengthAdjust="spacing">Invoices</tspan>
 </text>
+</g>
+<g class="participant-Payments">
 <rect x="246.25" y="176.96" width="79.35" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="253.25" y="196.95" font-size="14" fill="#000000" textLength="65.35" lengthAdjust="spacing">Payments</tspan>
 </text>
+</g>
+<g class="participant-Bank">
 <rect x="360.6" y="176.96" width="46.98" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="367.6" y="196.95" font-size="14" fill="#000000" textLength="32.98" lengthAdjust="spacing">Bank</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

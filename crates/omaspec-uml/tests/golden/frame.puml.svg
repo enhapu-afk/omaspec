@@ -1,40 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="253" height="457" viewBox="0 0 202 365" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="253" height="457" viewBox="0 0 202 365" data-omaspec="named">
 <g transform="translate(20,10)">
 <g>
+<g class="participant-B" id="participant-B">
 <line x1="34.54" y1="101.53" x2="34.54" y2="210.92" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-A" id="participant-A">
 <line x1="143.62" y1="101.53" x2="143.62" y2="210.92" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
 </g>
 <g>
 <rect x="-10" y="42.94" width="181.43" height="208.28" fill="none" stroke="#000000" stroke-width="1"/>
 <polygon points="-10,42.94 65.75,42.94 65.75,57.23 59.75,63.23 -10,63.23" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
 <g>
+<g class="participant-B">
 <rect x="0" y="71.23" width="69.09" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="91.22" font-size="14" fill="#000000" textLength="55.09" lengthAdjust="spacing">Browser</tspan>
 </text>
+</g>
+<g class="participant-A">
 <rect x="125.81" y="71.23" width="35.62" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="132.81" y="91.22" font-size="14" fill="#000000" textLength="21.62" lengthAdjust="spacing">Api</tspan>
 </text>
+</g>
+<g class="message-B-A-POST_20__2f_login" id="message-B-A-POST_20__2f_login">
 <line x1="34.54" y1="130.66" x2="143.62" y2="130.66" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="133.62,126.66 143.62,130.66 133.62,134.66 137.62,130.66" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="41.54" y="125.59" font-size="13" fill="#000000" textLength="73.07" lengthAdjust="spacing">POST /login</tspan>
 </text>
+</g>
+<g class="message-A-B-200" id="message-A-B-200">
 <line x1="143.62" y1="197.92" x2="34.54" y2="197.92" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="44.54,193.92 34.54,197.92 44.54,201.92 40.54,197.92" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="48.54" y="192.86" font-size="13" fill="#000000" textLength="24.34" lengthAdjust="spacing">200</tspan>
 </text>
+</g>
+<g class="participant-B">
 <rect x="0" y="210.92" width="69.09" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="230.92" font-size="14" fill="#000000" textLength="55.09" lengthAdjust="spacing">Browser</tspan>
 </text>
+</g>
+<g class="participant-A">
 <rect x="125.81" y="210.92" width="35.62" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="132.81" y="230.92" font-size="14" fill="#000000" textLength="21.62" lengthAdjust="spacing">Api</tspan>
 </text>
+</g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-4" y="57.93" font-size="14" fill="#000000" textLength="19.89" lengthAdjust="spacing">sd </tspan>
 <tspan font-size="14" fill="#000000" font-weight="bold" textLength="37.86" lengthAdjust="spacing">Login</tspan>
@@ -67,11 +83,13 @@
 <tspan x="65.42" y="342.39" font-size="10" fill="#888888" textLength="30.58" lengthAdjust="spacing">page 1</tspan>
 </text>
 </g>
+<g class="divider-Check" id="divider-Check">
 <rect x="0" y="152.73" width="161.43" height="3" fill="#EEEEEE" stroke="#000000" stroke-width="1"/>
 <rect x="54.39" y="143.66" width="52.65" height="21.13" rx="2.5" ry="2.5" fill="#EEEEEE" stroke="#000000" stroke-width="2"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="60.39" y="158.72" font-size="13" fill="#000000" font-weight="bold" textLength="40.65" lengthAdjust="spacing">Check</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

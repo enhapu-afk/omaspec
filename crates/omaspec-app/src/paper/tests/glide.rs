@@ -339,6 +339,18 @@ D --> E
     assert!(fade.lines.is_none() && fade.bare.is_none());
 }
 
+/// A sequence diagram names its elements (docs/adr/0037) but is drawn as
+/// a whole: the pane reads nothing of it for a glide and fades it.
+#[test]
+fn a_sequence_names_its_elements_and_fades() {
+    let drawn = drawn(
+        "@startuml\nAlice -> Bob : hello\n@enduml\n",
+        Language::PlantUml,
+    );
+    assert!(!drawn.parts);
+    assert!(drawn.svg.contains(r#" id="message-Alice-Bob-hello""#));
+}
+
 /// A picture that marks no parts, as the Java engine's does not, fades
 /// into the next, and the next into it: nothing of it is read for a
 /// glide, no sheet is asked for, and a fold's buttons wait for the new

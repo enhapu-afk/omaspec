@@ -39,9 +39,9 @@ the pull request's comment, checked on GitHub.
 element and every line of a picture has an id from the source, for a
 page, a trace and a diff to find it by.
 
-- [ ] Step 2: sequence diagrams (participants, messages, notes,
-      fragments), then the lines of the other drawers and the kinds that
-      mark no parts yet; the guide lists the kinds that carry ids.
+- [ ] Step 2, the rest: the lines of the other drawers and the kinds
+      that mark no parts yet; the guide lists the kinds that carry ids.
+      (Sequence diagrams are done.)
 
 ## PlantUML's guide, drawn natively (2026-11-21)
 

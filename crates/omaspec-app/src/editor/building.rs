@@ -773,6 +773,7 @@ mod tests {
             wires: Vec::new(),
             reach: vec![(1, 40.0)],
             untied: false,
+            glides: false,
             lines_group: None,
             root: export::usvg::Transform::identity(),
         };

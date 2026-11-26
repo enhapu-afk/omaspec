@@ -1,71 +1,108 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="930" height="1500" viewBox="0 0 930 1500" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="930" height="1500" viewBox="0 0 930 1500" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="box-Front_20_end" id="box-Front_20_end">
 <rect x="145.48" y="59.23" width="360.39" height="1379.26" rx="2.5" ry="2.5" fill="#ADD8E6" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="295.24" y="75.3" font-size="13" fill="#000000" font-weight="bold" textLength="60.87" lengthAdjust="spacing">Front end</tspan>
 </text>
 </g>
+</g>
 <g>
+<g class="actor-User" id="actor-User">
 <line x1="87.55" y1="151.66" x2="87.55" y2="1051.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="87.55" y1="1051.34" x2="87.55" y2="1071.34" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="87.55" y1="1071.34" x2="87.55" y2="1076.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="87.55" y1="1076.34" x2="87.55" y2="1109.14" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="87.55" y1="1109.14" x2="87.55" y2="1364.2" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Web" id="participant-Web">
 <line x1="193.11" y1="151.66" x2="193.11" y2="1051.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="193.11" y1="1051.34" x2="193.11" y2="1071.34" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="193.11" y1="1071.34" x2="193.11" y2="1076.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="193.11" y1="1076.34" x2="193.11" y2="1109.14" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="193.11" y1="1109.14" x2="193.11" y2="1364.2" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="boundary-Gate" id="boundary-Gate">
 <line x1="478.87" y1="151.66" x2="478.87" y2="1051.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="478.87" y1="1051.34" x2="478.87" y2="1071.34" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="478.87" y1="1071.34" x2="478.87" y2="1076.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="478.87" y1="1076.34" x2="478.87" y2="1109.14" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="478.87" y1="1109.14" x2="478.87" y2="1364.2" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="control-Ctrl" id="control-Ctrl">
 <line x1="575.24" y1="151.66" x2="575.24" y2="1051.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="575.24" y1="1051.34" x2="575.24" y2="1071.34" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="575.24" y1="1071.34" x2="575.24" y2="1076.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="575.24" y1="1076.34" x2="575.24" y2="1109.14" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="575.24" y1="1109.14" x2="575.24" y2="1364.2" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="entity-Ent" id="entity-Ent">
 <line x1="658.59" y1="151.66" x2="658.59" y2="1051.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="658.59" y1="1051.34" x2="658.59" y2="1071.34" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="658.59" y1="1071.34" x2="658.59" y2="1076.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="658.59" y1="1076.34" x2="658.59" y2="1109.14" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="658.59" y1="1109.14" x2="658.59" y2="1364.2" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="database-DB" id="database-DB">
 <line x1="695.59" y1="151.66" x2="695.59" y2="1051.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="695.59" y1="1051.34" x2="695.59" y2="1071.34" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="695.59" y1="1071.34" x2="695.59" y2="1076.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="695.59" y1="1076.34" x2="695.59" y2="1109.14" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="695.59" y1="1109.14" x2="695.59" y2="1364.2" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="collections-Coll" id="collections-Coll">
 <line x1="742.29" y1="151.66" x2="742.29" y2="1051.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="742.29" y1="1051.34" x2="742.29" y2="1071.34" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="742.29" y1="1071.34" x2="742.29" y2="1076.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="742.29" y1="1076.34" x2="742.29" y2="1109.14" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="742.29" y1="1109.14" x2="742.29" y2="1364.2" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="queue-Q" id="queue-Q">
 <line x1="791.34" y1="151.66" x2="791.34" y2="1051.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="791.34" y1="1051.34" x2="791.34" y2="1071.34" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="791.34" y1="1071.34" x2="791.34" y2="1076.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="791.34" y1="1076.34" x2="791.34" y2="1109.14" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="1,4"/>
 <line x1="791.34" y1="1109.14" x2="791.34" y2="1364.2" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Late" id="participant-Late">
 <line x1="839.95" y1="992.21" x2="839.95" y2="1034.34" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
+</g>
 <g>
+<g class="opt-cached" id="opt-cached">
 <rect x="178.11" y="1171.41" width="527.48" height="55.26" fill="none" stroke="#000000" stroke-width="1.5"/>
+</g>
+<g class="loop-3_20_times" id="loop-3_20_times">
 <rect x="168.11" y="1116.14" width="547.48" height="117.53" fill="none" stroke="#000000" stroke-width="1.5"/>
+</g>
+<g class="group-audit" id="group-audit">
 <rect x="97.55" y="1240.67" width="157.67" height="84.4" fill="none" stroke="#000000" stroke-width="1.5"/>
 </g>
-<g>
-<rect x="570.24" y="318.45" width="10" height="71.26" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
-<rect x="473.87" y="289.32" width="10" height="129.53" fill="#FFD700" stroke="#181818" stroke-width="1"/>
-<rect x="188.11" y="209.92" width="10" height="1154.28" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
-<rect x="575.24" y="360.58" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="control-Ctrl">
+<rect x="570.24" y="318.45" width="10" height="71.26" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="boundary-Gate">
+<rect x="473.87" y="289.32" width="10" height="129.53" fill="#FFD700" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="participant-Web">
+<rect x="188.11" y="209.92" width="10" height="1154.28" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="control-Ctrl">
+<rect x="575.24" y="360.58" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+</g>
+<g>
+<g class="actor-User">
 <ellipse cx="87.55" cy="90.86" rx="8" ry="8" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M87.55,98.86 L87.55,117.86 M74.55,104.86 L100.55,104.86 M87.55,117.86 L74.55,131.86 M87.55,117.86 L100.55,131.86" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="71.93" y="148.36" font-size="14" fill="#000000" textLength="31.23" lengthAdjust="spacing">User</tspan>
 </text>
+</g>
+<g class="participant-Web">
 <rect x="155.48" y="107.4" width="75.25" height="44.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="175.9" y="125.53" font-size="12" fill="#000000" font-style="italic" textLength="34.42" lengthAdjust="spacing">«spa»</tspan>
@@ -73,37 +110,51 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="162.48" y="141.36" font-size="14" fill="#000000" textLength="61.25" lengthAdjust="spacing">Web App</tspan>
 </text>
+</g>
+<g class="boundary-Gate">
 <line x1="461.87" y1="109.36" x2="461.87" y2="131.36" fill="none" stroke="#181818" stroke-width="0.5"/>
 <line x1="461.87" y1="120.36" x2="472.87" y2="120.36" fill="none" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="483.87" cy="120.36" rx="11" ry="11" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="463.35" y="148.36" font-size="14" fill="#000000" textLength="31.05" lengthAdjust="spacing">Gate</tspan>
 </text>
+</g>
+<g class="control-Ctrl">
 <ellipse cx="575.24" cy="120.36" rx="11" ry="11" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <polyline points="579.24,106.36 573.24,109.36 579.24,112.36" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="563.52" y="148.36" font-size="14" fill="#000000" textLength="23.45" lengthAdjust="spacing">Ctrl</tspan>
 </text>
+</g>
+<g class="entity-Ent">
 <ellipse cx="658.59" cy="116.36" rx="11" ry="11" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <line x1="647.59" y1="130.36" x2="669.59" y2="130.36" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="647.96" y="148.36" font-size="14" fill="#000000" textLength="21.27" lengthAdjust="spacing">Ent</tspan>
 </text>
+</g>
+<g class="database-DB">
 <path d="M680.59,99.36 L680.59,127.36 A15,5 0 0 0 710.59,127.36 L710.59,99.36" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="695.59" cy="99.36" rx="15" ry="5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="685.96" y="148.36" font-size="14" fill="#000000" textLength="19.26" lengthAdjust="spacing">DB</tspan>
 </text>
+</g>
+<g class="collections-Coll">
 <rect x="724.59" y="117.36" width="39.4" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <rect x="720.59" y="121.36" width="39.4" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="727.59" y="141.36" font-size="14" fill="#000000" textLength="25.4" lengthAdjust="spacing">Coll</tspan>
 </text>
+</g>
+<g class="queue-Q">
 <path d="M778.99,121.36 L803.7,121.36 A5,15.15 0 0 1 803.7,151.66 L778.99,151.66 A5,15.15 0 0 1 778.99,121.36 Z" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M803.7,121.36 A5,15.15 0 0 0 803.7,151.66" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="783.99" y="141.36" font-size="14" fill="#000000" textLength="10.71" lengthAdjust="spacing">Q</tspan>
 </text>
+</g>
+<g class="message-left-User-wake_20_up" id="message-left-User-wake_20_up">
 <line x1="0" y1="180.79" x2="87.55" y2="180.79" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="77.55,176.79 87.55,180.79 77.55,184.79 81.55,180.79" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -112,6 +163,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16.6" y="175.72" font-size="13" fill="#000000" textLength="51.95" lengthAdjust="spacing">wake up</tspan>
 </text>
+</g>
+<g class="message-User-Web-open" id="message-User-Web-open">
 <line x1="87.55" y1="209.92" x2="188.11" y2="209.92" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="178.11,205.92 188.11,209.92 178.11,213.92 182.11,209.92" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -120,6 +173,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="106.74" y="204.86" font-size="13" fill="#000000" textLength="31.02" lengthAdjust="spacing">open</tspan>
 </text>
+</g>
+<g class="message-Web-Web-render_20__2a__2a_bold_2a__2a__20_and_20__2f__2f_italic_2f__2f_" id="message-Web-Web-render_20__2a__2a_bold_2a__2a__20_and_20__2f__2f_italic_2f__2f_">
 <polyline points="198.11,239.06 228.11,239.06 228.11,252.06 198.11,252.06" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="208.11,248.06 198.11,252.06 208.11,256.06 204.11,252.06" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -131,12 +186,16 @@
 <tspan font-size="13" fill="#000000" textLength="30.25" lengthAdjust="spacing"> and </tspan>
 <tspan font-size="13" fill="#000000" font-style="italic" textLength="28.42" lengthAdjust="spacing">italic</tspan>
 </text>
+</g>
+<g class="note-message-Web-Web-render_20__2a__2a_bold_2a__2a__20_and_20__2f__2f_italic_2f__2f_-right-1" id="note-message-Web-Web-render_20__2a__2a_bold_2a__2a__20_and_20__2f__2f_italic_2f__2f_-right-1">
 <path d="M353.27,219.92 L353.27,260.19 L456.87,260.19 L456.87,229.92 L446.87,219.92 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M446.87,219.92 L446.87,229.92 L456.87,229.92" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="359.27" y="236.99" font-size="13" fill="#000000" textLength="64.25" lengthAdjust="spacing">beside the</tspan>
 <tspan x="359.27" y="252.12" font-size="13" fill="#000000" textLength="81.6" lengthAdjust="spacing">self message</tspan>
 </text>
+</g>
+<g class="message-Web-Gate-call" id="message-Web-Gate-call">
 <line x1="198.11" y1="289.32" x2="473.87" y2="289.32" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="463.87,285.32 473.87,289.32 463.87,293.32 467.87,289.32" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -145,6 +204,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="217.89" y="284.25" font-size="13" fill="#000000" textLength="21.02" lengthAdjust="spacing">call</tspan>
 </text>
+</g>
+<g class="message-Gate-Ctrl-forward" id="message-Gate-Ctrl-forward">
 <line x1="483.87" y1="318.45" x2="570.24" y2="318.45" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="560.24,314.45 570.24,318.45 560.24,322.45 564.24,318.45" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -153,6 +214,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="502.96" y="313.38" font-size="13" fill="#000000" textLength="48.28" lengthAdjust="spacing">forward</tspan>
 </text>
+</g>
+<g class="message-Ctrl-Ctrl-nested" id="message-Ctrl-Ctrl-nested">
 <polyline points="580.24,347.58 615.24,347.58 615.24,360.58 585.24,360.58" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="595.24,356.58 585.24,360.58 595.24,364.58 591.24,360.58" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -161,6 +224,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="599.68" y="342.52" font-size="13" fill="#000000" textLength="41.91" lengthAdjust="spacing">nested</tspan>
 </text>
+</g>
+<g class="message-Ctrl-Gate-done" id="message-Ctrl-Gate-done">
 <line x1="570.24" y1="389.72" x2="483.87" y2="389.72" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="493.87,385.72 483.87,389.72 493.87,393.72 489.87,389.72" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -169,6 +234,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="509.44" y="384.65" font-size="13" fill="#000000" textLength="31.02" lengthAdjust="spacing">done</tspan>
 </text>
+</g>
+<g class="message-Gate-Web-ok" id="message-Gate-Web-ok">
 <line x1="473.87" y1="418.85" x2="198.11" y2="418.85" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="208.11,414.85 198.11,418.85 208.11,422.85 204.11,418.85" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -177,6 +244,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="224.57" y="413.78" font-size="13" fill="#000000" textLength="14.94" lengthAdjust="spacing">ok</tspan>
 </text>
+</g>
+<g class="message-Web-Ent-async" id="message-Web-Ent-async">
 <line x1="198.11" y1="486.11" x2="658.59" y2="486.11" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="648.59,482.11 658.59,486.11 648.59,490.11" fill="none" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -185,6 +254,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="217.54" y="481.04" font-size="13" fill="#000000" textLength="36.58" lengthAdjust="spacing">async</tspan>
 </text>
+</g>
+<g class="message-Web-DB-half" id="message-Web-DB-half">
 <line x1="198.11" y1="515.24" x2="695.59" y2="515.24" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="685.59,511.24 695.59,515.24 685.59,515.24" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -193,6 +264,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="223.47" y="510.18" font-size="13" fill="#000000" textLength="22.94" lengthAdjust="spacing">half</tspan>
 </text>
+</g>
+<g class="message-Web-Coll-lost" id="message-Web-Coll-lost">
 <line x1="198.11" y1="544.38" x2="742.29" y2="544.38" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="738.29" y1="540.38" x2="746.29" y2="548.38" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="738.29" y1="548.38" x2="746.29" y2="540.38" fill="none" stroke="#181818" stroke-width="1"/>
@@ -202,6 +275,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="220.31" y="539.31" font-size="13" fill="#000000" textLength="22.06" lengthAdjust="spacing">lost</tspan>
 </text>
+</g>
+<g class="message-Web-Q-circle" id="message-Web-Q-circle">
 <ellipse cx="787.34" cy="573.51" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
 <line x1="198.11" y1="573.51" x2="783.34" y2="573.51" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="773.34,569.51 783.34,573.51 773.34,577.51 777.34,573.51" fill="#181818" stroke="#181818" stroke-width="1"/>
@@ -211,6 +286,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="222.9" y="568.44" font-size="13" fill="#000000" textLength="33.6" lengthAdjust="spacing">circle</tspan>
 </text>
+</g>
+<g class="message-Web-Q-circles" id="message-Web-Q-circles">
 <ellipse cx="787.34" cy="602.64" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
 <ellipse cx="202.11" cy="602.64" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
 <line x1="206.11" y1="602.64" x2="783.34" y2="602.64" fill="none" stroke="#181818" stroke-width="1"/>
@@ -221,6 +298,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="230.11" y="597.57" font-size="13" fill="#000000" textLength="40.47" lengthAdjust="spacing">circles</tspan>
 </text>
+</g>
+<g class="message-Q-Web-cross_20_first" id="message-Q-Web-cross_20_first">
 <line x1="787.34" y1="627.77" x2="795.34" y2="635.77" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="787.34" y1="635.77" x2="795.34" y2="627.77" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="791.34" y1="631.77" x2="198.11" y2="631.77" fill="none" stroke="#181818" stroke-width="1"/>
@@ -231,6 +310,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="230.5" y="626.7" font-size="13" fill="#000000" textLength="61.45" lengthAdjust="spacing">cross first</tspan>
 </text>
+</g>
+<g class="message-Web-Q-both" id="message-Web-Q-both">
 <line x1="198.11" y1="660.9" x2="791.34" y2="660.9" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="781.34,656.9 791.34,660.9 781.34,664.9 785.34,660.9" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="208.11,656.9 198.11,660.9 208.11,664.9 204.11,660.9" fill="#181818" stroke="#181818" stroke-width="1"/>
@@ -240,6 +321,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="229.8" y="655.84" font-size="13" fill="#000000" textLength="27.69" lengthAdjust="spacing">both</tspan>
 </text>
+</g>
+<g class="message-Web-DB-red" id="message-Web-DB-red">
 <line x1="198.11" y1="690.04" x2="695.59" y2="690.04" fill="none" stroke="#FF0000" stroke-width="1"/>
 <polygon points="685.59,686.04 695.59,690.04 685.59,694.04 689.59,690.04" fill="#FF0000" stroke="#FF0000" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -248,6 +331,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="223.15" y="684.97" font-size="13" fill="#000000" textLength="20.42" lengthAdjust="spacing">red</tspan>
 </text>
+</g>
+<g class="message-Web-DB-bold" id="message-Web-DB-bold">
 <line x1="198.11" y1="719.17" x2="695.59" y2="719.17" fill="none" stroke="#181818" stroke-width="2"/>
 <polygon points="685.59,715.17 695.59,719.17 685.59,723.17 689.59,719.17" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -256,25 +341,35 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="222.28" y="714.1" font-size="13" fill="#000000" textLength="26.86" lengthAdjust="spacing">bold</tspan>
 </text>
+</g>
+<g class="note-actor-User-left-1" id="note-actor-User-left-1">
 <path d="M9.8,729.17 L9.8,754.3 L82.55,754.3 L82.55,739.17 L72.55,729.17 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M72.55,729.17 L72.55,739.17 L82.55,739.17" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="15.8" y="746.23" font-size="13" fill="#000000" textLength="50.75" lengthAdjust="spacing">left note</tspan>
 </text>
+</g>
+<g class="note-boundary-Gate-over-1" id="note-boundary-Gate-over-1">
 <path d="M463.87,764.3 L463.87,804.56 L590.24,804.56 L590.24,774.3 L580.24,764.3 Z" fill="#00FFFF" stroke="#181818" stroke-width="0.5"/>
 <path d="M580.24,764.3 L580.24,774.3 L590.24,774.3" fill="#00FFFF" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="469.87" y="781.36" font-size="13" fill="#000000" textLength="56.29" lengthAdjust="spacing">spanning</tspan>
 <tspan x="469.87" y="796.5" font-size="13" fill="#000000" textLength="27.31" lengthAdjust="spacing">note</tspan>
 </text>
+</g>
+<g class="note-database-DB-over-1" id="note-database-DB-over-1">
 <polygon points="671.41,827.13 679.41,814.56 711.77,814.56 719.77,827.13 711.77,839.7 679.41,839.7" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="684.41" y="831.63" font-size="13" fill="#000000" textLength="22.36" lengthAdjust="spacing">hex</tspan>
 </text>
+</g>
+<g class="note-across-1" id="note-across-1">
 <rect x="72.55" y="849.7" width="782.4" height="25.13" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="78.55" y="866.76" font-size="13" fill="#000000" textLength="102.52" lengthAdjust="spacing">across everyone</tspan>
 </text>
+</g>
+<g class="ref-refresh_20_token" id="ref-refresh_20_token">
 <rect x="178.11" y="904.83" width="532.48" height="43.1" rx="2.5" ry="2.5" fill="#FFFFFF" stroke="#000000" stroke-width="1.5"/>
 <polygon points="178.11,904.83 214.32,904.83 214.32,917.96 208.32,923.96 178.11,923.96" fill="#EEEEEE" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -283,6 +378,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="406.32" y="940.1" font-size="12" fill="#000000" textLength="76.06" lengthAdjust="spacing">refresh token</tspan>
 </text>
+</g>
+<g class="message-Web-Late-new" id="message-Web-Late-new">
 <line x1="198.11" y1="977.06" x2="818.7" y2="977.06" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="808.7,973.06 818.7,977.06 808.7,981.06 812.7,977.06" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -291,10 +388,14 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="223.17" y="971.99" font-size="13" fill="#000000" textLength="25.9" lengthAdjust="spacing">new</tspan>
 </text>
+</g>
+<g class="participant-Late">
 <rect x="818.7" y="961.91" width="42.52" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="825.7" y="981.9" font-size="14" fill="#000000" textLength="28.52" lengthAdjust="spacing">Late</tspan>
 </text>
+</g>
+<g class="message-Late-Late-self" id="message-Late-Late-self">
 <polyline points="839.95,1021.34 869.95,1021.34 869.95,1034.34 839.95,1034.34" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="849.95,1030.34 839.95,1034.34 849.95,1038.34 845.95,1034.34" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -303,11 +404,17 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="864.99" y="1016.27" font-size="13" fill="#000000" textLength="22.4" lengthAdjust="spacing">self</tspan>
 </text>
+</g>
+<g class="participant-Late">
 <line x1="830.95" y1="1025.34" x2="848.95" y2="1043.34" fill="none" stroke="#181818" stroke-width="2"/>
 <line x1="830.95" y1="1043.34" x2="848.95" y2="1025.34" fill="none" stroke="#181818" stroke-width="2"/>
+</g>
+<g class="delay-5_20_minutes_20_later" id="delay-5_20_minutes_20_later">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="488.65" y="1096.55" font-size="11" fill="#000000" textLength="76.81" lengthAdjust="spacing">5 minutes later</tspan>
 </text>
+</g>
+<g class="message-Web-DB-retry" id="message-Web-DB-retry">
 <line x1="198.11" y1="1161.41" x2="695.59" y2="1161.41" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="685.59,1157.41 695.59,1161.41 685.59,1165.41 689.59,1161.41" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -316,6 +423,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="226.06" y="1156.34" font-size="13" fill="#000000" textLength="28.91" lengthAdjust="spacing">retry</tspan>
 </text>
+</g>
+<g class="message-DB-Web-hit" id="message-DB-Web-hit">
 <line x1="695.59" y1="1216.67" x2="198.11" y2="1216.67" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="208.11,1212.67 198.11,1216.67 208.11,1220.67 204.11,1216.67" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -324,6 +433,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="229.9" y="1211.6" font-size="13" fill="#000000" textLength="15.08" lengthAdjust="spacing">hit</tspan>
 </text>
+</g>
+<g class="opt-cached">
 <polygon points="178.11,1171.41 217.02,1171.41 217.02,1184.54 211.02,1190.54 178.11,1190.54" fill="#EEEEEE" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="184.11" y="1185.47" font-size="13" fill="#000000" font-weight="bold" textLength="20.92" lengthAdjust="spacing">opt</tspan>
@@ -331,6 +442,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="222.02" y="1184.78" font-size="11" fill="#000000" font-weight="bold" textLength="47.96" lengthAdjust="spacing">[cached]</tspan>
 </text>
+</g>
+<g class="loop-3_20_times">
 <polygon points="168.11,1116.14 213.76,1116.14 213.76,1129.28 207.76,1135.28 168.11,1135.28" fill="#EEEEEE" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="174.11" y="1130.21" font-size="13" fill="#000000" font-weight="bold" textLength="27.65" lengthAdjust="spacing">loop</tspan>
@@ -338,6 +451,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="218.76" y="1129.52" font-size="11" fill="#000000" font-weight="bold" textLength="47.77" lengthAdjust="spacing">[3 times]</tspan>
 </text>
+</g>
+<g class="message-Web-right-out" id="message-Web-right-out">
 <line x1="198.11" y1="1285.94" x2="909.39" y2="1285.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="899.39,1281.94 909.39,1285.94 899.39,1289.94 903.39,1285.94" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -346,6 +461,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="225.49" y="1280.87" font-size="13" fill="#000000" textLength="19.73" lengthAdjust="spacing">out</tspan>
 </text>
+</g>
+<g class="message-left-Web-short_20_in" id="message-left-Web-short_20_in">
 <line x1="100.55" y1="1315.07" x2="188.11" y2="1315.07" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="178.11,1311.07 188.11,1315.07 178.11,1319.07 182.11,1315.07" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -354,6 +471,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="128.14" y="1310" font-size="13" fill="#000000" textLength="45.97" lengthAdjust="spacing">short in</tspan>
 </text>
+</g>
+<g class="group-audit">
 <polygon points="97.55,1240.67 147.67,1240.67 147.67,1253.8 141.67,1259.8 97.55,1259.8" fill="#EEEEEE" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="103.55" y="1254.74" font-size="13" fill="#000000" font-weight="bold" textLength="32.12" lengthAdjust="spacing">audit</tspan>
@@ -361,6 +480,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="152.67" y="1254.04" font-size="11" fill="#000000" font-weight="bold" textLength="24.97" lengthAdjust="spacing">[log]</tspan>
 </text>
+</g>
+<g class="message-Web-right-short_20_out" id="message-Web-right-short_20_out">
 <line x1="198.11" y1="1351.2" x2="294.96" y2="1351.2" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="284.96,1347.2 294.96,1351.2 284.96,1355.2 288.96,1351.2" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -369,11 +490,15 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="226.08" y="1346.13" font-size="13" fill="#000000" textLength="54.87" lengthAdjust="spacing">short out</tspan>
 </text>
+</g>
+<g class="actor-User">
 <ellipse cx="87.55" cy="1392" rx="8" ry="8" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M87.55,1400 L87.55,1419 M74.55,1406 L100.55,1406 M87.55,1419 L74.55,1433 M87.55,1419 L100.55,1433" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="71.93" y="1377.19" font-size="14" fill="#000000" textLength="31.23" lengthAdjust="spacing">User</tspan>
 </text>
+</g>
+<g class="participant-Web">
 <rect x="155.48" y="1364.2" width="75.25" height="44.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="175.9" y="1382.34" font-size="12" fill="#000000" font-style="italic" textLength="34.42" lengthAdjust="spacing">«spa»</tspan>
@@ -381,37 +506,50 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="162.48" y="1398.16" font-size="14" fill="#000000" textLength="61.25" lengthAdjust="spacing">Web App</tspan>
 </text>
+</g>
+<g class="boundary-Gate">
 <line x1="461.87" y1="1384.5" x2="461.87" y2="1406.5" fill="none" stroke="#181818" stroke-width="0.5"/>
 <line x1="461.87" y1="1395.5" x2="472.87" y2="1395.5" fill="none" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="483.87" cy="1395.5" rx="11" ry="11" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="463.35" y="1377.19" font-size="14" fill="#000000" textLength="31.05" lengthAdjust="spacing">Gate</tspan>
 </text>
+</g>
+<g class="control-Ctrl">
 <ellipse cx="575.24" cy="1397.5" rx="11" ry="11" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <polyline points="579.24,1383.5 573.24,1386.5 579.24,1389.5" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="563.52" y="1377.19" font-size="14" fill="#000000" textLength="23.45" lengthAdjust="spacing">Ctrl</tspan>
 </text>
+</g>
+<g class="entity-Ent">
 <ellipse cx="658.59" cy="1395.5" rx="11" ry="11" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <line x1="647.59" y1="1409.5" x2="669.59" y2="1409.5" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="647.96" y="1377.19" font-size="14" fill="#000000" textLength="21.27" lengthAdjust="spacing">Ent</tspan>
 </text>
+</g>
+<g class="database-DB">
 <path d="M680.59,1388.5 L680.59,1416.5 A15,5 0 0 0 710.59,1416.5 L710.59,1388.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <ellipse cx="695.59" cy="1388.5" rx="15" ry="5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="685.96" y="1377.19" font-size="14" fill="#000000" textLength="19.26" lengthAdjust="spacing">DB</tspan>
 </text>
+</g>
+<g class="collections-Coll">
 <rect x="724.59" y="1364.2" width="39.4" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <rect x="720.59" y="1368.2" width="39.4" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="727.59" y="1388.19" font-size="14" fill="#000000" textLength="25.4" lengthAdjust="spacing">Coll</tspan>
 </text>
+</g>
+<g class="queue-Q">
 <path d="M778.99,1364.2 L803.7,1364.2 A5,15.15 0 0 1 803.7,1394.5 L778.99,1394.5 A5,15.15 0 0 1 778.99,1364.2 Z" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <path d="M803.7,1364.2 A5,15.15 0 0 0 803.7,1394.5" fill="none" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="783.99" y="1384.19" font-size="14" fill="#000000" textLength="10.71" lengthAdjust="spacing">Q</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="417.41" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="74.58" lengthAdjust="spacing">Everything</tspan>
@@ -433,11 +571,13 @@
 <tspan x="439.41" y="1477.07" font-size="10" fill="#888888" textLength="30.58" lengthAdjust="spacing">page 1</tspan>
 </text>
 </g>
+<g class="divider-Phase_20_2" id="divider-Phase_20_2">
 <rect x="0" y="440.91" width="909.39" height="3" fill="#EEEEEE" stroke="#000000" stroke-width="1"/>
 <rect x="423.51" y="431.85" width="62.38" height="21.13" rx="2.5" ry="2.5" fill="#EEEEEE" stroke="#000000" stroke-width="2"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="429.51" y="446.91" font-size="13" fill="#000000" font-weight="bold" textLength="50.38" lengthAdjust="spacing">Phase 2</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

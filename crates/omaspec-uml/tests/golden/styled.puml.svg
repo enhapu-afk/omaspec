@@ -1,60 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="275" height="410" viewBox="0 0 275 410" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="275" height="410" viewBox="0 0 275 410" data-omaspec="named">
 <rect x="0" y="0" width="275" height="410" fill="#1E1E1E"/>
 <g transform="translate(10,10)">
 <g>
+<g class="actor-User" id="actor-User">
 <line x1="15.62" y1="100.25" x2="15.62" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-App" id="participant-App">
 <line x1="107.17" y1="100.25" x2="107.17" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="database-DB" id="database-DB">
 <line x1="239.04" y1="100.25" x2="239.04" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
+</g>
 <g>
+<g class="alt-found" id="alt-found">
 <rect x="5.62" y="197.64" width="223.43" height="112.2" fill="none" stroke="#888888" stroke-width="1.5"/>
 <line x1="5.62" y1="258.91" x2="229.04" y2="258.91" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="2,2"/>
 </g>
+</g>
 <g>
+<g class="actor-User">
 <ellipse cx="15.62" cy="39.45" rx="8" ry="8" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <path d="M15.62,47.45 L15.62,66.45 M2.62,53.45 L28.62,53.45 M15.62,66.45 L2.62,80.45 M15.62,66.45 L28.62,80.45" fill="none" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="96.94" font-size="14" fill="#EEEEEE" textLength="31.23" lengthAdjust="spacing">User</tspan>
 </text>
+</g>
+<g class="participant-App">
 <rect x="86.77" y="69.95" width="40.8" height="30.3" rx="2.5" ry="2.5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="93.77" y="89.94" font-size="14" fill="#EEEEEE" textLength="26.8" lengthAdjust="spacing">App</tspan>
 </text>
+</g>
+<g class="database-DB">
 <path d="M224.04,47.95 L224.04,75.95 A15,5 0 0 0 254.04,75.95 L254.04,47.95" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <ellipse cx="239.04" cy="47.95" rx="15" ry="5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="229.41" y="96.94" font-size="14" fill="#EEEEEE" textLength="19.26" lengthAdjust="spacing">DB</tspan>
 </text>
+</g>
+<g class="message-User-App-sign_20_in" id="message-User-App-sign_20_in">
 <line x1="15.62" y1="129.38" x2="107.17" y2="129.38" fill="none" stroke="#E68E0D" stroke-width="1"/>
 <polygon points="97.17,125.38 107.17,129.38 97.17,133.38 101.17,129.38" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="22.62" y="124.31" font-size="13" fill="#CCCCCC" textLength="40.14" lengthAdjust="spacing">sign in</tspan>
 </text>
+</g>
+<g class="message-App-DB-look_20_up" id="message-App-DB-look_20_up">
 <line x1="107.17" y1="158.51" x2="239.04" y2="158.51" fill="none" stroke="#E68E0D" stroke-width="1"/>
 <polygon points="229.04,154.51 239.04,158.51 229.04,162.51 233.04,158.51" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="114.17" y="153.44" font-size="13" fill="#CCCCCC" textLength="45.17" lengthAdjust="spacing">look up</tspan>
 </text>
+</g>
+<g class="message-DB-App-user" id="message-DB-App-user">
 <line x1="239.04" y1="187.64" x2="107.17" y2="187.64" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="117.17,183.64 107.17,187.64 117.17,191.64 113.17,187.64" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="121.17" y="182.58" font-size="13" fill="#CCCCCC" textLength="27.01" lengthAdjust="spacing">user</tspan>
 </text>
+</g>
+<g class="message-App-User-welcome" id="message-App-User-welcome">
 <line x1="107.17" y1="242.91" x2="15.62" y2="242.91" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="25.62,238.91 15.62,242.91 25.62,246.91 21.62,242.91" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="29.62" y="237.84" font-size="13" fill="#CCCCCC" textLength="55.55" lengthAdjust="spacing">welcome</tspan>
 </text>
+</g>
+<g class="note-message-App-User-welcome-right-1" id="note-message-App-User-welcome-right-1">
 <path d="M112.17,223.78 L112.17,248.91 L219.04,248.91 L219.04,233.78 L209.04,223.78 Z" fill="#3A3A2A" stroke="#888888" stroke-width="0.5"/>
 <path d="M209.04,223.78 L209.04,233.78 L219.04,233.78" fill="#3A3A2A" stroke="#888888" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="118.17" y="240.84" font-size="13" fill="#EEEEEE" font-style="italic" textLength="84.88" lengthAdjust="spacing">session starts</tspan>
 </text>
+</g>
+<g class="message-App-User-retry" id="message-App-User-retry">
 <line x1="107.17" y1="299.84" x2="15.62" y2="299.84" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="25.62,295.84 15.62,299.84 25.62,303.84 21.62,299.84" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="29.62" y="294.78" font-size="13" fill="#CCCCCC" textLength="28.91" lengthAdjust="spacing">retry</tspan>
 </text>
+</g>
+<g class="alt-found">
 <polygon points="5.62,197.64 39.45,197.64 39.45,210.78 33.45,216.78 5.62,216.78" fill="#333333" stroke="#888888" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="11.62" y="211.71" font-size="13" fill="#EEEEEE" font-weight="bold" textLength="15.83" lengthAdjust="spacing">alt</tspan>
@@ -65,20 +92,27 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="10.62" y="270.12" font-size="11" fill="#EEEEEE" font-weight="bold" textLength="50.42" lengthAdjust="spacing">[missing]</tspan>
 </text>
+</g>
+<g class="actor-User">
 <ellipse cx="15.62" cy="347.64" rx="8" ry="8" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <path d="M15.62,355.64 L15.62,374.64 M2.62,361.64 L28.62,361.64 M15.62,374.64 L2.62,388.64 M15.62,374.64 L28.62,388.64" fill="none" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="332.84" font-size="14" fill="#EEEEEE" textLength="31.23" lengthAdjust="spacing">User</tspan>
 </text>
+</g>
+<g class="participant-App">
 <rect x="86.77" y="319.84" width="40.8" height="30.3" rx="2.5" ry="2.5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="93.77" y="339.84" font-size="14" fill="#EEEEEE" textLength="26.8" lengthAdjust="spacing">App</tspan>
 </text>
+</g>
+<g class="database-DB">
 <path d="M224.04,344.14 L224.04,372.14 A15,5 0 0 0 254.04,372.14 L254.04,344.14" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <ellipse cx="239.04" cy="344.14" rx="15" ry="5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="229.41" y="332.84" font-size="14" fill="#EEEEEE" textLength="19.26" lengthAdjust="spacing">DB</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="102.69" y="16.7" font-size="18" fill="#EEEEEE" font-weight="bold" textLength="48.67" lengthAdjust="spacing">Login</tspan>

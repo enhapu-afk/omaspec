@@ -1,10 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="233" height="260" viewBox="0 0 233 260" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="233" height="260" viewBox="0 0 233 260" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="participant-Client" id="participant-Client">
 <line x1="49.62" y1="44.26" x2="49.62" y2="195.19" fill="none" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="participant-Server" id="participant-Server">
 <line x1="165.27" y1="44.26" x2="165.27" y2="195.19" fill="none" stroke="#181818" stroke-width="0.5"/>
 </g>
+</g>
 <g>
+<g class="participant-Client">
 <rect x="0" y="0" width="99.24" height="44.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="34.43" font-size="12" fill="#000000" font-style="italic" textLength="85.24" lengthAdjust="spacing">&lt;&lt; browser &gt;&gt;</tspan>
@@ -12,6 +17,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="30.61" y="19.99" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
 </text>
+</g>
+<g class="participant-Server">
 <rect x="118.34" y="0" width="93.86" height="44.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="125.34" y="34.43" font-size="12" fill="#000000" font-style="italic" textLength="79.86" lengthAdjust="spacing">&lt;&lt; service &gt;&gt;</tspan>
@@ -19,6 +26,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="143.41" y="19.99" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
 </text>
+</g>
+<g class="message-Client-Server-a_20_question_20_long_20_enough_20_to_20_wrap" id="message-Client-Server-a_20_question_20_long_20_enough_20_to_20_wrap">
 <line x1="49.62" y1="103.66" x2="165.27" y2="103.66" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="155.27,99.66 165.27,103.66 155.27,107.66 159.27,103.66" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -26,6 +35,8 @@
 <tspan x="56.62" y="83.46" font-size="13" fill="#000000" textLength="76.65" lengthAdjust="spacing">long enough</tspan>
 <tspan x="56.62" y="98.59" font-size="13" fill="#000000" textLength="46.49" lengthAdjust="spacing">to wrap</tspan>
 </text>
+</g>
+<g class="message-Server-Client-the_20_answer_2c__20_written_20_back_2c__20_under_20_its_20_arrow" id="message-Server-Client-the_20_answer_2c__20_written_20_back_2c__20_under_20_its_20_arrow">
 <line x1="165.27" y1="118.66" x2="49.62" y2="118.66" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="59.62,114.66 49.62,118.66 59.62,122.66 55.62,118.66" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -34,6 +45,8 @@
 <tspan x="63.62" y="163.99" font-size="13" fill="#000000" textLength="53.7" lengthAdjust="spacing">under its</tspan>
 <tspan x="63.62" y="179.12" font-size="13" fill="#000000" textLength="35.52" lengthAdjust="spacing">arrow</tspan>
 </text>
+</g>
+<g class="participant-Client">
 <rect x="0" y="195.19" width="99.24" height="44.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="229.62" font-size="12" fill="#000000" font-style="italic" textLength="85.24" lengthAdjust="spacing">&lt;&lt; browser &gt;&gt;</tspan>
@@ -41,6 +54,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="30.61" y="215.18" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
 </text>
+</g>
+<g class="participant-Server">
 <rect x="118.34" y="195.19" width="93.86" height="44.26" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="125.34" y="229.62" font-size="12" fill="#000000" font-style="italic" textLength="79.86" lengthAdjust="spacing">&lt;&lt; service &gt;&gt;</tspan>
@@ -48,6 +63,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="143.41" y="215.18" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

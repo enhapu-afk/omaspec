@@ -1,6 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="420" height="480" viewBox="0 0 420 480" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="480" viewBox="0 0 420 480" data-omaspec="named">
 <g transform="translate(10,10)">
 <g>
+<g class="box-Back_20_end" id="box-Back_20_end">
 <rect x="271.22" y="26.3" width="128.63" height="195.12" rx="2.5" ry="2.5" fill="#ADD8E6" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="306.31" y="42.36" font-size="13" fill="#000000" font-weight="bold" textLength="58.46" lengthAdjust="spacing">Back end</tspan>
@@ -10,39 +11,65 @@
 <tspan x="306.31" y="286.78" font-size="13" fill="#000000" font-weight="bold" textLength="58.46" lengthAdjust="spacing">Back end</tspan>
 </text>
 </g>
+</g>
 <g>
+<g class="participant-Shopper" id="participant-Shopper">
 <line x1="35.11" y1="79.72" x2="35.11" y2="186.12" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="35.11" y1="324.14" x2="35.11" y2="424.54" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Shop" id="participant-Shop">
 <line x1="184.12" y1="79.72" x2="184.12" y2="186.12" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="184.12" y1="324.14" x2="184.12" y2="424.54" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Stock" id="participant-Stock">
 <line x1="307.04" y1="79.72" x2="307.04" y2="186.12" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="307.04" y1="324.14" x2="307.04" y2="424.54" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g class="participant-Bank" id="participant-Bank">
 <line x1="366.36" y1="79.72" x2="366.36" y2="186.12" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 <line x1="366.36" y1="324.14" x2="366.36" y2="424.54" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
-<g>
-<rect x="302.04" y="143.99" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
-<rect x="179.12" y="108.86" width="10" height="77.26" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
-<rect x="361.36" y="353.27" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
-<rect x="179.12" y="324.14" width="10" height="87.4" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="participant-Stock">
+<rect x="302.04" y="143.99" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="participant-Shop">
+<rect x="179.12" y="108.86" width="10" height="77.26" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="participant-Bank">
+<rect x="361.36" y="353.27" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="participant-Shop">
+<rect x="179.12" y="324.14" width="10" height="87.4" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+</g>
+<g>
+<g class="participant-Shopper">
 <rect x="0" y="49.43" width="70.22" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="69.42" font-size="14" fill="#000000" textLength="56.22" lengthAdjust="spacing">Shopper</tspan>
 </text>
+</g>
+<g class="participant-Shop">
 <rect x="160" y="49.43" width="48.23" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="167" y="69.42" font-size="14" fill="#000000" textLength="34.23" lengthAdjust="spacing">Shop</tspan>
 </text>
+</g>
+<g class="participant-Stock">
 <rect x="281.22" y="49.43" width="51.65" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="288.22" y="69.42" font-size="14" fill="#000000" textLength="37.65" lengthAdjust="spacing">Stock</tspan>
 </text>
+</g>
+<g class="participant-Bank">
 <rect x="342.87" y="49.43" width="46.98" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="349.87" y="69.42" font-size="14" fill="#000000" textLength="32.98" lengthAdjust="spacing">Bank</tspan>
 </text>
+</g>
+<g class="message-Shopper-Shop-add_20_to_20_cart" id="message-Shopper-Shop-add_20_to_20_cart">
 <line x1="35.11" y1="108.86" x2="179.12" y2="108.86" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="169.12,104.86 179.12,108.86 169.12,112.86 173.12,108.86" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -51,11 +78,15 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="71.6" y="103.79" font-size="13" fill="#000000" textLength="66.44" lengthAdjust="spacing">add to cart</tspan>
 </text>
+</g>
+<g class="note-message-Shopper-Shop-add_20_to_20_cart-right-1" id="note-message-Shopper-Shop-add_20_to_20_cart-right-1">
 <path d="M194.12,89.72 L194.12,114.86 L288.76,114.86 L288.76,99.72 L278.76,89.72 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M278.76,89.72 L278.76,99.72 L288.76,99.72" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="200.12" y="106.79" font-size="13" fill="#000000" textLength="72.64" lengthAdjust="spacing">opens a bar</tspan>
 </text>
+</g>
+<g class="message-Shop-Stock-reserve" id="message-Shop-Stock-reserve">
 <line x1="189.12" y1="143.99" x2="302.04" y2="143.99" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="292.04,139.99 302.04,143.99 292.04,147.99 296.04,143.99" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -64,6 +95,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="228.2" y="138.92" font-size="13" fill="#000000" textLength="46.68" lengthAdjust="spacing">reserve</tspan>
 </text>
+</g>
+<g class="message-Stock-Shop-reserved" id="message-Stock-Shop-reserved">
 <line x1="302.04" y1="173.12" x2="189.12" y2="173.12" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="199.12,169.12 189.12,173.12 199.12,177.12 195.12,173.12" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -72,41 +105,59 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="235.4" y="168.05" font-size="13" fill="#000000" textLength="54.64" lengthAdjust="spacing">reserved</tspan>
 </text>
+</g>
+<g class="participant-Shopper">
 <rect x="0" y="186.12" width="70.22" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="206.11" font-size="14" fill="#000000" textLength="56.22" lengthAdjust="spacing">Shopper</tspan>
 </text>
+</g>
+<g class="participant-Shop">
 <rect x="160" y="186.12" width="48.23" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="167" y="206.11" font-size="14" fill="#000000" textLength="34.23" lengthAdjust="spacing">Shop</tspan>
 </text>
+</g>
+<g class="participant-Stock">
 <rect x="281.22" y="186.12" width="51.65" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="288.22" y="206.11" font-size="14" fill="#000000" textLength="37.65" lengthAdjust="spacing">Stock</tspan>
 </text>
+</g>
+<g class="participant-Bank">
 <rect x="342.87" y="186.12" width="46.98" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="349.87" y="206.11" font-size="14" fill="#000000" textLength="32.98" lengthAdjust="spacing">Bank</tspan>
 </text>
+</g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="171.43" y="259.41" font-size="14" fill="#000000" font-weight="bold" textLength="47" lengthAdjust="spacing">Paying</tspan>
 </text>
+<g class="participant-Shopper">
 <rect x="0" y="293.84" width="70.22" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="313.84" font-size="14" fill="#000000" textLength="56.22" lengthAdjust="spacing">Shopper</tspan>
 </text>
+</g>
+<g class="participant-Shop">
 <rect x="160" y="293.84" width="48.23" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="167" y="313.84" font-size="14" fill="#000000" textLength="34.23" lengthAdjust="spacing">Shop</tspan>
 </text>
+</g>
+<g class="participant-Stock">
 <rect x="281.22" y="293.84" width="51.65" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="288.22" y="313.84" font-size="14" fill="#000000" textLength="37.65" lengthAdjust="spacing">Stock</tspan>
 </text>
+</g>
+<g class="participant-Bank">
 <rect x="342.87" y="293.84" width="46.98" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="349.87" y="313.84" font-size="14" fill="#000000" textLength="32.98" lengthAdjust="spacing">Bank</tspan>
 </text>
+</g>
+<g class="message-Shop-Bank-charge" id="message-Shop-Bank-charge">
 <line x1="189.12" y1="353.27" x2="361.36" y2="353.27" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="351.36,349.27 361.36,353.27 351.36,357.27 355.36,353.27" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -115,6 +166,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="228.2" y="348.2" font-size="13" fill="#000000" textLength="42.85" lengthAdjust="spacing">charge</tspan>
 </text>
+</g>
+<g class="message-Bank-Shop-charged" id="message-Bank-Shop-charged">
 <line x1="361.36" y1="382.4" x2="189.12" y2="382.4" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="199.12,378.4 189.12,382.4 199.12,386.4 195.12,382.4" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -123,6 +176,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="237.78" y="377.34" font-size="13" fill="#000000" textLength="50.8" lengthAdjust="spacing">charged</tspan>
 </text>
+</g>
+<g class="message-Shop-Shopper-order_20_placed" id="message-Shop-Shopper-order_20_placed">
 <line x1="179.12" y1="411.54" x2="35.11" y2="411.54" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
 <polygon points="45.11,407.54 35.11,411.54 45.11,415.54 41.11,411.54" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -131,22 +186,31 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="83.99" y="406.47" font-size="13" fill="#000000" textLength="78.13" lengthAdjust="spacing">order placed</tspan>
 </text>
+</g>
+<g class="participant-Shopper">
 <rect x="0" y="424.54" width="70.22" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="7" y="444.53" font-size="14" fill="#000000" textLength="56.22" lengthAdjust="spacing">Shopper</tspan>
 </text>
+</g>
+<g class="participant-Shop">
 <rect x="160" y="424.54" width="48.23" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="167" y="444.53" font-size="14" fill="#000000" textLength="34.23" lengthAdjust="spacing">Shop</tspan>
 </text>
+</g>
+<g class="participant-Stock">
 <rect x="281.22" y="424.54" width="51.65" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="288.22" y="444.53" font-size="14" fill="#000000" textLength="37.65" lengthAdjust="spacing">Stock</tspan>
 </text>
+</g>
+<g class="participant-Bank">
 <rect x="342.87" y="424.54" width="46.98" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="349.87" y="444.53" font-size="14" fill="#000000" textLength="32.98" lengthAdjust="spacing">Bank</tspan>
 </text>
+</g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="166.82" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="66.21" lengthAdjust="spacing">Checkout</tspan>

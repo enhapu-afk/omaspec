@@ -826,7 +826,7 @@ omaspec render flow.mmd --json      # where the image went, or the error and its
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
 omaspec render odyssey.puml -o odyssey.png --fit          # a picture past 100 million pixels, shrunk into one file
 omaspec render odyssey.puml --text-as-paths               # an SVG whose words are outlines: inside their boxes in any viewer, but no longer selectable
-omaspec render door.puml -o door.svg                      # every box and line an element with an id from the source (state-Idle, transition-Idle-Busy-start; a name given twice takes -2), the same name as a class on all of it: a page styles #state-Idle or .state-Idle, links to door.svg#state-Idle, finds the transition a trace or a diff names (docs/adr/0037)
+omaspec render door.puml -o door.svg                      # every box and line an element with an id from the source (state-Idle, transition-Idle-Busy-start, participant-Alice, message-Alice-Bob-hello; a name given twice takes -2), the same name as a class on all of it: a page styles #state-Idle or .state-Idle, links to door.svg#state-Idle, finds the transition a trace or a diff names (docs/adr/0037)
 omaspec render door.puml --id-prefix door-                # its ids, and every reference to one, start with door-, its parts' classes too: two pictures on one HTML page share none
 omaspec render odyssey.puml -o odyssey.png --min-font 10  # its words at least 10 px high: too large for one file, it is cut into tiles between lines of words, odyssey-tiles/1.png, …
 omaspec render door.puml -o door.html --look dark   # a presentation: one page that plays it, offline
