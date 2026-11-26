@@ -34,7 +34,10 @@ hold many machines' objects, their lines mixed.
 ## How a line is held
 
 - An object begins where its machine starts, or, when its first line
-  gives a state and no event, in that state.
+  gives a state and no event, in that state. Its first event may be the
+  label of the one way out of the start (`[*] --> Idle : power`, then
+  `{"event":"power"}`): the line says it started, where the state it
+  starts in does not take that event itself; a play takes it so too.
 - An event is taken from any state the object can be in by then; the
   regions of a composite state that have a way for it take it at once.
 - What a person picks in a play, the way out of a choice or a state's way

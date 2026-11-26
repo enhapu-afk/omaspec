@@ -2310,6 +2310,14 @@ is open and the reasoning around it.
       many bytes it takes (an ideographic space was three), and the words
       stand in the middle with the spaces after them or before them
       alike, as PlantUML's do (held by the test).
+- [x] A trace starts on its start's label too (2026-11-26): since
+      REQ-141 a play takes `--events power,…` on `[*] --> Idle : power`,
+      while `omaspec trace` called a first line `{"event":"power"}` a
+      deviation, "does not take power here". The trace takes it as the
+      play does now: a first event that names the one way out of the
+      start, where the state it starts in does not take it, says the
+      machine started. A trace without it holds as before, so no trace
+      that held fails now; `docs/trace.md` says so.
 
 ## Next
 

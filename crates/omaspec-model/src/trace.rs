@@ -519,6 +519,7 @@ impl Object {
             None => None,
         };
         let mut pending = std::mem::take(&mut self.pending);
+        let fresh = matches!(self.track, Track::Fresh);
         let ways = match std::mem::replace(&mut self.track, Track::Lost) {
             Track::Fresh => match (entry.event.is_some(), state) {
                 // Where it begins.
@@ -557,7 +558,17 @@ impl Object {
                 return outcome;
             }
         };
+        // The first line's event may be the label of the start's way
+        // (`[*] --> Idle : power`), which the machine takes as it starts,
+        // where it takes the event no further: the line says it started,
+        // as a play takes it (REQ-141).
+        let as_start = fresh
+            && entry.event.as_deref().is_some_and(|event| {
+                let k = key(event_of(event));
+                starts_on(m, &k) && !reacts(m, &ways, &k)
+            });
         let ways = match &entry.event {
+            Some(_) if as_start => ways,
             Some(event) => {
                 let event = event_of(event);
                 let k = key(event);
@@ -647,7 +658,7 @@ impl Object {
                 // The ways the state leaves: without an event since the
                 // line before, how they got there holds when this line
                 // took no event.
-                if entry.event.is_none() {
+                if entry.event.is_none() || as_start {
                     for (path, _) in pending.iter().zip(&keep).filter(|(_, k)| **k) {
                         outcome.pass(path);
                     }
@@ -810,6 +821,28 @@ pub(crate) fn cover(trace: &str, spec: &Spec, cov: &mut crate::Coverage) {
 /// Where `run` can go when the event with key `k` comes: every region
 /// with a way for it takes one, so after the ways `fired` so far (which
 /// took `taken`) only regions apart from theirs still do.
+/// Whether `k`, an event's key, names the one way out of the machine's
+/// top start, which the machine takes by itself as it starts.
+fn starts_on(m: &Machine, k: &str) -> bool {
+    let mut out = m.transitions.iter().filter(|t| {
+        let from = &m.states[t.from];
+        from.kind == Kind::Start && from.parent.is_none()
+    });
+    match (out.next(), out.next()) {
+        (Some(way), None) => way.trigger.events.iter().any(|e| key(event_of(e)) == k),
+        _ => false,
+    }
+}
+
+/// Whether any of `ways` takes the event `k`.
+fn reacts(m: &Machine, ways: &[Run], k: &str) -> bool {
+    let mut next = Vec::new();
+    ways.iter().any(|run| {
+        react(m, run, k, &[], &[], &mut next);
+        !next.is_empty()
+    })
+}
+
 fn react(
     m: &Machine,
     run: &Run,
@@ -1127,5 +1160,51 @@ mod tests {
         assert!(close.at.is_empty() && close.finding.is_none());
         // A line with a state picks it up again.
         assert_eq!(names(&locked.at), ["Locked"]);
+    }
+}
+
+#[cfg(test)]
+mod start_tests {
+    use omaspec_core::Language;
+
+    use super::*;
+
+    fn findings(machine: &str, lines: &[&str]) -> Vec<String> {
+        let specs = Specs::new(vec![
+            Spec::read(machine, Language::PlantUml, "start.puml").unwrap(),
+        ]);
+        check(&lines.join("\n"), &specs)
+            .into_iter()
+            .map(|f| format!("{}: {}", f.line + 1, f.message))
+            .collect()
+    }
+
+    /// REQ-141: a trace's first event may be the label of the start's
+    /// way, which the machine takes as it starts, as a play takes it;
+    /// later, or where the first state takes it too, it is an event as
+    /// any other.
+    #[test]
+    fn a_trace_may_begin_with_its_start_s_label() {
+        let machine = "@startuml Start\n[*] --> Idle : power\nIdle --> Busy : work\nBusy --> Idle : done\n@enduml\n";
+        let line = |event: &str, state: &str| {
+            format!(r#"{{"object":"m","machine":"start","event":"{event}","state":"{state}"}}"#)
+        };
+        let (power, work) = (line("power", "Idle"), line("work", "Busy"));
+        assert_eq!(findings(machine, &[&power, &work]), Vec::<String>::new());
+        assert_eq!(findings(machine, &[&work]), Vec::<String>::new());
+        let late = findings(machine, &[&work, &line("power", "Idle")]);
+        assert!(
+            late.iter().any(|f| f.contains("does not take power")),
+            "{late:?}"
+        );
+        // The state it starts in takes it: its own transition, as before.
+        let looped = "@startuml Start\n[*] --> Idle : power\nIdle --> Busy : power\n@enduml\n";
+        let taken = findings(looped, &[&line("power", "Busy")]);
+        assert_eq!(taken, Vec::<String>::new());
+        let stays = findings(looped, &[&line("power", "Idle")]);
+        assert!(
+            stays.iter().any(|f| f.contains("can only be in Busy")),
+            "{stays:?}"
+        );
     }
 }
