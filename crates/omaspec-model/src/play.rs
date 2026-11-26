@@ -67,6 +67,18 @@ pub fn timed(taken: &[Taken], took: impl Fn(&Taken) -> u64) -> (Vec<Timed>, u64)
 }
 
 impl Machine {
+    /// How a play would offer the ways out of the machine's top start,
+    /// which it takes by itself as it starts ([`Run::start`]): a label
+    /// there (`[*] --> Idle : power`) names what starts it.
+    pub fn start_options(&self) -> Vec<(String, String)> {
+        let top_start =
+            |s: usize| self.states[s].kind == Kind::Start && self.states[s].parent.is_none();
+        (0..self.transitions.len())
+            .filter(|&t| top_start(self.transitions[t].from))
+            .map(|t| self.option(t))
+            .collect()
+    }
+
     /// How a play offers the transition `t`: its label, and the state it
     /// leads to.
     pub fn option(&self, t: usize) -> (String, String) {

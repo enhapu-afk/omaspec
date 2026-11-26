@@ -488,6 +488,8 @@ enum Command {
         /// it: `--events 'start,"hello, world"'`. A state's way without an
         /// event is `go on`, or `go on B` where several lead on; where it is
         /// the one way on to the next event named, it is taken by itself.
+        /// The first may be the label of the start's way (`[*] --> Idle :
+        /// power`, `--events power,…`), which the machine takes as it starts.
         #[arg(long)]
         events: Vec<String>,
         /// How many steps at most, a scenario's notes of their own counted.

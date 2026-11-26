@@ -2239,6 +2239,17 @@ is open and the reasoning around it.
       stays the member's; a fold counts neither the point nor the pair's
       line twice; and the kind of a diagram with a pair is a class
       diagram, not a use case diagram.
+- [x] A play starts on its start's label (REQ-141, 2026-11-26): with
+      `[*] --> Idle : power`, `play --events power,work` stopped at once,
+      `power is not offered here`, exit 2: the start goes by itself, so
+      the machine stood in Idle before the first event was asked for.
+      Now the first event of `--events` is the start's where it names a
+      way out of the top start (`Machine::start_options`) and the state
+      the machine starts in does not offer it; where that state offers it
+      too, the state takes it, as before. Named later, it is no event of
+      the machine. The film and its rehearsal take it alike; `--help` and
+      the reference say so. `omaspec trace` reads such a trace as before:
+      `power` is no event of the machine there.
 
 ## Next
 

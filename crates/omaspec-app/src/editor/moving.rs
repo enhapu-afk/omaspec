@@ -780,6 +780,13 @@ impl Stage {
         let mut taken = Vec::new();
         let mut walked = Vec::new();
         let mut script = Script::default();
+        let start = {
+            let text = args.read()?;
+            let (_, language) = args.named(&text);
+            omaspec_model::Machine::read(&text, language)
+                .map(|machine| machine.start_options())
+                .unwrap_or_default()
+        };
         // Where a scenario stood when the play stopped, of all its steps;
         // its notes of their own are steps too, and the default counts
         // its messages (REQ-106).
@@ -829,6 +836,11 @@ impl Stage {
                 self.step(moving);
                 continue;
             };
+            if step == 0
+                && let Some(label) = script.begin(&start, &options, &args.events)
+            {
+                taken.push(label);
+            }
             if step >= args.machine_steps() || ended || options.is_empty() {
                 break;
             }
@@ -1098,6 +1110,28 @@ impl Script {
         Ok(Some(pick.option))
     }
 
+    /// Takes the first event of `--events` as the machine's start where it
+    /// names a way out of the top start (`[*] --> Idle : power`, then
+    /// `--events power`) and the state it starts in does not offer it:
+    /// the start goes by itself, and the label is the writer's word for
+    /// what starts it (REQ-141). The label taken.
+    fn begin(
+        &mut self,
+        start: &[(String, String)],
+        first: &[(String, String)],
+        events: &[String],
+    ) -> Option<String> {
+        let wanted = events.first()?.trim();
+        let names =
+            |(label, _): &&(String, String)| label.trim() == wanted || event_of(label) == wanted;
+        if self.next > 0 || first.iter().any(|option| names(&option)) {
+            return None;
+        }
+        let (label, _) = start.iter().find(names)?;
+        self.next = 1;
+        Some(label.trim().to_owned())
+    }
+
     /// The event the play ended before, by the step it would have been.
     fn left<'e>(&self, events: &'e [String]) -> Option<&'e str> {
         events.get(self.next).map(|e| e.trim())
@@ -1224,14 +1258,18 @@ fn rehearse(args: &Moving) -> Result<()> {
     let mut before: Vec<(String, String)> = Vec::new();
     let mut script = Script::default();
     let mut steps = 0;
+    let start = machine.start_options();
     while steps < args.machine_steps() {
         let ways = run.options(&machine);
+        let options: Vec<(String, String)> = ways.iter().map(|&way| machine.option(way)).collect();
+        if steps == 0 {
+            script.begin(&start, &options, &args.events);
+        }
         if run.ended(&machine) || ways.is_empty() {
             break;
         }
         let step = steps;
         steps += 1;
-        let options: Vec<(String, String)> = ways.iter().map(|&way| machine.option(way)).collect();
         let next = script.next;
         let choice = match script.pick(&options, &args.events, step, &walked) {
             Ok(choice) => choice,
@@ -2446,6 +2484,74 @@ mod tests {
             ..args
         };
         assert_eq!(wide.asked_width(200, high).unwrap(), Some(700.0));
+    }
+
+    #[test]
+    fn the_start_is_taken_by_its_label() {
+        // REQ-141: `[*] --> Idle : power` starts on `--events power`.
+        let work = std::env::temp_dir().join(format!("omaspec-start-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("start.puml");
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> Idle : power\nIdle --> Busy : work\nBusy --> Idle : done\n@enduml\n",
+        )
+        .unwrap();
+        let moving = |events: &[&str]| Moving {
+            file: file.clone(),
+            text: None,
+            output: work.join("start.gif"),
+            events: events.iter().map(|e| (*e).to_owned()).collect(),
+            steps: None,
+            width: Some(200),
+            size: None,
+            fps: Some(5),
+            folds: Vec::new(),
+            dives: Vec::new(),
+            builds: false,
+            bare: false,
+            no_bar: false,
+            lockstep: false,
+            history: false,
+            travel: None,
+            traffic: Vec::new(),
+            themes: None,
+            ink: false,
+            look: None,
+            timing: Default::default(),
+            whole: false,
+            theme: Some("built-in".into()),
+            file_colors: false,
+            root: None,
+            forced: None,
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        };
+        rehearse(&moving(&["power", "work"])).unwrap();
+        rehearse(&moving(&["work"])).unwrap();
+        let said = play(&moving(&["power", "work", "done"])).unwrap();
+        assert!(said.contains("power, work, done"), "{said}");
+        // Named later it is no event of the machine.
+        let err = rehearse(&moving(&["work", "power"]))
+            .unwrap_err()
+            .to_string();
+        assert_eq!(
+            err,
+            "step 2: power is not offered here; the machine offers done"
+        );
+        // Where the first state offers it, the state takes it.
+        let start = [("power".to_owned(), "Idle".to_owned())];
+        let power = ["power".to_owned()];
+        let mut script = Script::default();
+        assert_eq!(script.begin(&start, &start, &power), None);
+        assert_eq!(script.next, 0);
+        let first = [("work".to_owned(), "Busy".to_owned())];
+        assert_eq!(
+            script.begin(&start, &first, &power).as_deref(),
+            Some("power")
+        );
+        assert_eq!(script.next, 1);
+        let _ = std::fs::remove_dir_all(&work);
     }
 
     #[test]
