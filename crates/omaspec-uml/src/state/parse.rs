@@ -756,11 +756,14 @@ impl Parser {
         if !self.implicit.remove(key) || path[..path.len() - 1] == here[..] {
             return Ok(path);
         }
+        // Across a concurrent region PlantUML does not move it: "The
+        // state … cannot be used here" (REQ-140).
         if !self.late_region(&path).is_empty() || !self.late_region(&here).is_empty() {
-            return Err(Declined::at(
+            let first = self.node(&path).line + 1;
+            return Err(Declined::refused(
                 line,
                 format!(
-                    "PlantUML moves `{key}` here, across a concurrent region; that is not supported yet"
+                    "`{key}` is a state of another region already (line {first}), and PlantUML cannot use it here either: declare it where it is, or give this one a name of its own"
                 ),
             ));
         }
@@ -2598,14 +2601,23 @@ mod tests {
             "On",
             "Playing",
         );
+        // Across a concurrent region PlantUML refuses it too: "The state C
+        // cannot be used here" (REQ-140), a mistake, not a lack.
         let err = declined(
             "@startuml\nstate On {\n  [*] --> A\n  --\n  [*] --> B\n  B --> C\n}\nC : here\n@enduml\n",
         );
+        assert!(err.refused, "{err:?}");
+        assert_eq!(err.line, Some(7));
         assert!(
-            err.reason.contains("across a concurrent region"),
+            err.reason
+                .starts_with("`C` is a state of another region already (line 6)"),
             "{}",
             err.reason
         );
+        let err = declined(
+            "@startuml\nstate M {\n  [*] --> Idle\n  Idle --> BREWING : start\n  --\n  [*] --> Heat\n  state BREWING #LightBlue\n}\n@enduml\n",
+        );
+        assert!(err.refused && err.reason.contains("(line 4)"), "{err:?}");
     }
 
     /// PlantUML's own example: a quoted name is shown, on either side of

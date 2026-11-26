@@ -2267,6 +2267,18 @@ is open and the reasoning around it.
       the start's label is taken only where one way leaves the start and
       it has an event (no `go on`), not with `--steps 0`, from the text
       the film draws, and a label cut at its comma says how to write it.
+- [x] A state moved across a concurrent region is a mistake (REQ-140,
+      2026-11-26): a state a transition made in one region and declared
+      or described in another (`state BREWING #LightBlue` after `--`, or
+      after the block) was declined with "PlantUML moves `BREWING` here
+      … not supported yet: only the Java PlantUML draws this diagram",
+      and the Java PlantUML refuses it: "The state BREWING cannot be used
+      here". It is an error now, which lint and render say alike, with
+      the line the state was made on: "`BREWING` is a state of another
+      region already (line 4), and PlantUML cannot use it here either:
+      declare it where it is, or give this one a name of its own". Of
+      five forms tried with PlantUML 1.2026.8, it refuses the four
+      Omaspec declines, and both draw the fifth.
 
 ## Next
 
