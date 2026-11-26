@@ -2377,6 +2377,17 @@ is open and the reasoning around it.
       joins (`link-Trip-Pack`); a WBS's spine and a row's bar, which
       many links share, are no one link's. 36 golden SVGs changed, by
       their groups alone.
+- [x] An id for every box and line, step 2, the lines of activity
+      diagrams (2026-11-26,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)): each line is
+      laid before it is drawn, so a run knows the line from shape to
+      shape it alone belongs to; it is drawn in that line's part, named
+      by the shapes it joins without their kind and its words
+      (`link-Build-green_3f_`, `link-green_3f_-Publish-yes`,
+      `link-test-Done` out of a merge). A run many lines share, into a
+      point where they meet, has none. The words keep their own part
+      (`label-yes`), as the pane glides them. 20 golden SVGs changed,
+      by their groups alone.
 
 ## Next
 

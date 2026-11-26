@@ -10,14 +10,22 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-start-Open_20_the_20_shop" id="link-start-Open_20_the_20_shop">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,30 10,40 14,30 10,34" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Open_20_the_20_shop-Count_20_the_20_till" id="link-Open_20_the_20_shop-Count_20_the_20_till">
 <polyline points="10,73.97 10,120.26" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,110.26 10,120.26 14,110.26 10,114.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Count_20_the_20_till-Unlock_20_the_20_door" id="link-Count_20_the_20_till-Unlock_20_the_20_door">
 <polyline points="10,154.23 10,174.23" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,164.23 10,174.23 14,164.23 10,168.23" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Unlock_20_the_20_door-stop" id="link-Unlock_20_the_20_door-stop">
 <polyline points="10,208.2 10,238.2" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,228.2 10,238.2 14,228.2 10,232.2" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="start" id="start">

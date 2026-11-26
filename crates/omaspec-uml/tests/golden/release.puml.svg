@@ -12,34 +12,62 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-start-Merge_20_the_20_last_20_change" id="link-start-Merge_20_the_20_last_20_change">
 <polyline points="177.56,77.25 177.56,97.25" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="173.56,87.25 177.56,97.25 181.56,87.25 177.56,91.25" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Merge_20_the_20_last_20_change-Tag_20_the_20_version" id="link-Merge_20_the_20_last_20_change-Tag_20_the_20_version">
 <polyline points="177.56,131.22 177.56,151.22" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="173.56,141.22 177.56,151.22 181.56,141.22 177.56,145.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Tag_20_the_20_version-Build_20_and_20_test" id="link-Tag_20_the_20_version-Build_20_and_20_test">
 <path d="M177.56,185.18 L177.56,185.18 C177.56,190.71 182.04,195.18 187.56,195.18 L424.75,195.18 C430.27,195.18 434.75,199.66 434.75,205.18 L434.75,215.18" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="430.75,205.18 434.75,215.18 438.75,205.18 434.75,209.18" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Build_20_and_20_test-all_20_green_3f_" id="link-Build_20_and_20_test-all_20_green_3f_">
 <polyline points="434.75,249.15 434.75,269.15" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="430.75,259.15 434.75,269.15 438.75,259.15 434.75,263.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-all_20_green_3f_-Fix_20_and_20_tag_20_again-no" id="link-all_20_green_3f_-Fix_20_and_20_tag_20_again-no">
 <path d="M397.54,281.15 L80.35,281.15 C73.72,281.15 68.35,286.52 68.35,293.15 L68.35,303.15" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="64.35,293.15 68.35,303.15 72.35,293.15 68.35,297.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-all_20_green_3f_-Publish_20_packages-yes" id="link-all_20_green_3f_-Publish_20_packages-yes">
 <path d="M471.96,281.15 L531.96,281.15 C538.59,281.15 543.96,286.52 543.96,293.15 L543.96,303.15" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="539.96,293.15 543.96,303.15 547.96,293.15 543.96,297.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Fix_20_and_20_tag_20_again-stop" id="link-Fix_20_and_20_tag_20_again-stop">
 <polyline points="68.35,337.12 68.35,357.12" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="64.35,347.12 68.35,357.12 72.35,347.12 68.35,351.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Publish_20_packages-bar" id="link-Publish_20_packages-bar">
 <polyline points="543.96,337.12 543.96,357.12" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="539.96,347.12 543.96,357.12 547.96,347.12 543.96,351.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-Upload_20_to_20_the_20_registry" id="link-bar-Upload_20_to_20_the_20_registry">
 <polyline points="475.38,363.12 475.38,383.12" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="471.38,373.12 475.38,383.12 479.38,373.12 475.38,377.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-Build_20_the_20_website" id="link-bar-Build_20_the_20_website">
 <polyline points="625.46,363.12 625.46,383.12" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="621.46,373.12 625.46,383.12 629.46,373.12 625.46,377.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Upload_20_to_20_the_20_registry-bar-2" id="link-Upload_20_to_20_the_20_registry-bar-2">
 <polyline points="475.38,417.09 475.38,437.09" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="471.38,427.09 475.38,437.09 479.38,427.09 475.38,431.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Build_20_the_20_website-bar-2" id="link-Build_20_the_20_website-bar-2">
 <polyline points="625.46,417.09 625.46,437.09" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="621.46,427.09 625.46,437.09 629.46,427.09 625.46,431.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-2-Write_20_the_20_release_20_notes" id="link-bar-2-Write_20_the_20_release_20_notes">
 <path d="M543.96,443.09 L543.96,443.09 C543.96,448.61 539.49,453.09 533.96,453.09 L296.78,453.09 C291.26,453.09 286.78,457.57 286.78,463.09 L286.78,473.09" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="282.78,463.09 286.78,473.09 290.78,463.09 286.78,467.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Write_20_the_20_release_20_notes-stop-2" id="link-Write_20_the_20_release_20_notes-stop-2">
 <polyline points="286.78,507.06 286.78,527.06" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="282.78,517.06 286.78,527.06 290.78,517.06 286.78,521.06" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="lane-Developer" id="lane-Developer">

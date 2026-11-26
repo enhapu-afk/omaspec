@@ -174,9 +174,24 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
         let part = found.shape(shape, painter.rect(shape));
         canvas.part(&part, |canvas| painter.shape(canvas, shape));
     }
-    for edge in &tile.edges {
-        if let Some((path, points, head)) = painter.edge(&mut canvas, edge) {
-            found.run(path, points, head, edge.stroke);
+    // Each line laid first, so that a run knows the line it alone
+    // belongs to as it is drawn (docs/adr/0037); drawn in the same order.
+    let laid: Vec<_> = tile.edges.iter().map(|edge| painter.laid(edge)).collect();
+    for (edge, laid) in tile.edges.iter().zip(&laid) {
+        if let Some(laid) = laid {
+            found.run(
+                laid.path.clone(),
+                laid.points.clone(),
+                laid.head.clone(),
+                edge.stroke,
+            );
+        }
+    }
+    let mut names = found.run_names().into_iter();
+    for (edge, laid) in tile.edges.iter().zip(&laid) {
+        if let Some(laid) = laid {
+            let name = names.next().unwrap_or_default();
+            canvas.part(&name, |canvas| painter.paint_edge(canvas, edge, laid));
         }
     }
     annotations.draw(&mut canvas);
@@ -209,6 +224,14 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
         MARGIN,
     );
     Ok((canvas.finish(MARGIN, skin.background), map))
+}
+
+/// Where a line runs, before it is drawn: its corners, its points as
+/// drawn (the corners rounded), and those of its head.
+struct Laid {
+    path: Vec<(f32, f32)>,
+    points: Vec<(f32, f32)>,
+    head: Option<Vec<(f32, f32)>>,
 }
 
 /// Draws shapes and lines moved into their swimlanes.
@@ -286,25 +309,44 @@ impl Painter<'_> {
         }
     }
 
-    /// Draws `edge`; its corners, its points as drawn (the corners
-    /// rounded), and those of its head.
-    #[allow(clippy::type_complexity)]
-    fn edge(
-        &self,
-        canvas: &mut Canvas,
-        edge: &Edge,
-    ) -> Option<(Vec<(f32, f32)>, Vec<(f32, f32)>, Option<Vec<(f32, f32)>>)> {
+    /// Whether `edge` ends in a head: the head sits on a straight end,
+    /// not on the curve before it; `ArrowHeadColor none` draws none, but
+    /// on an arrow written in a style of its own (`-[#red]->`,
+    /// `-[dashed]->`), as PlantUML.
+    fn headed(&self, edge: &Edge) -> bool {
+        edge.head && (self.skin.heads || edge.styled)
+    }
+
+    /// Draws `edge` as [`Self::laid`] laid it.
+    fn paint_edge(&self, canvas: &mut Canvas, edge: &Edge, laid: &Laid) {
+        let arrive = if self.headed(edge) { HEAD_LENGTH } else { 0.0 };
+        canvas.curve_arriving(
+            Layer::Lines,
+            &laid.path,
+            self.skin.curve,
+            arrive,
+            edge.stroke,
+        );
+        if let Some(head) = &laid.head {
+            let solid = Stroke {
+                dash: None,
+                width: edge.stroke.width.min(1.5),
+                color: edge.stroke.color,
+            };
+            canvas.polygon(Layer::Lines, head, Some(edge.stroke.color), Some(solid));
+        }
+    }
+
+    /// Where `edge` runs: its corners, its points as drawn (the corners
+    /// rounded), and those of its head; none for a hidden arrow, which is
+    /// neither drawn nor a line of the map.
+    fn laid(&self, edge: &Edge) -> Option<Laid> {
         let points = self.route(edge);
-        // A hidden arrow is neither drawn nor a line of the map.
         if points.len() < 2 || edge.stroke.width <= 0.0 {
             return None;
         }
-        // The head sits on a straight end, not on the curve before it;
-        // `ArrowHeadColor none` draws none, but on an arrow written in a
-        // style of its own (`-[#red]->`, `-[dashed]->`), as PlantUML.
-        let headed = edge.head && (self.skin.heads || edge.styled);
+        let headed = self.headed(edge);
         let arrive = if headed { HEAD_LENGTH } else { 0.0 };
-        canvas.curve_arriving(Layer::Lines, &points, self.skin.curve, arrive, edge.stroke);
         let curved = crate::curve::flatten_arriving(&points, self.skin.curve, arrive);
         let mut drawn = None;
         if headed {
@@ -316,16 +358,14 @@ impl Painter<'_> {
                 (len, vx / len.max(0.001), vy / len.max(0.001))
             };
             if len < 0.01 {
-                return Some((points, curved, None));
+                return Some(Laid {
+                    path: points,
+                    points: curved,
+                    head: None,
+                });
             }
             let back = (tip.0 - ux * HEAD_LENGTH, tip.1 - uy * HEAD_LENGTH);
             let side = (-uy * HEAD_HALF, ux * HEAD_HALF);
-            let color = edge.stroke.color;
-            let solid = Stroke {
-                dash: None,
-                width: edge.stroke.width.min(1.5),
-                color,
-            };
             let mut head = vec![
                 (back.0 + side.0, back.1 + side.1),
                 tip,
@@ -334,10 +374,13 @@ impl Painter<'_> {
             if !self.skin.strict {
                 head.push((tip.0 - ux * 6.0, tip.1 - uy * 6.0));
             }
-            canvas.polygon(Layer::Lines, &head, Some(color), Some(solid));
             drawn = Some(head);
         }
-        Some((points, curved, drawn))
+        Some(Laid {
+            path: points,
+            points: curved,
+            head: drawn,
+        })
     }
 
     fn shape(&self, canvas: &mut Canvas, shape: &Shape) {

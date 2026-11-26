@@ -1,53 +1,99 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="355" height="822" viewBox="0 0 355 822" data-omaspec="parts">
 <g transform="translate(199.64,10)">
 <g id="lines">
+<g class="link-start-empty_20_both_3f_" id="link-start-empty_20_both_3f_">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,30 10,40 14,30 10,34" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-empty_20_both_3f_-test" id="link-empty_20_both_3f_-test">
 <path d="M-34.35,52 L-34.35,52 C-39.87,52 -44.35,56.48 -44.35,62 L-44.35,72 C-44.35,80.84 -37.19,88 -28.35,88 L-2,88" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-12,92 -2,88 -12,84 -8,88" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-empty_20_both_3f_-test-2" id="link-empty_20_both_3f_-test-2">
 <path d="M54.35,52 L54.35,52 C59.87,52 64.35,56.48 64.35,62 L64.35,72 C64.35,80.84 57.19,88 48.35,88 L22,88" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,84 22,88 32,92 28,88" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-a_20_rather_20_long_20_condition_20_that_20_is_20_wide_3f_" id="link-test-a_20_rather_20_long_20_condition_20_that_20_is_20_wide_3f_">
 <polyline points="10,100 10,120" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,110 10,120 14,110 10,114" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-a_20_rather_20_long_20_condition_20_that_20_is_20_wide_3f_-then-yes" id="link-a_20_rather_20_long_20_condition_20_that_20_is_20_wide_3f_-then-yes">
 <path d="M-94.55,132 L-102.96,132 C-111.79,132 -118.96,139.16 -118.96,148 L-118.96,170.8" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-122.96,160.8 -118.96,170.8 -114.96,160.8 -118.96,164.8" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-a_20_rather_20_long_20_condition_20_that_20_is_20_wide_3f_-stop-2-no" id="link-a_20_rather_20_long_20_condition_20_that_20_is_20_wide_3f_-stop-2-no">
 <path d="M114.55,132 L117.65,132 C126.49,132 133.65,139.16 133.65,148 L133.65,170.8" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="129.65,160.8 133.65,170.8 137.65,160.8 133.65,164.8" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-then-nested_3f_" id="link-then-nested_3f_">
 <polyline points="-118.96,204.77 -118.96,224.77" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-122.96,214.77 -118.96,224.77 -114.96,214.77 -118.96,218.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-nested_3f_-inner-y" id="link-nested_3f_-inner-y">
 <path d="M-151.5,236.77 L-151.68,236.77 C-158.31,236.77 -163.68,242.14 -163.68,248.77 L-163.68,258.77" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-167.68,248.77 -163.68,258.77 -159.68,248.77 -163.68,252.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-nested_3f_-empty_20_body_3f_-out_20_of_20_then" id="link-nested_3f_-empty_20_body_3f_-out_20_of_20_then">
 <polyline points="-86.41,236.77 -73.91,236.77" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-inner-stop" id="link-inner-stop">
 <polyline points="-163.68,292.74 -163.68,312.74" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-167.68,302.74 -163.68,312.74 -159.68,302.74 -163.68,306.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-nested_3f_-empty_20_body_3f_-out_20_of_20_then">
 <polyline points="-73.91,236.77 -73.91,346.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,336.54 -73.91,346.54 -69.91,336.54 -73.91,340.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-empty_20_body_3f_-empty_20_body_3f_" id="link-empty_20_body_3f_-empty_20_body_3f_">
 <polyline points="-73.91,370.54 -73.91,390.54" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M-73.91,390.54 L-73.91,390.54 C-73.91,396.07 -69.44,400.54 -63.91,400.54 L-29.15,400.54 C-20.32,400.54 -13.15,393.38 -13.15,384.54 L-13.15,363.54 C-13.15,360.78 -15.39,358.54 -18.15,358.54 L-28.15,358.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-18.15,354.54 -28.15,358.54 -18.15,362.54 -22.15,358.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-empty_20_body_3f_-test-2-done" id="link-empty_20_body_3f_-test-2-done">
 <path d="M-119.67,358.54 L-152.92,358.54 C-161.76,358.54 -168.92,365.71 -168.92,374.54 L-168.92,399.54 C-168.92,408.38 -161.76,415.54 -152.92,415.54 L-73.91,415.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="-73.91,415.54 -73.91,435.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,425.54 -73.91,435.54 -69.91,425.54 -73.91,429.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-2-test-3" id="link-test-2-test-3">
 <polyline points="-73.91,459.54 -73.91,479.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,469.54 -73.91,479.54 -69.91,469.54 -73.91,473.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-3-test-2" id="link-test-3-test-2">
 <path d="M-61.91,491.54 L-54.91,491.54 C-46.08,491.54 -38.91,484.38 -38.91,475.54 L-38.91,460.54 C-38.91,453.36 -44.73,447.54 -51.91,447.54 L-61.91,447.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-51.91,443.54 -61.91,447.54 -51.91,451.54 -55.91,447.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-3-left_20_note" id="link-test-3-left_20_note">
 <polyline points="-73.91,503.54 -73.91,523.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,513.54 -73.91,523.54 -69.91,513.54 -73.91,517.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-left_20_note-bar" id="link-left_20_note-bar">
 <polyline points="-73.91,557.51 -73.91,577.51" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,567.51 -73.91,577.51 -69.91,567.51 -73.91,571.51" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-one" id="link-bar-one">
 <polyline points="-104.38,583.51 -104.38,603.51" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-108.38,593.51 -104.38,603.51 -100.38,593.51 -104.38,597.51" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-two" id="link-bar-two">
 <polyline points="-43.27,583.51 -43.27,603.51" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-47.27,593.51 -43.27,603.51 -39.27,593.51 -43.27,597.51" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-one-stop-3" id="link-one-stop-3">
 <polyline points="-104.38,637.48 -104.38,657.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-108.38,647.48 -104.38,657.48 -100.38,647.48 -104.38,651.48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-two-end" id="link-two-end">
 <polyline points="-43.27,637.48 -43.27,657.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-47.27,647.48 -43.27,657.48 -39.27,647.48 -43.27,651.48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-2-after_20_all_20_ended" id="link-bar-2-after_20_all_20_ended">
 <polyline points="-73.91,705.48 -73.91,725.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,715.48 -73.91,725.48 -69.91,715.48 -73.91,719.48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-after_20_all_20_ended-stop-4" id="link-after_20_all_20_ended-stop-4">
 <polyline points="-73.91,759.45 -73.91,779.45" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-77.91,769.45 -73.91,779.45 -69.91,769.45 -73.91,773.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="start" id="start">

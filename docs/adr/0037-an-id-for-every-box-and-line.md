@@ -2,7 +2,8 @@
 
 Status: accepted, 2026-11-26 (REQ-132); its first step (point 7) is
 done the same day, and of the second its sequence diagrams and the
-lines of structure diagrams, flowcharts, mind maps and WBS. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
+lines of structure diagrams, flowcharts, mind maps, WBS and activity
+diagrams. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
 the parts only for the pane, and the way its point 1 writes their names.
 
 ## Context
@@ -126,6 +127,10 @@ Measured on a state machine of seven states, 16 part groups made its SVG
   bars are its element, its id on its head; a note beside a message is
   one of its own.
   Whether messages should glide is a question of its own.
-- A line many links share (a WBS's spine, the bar over a row) is no
-  one link's: it stays in the lines' group without an id, and each
-  link's id is on the piece that is its own.
+- A line many links share (a WBS's spine, the bar over a row, an
+  activity diagram's run into a point where branches meet) is no one
+  link's: it stays in the lines' group without an id, and each link's
+  id is on the piece that is its own. An activity diagram's line is
+  named by the shapes it joins without their kind
+  (`link-green_3f_-Publish-yes`); its words keep the part of their own
+  they glide in (`label-yes`).

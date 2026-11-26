@@ -18,35 +18,63 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-start-Place_20_the_20_order" id="link-start-Place_20_the_20_order">
 <polyline points="135.03,50.95 135.03,70.95" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="131.03,60.95 135.03,70.95 139.03,60.95 135.03,64.95" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Place_20_the_20_order-Check_20_the_20_payment" id="link-Place_20_the_20_order-Check_20_the_20_payment">
 <path d="M135.03,104.92 L135.03,104.92 C135.03,110.44 139.51,114.92 145.03,114.92 L360.24,114.92 C365.76,114.92 370.24,119.4 370.24,124.92 L370.24,134.92" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="366.24,124.92 370.24,134.92 374.24,124.92 370.24,128.92" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Check_20_the_20_payment-paid_3f_" id="link-Check_20_the_20_payment-paid_3f_">
 <polyline points="370.24,168.89 370.24,188.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="366.24,178.89 370.24,188.89 374.24,178.89 370.24,182.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-paid_3f_-Pay_20_again-no" id="link-paid_3f_-Pay_20_again-no">
 <path d="M344.28,200.89 L59.68,200.89 C53.06,200.89 47.68,206.26 47.68,212.89 L47.68,222.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="43.68,212.89 47.68,222.89 51.68,212.89 47.68,216.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-paid_3f_-bar-yes" id="link-paid_3f_-bar-yes">
 <path d="M396.21,200.89 L445.59,200.89 C452.22,200.89 457.59,206.26 457.59,212.89 L457.59,222.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="453.59,212.89 457.59,222.89 461.59,212.89 457.59,216.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-Send_20_the_20_invoice" id="link-bar-Send_20_the_20_invoice">
 <polyline points="397.87,228.89 397.87,248.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="393.87,238.89 397.87,248.89 401.87,238.89 397.87,242.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-Pick_20_the_20_items" id="link-bar-Pick_20_the_20_items">
 <polyline points="611.72,228.89 611.72,248.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="607.72,238.89 611.72,248.89 615.72,238.89 611.72,242.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Send_20_the_20_invoice-bar-2" id="link-Send_20_the_20_invoice-bar-2">
 <polyline points="397.87,282.86 397.87,302.86" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="393.87,292.86 397.87,302.86 401.87,292.86 397.87,296.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Pick_20_the_20_items-bar-2" id="link-Pick_20_the_20_items-bar-2">
 <polyline points="611.72,282.86 611.72,302.86" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="607.72,292.86 611.72,302.86 615.72,292.86 611.72,296.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-2-parcels_20_left_3f_" id="link-bar-2-parcels_20_left_3f_">
 <path d="M457.59,308.86 L457.59,308.86 C457.59,314.38 462.07,318.86 467.59,318.86 L534.42,318.86 C539.95,318.86 544.42,323.33 544.42,328.86 L544.42,338.86" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="540.42,328.86 544.42,338.86 548.42,328.86 544.42,332.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-parcels_20_left_3f_-Ship_20_a_20_parcel-yes" id="link-parcels_20_left_3f_-Ship_20_a_20_parcel-yes">
 <polyline points="544.42,362.86 544.42,383.66" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="540.42,373.66 544.42,383.66 548.42,373.66 544.42,377.66" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Ship_20_a_20_parcel-parcels_20_left_3f_" id="link-Ship_20_a_20_parcel-parcels_20_left_3f_">
 <path d="M544.42,417.63 L544.42,417.63 C544.42,423.15 548.9,427.63 554.42,427.63 L590.37,427.63 C599.2,427.63 606.37,420.46 606.37,411.63 L606.37,358.96 C606.37,354.49 602.74,350.86 598.26,350.86 L588.26,350.86" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="598.26,346.86 588.26,350.86 598.26,354.86 594.26,350.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-parcels_20_left_3f_-Receive_20_the_20_parcel" id="link-parcels_20_left_3f_-Receive_20_the_20_parcel">
 <path d="M500.59,350.86 L493.59,350.86 C484.75,350.86 477.59,358.02 477.59,366.86 L477.59,442.63" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M477.59,442.63 L477.59,442.63 C477.59,448.15 473.11,452.63 467.59,452.63 L232.38,452.63 C226.86,452.63 222.38,457.11 222.38,462.63 L222.38,472.63" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="218.38,462.63 222.38,472.63 226.38,462.63 222.38,466.63" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Receive_20_the_20_parcel-stop" id="link-Receive_20_the_20_parcel-stop">
 <polyline points="222.38,506.6 222.38,526.6" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="218.38,516.6 222.38,526.6 226.38,516.6 222.38,520.6" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="lane-Customer" id="lane-Customer">

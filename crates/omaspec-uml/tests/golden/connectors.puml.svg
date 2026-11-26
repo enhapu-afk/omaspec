@@ -1,18 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="127" height="376" viewBox="0 0 127 376" data-omaspec="parts">
 <g transform="translate(53.05,10)">
 <g id="lines">
+<g class="link-start-Take_20_the_20_call" id="link-start-Take_20_the_20_call">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,30 10,40 14,30 10,34" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Take_20_the_20_call-A" id="link-Take_20_the_20_call-A">
 <polyline points="10,73.97 10,93.97" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,83.97 10,93.97 14,83.97 10,87.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-A-2-Write_20_the_20_ticket" id="link-A-2-Write_20_the_20_ticket">
 <polyline points="10,161.9 10,181.9" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,171.9 10,181.9 14,171.9 10,175.9" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Write_20_the_20_ticket-B" id="link-Write_20_the_20_ticket-B">
 <polyline points="10,215.87 10,235.87" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,225.87 10,235.87 14,225.87 10,229.87" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-B-Close_20_it" id="link-B-Close_20_it">
 <polyline points="10,259.84 10,279.84" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,269.84 10,279.84 14,269.84 10,273.84" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Close_20_it-stop" id="link-Close_20_it-stop">
 <polyline points="10,313.81 10,333.81" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,323.81 10,333.81 14,323.81 10,327.81" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="start" id="start">

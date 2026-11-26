@@ -1,59 +1,111 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="225" height="790" viewBox="0 0 225 790" data-omaspec="parts">
 <g transform="translate(78.82,10)">
 <g id="lines">
+<g class="link-start-test-in" id="link-start-test-in">
 <polyline points="10,20 10,71.61" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,61.61 10,71.61 14,61.61 10,65.61" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-Go-yes" id="link-test-Go-yes">
 <path d="M-2,83.61 L-14.4,83.61 C-21.03,83.61 -26.4,88.98 -26.4,95.61 L-26.4,105.61" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-30.4,95.61 -26.4,105.61 -22.4,95.61 -26.4,99.61" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-Wait-no" id="link-test-Wait-no">
 <path d="M22,83.61 L29.1,83.61 C35.73,83.61 41.1,88.98 41.1,95.61 L41.1,105.61" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="37.1,95.61 41.1,105.61 45.1,95.61 41.1,99.61" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Go-test-2" id="link-Go-test-2">
 <path d="M-26.4,139.58 L-26.4,149.17 C-26.4,157.13 -19.95,163.58 -12,163.58 L-2,163.58" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-12,167.58 -2,163.58 -12,159.58 -8,163.58" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Wait-test-2" id="link-Wait-test-2">
 <path d="M41.1,139.58 L41.1,154.48 C41.1,159.5 37.03,163.58 32,163.58 L22,163.58" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,159.58 22,163.58 32,167.58 28,163.58" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-2-test-3" id="link-test-2-test-3">
 <polyline points="10,175.58 10,200.38" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,190.38 10,200.38 14,190.38 10,194.38" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-3-Work-yes" id="link-test-3-Work-yes">
 <polyline points="10,224.38 10,245.18" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,235.18 10,245.18 14,235.18 10,239.18" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Work-test-3" id="link-Work-test-3">
 <path d="M10,279.15 L10,279.15 C10,284.67 14.48,289.15 20,289.15 L35.4,289.15 C44.24,289.15 51.4,281.99 51.4,273.15 L51.4,228.38 C51.4,219.54 44.24,212.38 35.4,212.38 L22,212.38" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,208.38 22,212.38 32,216.38 28,212.38" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-3-test-4-no" id="link-test-3-test-4-no">
 <path d="M-2,212.38 L-22.1,212.38 C-30.94,212.38 -38.1,219.54 -38.1,228.38 L-38.1,288.15 C-38.1,296.99 -30.94,304.15 -22.1,304.15 L10,304.15" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="10,304.15 10,324.15" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,314.15 10,324.15 14,314.15 10,318.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-4-Try" id="link-test-4-Try">
 <polyline points="10,348.15 10,368.15" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,358.15 10,368.15 14,358.15 10,362.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Try-test-5" id="link-Try-test-5">
 <polyline points="10,402.12 10,422.12" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,412.12 10,422.12 14,412.12 10,416.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-5-Again" id="link-test-5-Again">
 <path d="M22,434.12 L93.95,434.12 C102.79,434.12 109.95,426.96 109.95,418.12 L109.95,402.12" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="113.95,412.12 109.95,402.12 105.95,412.12 109.95,408.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Again-test-4" id="link-Again-test-4">
 <path d="M109.95,368.15 L109.95,352.15 C109.95,343.32 102.79,336.15 93.95,336.15 L22,336.15" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,332.15 22,336.15 32,340.15 28,336.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-5-Which_20_one_3f_" id="link-test-5-Which_20_one_3f_">
 <polyline points="10,446.12 10,466.12" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,456.12 10,466.12 14,456.12 10,460.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Which_20_one_3f_-A-a" id="link-Which_20_one_3f_-A-a">
 <path d="M-32.5,478.12 L-38.68,478.12 C-47.52,478.12 -54.68,485.28 -54.68,494.12 L-54.68,516.92" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-58.68,506.92 -54.68,516.92 -50.68,506.92 -54.68,510.92" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Which_20_one_3f_-B-b" id="link-Which_20_one_3f_-B-b">
 <path d="M52.5,478.12 L52.5,478.12 C58.03,478.12 62.5,482.6 62.5,488.12 L62.5,516.92" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="58.5,506.92 62.5,516.92 66.5,506.92 62.5,510.92" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-A-test-6" id="link-A-test-6">
 <path d="M-54.68,550.89 L-54.68,558.89 C-54.68,567.73 -47.52,574.89 -38.68,574.89 L-2,574.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-12,578.89 -2,574.89 -12,570.89 -8,574.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-B-test-6" id="link-B-test-6">
 <path d="M62.5,550.89 L62.5,558.89 C62.5,567.73 55.34,574.89 46.5,574.89 L22,574.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,570.89 22,574.89 32,578.89 28,574.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-6-a_3f_" id="link-test-6-a_3f_">
 <polyline points="10,586.89 10,606.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,596.89 10,606.89 14,596.89 10,600.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-a_3f_-b_3f_" id="link-a_3f_-b_3f_">
 <polyline points="34,618.89 54,618.89" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="44,622.89 54,618.89 44,614.89 48,618.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-a_3f_-A-2-yes" id="link-a_3f_-A-2-yes">
 <polyline points="10,630.89 10,651.7" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,641.7 10,651.7 14,641.7 10,645.7" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-b_3f_-B-2-yes" id="link-b_3f_-B-2-yes">
 <polyline points="78,630.89 78,651.7" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="74,641.7 78,651.7 82,641.7 78,645.7" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-A-2-test-7" id="link-A-2-test-7">
 <path d="M10,685.66 L10,699.66 C10,708.5 17.16,715.66 26,715.66 L57,715.66" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="47,719.66 57,715.66 47,711.66 51,715.66" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-B-2-test-7" id="link-B-2-test-7">
 <path d="M78,685.66 L78,685.66 C78,687.87 76.21,689.66 74,689.66 L73,689.66 C70.79,689.66 69,691.45 69,693.66 L69,703.66" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="65,693.66 69,703.66 73,693.66 69,697.66" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-b_3f_-test-7" id="link-b_3f_-test-7">
 <path d="M102,618.89 L112,618.89 C120.84,618.89 128,626.06 128,634.89 L128,699.66 C128,708.5 120.84,715.66 112,715.66 L81,715.66" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="91,711.66 81,715.66 91,719.66 87,715.66" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-7-stop" id="link-test-7-stop">
 <polyline points="69,727.66 69,747.66" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="65,737.66 69,747.66 73,737.66 69,741.66" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="start" id="start">

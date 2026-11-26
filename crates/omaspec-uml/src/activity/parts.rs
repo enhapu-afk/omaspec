@@ -55,9 +55,13 @@ pub(super) struct Found {
     /// The names given: no two shapes share one.
     used: HashSet<String>,
     pub places: Vec<Place>,
+    /// Each place's name without its kind, as a line's name holds it
+    /// (`Build`, `green_3f_`, `start`, `stop-2`).
+    shorts: Vec<String>,
     runs: Vec<Run>,
-    /// The words beside lines: each one's part and where it is drawn.
-    labels: Vec<(String, Rect)>,
+    /// The words beside lines: each one's part, where it is drawn and
+    /// what it says.
+    labels: Vec<(String, Rect, String)>,
 }
 
 /// One line as drawn, between two points.
@@ -136,9 +140,13 @@ impl Found {
         };
         self.seen.insert(base, nth);
         if matches!(shape, Shape::Label { .. }) {
-            self.labels.push((name.clone(), rect));
+            self.labels.push((name.clone(), rect, said.clone()));
         }
         if place {
+            self.shorts.push(match said.is_empty() {
+                true => name.clone(),
+                false => name[kind.len() + 1..].to_owned(),
+            });
             self.places.push(Place {
                 name: name.clone(),
                 rect,
@@ -191,7 +199,7 @@ impl Found {
     fn labelled(&self) -> Vec<Option<usize>> {
         self.labels
             .iter()
-            .map(|(_, rect)| {
+            .map(|(_, rect, _)| {
                 self.runs
                     .iter()
                     .enumerate()
@@ -207,8 +215,76 @@ impl Found {
     /// followed through the points where runs meet. A run no such way
     /// takes is a line of its own.
     pub fn wires(&self) -> Vec<Wire> {
-        let ends: Vec<(Node, Node)> = self
-            .runs
+        let ends = self.ends();
+        let ways = self.ways(&ends);
+
+        // A line's words are lit with it; they travel with the first line
+        // that takes their run.
+        let labelled = self.labelled();
+        let mut given = vec![false; self.labels.len()];
+        let mut nth: HashMap<(String, String), usize> = HashMap::new();
+        ways.iter()
+            .map(|way| {
+                let mut labels = Vec::new();
+                let mut words: [Option<String>; 3] = Default::default();
+                for (label, run) in labelled.iter().enumerate() {
+                    if run.is_some_and(|run| way.contains(&run)) {
+                        labels.push(self.labels[label].1);
+                        if !given[label] && words[crate::map::WORDS].is_none() {
+                            words[crate::map::WORDS] = Some(self.labels[label].0.clone());
+                            given[label] = true;
+                        }
+                    }
+                }
+                self.wire(way, &ends, labels, words, &mut nth)
+            })
+            .collect()
+    }
+
+    /// The part each run is drawn in (docs/adr/0037): the line it alone
+    /// belongs to, named by the shapes it joins and its words
+    /// (`link-Build-green_3f_`, `link-green_3f_-Publish-yes`). A run
+    /// several lines share, as into a point where branches meet, is no
+    /// one line's; nor is one of a line that ends at no shape.
+    pub fn run_names(&self) -> Vec<String> {
+        let ends = self.ends();
+        let labelled = self.labelled();
+        let mut given = crate::svg::Given::default();
+        let mut of: Vec<(usize, String)> = vec![(0, String::new()); self.runs.len()];
+        for way in self.ways(&ends) {
+            let (first, last) = (way[0], way[way.len() - 1]);
+            let short = |node: Node| match node {
+                Node::Shape(place) => Some(self.shorts[place].as_str()),
+                Node::Point(..) => None,
+            };
+            let name = match (short(ends[first].0), short(ends[last].1)) {
+                (Some(from), Some(to)) => {
+                    let mut name = format!("link-{from}-{to}");
+                    let said = labelled
+                        .iter()
+                        .position(|run| run.is_some_and(|run| way.contains(&run)))
+                        .map_or("", |label| self.labels[label].2.as_str());
+                    if !said.is_empty() {
+                        name.push('-');
+                        crate::svg::push_written(&mut name, said);
+                    }
+                    given.unique(name)
+                }
+                _ => String::new(),
+            };
+            for &run in &way {
+                of[run].0 += 1;
+                of[run].1.clone_from(&name);
+            }
+        }
+        of.into_iter()
+            .map(|(lines, name)| if lines == 1 { name } else { String::new() })
+            .collect()
+    }
+
+    /// Where each run starts and ends.
+    fn ends(&self) -> Vec<(Node, Node)> {
+        self.runs
             .iter()
             .map(|run| {
                 (
@@ -216,7 +292,13 @@ impl Found {
                     self.node(run.points[run.points.len() - 1]),
                 )
             })
-            .collect();
+            .collect()
+    }
+
+    /// The lines from shape to shape, each the runs it takes: each run
+    /// that leaves a shape, followed through the points where runs meet.
+    /// A run no such way takes is a line of its own.
+    fn ways(&self, ends: &[(Node, Node)]) -> Vec<Vec<usize>> {
         let mut leaving: HashMap<Node, Vec<usize>> = HashMap::new();
         for (at, (from, _)) in ends.iter().enumerate() {
             leaving.entry(*from).or_default().push(at);
@@ -262,92 +344,81 @@ impl Found {
                 .filter(|&run| !taken[run])
                 .map(|run| vec![run]),
         );
+        ways
+    }
 
-        // A line's words are lit with it; they travel with the first line
-        // that takes their run.
-        let labelled = self.labelled();
-        let mut given = vec![false; self.labels.len()];
-        let mut nth: HashMap<(String, String), usize> = HashMap::new();
-        ways.iter()
-            .map(|way| {
-                let mut labels = Vec::new();
-                let mut words: [Option<String>; 3] = Default::default();
-                for (label, run) in labelled.iter().enumerate() {
-                    if run.is_some_and(|run| way.contains(&run)) {
-                        labels.push(self.labels[label].1);
-                        if !given[label] && words[crate::map::WORDS].is_none() {
-                            words[crate::map::WORDS] = Some(self.labels[label].0.clone());
-                            given[label] = true;
-                        }
+    /// The line of the map `way` is, with the words beside it.
+    fn wire(
+        &self,
+        way: &[usize],
+        ends: &[(Node, Node)],
+        labels: Vec<Rect>,
+        words: [Option<String>; 3],
+        nth: &mut HashMap<(String, String), usize>,
+    ) -> Wire {
+        let (first, last) = (way[0], way[way.len() - 1]);
+        let joined = |of: fn(&Run) -> &[(f32, f32)]| {
+            let mut points: Vec<(f32, f32)> = Vec::new();
+            for &run in way {
+                for &p in of(&self.runs[run]) {
+                    if points.last() != Some(&p) {
+                        points.push(p);
                     }
                 }
-                let (first, last) = (way[0], way[way.len() - 1]);
-                let joined = |of: fn(&Run) -> &[(f32, f32)]| {
-                    let mut points: Vec<(f32, f32)> = Vec::new();
-                    for &run in way {
-                        for &p in of(&self.runs[run]) {
-                            if points.last() != Some(&p) {
-                                points.push(p);
-                            }
-                        }
-                    }
-                    points
-                };
-                let points = joined(|run| &run.points);
-                let path = joined(|run| &run.path);
-                let end = |node: Node, at: (f32, f32)| match node {
-                    Node::Shape(place) => {
-                        (self.places[place].name.clone(), self.places[place].rect)
-                    }
-                    Node::Point(..) => (
-                        String::new(),
-                        Rect {
-                            x: at.0,
-                            y: at.1,
-                            w: 0.0,
-                            h: 0.0,
-                        },
-                    ),
-                };
-                let (from, from_rect) = end(ends[first].0, points[0]);
-                let (to, to_rect) = end(ends[last].1, points[points.len() - 1]);
-                let count = nth.entry((from.clone(), to.clone())).or_insert(0);
-                let key = Key {
-                    from,
-                    to,
-                    nth: *count,
-                };
-                *count += 1;
-                Wire {
-                    key,
-                    line: None,
-                    path,
-                    points,
-                    from: End {
-                        rect: from_rect,
-                        flat: false,
-                    },
-                    to: End {
-                        rect: to_rect,
-                        flat: false,
-                    },
-                    entry: None,
-                    labels,
-                    stroke: self.runs[first].stroke,
-                    heads: self.runs[last]
-                        .head
-                        .iter()
-                        .map(|points| Head {
-                            points: points.clone(),
-                            closed: true,
-                            fill: HeadFill::Ink,
-                        })
-                        .collect(),
-                    fixed: true,
-                    words,
-                }
-            })
-            .collect()
+            }
+            points
+        };
+        let points = joined(|run| &run.points);
+        let path = joined(|run| &run.path);
+        let end = |node: Node, at: (f32, f32)| match node {
+            Node::Shape(place) => (self.places[place].name.clone(), self.places[place].rect),
+            Node::Point(..) => (
+                String::new(),
+                Rect {
+                    x: at.0,
+                    y: at.1,
+                    w: 0.0,
+                    h: 0.0,
+                },
+            ),
+        };
+        let (from, from_rect) = end(ends[first].0, points[0]);
+        let (to, to_rect) = end(ends[last].1, points[points.len() - 1]);
+        let count = nth.entry((from.clone(), to.clone())).or_insert(0);
+        let key = Key {
+            from,
+            to,
+            nth: *count,
+        };
+        *count += 1;
+        Wire {
+            key,
+            line: None,
+            path,
+            points,
+            from: End {
+                rect: from_rect,
+                flat: false,
+            },
+            to: End {
+                rect: to_rect,
+                flat: false,
+            },
+            entry: None,
+            labels,
+            stroke: self.runs[first].stroke,
+            heads: self.runs[last]
+                .head
+                .iter()
+                .map(|points| Head {
+                    points: points.clone(),
+                    closed: true,
+                    fill: HeadFill::Ink,
+                })
+                .collect(),
+            fixed: true,
+            words,
+        }
     }
 }
 
@@ -373,6 +444,44 @@ mod tests {
                 "stop"
             ]
         );
+    }
+
+    /// Each line is drawn in a part named by the shapes it joins and its
+    /// words; its path carries the id (docs/adr/0037).
+    #[test]
+    fn a_line_is_named_by_the_shapes_it_joins() {
+        let source = "@startuml\nstart\n:Build;\nif (green?) then (yes)\n  :Publish;\nelse (no)\n  :Fix;\nendif\n:Done;\nstop\n@enduml";
+        let (svg, _) = mapped(source);
+        for name in [
+            "link-start-Build",
+            "link-Build-green_3f_",
+            "link-green_3f_-Publish-yes",
+            "link-green_3f_-Fix-no",
+            "link-Publish-test",
+            "link-test-Done",
+            "link-Done-stop",
+        ] {
+            let own = format!(r#"<g class="{name}" id="{name}">"#);
+            let at = svg.find(&own).unwrap_or_else(|| panic!("{name}: {svg}"));
+            let drawn = &svg[at + own.len()..];
+            assert!(
+                drawn.starts_with("<path") || drawn.starts_with("<polyline"),
+                "{name}: {drawn}"
+            );
+            assert_eq!(svg.matches(&format!(r#"id="{name}""#)).count(), 1, "{name}");
+        }
+        // A fork's lines too, and no two share a name.
+        let (svg, _) =
+            mapped("@startuml\nstart\nfork\n  :A;\nfork again\n  :B;\nend fork\nstop\n@enduml");
+        let ids: Vec<&str> = svg
+            .match_indices(r#" id="link-"#)
+            .map(|(at, _)| {
+                let rest = &svg[at + 5..];
+                &rest[..rest.find('"').unwrap()]
+            })
+            .collect();
+        let unique: HashSet<&str> = ids.iter().copied().collect();
+        assert!(ids.len() >= 4 && unique.len() == ids.len(), "{ids:?}");
     }
 
     fn mapped(source: &str) -> (String, crate::map::Map) {

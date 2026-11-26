@@ -6,22 +6,40 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-Read_20_the_20_sensor-bar" id="link-Read_20_the_20_sensor-bar">
 <polyline points="66.02,53.97 66.02,73.97" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Read_20_the_20_clock-bar" id="link-Read_20_the_20_clock-bar">
 <polyline points="194.02,53.97 194.02,73.97" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-bar-Log_20_both" id="link-bar-Log_20_both">
 <polyline points="130.02,73.97 130.02,93.97" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="126.02,83.97 130.02,93.97 134.02,83.97 130.02,87.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Log_20_both-Calibrated_3f_" id="link-Log_20_both-Calibrated_3f_">
 <polyline points="130.02,127.94 130.02,147.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="126.02,137.94 130.02,147.94 134.02,137.94 130.02,141.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Calibrated_3f_-Waiting_20_for_20_the_20_operator-no" id="link-Calibrated_3f_-Waiting_20_for_20_the_20_operator-no">
 <path d="M88.55,159.94 L70.1,159.94 C63.47,159.94 58.1,165.31 58.1,171.94 L58.1,181.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="54.1,171.94 58.1,181.94 62.1,171.94 58.1,175.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Calibrated_3f_-Measure-yes" id="link-Calibrated_3f_-Measure-yes">
 <path d="M171.5,159.94 L189.94,159.94 C196.57,159.94 201.94,165.31 201.94,171.94 L201.94,181.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="197.94,171.94 201.94,181.94 205.94,171.94 201.94,175.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Waiting_20_for_20_the_20_operator-Blink" id="link-Waiting_20_for_20_the_20_operator-Blink">
 <polyline points="58.1,205.94 58.1,225.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="54.1,215.94 58.1,225.94 62.1,215.94 58.1,219.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Blink-Waiting_20_for_20_the_20_operator" id="link-Blink-Waiting_20_for_20_the_20_operator">
 <path d="M58.1,259.9 L58.1,259.9 C58.1,265.43 62.58,269.9 68.1,269.9 L131.18,269.9 C140.02,269.9 147.18,262.74 147.18,253.9 L147.18,198.94 C147.18,196.17 144.95,193.94 142.18,193.94 L132.18,193.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="142.18,189.94 132.18,193.94 142.18,197.94 138.18,193.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Measure-stop" id="link-Measure-stop">
 <polyline points="201.94,215.9 201.94,235.9" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="197.94,225.9 201.94,235.9 205.94,225.9 201.94,229.9" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="action-Read_20_the_20_sensor" id="action-Read_20_the_20_sensor">

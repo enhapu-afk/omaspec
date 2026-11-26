@@ -37,18 +37,30 @@
 </g>
 </g>
 <g id="lines">
+<g class="link-start-Check_20_the_20_stock" id="link-start-Check_20_the_20_stock">
 <polyline points="10,20 10,66.3" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,56.3 10,66.3 14,56.3 10,60.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Check_20_the_20_stock-Charge_20_the_20_card" id="link-Check_20_the_20_stock-Charge_20_the_20_card">
 <polyline points="10,100.26 10,166.56" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,156.56 10,166.56 14,156.56 10,160.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Charge_20_the_20_card-Pack_20_the_20_parcel" id="link-Charge_20_the_20_card-Pack_20_the_20_parcel">
 <polyline points="10,200.53 10,274.82" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,264.82 10,274.82 14,264.82 10,268.82" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Pack_20_the_20_parcel-Print_20_the_20_label" id="link-Pack_20_the_20_parcel-Print_20_the_20_label">
 <polyline points="10,308.79 10,383.09" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,373.09 10,383.09 14,373.09 10,377.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Print_20_the_20_label-File_20_the_20_order" id="link-Print_20_the_20_label-File_20_the_20_order">
 <polyline points="10,417.06 10,491.35" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,481.35 10,491.35 14,481.35 10,485.35" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-File_20_the_20_order-stop" id="link-File_20_the_20_order-stop">
 <polyline points="10,525.32 10,555.32" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,545.32 10,555.32 14,545.32 10,549.32" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="start" id="start">

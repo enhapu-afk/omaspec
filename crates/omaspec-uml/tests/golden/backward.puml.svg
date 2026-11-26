@@ -1,30 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="301" height="440" viewBox="0 0 301 440" data-omaspec="parts">
 <g transform="translate(74.71,10)">
 <g id="lines">
+<g class="link-start-test" id="link-start-test">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,30 10,40 14,30 10,34" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-Read_20_the_20_data" id="link-test-Read_20_the_20_data">
 <polyline points="10,64 10,84" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,74 10,84 14,74 10,78" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Generate_20_the_20_diagrams-more_20_data_3f_" id="link-Generate_20_the_20_diagrams-more_20_data_3f_">
 <polyline points="10,171.94 10,191.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,181.94 10,191.94 14,181.94 10,185.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-more_20_data_3f_-This_20_is_20_backward-yes" id="link-more_20_data_3f_-This_20_is_20_backward-yes">
 <path d="M51.1,203.94 L141.72,203.94 C150.55,203.94 157.72,196.77 157.72,187.94 L157.72,144.95" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="161.72,154.95 157.72,144.95 153.72,154.95 157.72,150.95" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-This_20_is_20_backward-test" id="link-This_20_is_20_backward-test">
 <path d="M157.72,110.98 L157.72,68 C157.72,59.16 150.55,52 141.72,52 L22,52" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,48 22,52 32,56 28,52" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Read_20_the_20_data-Generate_20_the_20_diagrams" id="link-Read_20_the_20_data-Generate_20_the_20_diagrams">
 <polyline points="10,117.97 10,137.97" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,127.97 10,137.97 14,127.97 10,131.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-more_20_data_3f_-test-2-no" id="link-more_20_data_3f_-test-2-no">
 <polyline points="10,215.94 10,239.74" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,229.74 10,239.74 14,229.74 10,233.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-test-2-Ask" id="link-test-2-Ask">
 <polyline points="10,263.74 10,283.74" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,273.74 10,283.74 14,273.74 10,277.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Ask-answer_3f_" id="link-Ask-answer_3f_">
 <polyline points="10,317.71 10,353.28" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,343.28 10,353.28 14,343.28 10,347.28" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-answer_3f_-Wait_20_a_20_minute_20_and_20_try_20_again-timeout" id="link-answer_3f_-Wait_20_a_20_minute_20_and_20_try_20_again-timeout">
 <path d="M43.83,365.28 L99.53,365.28 C108.37,365.28 115.53,358.12 115.53,349.28 L115.53,332.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="119.53,342.48 115.53,332.48 111.53,342.48 115.53,338.48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-Wait_20_a_20_minute_20_and_20_try_20_again-test-2-retry" id="link-Wait_20_a_20_minute_20_and_20_try_20_again-test-2-retry">
 <path d="M115.53,284.54 L115.53,267.74 C115.53,258.9 108.37,251.74 99.53,251.74 L22,251.74" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,247.74 22,251.74 32,255.74 28,251.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="link-answer_3f_-stop" id="link-answer_3f_-stop">
 <polyline points="10,377.28 10,397.28" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,387.28 10,397.28 14,387.28 10,391.28" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g>
 <g class="start" id="start">
