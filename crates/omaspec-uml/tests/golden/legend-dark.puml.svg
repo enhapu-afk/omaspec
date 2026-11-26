@@ -1,41 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="176" height="260" viewBox="0 0 176 260">
+<svg xmlns="http://www.w3.org/2000/svg" width="176" height="260" viewBox="0 0 176 260" data-omaspec="parts">
 <rect x="0" y="0" width="176" height="260" fill="#1E1E2E"/>
 <g transform="translate(20,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="31.45" cy="39.3" rx="11" ry="11" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+</g>
+<g class="state-Idle" id="state-Idle">
 <rect x="5" y="82.3" width="52.89" height="32.3" rx="8" ry="8" fill="#313244" stroke="#89B4FA" stroke-width="1"/>
+</g>
+<g class="state-Busy" id="state-Busy">
 <rect x="0.32" y="160.56" width="62.26" height="32.3" rx="8" ry="8" fill="#313244" stroke="#89B4FA" stroke-width="1"/>
+</g>
 <rect x="-10" y="0" width="94.08" height="202.86" fill="none" stroke="#CDD6F4" stroke-width="1"/>
 <polygon points="-10,0 69.47,0 69.47,14.3 63.47,20.3 -10,20.3" fill="none" stroke="#CDD6F4" stroke-width="1"/>
 </g>
 <g id="lines">
+<g class="transition-start-Idle" id="transition-start-Idle">
 <polyline points="31.45,50.3 31.45,72.3" fill="none" stroke="#89B4FA" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Busy-job" id="transition-Idle-Busy-job">
 <polyline points="23.45,114.59 23.45,150.56" fill="none" stroke="#89B4FA" stroke-width="1"/>
+</g>
+<g class="transition-Busy-Idle-done" id="transition-Busy-Idle-done">
 <polyline points="39.45,160.56 39.45,124.59" fill="none" stroke="#89B4FA" stroke-width="1"/>
+</g>
+<g class="transition-start-Idle">
 <polygon points="27.45,72.3 31.45,82.3 35.45,72.3 31.45,76.3" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Busy-job">
 <polygon points="19.45,150.56 23.45,160.56 27.45,150.56 23.45,154.56" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+</g>
+<g class="transition-Busy-Idle-done">
 <polygon points="43.45,124.59 39.45,114.59 35.45,124.59 39.45,120.59" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Idle">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="19" y="103.29" font-size="14" fill="#CDD6F4" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
+</g>
+<g class="state-Busy">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="14.32" y="181.55" font-size="14" fill="#CDD6F4" font-weight="bold" textLength="34.26" lengthAdjust="spacing">Busy</tspan>
 </text>
+</g>
+<g class="transition-Idle-Busy-job">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="141.73" font-size="12" fill="#CDD6F4" textLength="17.45" lengthAdjust="spacing">job</tspan>
 </text>
+</g>
+<g class="transition-Busy-Idle-done">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="45.45" y="141.73" font-size="12" fill="#CDD6F4" textLength="28.63" lengthAdjust="spacing">done</tspan>
 </text>
+</g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-4" y="14.99" font-size="14" fill="#CDD6F4" textLength="61.47" lengthAdjust="spacing">state Job</tspan>
 </text>
+<g class="legend" id="legend">
 <rect x="-10" y="212.86" width="155.96" height="26.3" rx="7.5" ry="7.5" fill="#333446" stroke="#878CA5" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-2" y="230.85" font-size="14" fill="#CDD6F4" font-style="italic" textLength="139.96" lengthAdjust="spacing">Idle until a job comes</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

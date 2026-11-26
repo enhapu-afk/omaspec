@@ -1,9 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="345" height="362" viewBox="0 0 345 362">
+<svg xmlns="http://www.w3.org/2000/svg" width="345" height="362" viewBox="0 0 345 362" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="border" id="border">
 <line x1="0" y1="0" x2="0" y2="341.36" fill="none" stroke="#BBBBBB" stroke-width="1.5"/>
+</g>
+<g class="border-Shop" id="border-Shop">
 <line x1="249.5" y1="0" x2="249.5" y2="341.36" fill="none" stroke="#BBBBBB" stroke-width="1.5"/>
+</g>
+<g class="border-Courier" id="border-Courier">
 <line x1="324.35" y1="0" x2="324.35" y2="341.36" fill="none" stroke="#BBBBBB" stroke-width="1.5"/>
+</g>
 </g>
 <g id="lines">
 <polyline points="120.39,47.46 120.39,67.46" fill="none" stroke="#2F6DB5" stroke-width="1"/>
@@ -24,47 +30,73 @@
 <polygon points="282.93,299.36 286.93,309.36 290.93,299.36 286.93,303.36" fill="#2F6DB5" stroke="#2F6DB5" stroke-width="1"/>
 </g>
 <g>
+<g class="lane-Shop" id="lane-Shop">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="105.84" y="13.92" font-size="15" fill="#000000" font-weight="bold" textLength="37.81" lengthAdjust="spacing">Shop</tspan>
 </text>
+</g>
+<g class="lane-Courier" id="lane-Courier">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="259.5" y="13.92" font-size="15" fill="#000000" font-weight="bold" textLength="54.85" lengthAdjust="spacing">Courier</tspan>
 </text>
+</g>
+<g class="start" id="start">
 <ellipse cx="120.39" cy="37.46" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="action-Take_20_order" id="action-Take_20_order">
 <rect x="79.38" y="67.46" width="82.02" height="33.97" rx="4" ry="4" fill="#E8F1FB" stroke="#2F6DB5" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="89.38" y="88.6" font-size="12" fill="#000000" textLength="62.02" lengthAdjust="spacing">Take order</tspan>
 </text>
+</g>
+<g class="test-In_20_stock_3f_" id="test-In_20_stock_3f_">
 <polygon points="85.14,133.43 97.14,121.43 143.64,121.43 155.64,133.43 143.64,145.43 97.14,145.43" fill="#FFF4E0" stroke="#2F6DB5" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="97.14" y="137.23" font-size="11" fill="#000000" textLength="46.5" lengthAdjust="spacing">In stock?</tspan>
 </text>
+</g>
+<g class="label-yes" id="label-yes">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="64.74" y="129.83" font-size="11" fill="#555555" textLength="18.4" lengthAdjust="spacing">yes</tspan>
 </text>
+</g>
+<g class="label-no" id="label-no">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="157.64" y="129.83" font-size="11" fill="#555555" textLength="13.1" lengthAdjust="spacing">no</tspan>
 </text>
+</g>
+<g class="test" id="test">
 <polygon points="108.39,213.4 120.39,201.4 132.39,213.4 120.39,225.4" fill="#FFF4E0" stroke="#2F6DB5" stroke-width="0.5"/>
+</g>
+<g class="note-same_20_day" id="note-same_20_day">
 <path d="M72.85,159.85 L72.85,184.98 L154.21,184.98 L154.21,169.85 L144.21,159.85 Z" fill="#F5F5F5" stroke="#181818" stroke-width="0.5"/>
 <path d="M144.21,159.85 L144.21,169.85 L154.21,169.85" fill="#F5F5F5" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="78.85" y="176.91" font-size="13" fill="#000000" textLength="59.36" lengthAdjust="spacing">same day</tspan>
 </text>
+</g>
+<g class="action-Pack" id="action-Pack">
 <rect x="10" y="155.43" width="47.85" height="33.97" rx="4" ry="4" fill="#E8F1FB" stroke="#2F6DB5" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="20" y="176.56" font-size="12" fill="#000000" textLength="27.85" lengthAdjust="spacing">Pack</tspan>
 </text>
+</g>
+<g class="action-Reorder" id="action-Reorder">
 <rect x="174.21" y="155.43" width="65.29" height="33.97" rx="4" ry="4" fill="#E8F1FB" stroke="#2F6DB5" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="184.21" y="176.56" font-size="12" fill="#000000" textLength="45.29" lengthAdjust="spacing">Reorder</tspan>
 </text>
+</g>
+<g class="action-Ship" id="action-Ship">
 <rect x="264.4" y="255.4" width="45.04" height="33.97" rx="4" ry="4" fill="#E8F1FB" stroke="#2F6DB5" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="274.4" y="276.53" font-size="12" fill="#000000" textLength="25.04" lengthAdjust="spacing">Ship</tspan>
 </text>
+</g>
+<g class="stop" id="stop">
 <ellipse cx="286.93" cy="320.36" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="286.93" cy="320.36" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
 </g>
 </g>
 </svg>

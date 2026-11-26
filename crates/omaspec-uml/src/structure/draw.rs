@@ -82,9 +82,6 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     canvas.page_gradient(skin.page_gradient.filter(|_| !crate::embedded::inside()));
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
-    if diagram.frame.parts {
-        canvas.mark_parts();
-    }
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,
@@ -2766,11 +2763,10 @@ mod tests {
     /// holding nothing of the classes in it.
     #[test]
     fn a_namespace_and_its_class_of_one_name_are_two_parts() {
-        let mut diagram = super::super::mermaid::from_mermaid(
+        let diagram = super::super::mermaid::from_mermaid(
             "classDiagram\nnamespace Order {\n  class Order\n  class Line\n}\n",
         )
         .unwrap();
-        diagram.frame.parts = true;
         let (svg, map) = draw_mapped(&diagram).unwrap();
         let orders: Vec<&str> = map
             .places

@@ -1,70 +1,140 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="292" height="366" viewBox="0 0 292 366">
+<svg xmlns="http://www.w3.org/2000/svg" width="292" height="366" viewBox="0 0 292 366" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="65.75" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Idle" id="state-Idle">
 <rect x="39.31" y="54" width="52.89" height="66" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Done" id="state-Done">
 <rect x="33.88" y="165.97" width="63.76" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Outer" id="state-Outer">
 <rect x="0" y="244.23" width="131.51" height="101.3" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="0" y1="279.53" x2="131.51" y2="279.53" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Inner" id="state-Inner">
 <rect x="12" y="287.53" width="63.42" height="46" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Idle" id="transition-start-Idle">
 <polyline points="65.75,22 65.75,44" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Idle-poll" id="transition-Idle-Idle-poll">
 <path d="M92.2,80 L101.2,80 C105.07,80 108.2,83.13 108.2,87 L108.2,88 C108.2,91.31 105.51,94 102.2,94 L102.2,94" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Idle-heartbeat" id="transition-Idle-Idle-heartbeat">
 <path d="M92.2,70 L121.55,70 C130.94,70 138.55,77.61 138.55,87 L138.55,87 C138.55,96.39 130.94,104 121.55,104 L102.2,104" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Idle-retry" id="transition-Idle-Idle-retry">
 <path d="M92.2,60 L214.25,60 C229.16,60 241.25,72.09 241.25,87 L241.25,87 C241.25,101.91 229.16,114 214.25,114 L102.2,114" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Done-stop" id="transition-Idle-Done-stop">
 <polyline points="65.75,120 65.75,155.97" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Done-Outer-again" id="transition-Done-Outer-again">
 <polyline points="65.75,198.26 65.75,234.23" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Done-Done-rest" id="transition-Done-Done-rest">
 <path d="M97.63,175.12 L106.63,175.12 C110.5,175.12 113.63,178.25 113.63,182.12 L113.63,183.12 C113.63,186.43 110.95,189.12 107.63,189.12 L107.63,189.12" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Inner-Inner-a" id="transition-Inner-Inner-a">
 <path d="M75.42,303.53 L84.42,303.53 C88.29,303.53 91.42,306.66 91.42,310.53 L91.42,311.53 C91.42,314.84 88.73,317.53 85.42,317.53 L85.42,317.53" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Inner-Inner-b" id="transition-Inner-Inner-b">
 <path d="M75.42,293.53 L91.16,293.53 C100.55,293.53 108.16,301.14 108.16,310.53 L108.16,310.53 C108.16,319.92 100.55,327.53 91.16,327.53 L85.42,327.53" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Idle">
 <polygon points="61.75,44 65.75,54 69.75,44 65.75,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Idle-poll">
 <polygon points="102.2,90 92.2,94 102.2,98 98.2,94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Idle-heartbeat">
 <polygon points="102.2,100 92.2,104 102.2,108 98.2,104" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Idle-retry">
 <polygon points="102.2,110 92.2,114 102.2,118 98.2,114" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Done-stop">
 <polygon points="61.75,155.97 65.75,165.97 69.75,155.97 65.75,159.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Done-Outer-again">
 <polygon points="61.75,234.23 65.75,244.23 69.75,234.23 65.75,238.23" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Done-Done-rest">
 <polygon points="107.63,185.12 97.63,189.12 107.63,193.12 103.63,189.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Inner-Inner-a">
 <polygon points="85.42,313.53 75.42,317.53 85.42,321.53 81.42,317.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Inner-Inner-b">
 <polygon points="85.42,323.53 75.42,327.53 85.42,331.53 81.42,327.53" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Idle">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="53.31" y="91.84" font-size="14" fill="#000000" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
+</g>
+<g class="state-Done">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="47.88" y="186.96" font-size="14" fill="#000000" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
 </text>
+</g>
+<g class="state-Outer">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="46.41" y="265.22" font-size="14" fill="#000000" font-weight="bold" textLength="38.68" lengthAdjust="spacing">Outer</tspan>
 </text>
+</g>
+<g class="state-Inner">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="26" y="315.37" font-size="14" fill="#000000" font-weight="bold" textLength="35.42" lengthAdjust="spacing">Inner</tspan>
 </text>
+</g>
+<g class="transition-Inner-Inner-a">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="95.42" y="314.68" font-size="12" fill="#000000" textLength="6.74" lengthAdjust="spacing">a</tspan>
 </text>
+</g>
+<g class="transition-Inner-Inner-b">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="112.16" y="314.68" font-size="12" fill="#000000" textLength="7.34" lengthAdjust="spacing">b</tspan>
 </text>
+</g>
+<g class="transition-Idle-Idle-poll">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="112.2" y="91.15" font-size="12" fill="#000000" textLength="20.35" lengthAdjust="spacing">poll</tspan>
 </text>
+</g>
+<g class="transition-Idle-Idle-heartbeat">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="142.55" y="91.15" font-size="12" fill="#000000" textLength="92.7" lengthAdjust="spacing">heartbeat [alive]</tspan>
 </text>
+</g>
+<g class="transition-Idle-Idle-retry">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="245.25" y="91.15" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">retry</tspan>
 </text>
+</g>
+<g class="transition-Idle-Done-stop">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="71.75" y="147.14" font-size="12" fill="#000000" textLength="24.8" lengthAdjust="spacing">stop</tspan>
 </text>
+</g>
+<g class="transition-Done-Outer-again">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="71.75" y="225.4" font-size="12" fill="#000000" textLength="30.84" lengthAdjust="spacing">again</tspan>
 </text>
+</g>
+<g class="transition-Done-Done-rest">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="117.63" y="186.27" font-size="12" fill="#000000" textLength="21.77" lengthAdjust="spacing">rest</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

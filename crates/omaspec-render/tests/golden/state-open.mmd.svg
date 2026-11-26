@@ -1,61 +1,119 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="318" height="454" viewBox="0 0 318 454">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="318" height="454" viewBox="0 0 318 454" data-omaspec="parts">
 <rect x="0" y="0" width="318" height="454" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
+<g class="state-Moving" id="state-Moving">
 <rect x="0" y="0" width="231.29" height="359.37" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
 <line x1="0" y1="35.3" x2="231.29" y2="35.3" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Opening" id="state-Opening">
 <rect x="87.33" y="43.3" width="86.04" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Open" id="state-Open">
 <rect x="48.24" y="137.89" width="64.68" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Closing" id="state-Closing">
 <rect x="40.61" y="218.48" width="79.94" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Closed2" id="state-Closed2">
 <rect x="83.27" y="315.07" width="84.56" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="start" id="start">
 <ellipse cx="286.29" cy="59.44" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Closed" id="state-Closed">
 <rect x="144.39" y="401.37" width="75.74" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Closed" id="transition-start-Closed">
 <path d="M286.29,70.44 L286.29,342.29 C286.29,363.87 268.79,381.37 247.21,381.37 L218.13,381.37 C212.6,381.37 208.13,385.85 208.13,391.37 L208.13,391.37" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Closed-Opening-open" id="transition-Closed-Opening-open">
 <path d="M187.07,401.37 L187.07,114.44 C187.07,107.34 181.32,101.59 174.22,101.59 L174.22,101.59 C167.12,101.59 161.37,95.84 161.37,88.74 L161.37,85.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Closed2-Closed" id="transition-Closed2-Closed">
 <polyline points="155.83,347.37 155.83,391.37" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Opening-Open-end_20_position" id="transition-Opening-Open-end_20_position">
 <polyline points="99.33,75.59 99.33,127.89" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Closing-Closed2-end_20_position" id="transition-Closing-Closed2-end_20_position">
 <path d="M80.56,250.78 L80.56,287.72 C80.56,291.78 83.85,295.07 87.91,295.07 L87.91,295.07 C91.97,295.07 95.27,298.37 95.27,302.43 L95.27,305.07" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Open-Closing-close" id="transition-Open-Closing-close">
 <polyline points="80.58,170.18 80.58,208.48" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Closed">
 <polygon points="204.13,391.37 208.13,401.37 212.13,391.37 208.13,395.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Closed-Opening-open">
 <polygon points="165.37,85.59 161.37,75.59 157.37,85.59 161.37,81.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Closed2-Closed">
 <polygon points="151.83,391.37 155.83,401.37 159.83,391.37 155.83,395.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Opening-Open-end_20_position">
 <polygon points="95.33,127.89 99.33,137.89 103.33,127.89 99.33,131.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Closing-Closed2-end_20_position">
 <polygon points="91.27,305.07 95.27,315.07 99.27,305.07 95.27,309.07" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Open-Closing-close">
 <polygon points="76.58,208.48 80.58,218.48 84.58,208.48 80.58,212.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Moving">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="89.95" y="20.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="51.39" lengthAdjust="spacing">Moving</tspan>
 </text>
+</g>
+<g class="state-Opening">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="101.33" y="64.29" font-size="14" fill="#0F172A" font-weight="bold" textLength="58.04" lengthAdjust="spacing">Opening</tspan>
 </text>
+</g>
+<g class="state-Open">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="62.24" y="158.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="36.68" lengthAdjust="spacing">Open</tspan>
 </text>
+</g>
+<g class="state-Closing">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="54.61" y="239.47" font-size="14" fill="#0F172A" font-weight="bold" textLength="51.94" lengthAdjust="spacing">Closing</tspan>
 </text>
+</g>
+<g class="state-Closed2">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="97.27" y="336.06" font-size="14" fill="#0F172A" font-weight="bold" textLength="56.56" lengthAdjust="spacing">Closed2</tspan>
 </text>
+</g>
+<g class="transition-Opening-Open-end_20_position">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="12" y="118.58" font-size="14" fill="#0F172A" textLength="81.33" lengthAdjust="spacing">end position</tspan>
 </text>
+</g>
+<g class="transition-Closing-Closed2-end_20_position">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="86.56" y="279.77" font-size="14" fill="#0F172A" textLength="81.33" lengthAdjust="spacing">end position</tspan>
 </text>
+</g>
+<g class="transition-Open-Closing-close">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="86.58" y="199.18" font-size="14" fill="#0F172A" textLength="35.34" lengthAdjust="spacing">close</tspan>
 </text>
+</g>
+<g class="state-Closed">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="158.39" y="422.36" font-size="14" fill="#0F172A" font-weight="bold" textLength="47.74" lengthAdjust="spacing">Closed</tspan>
 </text>
+</g>
+<g class="transition-Closed-Opening-open">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="193.07" y="279.77" font-size="14" fill="#0F172A" textLength="33.4" lengthAdjust="spacing">open</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

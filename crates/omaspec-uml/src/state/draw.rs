@@ -86,9 +86,6 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
     canvas.faces(&skin.faces);
-    if diagram.frame.parts {
-        canvas.mark_parts();
-    }
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,
@@ -2385,9 +2382,9 @@ mod tests {
             assert!(group.matches("<rect").count() <= 1, "{group}");
             assert!(!group.contains("Grinding"), "{group}");
         }
-        // Without the line, the same picture has none.
+        // Every picture marks them, the old line asking for them aside.
         let plain = crate::render(&source.replace("' parts (Omaspec)\n", "")).unwrap();
-        assert!(!crate::has_parts(&plain));
+        assert_eq!(plain, svg);
     }
 
     /// A transition is an element of the picture (docs/adr/0037): its

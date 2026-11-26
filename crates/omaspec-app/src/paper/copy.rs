@@ -66,7 +66,6 @@ impl Paper {
         };
         let svg = Arc::clone(&diagram.drawn.svg);
         let map = Arc::clone(&diagram.drawn.map);
-        let parts = diagram.drawn.parts;
         let links = Arc::clone(&diagram.drawn.links);
         let source = Arc::clone(&diagram.source);
         let document = self.document;
@@ -107,12 +106,8 @@ impl Paper {
                         accent,
                     }),
                 };
-                // The picture as a file shows it: the pane's parts are its own.
-                let svg = if parts {
-                    std::borrow::Cow::Owned(omaspec_uml::unmarked(&svg))
-                } else {
-                    std::borrow::Cow::Borrowed(&*svg)
-                };
+                // As a file has it: its parts are its elements, with their
+                // ids (docs/adr/0037).
                 let bytes = export::export(&svg, format, &options).map_err(|e| e.to_string())?;
                 then(bytes)
             }),

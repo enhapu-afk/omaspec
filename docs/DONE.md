@@ -2318,6 +2318,30 @@ is open and the reasoning around it.
       start, where the state it starts in does not take it, says the
       machine started. A trace without it holds as before, so no trace
       that held fails now; `docs/trace.md` says so.
+- [x] An id for every box and line, step 1 (REQ-132, 2026-11-26,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)): every picture
+      Omaspec draws names its parts from the source, as ids and classes,
+      where they were in hex, counted over the picture and drawn only
+      for the pane. Each group of a part carries its name as a class, the
+      first group of its shape also as its id; the picture's root says it
+      marks its parts (`data-omaspec="parts"`), so another engine's
+      classes (mmdr's, the Java PlantUML's) are no parts. The names:
+      `state-Idle`, `start-Brewing`, `end`, `region-On-2`,
+      `transition-Idle-Busy-start` (its line, in the lines' group, carries
+      the id, its head and words the class), `class-Order`,
+      `link-Order-Customer-places` and its `.from`/`.to`,
+      `note-state-A-right-1`, `action-Pay`, `lane-…`, `node-Pack`,
+      `json-home_2f_street`, `branch-main`, `commit-init`, `node-A`,
+      `subgraph-Back`, `title`; letters, digits, `_` and `.` as written,
+      any other character as `_`, its code in hex and `_`; a name given
+      twice takes `-2`. `' parts (Omaspec)` is gone, a picture inside a
+      note marks none, an export and a copy keep them, `--id-prefix`
+      prefixes the classes too. The pane, the build and the fold and
+      history pages read the new names (usvg keeps no classes: the pane
+      numbers each group for its own reading, `name~n`); every golden SVG
+      changed once, by its groups and its root alone. An activity
+      diagram's boxes are named so in its map too (`action-Pay`, where
+      it was `action:Pay`).
 
 ## Next
 

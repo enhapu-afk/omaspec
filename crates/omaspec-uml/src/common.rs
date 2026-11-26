@@ -187,9 +187,6 @@ pub struct Frame {
     /// Entries of held boxes that name no box, or two in different
     /// containers: by line, and why.
     pub unplaced: Vec<(usize, String)>,
-    /// The pane asked for the parts of the picture marked
-    /// ([`crate::fold::parts`], docs/adr/0029).
-    pub parts: bool,
     /// `!pragma useVerticalIf on`: the `elseif`s of an activity diagram
     /// stacked, not in a row; the other types take no notice of it, as
     /// PlantUML does.

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="792" height="262" viewBox="0 0 792 262">
+<svg xmlns="http://www.w3.org/2000/svg" width="792" height="262" viewBox="0 0 792 262" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g id="lines">
 <path d="M515.95,82.59 L525.95,82.59 C540.95,82.59 540.95,54.44 555.95,54.44 L565.95,54.44" fill="none" stroke="#181818" stroke-width="1"/>
@@ -15,60 +15,88 @@
 <path d="M304.08,138.89 L294.08,138.89 C279.08,138.89 279.08,195.18 264.08,195.18 L254.08,195.18" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="node-Next_20_release" id="node-Next_20_release">
 <rect x="304.08" y="120.74" width="103.26" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="314.08" y="143.73" font-size="14" fill="#000000" textLength="83.26" lengthAdjust="spacing">Next release</tspan>
 </text>
+</g>
+<g class="node-Editor" id="node-Editor">
 <rect x="457.34" y="64.44" width="58.61" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="467.34" y="87.44" font-size="14" fill="#000000" textLength="38.61" lengthAdjust="spacing">Editor</tspan>
 </text>
+</g>
+<g class="node-Snippets" id="node-Snippets">
 <rect x="565.95" y="36.3" width="77.92" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="575.95" y="59.29" font-size="14" fill="#000000" textLength="57.92" lengthAdjust="spacing">Snippets</tspan>
 </text>
+</g>
+<g class="node-Find_20_in_20_all_20_tabs" id="node-Find_20_in_20_all_20_tabs">
 <rect x="565.95" y="92.59" width="115" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="575.95" y="115.58" font-size="14" fill="#000000" textLength="95" lengthAdjust="spacing">Find in all tabs</tspan>
 </text>
+</g>
+<g class="node-Diagrams" id="node-Diagrams">
 <rect x="457.34" y="177.04" width="82.73" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="467.34" y="200.03" font-size="14" fill="#000000" textLength="62.73" lengthAdjust="spacing">Diagrams</tspan>
 </text>
+</g>
+<g class="node-Mind_20_maps_20_without_20_Java" id="node-Mind_20_maps_20_without_20_Java">
 <rect x="590.07" y="148.89" width="181.31" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="600.07" y="171.88" font-size="14" fill="#000000" textLength="161.31" lengthAdjust="spacing">Mind maps without Java</tspan>
 </text>
+</g>
+<g class="node-WBS_20_without_20_Java" id="node-WBS_20_without_20_Java">
 <rect x="590.07" y="205.18" width="140.34" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="600.07" y="228.18" font-size="14" fill="#000000" textLength="120.34" lengthAdjust="spacing">WBS without Java</tspan>
 </text>
+</g>
+<g class="node-Maybe_20_later" id="node-Maybe_20_later">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="460.34" y="237.32" font-size="14" fill="#000000" textLength="78.3" lengthAdjust="spacing">Maybe later</tspan>
 </text>
+</g>
+<g class="node-Docs" id="node-Docs">
 <rect x="200.19" y="92.59" width="53.89" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="210.19" y="115.58" font-size="14" fill="#000000" textLength="33.89" lengthAdjust="spacing">Docs</tspan>
 </text>
+</g>
+<g class="node-A_20_tour_20_of_20_the_20_editor" id="node-A_20_tour_20_of_20_the_20_editor">
 <rect x="5.32" y="64.44" width="144.87" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="15.32" y="87.44" font-size="14" fill="#000000" textLength="124.87" lengthAdjust="spacing">A tour of the editor</tspan>
 </text>
+</g>
+<g class="node-Keyboard_20_shortcuts" id="node-Keyboard_20_shortcuts">
 <rect x="0" y="120.74" width="150.19" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="10" y="143.73" font-size="14" fill="#000000" textLength="130.19" lengthAdjust="spacing">Keyboard shortcuts</tspan>
 </text>
+</g>
+<g class="node-Packaging" id="node-Packaging">
 <rect x="164.89" y="177.04" width="89.19" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="174.89" y="200.03" font-size="14" fill="#000000" textLength="69.19" lengthAdjust="spacing">Packaging</tspan>
 </text>
+</g>
+<g class="node-Flatpak" id="node-Flatpak">
 <rect x="46.68" y="177.04" width="68.22" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="56.68" y="200.03" font-size="14" fill="#000000" textLength="48.22" lengthAdjust="spacing">Flatpak</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="299.09" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="173.19" lengthAdjust="spacing">Ideas for the next release</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

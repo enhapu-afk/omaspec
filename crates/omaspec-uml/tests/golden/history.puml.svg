@@ -1,74 +1,148 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="316" height="471" viewBox="0 0 316 471">
+<svg xmlns="http://www.w3.org/2000/svg" width="316" height="471" viewBox="0 0 316 471" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="181.6" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Off" id="state-Off">
 <rect x="156.63" y="80.3" width="49.94" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-On" id="state-On">
 <rect x="20.3" y="218.56" width="257.05" height="232.14" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="20.3" y1="253.86" x2="277.35" y2="253.86" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start-On" id="start-On">
 <ellipse cx="119.59" cy="279" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Low" id="state-Low">
 <rect x="92.13" y="328.14" width="56.39" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-High" id="state-High">
 <rect x="90.41" y="406.4" width="59.82" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="history-On" id="history-On">
 <ellipse cx="48.44" cy="279" rx="16.15" ry="16.15" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="deep-history-On" id="deep-history-On">
 <ellipse cx="191.73" cy="279" rx="17.14" ry="17.14" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Off" id="transition-start-Off">
 <polyline points="181.6,48.3 181.6,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Off-On-power" id="transition-Off-On-power">
 <path d="M185.92,112.59 L185.92,140.99 C185.92,145.19 189.33,148.59 193.52,148.59 L193.52,148.59 C197.72,148.59 201.12,151.99 201.12,156.19 L201.12,178.68 C201.12,184.14 205.55,188.56 211,188.56 L211,188.56 C216.45,188.56 220.88,192.98 220.88,198.44 L220.88,208.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-On-Off-pause" id="transition-On-Off-pause">
 <path d="M254.99,218.56 L254.99,168.8 C254.99,152.12 241.47,138.59 224.78,138.59 L210.57,138.59 C201.73,138.59 194.57,131.43 194.57,122.59 L194.57,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Off-history-On-resume" id="transition-Off-history-On-resume">
 <path d="M168.63,112.59 L168.63,112.59 C168.63,126.95 156.99,138.59 142.63,138.59 L96.44,138.59 C69.93,138.59 48.44,160.08 48.44,186.59 L48.44,252.85" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Off-deep-history-On-resume_20_all" id="transition-Off-deep-history-On-resume_20_all">
 <path d="M177.28,112.59 L177.28,132.33 C177.28,146.83 165.52,158.59 151.02,158.59 L144.74,158.59 C133.7,158.59 124.76,167.54 124.76,178.58 L124.76,178.58 C124.76,189.61 133.7,198.56 144.74,198.56 L158.25,198.56 C176.74,198.56 191.73,213.55 191.73,232.05 L191.73,251.86" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-On-Low" id="transition-start-On-Low">
 <polyline points="119.59,290 119.59,318.14" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Low-High-up" id="transition-Low-High-up">
 <polyline points="112.32,360.44 112.32,396.4" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-High-Low-down" id="transition-High-Low-down">
 <polyline points="128.32,406.4 128.32,370.44" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Off">
 <polygon points="177.6,70.3 181.6,80.3 185.6,70.3 181.6,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Off-On-power">
 <polygon points="216.88,208.56 220.88,218.56 224.88,208.56 220.88,212.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-On-Off-pause">
 <polygon points="198.57,122.59 194.57,112.59 190.57,122.59 194.57,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Off-history-On-resume">
 <polygon points="44.44,252.85 48.44,262.85 52.44,252.85 48.44,256.85" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Off-deep-history-On-resume_20_all">
 <polygon points="187.73,251.86 191.73,261.86 195.73,251.86 191.73,255.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-On-Low">
 <polygon points="115.59,318.14 119.59,328.14 123.59,318.14 119.59,322.14" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Low-High-up">
 <polygon points="108.32,396.4 112.32,406.4 116.32,396.4 112.32,400.4" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-High-Low-down">
 <polygon points="132.32,370.44 128.32,360.44 124.32,370.44 128.32,366.44" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Off">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="170.63" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="21.94" lengthAdjust="spacing">Off</tspan>
 </text>
+</g>
+<g class="state-On">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="139.07" y="239.55" font-size="14" fill="#000000" font-weight="bold" textLength="19.52" lengthAdjust="spacing">On</tspan>
 </text>
+</g>
+<g class="state-Low">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="106.13" y="349.13" font-size="14" fill="#000000" font-weight="bold" textLength="28.39" lengthAdjust="spacing">Low</tspan>
 </text>
+</g>
+<g class="state-High">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="104.41" y="427.4" font-size="14" fill="#000000" font-weight="bold" textLength="31.82" lengthAdjust="spacing">High</tspan>
 </text>
+</g>
+<g class="history-On">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="43.22" y="283.84" font-size="14" fill="#000000" font-weight="bold" textLength="10.46" lengthAdjust="spacing">H</tspan>
 </text>
+</g>
+<g class="deep-history-On">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="182.59" y="283.84" font-size="14" fill="#000000" font-weight="bold" textLength="18.28" lengthAdjust="spacing">H*</tspan>
 </text>
+</g>
+<g class="transition-Low-High-up">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="91.89" y="387.57" font-size="12" fill="#000000" textLength="14.44" lengthAdjust="spacing">up</tspan>
 </text>
+</g>
+<g class="transition-High-Low-down">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="134.32" y="387.57" font-size="12" fill="#000000" textLength="31.45" lengthAdjust="spacing">down</tspan>
 </text>
+</g>
+<g class="transition-Off-On-power">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="207.12" y="173.73" font-size="12" fill="#000000" textLength="35.87" lengthAdjust="spacing">power</tspan>
 </text>
+</g>
+<g class="transition-On-Off-pause">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="260.99" y="173.73" font-size="12" fill="#000000" textLength="34.51" lengthAdjust="spacing">pause</tspan>
 </text>
+</g>
+<g class="transition-Off-history-On-resume">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="173.73" font-size="12" fill="#000000" textLength="42.44" lengthAdjust="spacing">resume</tspan>
 </text>
+</g>
+<g class="transition-Off-deep-history-On-resume_20_all">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="130.76" y="176.49" font-size="12" fill="#000000" textLength="58.37" lengthAdjust="spacing">resume all</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="124.7" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="46.1" lengthAdjust="spacing">Heater</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

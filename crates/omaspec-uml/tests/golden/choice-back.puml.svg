@@ -1,53 +1,105 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="203" height="452" viewBox="0 0 203 452">
+<svg xmlns="http://www.w3.org/2000/svg" width="203" height="452" viewBox="0 0 203 452" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="70.51" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Closed" id="state-Closed">
 <rect x="32.64" y="80.3" width="75.74" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Open" id="state-Open">
 <rect x="0" y="172.56" width="64.68" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="choice-check" id="choice-check">
 <polygon points="83.23,265.82 95.23,277.82 83.23,289.82 71.23,277.82" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Broken" id="state-Broken">
 <rect x="44.87" y="340.79" width="76.73" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="end" id="end">
 <ellipse cx="83.23" cy="418.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
 <ellipse cx="83.23" cy="418.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Closed" id="transition-start-Closed">
 <polyline points="70.51,48.3 70.51,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Closed-Open-open" id="transition-Closed-Open-open">
 <polyline points="44.64,112.59 44.64,162.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Open-check-wind" id="transition-Open-check-wind">
 <path d="M52.68,204.86 L52.68,204.86 C52.68,211.48 58.05,216.86 64.68,216.86 L67.96,216.86 C76.39,216.86 83.23,223.7 83.23,232.13 L83.23,255.82" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-check-Closed" id="transition-check-Closed">
 <path d="M95.23,277.82 L95.23,277.82 C104.62,277.82 112.23,270.21 112.23,260.82 L112.23,146.52 C112.23,142.14 108.68,138.59 104.31,138.59 L104.31,138.59 C99.93,138.59 96.38,135.04 96.38,130.67 L96.38,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-check-Broken" id="transition-check-Broken">
 <polyline points="83.23,289.82 83.23,330.79" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Broken-end" id="transition-Broken-end">
 <polyline points="83.23,373.09 83.23,395.09" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Closed">
 <polygon points="66.51,70.3 70.51,80.3 74.51,70.3 70.51,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Closed-Open-open">
 <polygon points="40.64,162.56 44.64,172.56 48.64,162.56 44.64,166.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Open-check-wind">
 <polygon points="79.23,255.82 83.23,265.82 87.23,255.82 83.23,259.82" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-check-Closed">
 <polygon points="100.38,122.59 96.38,112.59 92.38,122.59 96.38,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-check-Broken">
 <polygon points="79.23,330.79 83.23,340.79 87.23,330.79 83.23,334.79" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Broken-end">
 <polygon points="79.23,395.09 83.23,405.09 87.23,395.09 83.23,399.09" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Closed">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="46.64" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="47.74" lengthAdjust="spacing">Closed</tspan>
 </text>
+</g>
+<g class="state-Open">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="14" y="193.55" font-size="14" fill="#000000" font-weight="bold" textLength="36.68" lengthAdjust="spacing">Open</tspan>
 </text>
+</g>
+<g class="state-Broken">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="58.87" y="361.78" font-size="14" fill="#000000" font-weight="bold" textLength="48.73" lengthAdjust="spacing">Broken</tspan>
 </text>
+</g>
+<g class="transition-Closed-Open-open">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="10.01" y="153.73" font-size="12" fill="#000000" textLength="28.63" lengthAdjust="spacing">open</tspan>
 </text>
+</g>
+<g class="transition-Open-check-wind">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="50.08" y="241.99" font-size="12" fill="#000000" textLength="27.16" lengthAdjust="spacing">wind</tspan>
 </text>
+</g>
+<g class="transition-check-Closed">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="118.23" y="241.99" font-size="12" fill="#000000" textLength="35.77" lengthAdjust="spacing">[calm]</tspan>
 </text>
+</g>
+<g class="transition-check-Broken">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="89.23" y="321.96" font-size="12" fill="#000000" textLength="41.24" lengthAdjust="spacing">[storm]</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="182.76" lengthAdjust="spacing">A way back out of a choice</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="233" height="305" viewBox="0 0 233 305">
+<svg xmlns="http://www.w3.org/2000/svg" width="233" height="305" viewBox="0 0 233 305" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <polyline points="62.67,46.94 72.67,46.94 72.67,46.94 72.67,66.94 82.67,66.94 82.67,66.94 82.67,46.94 92.67,46.94 92.67,46.94 92.67,66.94 102.67,66.94 102.67,66.94 102.67,46.94 112.67,46.94 112.67,46.94 112.67,66.94 122.67,66.94 122.67,66.94 122.67,46.94 132.67,46.94 132.67,46.94 132.67,66.94 142.67,66.94 142.67,66.94 142.67,46.94 152.67,46.94 152.67,46.94 152.67,66.94 162.67,66.94 162.67,66.94 162.67,46.94 172.67,46.94 172.67,46.94 172.67,66.94 182.67,66.94 182.67,66.94 182.67,46.94 192.67,46.94 192.67,46.94 192.67,66.94 202.67,66.94 202.67,66.94 202.67,46.94 212.67,46.94" fill="none" stroke="#181818" stroke-width="1.5"/>
@@ -66,18 +66,26 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="107.26" y="142.6" font-size="12" fill="#000000" textLength="40.84" lengthAdjust="spacing">sample</tspan>
 </text>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="81.19" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="50.3" lengthAdjust="spacing">Signals</tspan>
 </text>
+</g>
+<g class="header" id="header">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="190.2" y="9.28" font-size="10" fill="#888888" textLength="22.47" lengthAdjust="spacing">draft</tspan>
 </text>
+</g>
+<g class="caption" id="caption">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="76.61" y="264.57" font-size="14" fill="#000000" textLength="59.44" lengthAdjust="spacing">a sample</tspan>
 </text>
+</g>
+<g class="footer" id="footer">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="97.41" y="282.15" font-size="10" fill="#888888" textLength="17.86" lengthAdjust="spacing">end</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

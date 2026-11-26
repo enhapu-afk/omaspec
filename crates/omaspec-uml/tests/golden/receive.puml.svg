@@ -1,45 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="245" height="337" viewBox="0 0 245 337">
+<svg xmlns="http://www.w3.org/2000/svg" width="245" height="337" viewBox="0 0 245 337" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="state-ReqId" id="state-ReqId">
 <rect x="77.36" y="118.3" width="77.67" height="44.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <path d="M110.36,118.3 L110.36,123.3 L103.36,130.3 L77.36,130.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="choice-c" id="choice-c">
 <polygon points="116.19,199.59 128.19,211.59 116.19,223.59 104.19,211.59" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start" id="start">
 <ellipse cx="116.19" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Idle" id="state-Idle">
 <rect x="89.75" y="54" width="52.89" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Minor" id="state-Minor">
 <rect x="26.5" y="284.56" width="67.84" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Major" id="state-Major">
 <rect x="138.34" y="284.56" width="67.26" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Idle" id="transition-start-Idle">
 <polyline points="116.19,22 116.19,44" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-ReqId" id="transition-Idle-ReqId">
 <polyline points="116.19,86.3 116.19,108.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-ReqId-c" id="transition-ReqId-c">
 <polyline points="116.19,162.59 116.19,189.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-c-Minor" id="transition-c-Minor">
 <path d="M116.19,223.59 L116.19,223.59 C116.19,238.5 104.11,250.59 89.19,250.59 L84.39,250.59 C71.15,250.59 60.42,261.32 60.42,274.56 L60.42,274.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-c-Major" id="transition-c-Major">
 <path d="M116.19,223.59 L116.19,223.59 C116.19,232.98 123.81,240.59 133.19,240.59 L144.08,240.59 C159.48,240.59 171.97,253.08 171.97,268.48 L171.97,274.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Idle">
 <polygon points="112.19,44 116.19,54 120.19,44 116.19,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-ReqId">
 <polygon points="112.19,108.3 116.19,118.3 120.19,108.3 116.19,112.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-ReqId-c">
 <polygon points="112.19,189.59 116.19,199.59 120.19,189.59 116.19,193.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-c-Minor">
 <polygon points="56.42,274.56 60.42,284.56 64.42,274.56 60.42,278.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-c-Major">
 <polygon points="167.97,274.56 171.97,284.56 175.97,274.56 171.97,278.56" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-ReqId">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="91.36" y="151.29" font-size="14" fill="#000000" font-weight="bold" textLength="49.67" lengthAdjust="spacing">Req(Id)</tspan>
 </text>
+</g>
+<g class="state-Idle">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="103.75" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
+</g>
+<g class="state-Minor">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="40.5" y="305.55" font-size="14" fill="#000000" font-weight="bold" textLength="39.84" lengthAdjust="spacing">Minor</tspan>
 </text>
+</g>
+<g class="state-Major">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="152.34" y="305.55" font-size="14" fill="#000000" font-weight="bold" textLength="39.26" lengthAdjust="spacing">Major</tspan>
 </text>
+</g>
+<g class="transition-c-Minor">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="265.73" font-size="12" fill="#000000" textLength="54.42" lengthAdjust="spacing">[Id &lt;= 10]</tspan>
 </text>
+</g>
+<g class="transition-c-Major">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="177.97" y="265.73" font-size="12" fill="#000000" textLength="46.48" lengthAdjust="spacing">[Id &gt; 10]</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

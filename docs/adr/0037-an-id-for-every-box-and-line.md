@@ -1,9 +1,8 @@
 # 0037: Every box and every line has an id of its own
 
-Status: accepted, 2026-11-26 (REQ-132). Replaces point 2 of
-[0029](0029-a-glide-by-parts.md), the parts only for the pane, and the
-way its point 1 writes their names, once the first step (point 7) is
-done.
+Status: accepted, 2026-11-26 (REQ-132); its first step (point 7) is
+done the same day. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
+the parts only for the pane, and the way its point 1 writes their names.
 
 ## Context
 

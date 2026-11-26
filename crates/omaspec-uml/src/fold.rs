@@ -108,28 +108,6 @@ pub fn orbit_line(mermaid: bool) -> String {
     format!("{mark} {ORBIT}\n")
 }
 
-/// The words of the line that asks for the picture's parts marked, after
-/// its comment mark: the pane's, for a glide that draws each part from a
-/// picture of its own (docs/adr/0029).
-const PARTS: &str = "parts (Omaspec)";
-
-/// Whether the pane asked for the parts of `source`'s picture
-/// (`' parts (Omaspec)`).
-pub fn parts(source: &str) -> bool {
-    source.lines().any(|line| {
-        let text = line.trim();
-        text.strip_prefix('\'')
-            .or_else(|| text.strip_prefix("%%"))
-            .is_some_and(|rest| rest.trim() == PARTS)
-    })
-}
-
-/// The line that asks for them.
-pub fn parts_line(mermaid: bool) -> String {
-    let mark = if mermaid { "%%" } else { "'" };
-    format!("{mark} {PARTS}\n")
-}
-
 /// "1 state", "4 states".
 pub(crate) fn counted(n: usize, word: &str) -> String {
     if n == 1 {

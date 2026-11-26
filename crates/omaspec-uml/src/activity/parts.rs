@@ -458,9 +458,11 @@ mod tests {
         );
         assert_eq!(words("start", "action-Build"), (None, 0));
 
+        // Every picture marks them, the old line asking for them aside, and
+        // unmarked it is the drawing as before.
         let plain = crate::render(source).unwrap();
-        assert!(!crate::has_parts(&plain));
-        assert_eq!(crate::unmarked(&svg), plain);
+        assert!(crate::has_parts(&plain));
+        assert_eq!(crate::unmarked(&svg), crate::unmarked(&plain));
     }
 
     /// Every line of every activity diagram of the tests is told once or

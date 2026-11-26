@@ -645,7 +645,7 @@ fn a_flowchart_s_parts_are_named_as_its_map_names_them() {
             "{group}"
         );
     }
-    // Without the line, none.
+    // Every picture marks them, the old line asking for them aside.
     let plain = draw(&source.replace("%% parts (Omaspec)\n", "")).unwrap();
-    assert!(!omaspec_uml::has_parts(&plain));
+    assert!(omaspec_uml::has_parts(&plain));
 }

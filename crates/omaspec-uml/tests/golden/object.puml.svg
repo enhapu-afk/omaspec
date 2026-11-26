@@ -1,10 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="169" height="204" viewBox="0 0 169 204">
+<svg xmlns="http://www.w3.org/2000/svg" width="169" height="204" viewBox="0 0 169 204" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="object-order" id="object-order">
 <rect x="0" y="0" width="98.07" height="83.69" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <line x1="0" y1="27.3" x2="98.07" y2="27.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="object-payment" id="object-payment">
 <rect x="8.25" y="129.66" width="81.58" height="53.43" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <line x1="8.25" y1="156.96" x2="89.83" y2="156.96" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g id="lines">
 <polyline points="49.04,83.69 49.04,119.66" fill="none" stroke="#181818" stroke-width="1"/>
@@ -13,6 +17,7 @@
 <polygon points="108.07,44.85 98.07,48.85 108.07,52.85 103.57,48.85" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="object-order">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="31.21" y="18.99" font-size="14" fill="#000000" text-decoration="underline" textLength="35.66" lengthAdjust="spacing">order</tspan>
 </text>
@@ -25,18 +30,25 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="74.62" font-size="13" fill="#000000" textLength="74.07" lengthAdjust="spacing">book : Dune</tspan>
 </text>
+</g>
+<g class="object-payment">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="20.25" y="148.65" font-size="14" fill="#000000" text-decoration="underline" textLength="57.58" lengthAdjust="spacing">payment</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="20.25" y="174.02" font-size="13" fill="#000000" textLength="35.85" lengthAdjust="spacing">paid()</tspan>
 </text>
+</g>
+<g class="link-order-payment-pays" id="link-order-payment-pays">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="55.04" y="110.83" font-size="12" fill="#000000" textLength="27.17" lengthAdjust="spacing">pays</tspan>
 </text>
+</g>
+<g class="link-order-order-again" id="link-order-order-again">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="118.07" y="46" font-size="12" fill="#000000" textLength="30.84" lengthAdjust="spacing">again</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

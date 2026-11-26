@@ -73,7 +73,8 @@ pub use icons::{open_iconic_names, unknown_open_iconic};
 pub use svg::{
     Align, Canvas, FACE, GRID, Given, HAND_FONT, ICON, INTER_FACES, LINES, Layer, MONO_FACES, PART,
     SANS_FACES, SERIF_FACES, Stroke, element, faces, has_parts, notes_part, numbered, part_groups,
-    part_id, part_name, part_of_id, push_written, unmarked, without_lines, without_parts,
+    part_id, part_name, part_of_id, prefix_classes, push_written, unmarked, without_lines,
+    without_parts,
 };
 pub use text::{
     Block, Family, Font, Link, Style, Written, block as measure_text, creole_link, emoji,
@@ -395,7 +396,6 @@ pub fn render_marked(
     icons::raster::within(source, includes, || match parse_with(source, includes)? {
         Diagram::State(mut d) => {
             d.fold(&fold::read(source));
-            d.frame.parts = fold::parts(source);
             d.mark(marks);
             embedded::within(embedded::skin_of(&d.frame), || state::draw_mapped(&d))
         }
@@ -495,30 +495,23 @@ fn draw_mapped(diagram: Diagram, source: &str) -> Result<(String, map::Map), Dec
         Diagram::Sequence(d) => sequence::draw_mapped(&d),
         Diagram::State(mut d) => {
             d.fold(&fold::read(source));
-            d.frame.parts = fold::parts(source);
             // The pane's marks: what recorded traces cover.
             if let Some(marks) = state::Marks::read(source) {
                 d.mark(&marks);
             }
             state::draw_mapped(&d)
         }
-        Diagram::Activity(mut d) => {
-            d.frame.parts = fold::parts(source);
-            activity::draw_mapped(&d)
-        }
+        Diagram::Activity(d) => activity::draw_mapped(&d),
         Diagram::MindMap(mut d) => {
             d.fold(&fold::read(source));
-            d.frame.parts = fold::parts(source);
             tree::draw_mindmap_mapped(&d)
         }
         Diagram::Wbs(mut d) => {
             d.fold(&fold::read(source));
-            d.frame.parts = fold::parts(source);
             tree::draw_wbs_mapped(&d)
         }
         Diagram::Structure(mut d) => {
             d.fold(&fold::read(source));
-            d.frame.parts = fold::parts(source);
             structure::draw_mapped(&d)
         }
         Diagram::Timing(d) => unmapped(timing::draw(&d)),
@@ -529,7 +522,6 @@ fn draw_mapped(diagram: Diagram, source: &str) -> Result<(String, map::Map), Dec
         Diagram::Capabilities(d) => capabilities::draw_mapped(&d),
         Diagram::Json(mut d) => {
             d.fold(&fold::read(source));
-            d.frame.parts = fold::parts(source);
             // The pane's view over the file's skinparam.
             if fold::nested(source) {
                 d.frame.skinparams.push(common::Skinparam {

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="355" height="822" viewBox="0 0 355 822">
+<svg xmlns="http://www.w3.org/2000/svg" width="355" height="822" viewBox="0 0 355 822" data-omaspec="parts">
 <g transform="translate(199.64,10)">
 <g id="lines">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
@@ -50,90 +50,148 @@
 <polygon points="-77.91,769.45 -73.91,779.45 -69.91,769.45 -73.91,773.45" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="start" id="start">
 <ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="test-empty_20_both_3f_" id="test-empty_20_both_3f_">
 <polygon points="-34.35,52 -22.35,40 42.35,40 54.35,52 42.35,64 -22.35,64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-22.35" y="55.81" font-size="11" fill="#000000" textLength="64.7" lengthAdjust="spacing">empty both?</tspan>
 </text>
+</g>
+<g class="test" id="test">
 <polygon points="-2,88 10,76 22,88 10,100" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="test-a_20_rather_20_long_20_condition_20_that_20_is_20_wide_3f_" id="test-a_20_rather_20_long_20_condition_20_that_20_is_20_wide_3f_">
 <polygon points="-94.55,132 -82.55,120 102.55,120 114.55,132 102.55,144 -82.55,144" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-82.55" y="135.81" font-size="11" fill="#000000" textLength="185.11" lengthAdjust="spacing">a rather long condition that is wide?</tspan>
 </text>
+</g>
+<g class="label-yes" id="label-yes">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-114.96" y="128.4" font-size="11" fill="#000000" textLength="18.4" lengthAdjust="spacing">yes</tspan>
 </text>
+</g>
+<g class="label-no" id="label-no">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="116.55" y="128.4" font-size="11" fill="#000000" textLength="13.1" lengthAdjust="spacing">no</tspan>
 </text>
+</g>
+<g class="label-into_20_then" id="label-into_20_then">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-112.96" y="166.21" font-size="11" fill="#000000" textLength="45.46" lengthAdjust="spacing">into then</tspan>
 </text>
+</g>
+<g class="label-out_20_of_20_then" id="label-out_20_of_20_then">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-67.91" y="248.98" font-size="11" fill="#000000" textLength="56.56" lengthAdjust="spacing">out of then</tspan>
 </text>
+</g>
+<g class="action-then" id="action-then">
 <rect x="-141.51" y="170.8" width="45.1" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-131.51" y="191.94" font-size="12" fill="#000000" textLength="25.1" lengthAdjust="spacing">then</tspan>
 </text>
+</g>
+<g class="test-nested_3f_" id="test-nested_3f_">
 <polygon points="-151.5,236.77 -139.5,224.77 -98.41,224.77 -86.41,236.77 -98.41,248.77 -139.5,248.77" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-139.5" y="240.58" font-size="11" fill="#000000" textLength="41.08" lengthAdjust="spacing">nested?</tspan>
 </text>
+</g>
+<g class="label-y" id="label-y">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-159.68" y="233.18" font-size="11" fill="#000000" textLength="6.18" lengthAdjust="spacing">y</tspan>
 </text>
+</g>
+<g class="label-n" id="label-n">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-84.41" y="233.18" font-size="11" fill="#000000" textLength="6.5" lengthAdjust="spacing">n</tspan>
 </text>
+</g>
+<g class="action-inner" id="action-inner">
 <rect x="-187.98" y="258.77" width="48.6" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-177.98" y="279.91" font-size="12" fill="#000000" textLength="28.6" lengthAdjust="spacing">inner</tspan>
 </text>
+</g>
+<g class="stop" id="stop">
 <ellipse cx="-163.68" cy="323.74" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="-163.68" cy="323.74" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="stop-2" id="stop-2">
 <ellipse cx="133.65" cy="181.8" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="133.65" cy="181.8" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="test-empty_20_body_3f_" id="test-empty_20_body_3f_">
 <polygon points="-119.67,358.54 -107.67,346.54 -40.15,346.54 -28.15,358.54 -40.15,370.54 -107.67,370.54" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-107.67" y="362.35" font-size="11" fill="#000000" textLength="67.52" lengthAdjust="spacing">empty body?</tspan>
 </text>
+</g>
+<g class="label-done" id="label-done">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-147.92" y="354.95" font-size="11" fill="#000000" textLength="26.25" lengthAdjust="spacing">done</tspan>
 </text>
+</g>
+<g class="test-2" id="test-2">
 <polygon points="-85.91,447.54 -73.91,435.54 -61.91,447.54 -73.91,459.54" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="test-3" id="test-3">
 <polygon points="-85.91,491.54 -73.91,479.54 -61.91,491.54 -73.91,503.54" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="note-first_20_second" id="note-first_20_second">
 <path d="M-189.64,520.4 L-189.64,560.66 L-122.34,560.66 L-122.34,530.4 L-132.34,520.4 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M-132.34,520.4 L-132.34,530.4 L-122.34,530.4" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-183.64" y="537.46" font-size="13" fill="#000000" textLength="23.96" lengthAdjust="spacing">first</tspan>
 <tspan x="-183.64" y="552.59" font-size="13" fill="#000000" textLength="45.31" lengthAdjust="spacing">second</tspan>
 </text>
+</g>
+<g class="action-left_20_note" id="action-left_20_note">
 <rect x="-107.34" y="523.54" width="66.85" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-97.34" y="544.68" font-size="12" fill="#000000" textLength="46.85" lengthAdjust="spacing">left note</tspan>
 </text>
+</g>
+<g class="bar" id="bar">
 <rect x="-125.03" y="577.51" width="102.23" height="6" rx="2" ry="2" fill="#555555"/>
+</g>
+<g class="bar-2" id="bar-2">
 <rect x="-125.03" y="699.48" width="102.23" height="6" rx="2" ry="2" fill="#555555"/>
+</g>
+<g class="action-one" id="action-one">
 <rect x="-125.03" y="603.51" width="41.29" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-115.03" y="624.65" font-size="12" fill="#000000" textLength="21.29" lengthAdjust="spacing">one</tspan>
 </text>
+</g>
+<g class="stop-3" id="stop-3">
 <ellipse cx="-104.38" cy="668.48" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="-104.38" cy="668.48" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="action-two" id="action-two">
 <rect x="-63.74" y="603.51" width="40.94" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-53.74" y="624.65" font-size="12" fill="#000000" textLength="20.94" lengthAdjust="spacing">two</tspan>
 </text>
+</g>
+<g class="end" id="end">
 <ellipse cx="-43.27" cy="667.48" rx="10" ry="10" fill="none" stroke="#222222" stroke-width="1.5"/>
 <line x1="-49.47" y1="661.28" x2="-37.07" y2="673.68" fill="none" stroke="#222222" stroke-width="1.5"/>
 <line x1="-49.47" y1="673.68" x2="-37.07" y2="661.28" fill="none" stroke="#222222" stroke-width="1.5"/>
+</g>
+<g class="action-after_20_all_20_ended" id="action-after_20_all_20_ended">
 <rect x="-124.76" y="725.48" width="101.68" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-114.76" y="746.62" font-size="12" fill="#000000" textLength="81.68" lengthAdjust="spacing">after all ended</tspan>
 </text>
+</g>
+<g class="stop-4" id="stop-4">
 <ellipse cx="-73.91" cy="790.45" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="-73.91" cy="790.45" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
 </g>
 </g>
 </svg>

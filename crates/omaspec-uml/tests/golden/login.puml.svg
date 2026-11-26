@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="536" height="545" viewBox="0 0 536 545">
+<svg xmlns="http://www.w3.org/2000/svg" width="536" height="545" viewBox="0 0 536 545" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <line x1="15.62" y1="95.59" x2="15.62" y2="454.85" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
@@ -107,9 +107,11 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="456.23" y="467.84" font-size="14" fill="#000000" textLength="59.39" lengthAdjust="spacing">Sessions</tspan>
 </text>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="222.12" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="71.39" lengthAdjust="spacing">Logging in</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

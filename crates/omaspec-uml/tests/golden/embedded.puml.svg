@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="294" height="465" viewBox="0 0 294 465">
+<svg xmlns="http://www.w3.org/2000/svg" width="294" height="465" viewBox="0 0 294 465" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <line x1="23.3" y1="30.3" x2="23.3" y2="262.63" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
@@ -74,6 +74,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="77.25" y="282.62" font-size="14" fill="#000000" textLength="26.12" lengthAdjust="spacing">Bob</tspan>
 </text>
+<g class="legend" id="legend">
 <rect x="61.66" y="302.92" width="150" height="141.3" rx="7.5" ry="7.5" fill="#DDDDDD" stroke="#000000" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 </text>
@@ -102,6 +103,7 @@
 </g>
 </g>
 </svg>
+</g>
 </g>
 </g>
 </g>

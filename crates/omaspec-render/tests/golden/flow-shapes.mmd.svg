@@ -1,23 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="165" height="953" viewBox="0 0 165 953">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="165" height="953" viewBox="0 0 165 953" data-omaspec="parts">
 <rect x="0" y="0" width="165" height="953" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
+<g class="node-A" id="node-A">
 <rect x="43.66" y="0" width="57.2" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-B" id="node-B">
 <rect x="26.63" y="68.3" width="91.26" height="36.3" rx="6" ry="6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-C" id="node-C">
 <rect x="20.23" y="136.59" width="104.08" height="36.3" rx="18.15" ry="18.15" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-D" id="node-D">
 <rect x="12.18" y="204.89" width="120.17" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <line x1="20.18" y1="204.89" x2="20.18" y2="241.18" fill="none" stroke="#94A3B8" stroke-width="1"/>
 <line x1="124.35" y1="204.89" x2="124.35" y2="241.18" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-E" id="node-E">
 <path d="M25.06,283.94 A47.21,10.76 0 0 1 119.47,283.94 L119.47,320.24 A47.21,10.76 0 0 1 25.06,320.24 Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <path d="M25.06,283.94 A47.21,10.76 0 0 0 119.47,283.94" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-F" id="node-F">
 <ellipse cx="72.26" cy="389.86" rx="26.86" ry="26.86" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-G" id="node-G">
 <polygon points="35.86,448.72 108.67,448.72 108.67,485.02 35.86,485.02 48.57,466.87" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-H" id="node-H">
 <polygon points="72.26,517.02 131.45,554.01 72.26,591.01 13.07,554.01" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-I" id="node-I">
 <polygon points="26.6,623.01 117.93,623.01 127,641.16 117.93,659.3 26.6,659.3 17.52,641.16" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-J" id="node-J">
 <polygon points="29.5,691.3 127.73,691.3 115.03,727.6 16.8,727.6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-K" id="node-K">
 <polygon points="21.18,759.6 110.64,759.6 123.34,795.9 33.89,795.9" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-L" id="node-L">
 <polygon points="22.77,827.9 121.76,827.9 134.46,864.19 10.07,864.19" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-M" id="node-M">
 <polygon points="0,896.19 144.53,896.19 131.83,932.49 12.7,932.49" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
 </g>
 <g id="lines">
 <polyline points="72.26,36.3 72.26,58.3" fill="none" stroke="#64748B" stroke-width="1"/>
@@ -46,45 +72,71 @@
 <polygon points="68.26,886.19 72.26,896.19 76.26,886.19 72.26,890.19" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
+<g class="node-A">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="59.66" y="22.99" font-size="14" fill="#0F172A" textLength="25.2" lengthAdjust="spacing">Box</tspan>
 </text>
+</g>
+<g class="node-B">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="42.63" y="91.29" font-size="14" fill="#0F172A" textLength="59.26" lengthAdjust="spacing">Rounded</tspan>
 </text>
+</g>
+<g class="node-C">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="45.3" y="159.58" font-size="14" fill="#0F172A" textLength="53.93" lengthAdjust="spacing">Stadium</tspan>
 </text>
+</g>
+<g class="node-D">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="36.18" y="227.88" font-size="14" fill="#0F172A" textLength="72.17" lengthAdjust="spacing">Subroutine</tspan>
 </text>
+</g>
+<g class="node-E">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="41.06" y="317.69" font-size="14" fill="#0F172A" textLength="62.41" lengthAdjust="spacing">Database</tspan>
 </text>
+</g>
+<g class="node-F">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="53.06" y="394.7" font-size="14" fill="#0F172A" textLength="38.42" lengthAdjust="spacing">Circle</tspan>
 </text>
+</g>
+<g class="node-G">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="64.57" y="471.72" font-size="14" fill="#0F172A" textLength="28.1" lengthAdjust="spacing">Flag</tspan>
 </text>
+</g>
+<g class="node-H">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="43.71" y="558.86" font-size="14" fill="#0F172A" textLength="57.11" lengthAdjust="spacing">Decision</tspan>
 </text>
+</g>
+<g class="node-I">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="42.6" y="646" font-size="14" fill="#0F172A" textLength="59.33" lengthAdjust="spacing">Hexagon</tspan>
 </text>
+</g>
+<g class="node-J">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="39.15" y="714.3" font-size="14" fill="#0F172A" textLength="66.23" lengthAdjust="spacing">Lean right</tspan>
 </text>
+</g>
+<g class="node-K">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="43.54" y="782.59" font-size="14" fill="#0F172A" textLength="57.46" lengthAdjust="spacing">Lean left</tspan>
 </text>
+</g>
+<g class="node-L">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="38.77" y="850.89" font-size="14" fill="#0F172A" textLength="66.99" lengthAdjust="spacing">Trapezoid</tspan>
 </text>
+</g>
+<g class="node-M">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="28.7" y="919.18" font-size="14" fill="#0F172A" textLength="87.12" lengthAdjust="spacing">Upside down</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

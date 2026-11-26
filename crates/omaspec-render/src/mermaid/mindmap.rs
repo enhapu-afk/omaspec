@@ -24,7 +24,6 @@ pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     paint(&mut diagram, theme)?;
     // After the paint: a folded branch keeps the color it had.
     diagram.fold(&omaspec_uml::fold::read(source));
-    diagram.frame.parts = omaspec_uml::fold::parts(source);
     draw_mindmap_mapped(&diagram).ok()
 }
 
@@ -192,7 +191,8 @@ mod tests {
         let plain = try_draw(&theme, "mindmap\n  ((Root))\n    Branch\n")
             .unwrap()
             .0;
-        assert!(!omaspec_uml::has_parts(&plain));
+        // Every picture marks them, the old line asking for them aside.
+        assert!(omaspec_uml::has_parts(&plain));
     }
 
     #[test]

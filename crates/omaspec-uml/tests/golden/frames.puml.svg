@@ -1,30 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="218" height="598" viewBox="0 0 218 598">
+<svg xmlns="http://www.w3.org/2000/svg" width="218" height="598" viewBox="0 0 218 598" data-omaspec="parts">
 <g transform="translate(75.96,10)">
 <g>
+<g class="group-Checks" id="group-Checks">
 <rect x="-57.73" y="30" width="133.7" height="90.26" fill="none" stroke="#000000" stroke-width="1.5"/>
 <path d="M2,30 L2,39.3 L-8,49.3 L-57.73,49.3" fill="none" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-54.73" y="43.99" font-size="14" fill="#000000" textLength="49.73" lengthAdjust="spacing">Checks</tspan>
 </text>
+</g>
+<g class="partition-Payment" id="partition-Payment">
 <rect x="-65.96" y="130.26" width="141.79" height="90.26" fill="none" stroke="#000000" stroke-width="1.5"/>
 <path d="M2,130.26 L2,139.56 L-8,149.56 L-65.96,149.56" fill="none" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-62.96" y="144.26" font-size="14" fill="#000000" textLength="57.96" lengthAdjust="spacing">Payment</tspan>
 </text>
+</g>
+<g class="package-Packing" id="package-Packing">
 <polygon points="-65.74,230.53 -5,230.53 2,252.82 73.98,252.82 73.98,328.79 -65.74,328.79" fill="none" stroke="#000000" stroke-width="1.5"/>
 <line x1="-65.74" y1="252.82" x2="2" y2="252.82" fill="none" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-61.74" y="246.52" font-size="14" fill="#000000" textLength="52.74" lengthAdjust="spacing">Packing</tspan>
 </text>
+</g>
+<g class="rectangle-Shipping_20_by_20_post" id="rectangle-Shipping_20_by_20_post">
 <rect x="-55.64" y="338.79" width="186.91" height="98.26" fill="none" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16" y="354.78" font-size="14" fill="#000000" textLength="111.27" lengthAdjust="spacing">Shipping by post</tspan>
 </text>
+</g>
+<g class="card-Records" id="card-Records">
 <rect x="-47.6" y="447.06" width="122.4" height="98.26" fill="none" stroke="#000000" stroke-width="1.5"/>
 <line x1="-47.6" y1="469.35" x2="74.8" y2="469.35" fill="none" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16" y="463.05" font-size="14" fill="#000000" textLength="54.8" lengthAdjust="spacing">Records</tspan>
 </text>
+</g>
 </g>
 <g id="lines">
 <polyline points="10,20 10,66.3" fill="none" stroke="#181818" stroke-width="1"/>
@@ -41,29 +51,43 @@
 <polygon points="6,545.32 10,555.32 14,545.32 10,549.32" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="start" id="start">
 <ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="action-Check_20_the_20_stock" id="action-Check_20_the_20_stock">
 <rect x="-45.97" y="66.3" width="111.94" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-35.97" y="87.43" font-size="12" fill="#000000" textLength="91.94" lengthAdjust="spacing">Check the stock</tspan>
 </text>
+</g>
+<g class="action-Charge_20_the_20_card" id="action-Charge_20_the_20_card">
 <rect x="-45.83" y="166.56" width="111.67" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-35.83" y="187.7" font-size="12" fill="#000000" textLength="91.67" lengthAdjust="spacing">Charge the card</tspan>
 </text>
+</g>
+<g class="action-Pack_20_the_20_parcel" id="action-Pack_20_the_20_parcel">
 <rect x="-43.98" y="274.82" width="107.96" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-33.98" y="295.96" font-size="12" fill="#000000" textLength="87.96" lengthAdjust="spacing">Pack the parcel</tspan>
 </text>
+</g>
+<g class="action-Print_20_the_20_label" id="action-Print_20_the_20_label">
 <rect x="-38.87" y="383.09" width="97.75" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-28.87" y="404.22" font-size="12" fill="#000000" textLength="77.75" lengthAdjust="spacing">Print the label</tspan>
 </text>
+</g>
+<g class="action-File_20_the_20_order" id="action-File_20_the_20_order">
 <rect x="-37.6" y="491.35" width="95.2" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-27.6" y="512.49" font-size="12" fill="#000000" textLength="75.2" lengthAdjust="spacing">File the order</tspan>
 </text>
+</g>
+<g class="stop" id="stop">
 <ellipse cx="10" cy="566.32" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="10" cy="566.32" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
 </g>
 </g>
 </svg>

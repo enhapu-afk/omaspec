@@ -1,13 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="286" height="398" viewBox="0 0 286 398">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="286" height="398" viewBox="0 0 286 398" data-omaspec="parts">
 <rect x="0" y="0" width="286" height="398" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
+<g class="node-Browse" id="node-Browse">
 <rect x="93.59" y="0" width="143.34" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Cart" id="node-Cart">
 <rect x="59.29" y="68.3" width="105.35" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Pay" id="node-Pay">
 <polygon points="111.97,136.59 174.55,175.71 111.97,214.82 49.38,175.71" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Checkout" id="node-Checkout">
 <rect x="2.35" y="273.12" width="99.52" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Saved" id="node-Saved">
 <rect x="145.87" y="273.12" width="119.47" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Done" id="node-Done">
 <rect x="0" y="341.42" width="136.6" height="36.3" rx="18.15" ry="18.15" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
 </g>
 <g id="lines">
 <polyline points="138.61,36.3 138.61,58.3" fill="none" stroke="#64748B" stroke-width="1"/>
@@ -24,32 +36,48 @@
 <polygon points="64.3,331.42 68.3,341.42 72.3,331.42 68.3,335.42" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
+<g class="node-Browse">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="109.59" y="22.99" font-size="14" fill="#0F172A" textLength="111.34" lengthAdjust="spacing">Browse the shop</tspan>
 </text>
+</g>
+<g class="node-Cart">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="75.29" y="91.29" font-size="14" fill="#0F172A" textLength="73.35" lengthAdjust="spacing">Add to cart</tspan>
 </text>
+</g>
+<g class="node-Pay">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="80.02" y="180.55" font-size="14" fill="#0F172A" textLength="63.9" lengthAdjust="spacing">Pay now?</tspan>
 </text>
+</g>
+<g class="node-Checkout">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="18.35" y="296.11" font-size="14" fill="#0F172A" textLength="67.52" lengthAdjust="spacing">Check out</tspan>
 </text>
+</g>
+<g class="node-Saved">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="161.87" y="296.11" font-size="14" fill="#0F172A" textLength="87.47" lengthAdjust="spacing">Save the cart</tspan>
 </text>
+</g>
+<g class="node-Done">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="25.07" y="364.41" font-size="14" fill="#0F172A" textLength="86.45" lengthAdjust="spacing">Order placed</tspan>
 </text>
+</g>
+<g class="link-Pay-Checkout-yes" id="link-Pay-Checkout-yes">
 <rect x="20.69" y="238.82" width="27.42" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="22.69" y="253.82" font-size="14" fill="#0F172A" textLength="23.42" lengthAdjust="spacing">yes</tspan>
 </text>
+</g>
+<g class="link-Pay-Saved-later" id="link-Pay-Saved-later">
 <rect x="160.35" y="247.56" width="33.26" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="162.35" y="262.55" font-size="14" fill="#0F172A" textLength="29.26" lengthAdjust="spacing">later</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

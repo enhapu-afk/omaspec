@@ -1,26 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1657" height="360" viewBox="0 0 1657 360">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1657" height="360" viewBox="0 0 1657 360" data-omaspec="parts">
 <rect x="0" y="0" width="1657" height="360" fill="#FFFFFF"/>
 <g transform="translate(10,40.37)">
 <g>
+<g class="node-Push" id="node-Push">
 <rect x="0" y="219.4" width="135.67" height="36.3" rx="18.15" ry="18.15" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="subgraph-Check" id="subgraph-Check">
 <rect x="191.67" y="73.43" width="352.36" height="164.89" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+</g>
+<g class="node-Lint" id="node-Lint">
 <rect x="203.67" y="149.87" width="132.28" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Unit" id="node-Unit">
 <rect x="402.65" y="109.73" width="94.69" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Audit" id="node-Audit">
 <rect x="367.96" y="190.02" width="164.08" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="subgraph-Build" id="subgraph-Build">
 <rect x="606.03" y="0" width="156.56" height="263.07" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+</g>
+<g class="node-Linux" id="node-Linux">
 <rect x="627.99" y="214.77" width="112.65" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Arm" id="node-Arm">
 <rect x="630.07" y="134.48" width="108.48" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Docs" id="node-Docs">
 <rect x="618.03" y="36.3" width="132.56" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="subgraph-Ship" id="subgraph-Ship">
 <rect x="794.59" y="116.59" width="674.06" height="192.13" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+</g>
+<g class="node-Sign" id="node-Sign">
 <rect x="806.59" y="185.06" width="138.51" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Stage" id="node-Stage">
 <path d="M977.11,185.06 A41.13,9.92 0 0 1 1059.37,185.06 L1059.37,221.35 A41.13,9.92 0 0 1 977.11,221.35 Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <path d="M977.11,185.06 A41.13,9.92 0 0 0 1059.37,185.06" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Smoke" id="node-Smoke">
 <polygon points="1189.26,153.69 1287.15,203.21 1189.26,252.72 1091.37,203.21" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Prod" id="node-Prod">
 <path d="M1352.57,164.25 A52.04,11.36 0 0 1 1456.66,164.25 L1456.66,200.54 A52.04,11.36 0 0 1 1352.57,200.54 Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <path d="M1352.57,164.25 A52.04,11.36 0 0 0 1456.66,164.25" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Rollback" id="node-Rollback">
 <rect x="1358.49" y="255.9" width="92.24" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Site" id="node-Site">
 <rect x="809.53" y="36.3" width="132.63" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="node-Notify" id="node-Notify">
 <rect x="1500.66" y="164.25" width="135.88" height="36.3" rx="18.15" ry="18.15" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
 </g>
 <g id="lines">
 <path d="M135.67,237.55 L141.45,237.55 C158.14,237.55 171.67,224.01 171.67,207.32 L171.67,199.1 C171.67,186.95 181.52,177.1 193.67,177.1 L193.67,177.1" fill="none" stroke="#64748B" stroke-width="1"/>
@@ -57,68 +91,108 @@
 <polygon points="1348.49,271.12 1358.49,267.12 1348.49,263.12 1352.49,267.12" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
+<g class="node-Push">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="25.07" y="242.39" font-size="14" fill="#0F172A" textLength="85.53" lengthAdjust="spacing">Push to main</tspan>
 </text>
+</g>
+<g class="subgraph-Check">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="346.68" y="98.42" font-size="14" fill="#0F172A" textLength="42.34" lengthAdjust="spacing">Check</tspan>
 </text>
+</g>
+<g class="node-Lint">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="219.67" y="172.87" font-size="14" fill="#0F172A" textLength="100.28" lengthAdjust="spacing">Lint and format</tspan>
 </text>
+</g>
+<g class="node-Unit">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="418.65" y="132.72" font-size="14" fill="#0F172A" textLength="62.69" lengthAdjust="spacing">Unit tests</tspan>
 </text>
+</g>
+<g class="node-Audit">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="383.96" y="213.01" font-size="14" fill="#0F172A" textLength="132.08" lengthAdjust="spacing">Audit dependencies</tspan>
 </text>
+</g>
+<g class="subgraph-Build">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="667.93" y="24.99" font-size="14" fill="#0F172A" textLength="32.77" lengthAdjust="spacing">Build</tspan>
 </text>
+</g>
+<g class="node-Linux">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="643.99" y="237.76" font-size="14" fill="#0F172A" textLength="80.65" lengthAdjust="spacing">Linux binary</tspan>
 </text>
+</g>
+<g class="node-Arm">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="646.07" y="157.47" font-size="14" fill="#0F172A" textLength="76.48" lengthAdjust="spacing">ARM binary</tspan>
 </text>
+</g>
+<g class="node-Docs">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="634.03" y="59.29" font-size="14" fill="#0F172A" textLength="100.56" lengthAdjust="spacing">Documentation</tspan>
 </text>
+</g>
+<g class="subgraph-Ship">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="1117.02" y="141.58" font-size="14" fill="#0F172A" textLength="29.22" lengthAdjust="spacing">Ship</tspan>
 </text>
+</g>
+<g class="node-Sign">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="822.59" y="208.05" font-size="14" fill="#0F172A" textLength="106.51" lengthAdjust="spacing">Sign the release</tspan>
 </text>
+</g>
+<g class="node-Stage">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="993.11" y="217.97" font-size="14" fill="#0F172A" textLength="50.26" lengthAdjust="spacing">Staging</tspan>
 </text>
+</g>
+<g class="node-Smoke">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="1127.33" y="208.05" font-size="14" fill="#0F172A" textLength="123.84" lengthAdjust="spacing">Smoke tests pass?</tspan>
 </text>
+</g>
+<g class="node-Prod">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="1368.57" y="198.6" font-size="14" fill="#0F172A" textLength="72.09" lengthAdjust="spacing">Production</tspan>
 </text>
+</g>
+<g class="node-Rollback">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="1374.49" y="278.89" font-size="14" fill="#0F172A" textLength="60.24" lengthAdjust="spacing">Roll back</tspan>
 </text>
+</g>
+<g class="link-Smoke-Prod-yes" id="link-Smoke-Prod-yes">
 <rect x="1311.15" y="160.1" width="27.42" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="1313.15" y="175.09" font-size="14" fill="#0F172A" textLength="23.42" lengthAdjust="spacing">yes</tspan>
 </text>
+</g>
+<g class="link-Smoke-Rollback-no" id="link-Smoke-Rollback-no">
 <rect x="1315.59" y="244.83" width="20.67" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="1317.59" y="259.82" font-size="14" fill="#0F172A" textLength="16.67" lengthAdjust="spacing">no</tspan>
 </text>
+</g>
+<g class="node-Site">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="825.53" y="59.29" font-size="14" fill="#0F172A" textLength="100.63" lengthAdjust="spacing">Publish the site</tspan>
 </text>
+</g>
+<g class="node-Notify">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="1525.73" y="187.24" font-size="14" fill="#0F172A" textLength="85.74" lengthAdjust="spacing">Tell the team</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="738.8" y="-14.13" font-size="17.5" fill="#0F172A" font-weight="bold" textLength="158.93" lengthAdjust="spacing">A delivery pipeline</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

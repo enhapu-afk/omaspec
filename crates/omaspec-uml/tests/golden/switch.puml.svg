@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="467" height="331" viewBox="0 0 467 331">
+<svg xmlns="http://www.w3.org/2000/svg" width="467" height="331" viewBox="0 0 467 331" data-omaspec="parts">
 <g transform="translate(218.82,10)">
 <g id="lines">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
@@ -29,55 +29,87 @@
 <polygon points="6,278.71 10,288.71 14,278.71 10,282.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="start" id="start">
 <ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="test-What_20_kind_20_of_20_order_20_is_20_it_3f_" id="test-What_20_kind_20_of_20_order_20_is_20_it_3f_">
 <polygon points="-63.77,52 -51.77,40 71.77,40 83.77,52 71.77,64 -51.77,64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-51.77" y="55.81" font-size="11" fill="#000000" textLength="123.54" lengthAdjust="spacing">What kind of order is it?</tspan>
 </text>
+</g>
+<g class="label-online" id="label-online">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-175.2" y="64.21" font-size="11" fill="#000000" textLength="31.34" lengthAdjust="spacing">online</tspan>
 </text>
+</g>
+<g class="label-in_20_store" id="label-in_20_store">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-112.58" y="64.21" font-size="11" fill="#000000" textLength="38.81" lengthAdjust="spacing">in store</tspan>
 </text>
+</g>
+<g class="label-by_20_phone" id="label-by_20_phone">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16" y="76.21" font-size="11" fill="#000000" textLength="48.75" lengthAdjust="spacing">by phone</tspan>
 </text>
+</g>
+<g class="label-fax" id="label-fax">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="126.95" y="64.21" font-size="11" fill="#000000" textLength="16.26" lengthAdjust="spacing">fax</tspan>
 </text>
+</g>
+<g class="label-post" id="label-post">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="213.56" y="64.21" font-size="11" fill="#000000" textLength="22.74" lengthAdjust="spacing">post</tspan>
 </text>
+</g>
+<g class="test" id="test">
 <polygon points="-2,202.74 10,190.74 22,202.74 10,214.74" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="action-Ship_20_it" id="action-Ship_20_it">
 <rect x="-208.82" y="90.8" width="55.24" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-198.82" y="111.94" font-size="12" fill="#000000" textLength="35.24" lengthAdjust="spacing">Ship it</tspan>
 </text>
+</g>
+<g class="action-Call_20_back" id="action-Call_20_back">
 <rect x="-26.11" y="90.8" width="72.21" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-16.11" y="111.94" font-size="12" fill="#000000" textLength="52.21" lengthAdjust="spacing">Call back</tspan>
 </text>
+</g>
+<g class="stop" id="stop">
 <ellipse cx="10" cy="155.77" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="10" cy="155.77" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="action-Read_20_it" id="action-Read_20_it">
 <rect x="91.45" y="90.8" width="59.01" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="101.45" y="111.94" font-size="12" fill="#000000" textLength="39.01" lengthAdjust="spacing">Read it</tspan>
 </text>
+</g>
+<g class="action-Type_20_it_20_in" id="action-Type_20_it_20_in">
 <rect x="84.75" y="144.77" width="72.4" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="94.75" y="165.91" font-size="12" fill="#000000" textLength="52.4" lengthAdjust="spacing">Type it in</tspan>
 </text>
+</g>
+<g class="action-Open_20_it" id="action-Open_20_it">
 <rect x="177.16" y="90.8" width="60.81" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="187.16" y="111.94" font-size="12" fill="#000000" textLength="40.81" lengthAdjust="spacing">Open it</tspan>
 </text>
+</g>
+<g class="action-Done" id="action-Done">
 <rect x="-14.98" y="234.74" width="49.95" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-4.98" y="255.88" font-size="12" fill="#000000" textLength="29.95" lengthAdjust="spacing">Done</tspan>
 </text>
+</g>
+<g class="stop-2" id="stop-2">
 <ellipse cx="10" cy="299.71" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="10" cy="299.71" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
 </g>
 </g>
 </svg>

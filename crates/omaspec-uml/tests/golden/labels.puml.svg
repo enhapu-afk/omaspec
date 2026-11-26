@@ -1,10 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="355" height="149" viewBox="0 0 355 149">
+<svg xmlns="http://www.w3.org/2000/svg" width="355" height="149" viewBox="0 0 355 149" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="class-Order" id="class-Order">
 <rect x="137.15" y="100.26" width="61.97" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="class-Customer" id="class-Customer">
 <rect x="0" y="0" width="88.55" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="class-Invoice" id="class-Invoice">
 <rect x="132.55" y="0" width="71.85" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="class-Shipment" id="class-Shipment">
 <rect x="248.41" y="0" width="86.5" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g id="lines">
 <path d="M76.55,28.3 L76.55,28.3 C76.55,34.92 81.93,40.3 88.55,40.3 L111.12,40.3 C130.2,40.3 145.68,55.77 145.68,74.86 L145.68,90.26" fill="none" stroke="#181818" stroke-width="1"/>
@@ -15,27 +23,41 @@
 <polygon points="183.12,90.26 187.12,100.26 191.12,90.26 187.12,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="class-Order">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="149.15" y="119.26" font-size="14" fill="#000000" textLength="37.97" lengthAdjust="spacing">Order</tspan>
 </text>
+</g>
+<g class="class-Customer">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="18.99" font-size="14" fill="#000000" textLength="64.55" lengthAdjust="spacing">Customer</tspan>
 </text>
+</g>
+<g class="class-Invoice">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="144.55" y="18.99" font-size="14" fill="#000000" textLength="47.85" lengthAdjust="spacing">Invoice</tspan>
 </text>
+</g>
+<g class="class-Shipment">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="260.41" y="18.99" font-size="14" fill="#000000" textLength="62.5" lengthAdjust="spacing">Shipment</tspan>
 </text>
+</g>
+<g class="link-Customer-Order-places" id="link-Customer-Order-places">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="102.5" y="68.09" font-size="12" fill="#000000" textLength="37.18" lengthAdjust="spacing">places</tspan>
 </text>
+</g>
+<g class="link-Invoice-Order-bills" id="link-Invoice-Order-bills">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="163.68" y="55.43" font-size="12" fill="#000000" textLength="22.39" lengthAdjust="spacing">bills</tspan>
 </text>
+</g>
+<g class="link-Shipment-Order-delivers" id="link-Shipment-Order-delivers">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="266.41" y="55.43" font-size="12" fill="#000000" textLength="44.74" lengthAdjust="spacing">delivers</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

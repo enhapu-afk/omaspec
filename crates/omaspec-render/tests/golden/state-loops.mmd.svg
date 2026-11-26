@@ -1,52 +1,102 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="241" height="217" viewBox="0 0 241 217">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="241" height="217" viewBox="0 0 241 217" data-omaspec="parts">
 <rect x="0" y="0" width="241" height="217" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="74.82" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Listening" id="state-Listening">
 <rect x="27.68" y="54" width="94.26" height="46" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Talking" id="state-Talking">
 <rect x="27.68" y="164.3" width="94.26" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Listening" id="transition-start-Listening">
 <polyline points="74.82,22 74.82,44" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Listening-Listening-noise" id="transition-Listening-Listening-noise">
 <path d="M121.95,70 L130.95,70 C134.81,70 137.95,73.13 137.95,77 L137.95,78 C137.95,81.31 135.26,84 131.95,84 L131.95,84" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Listening-Listening-echo" id="transition-Listening-Listening-echo">
 <path d="M121.95,60 L166.56,60 C175.95,60 183.56,67.61 183.56,77 L183.56,77 C183.56,86.39 175.95,94 166.56,94 L131.95,94" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Listening-Talking-word" id="transition-Listening-Talking-word">
 <polyline points="39.68,100 39.68,154.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Talking-Listening-pause" id="transition-Talking-Listening-pause">
 <polyline points="55.68,164.3 55.68,110" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Talking-Listening-silence" id="transition-Talking-Listening-silence">
 <polyline points="109.95,164.3 109.95,110" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Talking-Talking-breath" id="transition-Talking-Talking-breath">
 <path d="M121.95,173.44 L130.95,173.44 C134.81,173.44 137.95,176.58 137.95,180.44 L137.95,181.44 C137.95,184.76 135.26,187.44 131.95,187.44 L131.95,187.44" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Listening">
 <polygon points="70.82,44 74.82,54 78.82,44 74.82,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Listening-Listening-noise">
 <polygon points="131.95,80 121.95,84 131.95,88 127.95,84" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Listening-Listening-echo">
 <polygon points="131.95,90 121.95,94 131.95,98 127.95,94" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Listening-Talking-word">
 <polygon points="35.68,154.3 39.68,164.3 43.68,154.3 39.68,158.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Talking-Listening-pause">
 <polygon points="59.68,110 55.68,100 51.68,110 55.68,106" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Talking-Listening-silence">
 <polygon points="113.95,110 109.95,100 105.95,110 109.95,106" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Talking-Talking-breath">
 <polygon points="131.95,183.44 121.95,187.44 131.95,191.44 127.95,187.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Listening">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="43.27" y="81.84" font-size="14" fill="#0F172A" font-weight="bold" textLength="63.1" lengthAdjust="spacing">Listening</tspan>
 </text>
+</g>
+<g class="state-Talking">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="49.44" y="185.29" font-size="14" fill="#0F172A" font-weight="bold" textLength="50.75" lengthAdjust="spacing">Talking</tspan>
 </text>
+</g>
+<g class="transition-Listening-Listening-noise">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="141.95" y="81.84" font-size="14" fill="#0F172A" textLength="35.62" lengthAdjust="spacing">noise</tspan>
 </text>
+</g>
+<g class="transition-Listening-Listening-echo">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="187.56" y="81.84" font-size="14" fill="#0F172A" textLength="32.83" lengthAdjust="spacing">echo</tspan>
 </text>
+</g>
+<g class="transition-Listening-Talking-word">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="128.99" font-size="14" fill="#0F172A" textLength="33.68" lengthAdjust="spacing">word</tspan>
 </text>
+</g>
+<g class="transition-Talking-Listening-pause">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="61.68" y="128.99" font-size="14" fill="#0F172A" textLength="40.26" lengthAdjust="spacing">pause</tspan>
 </text>
+</g>
+<g class="transition-Talking-Listening-silence">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="115.95" y="128.99" font-size="14" fill="#0F172A" textLength="46.76" lengthAdjust="spacing">silence</tspan>
 </text>
+</g>
+<g class="transition-Talking-Talking-breath">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="141.95" y="185.29" font-size="14" fill="#0F172A" textLength="42.71" lengthAdjust="spacing">breath</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

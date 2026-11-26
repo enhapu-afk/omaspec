@@ -1,62 +1,110 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="218" height="370" viewBox="0 0 218 370">
+<svg xmlns="http://www.w3.org/2000/svg" width="218" height="370" viewBox="0 0 218 370" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="state-Idle" id="state-Idle">
 <rect x="68.12" y="54" width="57.72" height="46.26" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Failed" id="state-Failed">
 <rect x="0.02" y="238.46" width="73.65" height="46.26" rx="8" ry="8" fill="#FFC0CB" stroke="#FF0000" stroke-width="2"/>
+</g>
+<g class="state-Retrying" id="state-Retrying">
 <rect x="53.54" y="146.23" width="86.88" height="46.26" rx="8" ry="8" fill="#98FB98" stroke="#008000" stroke-width="1" stroke-dasharray="7,5"/>
+</g>
+<g class="state-Paused" id="state-Paused">
 <rect x="117.66" y="238.46" width="78.93" height="46.26" rx="8" ry="8" fill="#F1F1F1" stroke="#0000FF" stroke-width="1" stroke-dasharray="1.5,3"/>
+</g>
+<g class="state-Done" id="state-Done">
 <rect x="98.18" y="316.73" width="63.76" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="2"/>
+</g>
+<g class="start" id="start">
 <ellipse cx="96.99" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Idle" id="transition-start-Idle">
 <polyline points="96.99,22 96.99,44" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Retrying-error" id="transition-Idle-Retrying-error">
 <polyline points="96.99,100.26 96.99,136.23" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Retrying-Failed-again" id="transition-Retrying-Failed-again">
 <path d="M65.54,192.5 L65.54,192.5 C65.54,199.12 60.17,204.5 53.54,204.5 L51.19,204.5 C43.27,204.5 36.84,210.92 36.84,218.85 L36.84,228.46" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Retrying-Paused-pause" id="transition-Retrying-Paused-pause">
 <path d="M128.43,192.5 L128.43,192.5 C128.43,199.12 133.8,204.5 140.43,204.5 L142.78,204.5 C150.7,204.5 157.13,210.92 157.13,218.85 L157.13,228.46" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Paused-Done" id="transition-Paused-Done">
 <polyline points="143.59,284.73 143.59,306.73" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Idle">
 <polygon points="92.99,44 96.99,54 100.99,44 96.99,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Retrying-error">
 <polygon points="92.99,136.23 96.99,146.23 100.99,136.23 96.99,140.23" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Retrying-Failed-again">
 <polygon points="32.84,228.46 36.84,238.46 40.84,228.46 36.84,232.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Retrying-Paused-pause">
 <polygon points="153.13,228.46 157.13,238.46 161.13,228.46 157.13,232.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Paused-Done">
 <polygon points="139.59,306.73 143.59,316.73 147.59,306.73 143.59,310.73" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Idle">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="84.54" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="82.12" y="89.43" font-size="12" fill="#000000" textLength="29.72" lengthAdjust="spacing">waits</tspan>
 </text>
+</g>
+<g class="state-Failed">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16.29" y="259.46" font-size="14" fill="#FF0000" font-weight="bold" textLength="41.1" lengthAdjust="spacing">Failed</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="14.02" y="273.9" font-size="12" fill="#000000" textLength="45.65" lengthAdjust="spacing">gave up</tspan>
 </text>
+</g>
+<g class="state-Retrying">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="67.91" y="167.22" font-size="14" fill="#008000" font-weight="bold" textLength="58.16" lengthAdjust="spacing">Retrying</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="67.54" y="181.66" font-size="12" fill="#000000" textLength="58.88" lengthAdjust="spacing">tries again</tspan>
 </text>
+</g>
+<g class="state-Paused">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="131.66" y="259.46" font-size="14" fill="#0000FF" font-weight="bold" textLength="50.93" lengthAdjust="spacing">Paused</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="144.96" y="273.9" font-size="12" fill="#000000" textLength="24.34" lengthAdjust="spacing">held</tspan>
 </text>
+</g>
+<g class="state-Done">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="112.18" y="337.72" font-size="14" fill="#000000" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
 </text>
+</g>
+<g class="transition-Idle-Retrying-error">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="102.99" y="127.4" font-size="12" fill="#000000" textLength="27.73" lengthAdjust="spacing">error</tspan>
 </text>
+</g>
+<g class="transition-Retrying-Failed-again">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="219.63" font-size="12" fill="#000000" textLength="30.84" lengthAdjust="spacing">again</tspan>
 </text>
+</g>
+<g class="transition-Retrying-Paused-pause">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="163.13" y="219.63" font-size="12" fill="#000000" textLength="34.51" lengthAdjust="spacing">pause</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

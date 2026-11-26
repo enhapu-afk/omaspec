@@ -1,35 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1050" height="378" viewBox="0 0 1050 378">
+<svg xmlns="http://www.w3.org/2000/svg" width="1050" height="378" viewBox="0 0 1050 378" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="node-Server" id="node-Server">
 <polygon points="0,36.3 10,26.3 117.39,26.3 107.39,36.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <polygon points="107.39,36.3 117.39,26.3 117.39,181.18 107.39,191.18" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="0" y="36.3" width="107.39" height="154.89" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="artifact-jar" id="artifact-jar">
 <path d="M26.69,72.59 L26.69,100.89 L80.69,100.89 L80.69,82.02 L71.26,72.59 Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M71.26,72.59 L71.26,82.02 L80.69,82.02" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="database-Sessions" id="database-Sessions">
 <ellipse cx="53.69" cy="170.18" rx="41.69" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="12" y="141.89" width="83.39" height="28.3" fill="#FEFECE"/>
 <line x1="12" y1="141.89" x2="12" y2="170.18" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="95.39" y1="141.89" x2="95.39" y2="170.18" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="53.69" cy="141.89" rx="41.69" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="cloud-CDN" id="cloud-CDN">
 <path d="M26.69,243.15 C26.69,235.15 58.69,235.15 58.69,243.15 C58.69,235.15 90.69,235.15 90.69,243.15 C98.69,243.15 98.69,259.15 90.69,259.15 C98.69,259.15 98.69,275.15 90.69,275.15 C90.69,283.15 58.69,283.15 58.69,275.15 C58.69,283.15 26.69,283.15 26.69,275.15 C18.69,275.15 18.69,259.15 26.69,259.15 C18.69,259.15 18.69,243.15 26.69,243.15Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="folder-Docs" id="folder-Docs">
 <polygon points="79.64,337.45 79.64,313.15 21.75,313.15 21.75,357.45 95.64,357.45 95.64,337.45" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="frame-Panel" id="frame-Panel">
 <rect x="161.39" y="94.59" width="60.64" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="file-Readme" id="file-Readme">
 <path d="M266.03,94.59 L266.03,122.89 L344.07,122.89 L344.07,104.02 L334.63,94.59 Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M334.63,94.59 L334.63,104.02 L344.07,104.02" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="card-Ticket" id="card-Ticket">
 <rect x="388.07" y="89.59" width="64.85" height="38.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <line x1="388.07" y1="116.89" x2="452.92" y2="116.89" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="stack-Cluster" id="stack-Cluster">
 <rect x="506.92" y="89.59" width="71.28" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="501.92" y="94.59" width="71.28" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="496.92" y="99.59" width="71.28" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="hexagon-Hub" id="hexagon-Hub">
 <polygon points="638.92,86.74 681.48,86.74 698.2,108.74 681.48,130.74 638.92,130.74 622.2,108.74" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="agent-Worker" id="agent-Worker">
 <rect x="742.2" y="96.59" width="72.57" height="32.3" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="778.48" cy="96.59" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="storage-Disk" id="storage-Disk">
 <ellipse cx="893.76" cy="122.89" rx="35" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="858.76" y="94.59" width="70" height="28.3" fill="#FEFECE"/>
 <line x1="858.76" y1="94.59" x2="858.76" y2="122.89" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="928.76" y1="94.59" x2="928.76" y2="122.89" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="893.76" cy="94.59" rx="35" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="rectangle-Rack" id="rectangle-Rack">
 <rect x="972.76" y="94.59" width="56.56" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g id="lines">
 <polyline points="58.69,191.18 58.69,227.15" fill="none" stroke="#181818" stroke-width="1"/>
@@ -40,51 +66,81 @@
 <polygon points="49.69,122.89 53.69,132.89 57.69,122.89 53.69,127.39" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="node-Server">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="31.84" y="55.29" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
 </text>
+</g>
+<g class="artifact-jar">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="45.43" y="91.58" font-size="14" fill="#000000" textLength="16.52" lengthAdjust="spacing">jar</tspan>
 </text>
+</g>
+<g class="database-Sessions">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="160.88" font-size="14" fill="#000000" textLength="59.39" lengthAdjust="spacing">Sessions</tspan>
 </text>
+</g>
+<g class="cloud-CDN">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="43.26" y="264" font-size="14" fill="#000000" textLength="30.87" lengthAdjust="spacing">CDN</tspan>
 </text>
+</g>
+<g class="folder-Docs">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="33.75" y="330.14" font-size="14" fill="#000000" textLength="33.89" lengthAdjust="spacing">Docs</tspan>
 </text>
+</g>
+<g class="frame-Panel">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="173.39" y="113.58" font-size="14" fill="#000000" textLength="36.64" lengthAdjust="spacing">Panel</tspan>
 </text>
+</g>
+<g class="file-Readme">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="278.03" y="113.58" font-size="14" fill="#000000" textLength="54.04" lengthAdjust="spacing">Readme</tspan>
 </text>
+</g>
+<g class="card-Ticket">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="400.07" y="108.58" font-size="14" fill="#000000" textLength="40.85" lengthAdjust="spacing">Ticket</tspan>
 </text>
+</g>
+<g class="stack-Cluster">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="508.92" y="118.58" font-size="14" fill="#000000" textLength="47.28" lengthAdjust="spacing">Cluster</tspan>
 </text>
+</g>
+<g class="hexagon-Hub">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="646.57" y="113.58" font-size="14" fill="#000000" textLength="27.24" lengthAdjust="spacing">Hub</tspan>
 </text>
+</g>
+<g class="agent-Worker">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="754.2" y="119.58" font-size="14" fill="#000000" textLength="48.57" lengthAdjust="spacing">Worker</tspan>
 </text>
+</g>
+<g class="storage-Disk">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="879.47" y="113.58" font-size="14" fill="#000000" textLength="28.57" lengthAdjust="spacing">Disk</tspan>
 </text>
+</g>
+<g class="rectangle-Rack">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="984.76" y="113.58" font-size="14" fill="#000000" textLength="32.56" lengthAdjust="spacing">Rack</tspan>
 </text>
+</g>
+<g class="link-Server-CDN-ships" id="link-Server-CDN-ships">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="64.69" y="218.32" font-size="12" fill="#000000" textLength="30.01" lengthAdjust="spacing">ships</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="485.28" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="58.76" lengthAdjust="spacing">Platform</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

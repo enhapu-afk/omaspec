@@ -106,7 +106,7 @@ pub struct Canvas {
     shadows: bool,
     /// The shadows of each layer's shapes, drawn under that layer.
     shades: [String; LAYERS],
-    /// The parts are marked ([`Self::mark_parts`]).
+    /// The parts are marked: in every picture, not in one inside a note.
     marks_parts: bool,
     /// The part being drawn: its groups' class ([`part_id`]).
     part: Option<String>,
@@ -184,7 +184,9 @@ impl Canvas {
             sketch: None,
             shadows: false,
             shades: Default::default(),
-            marks_parts: false,
+            // Every picture marks its parts (docs/adr/0037), but one drawn
+            // inside another's note: its names are not the picture's.
+            marks_parts: !crate::embedded::inside(),
             part: None,
             open: Default::default(),
             open_shades: Default::default(),
@@ -202,11 +204,6 @@ impl Canvas {
             grayed: false,
             written: Vec::new(),
         }
-    }
-
-    /// Marks the parts drawn from here on ([`Self::part`]), for the pane.
-    pub fn mark_parts(&mut self) {
-        self.marks_parts = true;
     }
 
     /// Draws with `paint` the part called `name`: a box, a mark or a line's
@@ -1853,6 +1850,29 @@ pub fn numbered(svg: &str) -> String {
     out
 }
 
+/// `svg` with the class of each group of a part starting with `prefix`,
+/// as `render --id-prefix` gives its ids (docs/adr/0037): two pictures on
+/// one page share no class. A picture Omaspec did not mark keeps its
+/// classes, which its own style sheet may read.
+pub fn prefix_classes(svg: &str, prefix: &str) -> String {
+    if !marked(svg) {
+        return svg.to_owned();
+    }
+    let mut out = String::with_capacity(svg.len() + 64);
+    let mut done = 0;
+    for (at, _) in svg.match_indices(PART) {
+        if part_class(&svg[at..]).is_none() {
+            continue;
+        }
+        let start = at + PART.len();
+        out.push_str(&svg[done..start]);
+        out.push_str(prefix);
+        done = start;
+    }
+    out.push_str(&svg[done..]);
+    out
+}
+
 /// The name of the part whose group [`numbered`] gave the id `id`.
 pub fn part_of_id(id: &str) -> Option<String> {
     part_name(id.rsplit_once('~')?.0)
@@ -2253,7 +2273,6 @@ mod tests {
     #[test]
     fn parts_are_groups_of_their_own_on_every_layer() {
         let mut canvas = Canvas::new("sans-serif", false);
-        canvas.mark_parts();
         let ink = Stroke::new(Color::BLACK, 1.0);
         canvas.rect(
             Layer::Background,
@@ -2321,18 +2340,13 @@ mod tests {
         assert!(!shown.contains(PART), "{shown}");
         assert_eq!(shown.matches("<rect").count(), 3, "{shown}");
         assert_eq!(shown.matches("<g").count(), shown.matches("</g>").count());
-        // Unmarked, the same drawing has no groups of parts.
-        let mut plain = Canvas::new("sans-serif", false);
-        plain.part("Brewing", |canvas| {
-            canvas.rect(
-                Layer::Frames,
-                (10.0, 10.0, 80.0, 60.0),
-                8.0,
-                None,
-                Some(ink),
-            );
-        });
-        assert!(!plain.finish(4.0, None).contains(PART));
+        // Drawn inside another picture's note, a picture has no groups of
+        // parts: its names are not the picture's.
+        let inner = crate::embedded::within(Vec::new(), || {
+            crate::embedded::picture("", &["[*] --> Brewing", "Brewing --> [*]"])
+        })
+        .expect("a picture inside");
+        assert!(!inner.body.contains(PART), "{}", inner.body);
     }
 
     /// A part drawn within a link opened within another part is drawn as
@@ -2340,7 +2354,6 @@ mod tests {
     #[test]
     fn a_part_within_a_link_keeps_the_groups_whole() {
         let mut canvas = Canvas::new("sans-serif", false);
-        canvas.mark_parts();
         let ink = Stroke::new(Color::BLACK, 1.0);
         let link = Link {
             url: "next.puml".into(),
@@ -2399,7 +2412,6 @@ mod tests {
     #[test]
     fn a_part_s_first_group_is_named_by_its_id() {
         let mut canvas = Canvas::new("sans-serif", false);
-        canvas.mark_parts();
         canvas.shadows(true);
         let ink = Stroke::new(Color::BLACK, 1.0);
         canvas.part("Idle", |canvas| {

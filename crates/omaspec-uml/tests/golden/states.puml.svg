@@ -1,104 +1,214 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="459" height="645" viewBox="0 0 459 645">
+<svg xmlns="http://www.w3.org/2000/svg" width="459" height="645" viewBox="0 0 459 645" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="state-Playing" id="state-Playing">
 <rect x="121.18" y="170.26" width="117.42" height="46.26" rx="8" ry="8" fill="#F0F8FF" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="choice-Pick" id="choice-Pick">
 <polygon points="280.43,85.3 292.43,97.3 280.43,109.3 268.43,97.3" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="history-H" id="history-H">
 <ellipse cx="353.86" cy="302.64" rx="16.15" ry="16.15" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="deep-history-Deep" id="deep-history-Deep">
 <ellipse cx="40.65" cy="474.69" rx="17.14" ry="17.14" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="fork-Bar" id="fork-Bar">
 <rect x="24.65" y="298.64" width="124.53" height="8" rx="2" ry="2" fill="#181818"/>
+</g>
+<g class="join-Meet" id="join-Meet">
 <rect x="24.65" y="616.62" width="174.6" height="8" rx="2" ry="2" fill="#181818"/>
+</g>
+<g class="state-Buffering" id="state-Buffering">
 <rect x="101.79" y="364.76" width="105.19" height="219.86" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="101.79" y1="400.06" x2="206.98" y2="400.06" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start-Buffering" id="start-Buffering">
 <ellipse cx="154.26" cy="419.06" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Waiting" id="state-Waiting">
 <rect x="113.79" y="462.06" width="80.95" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Filled" id="state-Filled">
 <rect x="121.88" y="540.32" width="64.76" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start" id="start">
 <ellipse cx="280.43" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Pick" id="transition-start-Pick">
 <polyline points="280.43,48.3 280.43,75.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Pick-Playing-ok" id="transition-Pick-Playing-ok">
 <path d="M280.43,109.3 L280.43,109.3 C280.43,124.21 268.34,136.3 253.43,136.3 L203.85,136.3 C190.62,136.3 179.89,147.03 179.89,160.26 L179.89,160.26" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Pick-H-back" id="transition-Pick-H-back">
 <path d="M280.43,109.3 L280.43,109.3 C280.43,118.68 288.04,126.3 297.43,126.3 L332.97,126.3 C359.48,126.3 380.97,147.79 380.97,174.3 L380.97,238.97 C380.97,246.46 374.9,252.53 367.42,252.53 L367.42,252.53 C359.93,252.53 353.86,258.6 353.86,266.09 L353.86,276.5" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Bar-split" id="transition-Playing-Bar-split">
 <polyline points="133.18,216.53 133.18,288.64" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Bar-Buffering" id="transition-Bar-Buffering">
 <polyline points="125.95,306.64 125.95,354.76" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Bar-Deep" id="transition-Bar-Deep">
 <polyline points="40.65,306.64 40.65,447.55" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Buffering-Meet" id="transition-Buffering-Meet">
 <polyline points="162.82,584.62 162.82,606.62" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Deep-Meet" id="transition-Deep-Meet">
 <polyline points="40.65,491.83 40.65,606.62" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Meet-Playing-again" id="transition-Meet-Playing-again">
 <path d="M183.25,616.62 L183.25,616.62 C183.25,605.57 192.2,596.62 203.25,596.62 L217.11,596.62 C235.82,596.62 250.98,581.45 250.98,562.75 L250.98,272.72 C250.98,261.57 241.94,252.53 230.79,252.53 L230.79,252.53 C219.64,252.53 210.6,243.49 210.6,232.34 L210.6,226.53" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Playing-loop" id="transition-Playing-Playing-loop">
 <path d="M238.6,186.4 L247.6,186.4 C251.46,186.4 254.6,189.53 254.6,193.4 L254.6,194.4 C254.6,197.71 251.91,200.4 248.6,200.4 L248.6,200.4" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-H-mark" id="transition-Playing-H-mark">
 <path d="M226.6,216.53 L226.6,216.53 C226.6,230.89 238.24,242.53 252.6,242.53 L319.89,242.53 C338.65,242.53 353.86,257.74 353.86,276.5 L353.86,276.5" fill="none" stroke="#008000" stroke-width="1" stroke-dasharray="7,7"/>
+</g>
+<g class="transition-start-Buffering-Waiting" id="transition-start-Buffering-Waiting">
 <polyline points="154.26,430.06 154.26,452.06" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Waiting-Filled-chunk" id="transition-Waiting-Filled-chunk">
 <polyline points="154.26,494.35 154.26,530.32" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Pick">
 <polygon points="276.43,75.3 280.43,85.3 284.43,75.3 280.43,79.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Pick-Playing-ok">
 <polygon points="175.89,160.26 179.89,170.26 183.89,160.26 179.89,164.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Pick-H-back">
 <polygon points="349.86,276.5 353.86,286.5 357.86,276.5 353.86,280.5" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Bar-split">
 <polygon points="129.18,288.64 133.18,298.64 137.18,288.64 133.18,292.64" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Bar-Buffering">
 <polygon points="121.95,354.76 125.95,364.76 129.95,354.76 125.95,358.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Bar-Deep">
 <polygon points="36.65,447.55 40.65,457.55 44.65,447.55 40.65,451.55" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Buffering-Meet">
 <polygon points="158.82,606.62 162.82,616.62 166.82,606.62 162.82,610.62" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Deep-Meet">
 <polygon points="36.65,606.62 40.65,616.62 44.65,606.62 40.65,610.62" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Meet-Playing-again">
 <polygon points="214.6,226.53 210.6,216.53 206.6,226.53 210.6,222.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Playing-loop">
 <polygon points="248.6,196.4 238.6,200.4 248.6,204.4 244.6,200.4" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-H-mark">
 <polygon points="349.86,276.5 353.86,286.5 357.86,276.5 353.86,280.5" fill="#008000" stroke="#008000" stroke-width="1"/>
+</g>
+<g class="transition-start-Buffering-Waiting">
 <polygon points="150.26,452.06 154.26,462.06 158.26,452.06 154.26,456.06" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Waiting-Filled-chunk">
 <polygon points="150.26,530.32 154.26,540.32 158.26,530.32 154.26,534.32" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="note-state-Playing-right-1" id="note-state-Playing-right-1">
 <path d="M293.24,170.26 L293.24,197.4 L336.97,197.4 L336.97,180.26 L326.97,170.26 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M326.97,170.26 L326.97,180.26 L336.97,180.26" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="note-choice-Pick-bottom-1" id="note-choice-Pick-bottom-1">
 <line x1="386.15" y1="124.3" x2="286.29" y2="103.16" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="4,3"/>
 <path d="M386.15,124.3 L386.15,151.43 L438.71,151.43 L438.71,134.3 L428.71,124.3 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M428.71,124.3 L428.71,134.3 L438.71,134.3" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="state-Playing">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="135.18" y="191.26" font-size="14" fill="#000000" font-weight="bold" textLength="89.42" lengthAdjust="spacing">Playing track</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="154.88" y="205.7" font-size="12" fill="#000000" textLength="50" lengthAdjust="spacing">the track</tspan>
 </text>
+</g>
+<g class="history-H">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="348.63" y="307.49" font-size="14" fill="#000000" font-weight="bold" textLength="10.46" lengthAdjust="spacing">H</tspan>
 </text>
+</g>
+<g class="deep-history-Deep">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="31.51" y="479.53" font-size="14" fill="#000000" font-weight="bold" textLength="18.28" lengthAdjust="spacing">H*</tspan>
 </text>
+</g>
+<g class="state-Buffering">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="122.11" y="385.75" font-size="14" fill="#000000" font-weight="bold" textLength="64.54" lengthAdjust="spacing">Buffering</tspan>
 </text>
+</g>
+<g class="state-Waiting">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="127.79" y="483.05" font-size="14" fill="#000000" font-weight="bold" textLength="52.95" lengthAdjust="spacing">Waiting</tspan>
 </text>
+</g>
+<g class="state-Filled">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="135.88" y="561.31" font-size="14" fill="#000000" font-weight="bold" textLength="36.76" lengthAdjust="spacing">Filled</tspan>
 </text>
+</g>
+<g class="transition-Waiting-Filled-chunk">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="160.26" y="521.49" font-size="12" fill="#000000" textLength="34.72" lengthAdjust="spacing">chunk</tspan>
 </text>
+</g>
+<g class="transition-Pick-Playing-ok">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="160.1" y="151.43" font-size="12" fill="#000000" textLength="13.79" lengthAdjust="spacing">ok</tspan>
 </text>
+</g>
+<g class="transition-Pick-H-back">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="359.86" y="267.66" font-size="12" fill="#000000" textLength="27.53" lengthAdjust="spacing">back</tspan>
 </text>
+</g>
+<g class="transition-Playing-Bar-split">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="103.77" y="267.66" font-size="12" fill="#000000" textLength="23.41" lengthAdjust="spacing">split</tspan>
 </text>
+</g>
+<g class="transition-Meet-Playing-again">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="256.98" y="345.93" font-size="12" fill="#000000" textLength="30.84" lengthAdjust="spacing">again</tspan>
 </text>
+</g>
+<g class="transition-Playing-Playing-loop">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="258.6" y="197.55" font-size="12" fill="#000000" textLength="24.65" lengthAdjust="spacing">loop</tspan>
 </text>
+</g>
+<g class="transition-Playing-H-mark">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="319.5" y="277.27" font-size="12" fill="#000000" textLength="28.36" lengthAdjust="spacing">mark</tspan>
 </text>
+</g>
+<g class="note-state-Playing-right-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="299.24" y="188.33" font-size="13" fill="#000000" textLength="27.73" lengthAdjust="spacing">here</tspan>
 </text>
+</g>
+<g class="note-choice-Pick-bottom-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="392.15" y="142.36" font-size="13" fill="#000000" textLength="36.57" lengthAdjust="spacing">which</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="197.49" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="43.74" lengthAdjust="spacing">States</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

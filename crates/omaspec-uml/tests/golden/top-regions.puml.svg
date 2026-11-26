@@ -1,84 +1,174 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="554" height="321" viewBox="0 0 554 321">
+<svg xmlns="http://www.w3.org/2000/svg" width="554" height="321" viewBox="0 0 554 321" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="start-.1" id="start-.1">
 <ellipse cx="50.92" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Dark" id="state-Dark">
 <rect x="20.89" y="80.3" width="60.06" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Lit" id="state-Lit">
 <rect x="28.51" y="158.56" width="44.83" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start-.2" id="start-.2">
 <ellipse cx="229.31" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Quiet" id="state-Quiet">
 <rect x="196.88" y="80.3" width="64.86" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Humming" id="state-Humming">
 <rect x="182.26" y="158.56" width="94.11" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start-.3" id="start-.3">
 <ellipse cx="437.47" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Oven" id="state-Oven">
 <rect x="341.81" y="80.3" width="191.32" height="219.86" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="341.81" y1="115.59" x2="533.13" y2="115.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start-Oven" id="start-Oven">
 <ellipse cx="443.41" cy="134.59" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Off" id="state-Off">
 <rect x="418.44" y="177.59" width="49.94" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Heating" id="state-Heating">
 <rect x="402.7" y="255.86" width="81.42" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-.1-Dark" id="transition-start-.1-Dark">
 <polyline points="50.92,48.3 50.92,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Dark-Lit-switch" id="transition-Dark-Lit-switch">
 <polyline points="42.92,112.59 42.92,148.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Lit-Dark-switch" id="transition-Lit-Dark-switch">
 <polyline points="58.92,158.56 58.92,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-.2-Quiet" id="transition-start-.2-Quiet">
 <polyline points="229.31,48.3 229.31,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Quiet-Humming-compressor_20_on" id="transition-Quiet-Humming-compressor_20_on">
 <polyline points="221.31,112.59 221.31,148.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Humming-Quiet-cold_20_enough" id="transition-Humming-Quiet-cold_20_enough">
 <polyline points="237.31,158.56 237.31,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-.3-Oven" id="transition-start-.3-Oven">
 <polyline points="437.47,48.3 437.47,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Oven-Off" id="transition-start-Oven-Off">
 <polyline points="443.41,145.59 443.41,167.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Off-Heating-turn_20_the_20_knob" id="transition-Off-Heating-turn_20_the_20_knob">
 <polyline points="435.41,209.89 435.41,245.86" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Heating-Off-turn_20_it_20_back" id="transition-Heating-Off-turn_20_it_20_back">
 <polyline points="451.41,255.86 451.41,219.89" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-.1-Dark">
 <polygon points="46.92,70.3 50.92,80.3 54.92,70.3 50.92,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Dark-Lit-switch">
 <polygon points="38.92,148.56 42.92,158.56 46.92,148.56 42.92,152.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Lit-Dark-switch">
 <polygon points="62.92,122.59 58.92,112.59 54.92,122.59 58.92,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-.2-Quiet">
 <polygon points="225.31,70.3 229.31,80.3 233.31,70.3 229.31,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Quiet-Humming-compressor_20_on">
 <polygon points="217.31,148.56 221.31,158.56 225.31,148.56 221.31,152.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Humming-Quiet-cold_20_enough">
 <polygon points="241.31,122.59 237.31,112.59 233.31,122.59 237.31,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-.3-Oven">
 <polygon points="433.47,70.3 437.47,80.3 441.47,70.3 437.47,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Oven-Off">
 <polygon points="439.41,167.59 443.41,177.59 447.41,167.59 443.41,171.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Off-Heating-turn_20_the_20_knob">
 <polygon points="431.41,245.86 435.41,255.86 439.41,245.86 435.41,249.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Heating-Off-turn_20_it_20_back">
 <polygon points="455.41,219.89 451.41,209.89 447.41,219.89 451.41,215.89" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Dark">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="34.89" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="32.06" lengthAdjust="spacing">Dark</tspan>
 </text>
+</g>
+<g class="state-Lit">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="42.51" y="179.55" font-size="14" fill="#000000" font-weight="bold" textLength="16.83" lengthAdjust="spacing">Lit</tspan>
 </text>
+</g>
+<g class="transition-Dark-Lit-switch">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="139.73" font-size="12" fill="#000000" textLength="36.92" lengthAdjust="spacing">switch</tspan>
 </text>
+</g>
+<g class="transition-Lit-Dark-switch">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="64.92" y="139.73" font-size="12" fill="#000000" textLength="36.92" lengthAdjust="spacing">switch</tspan>
 </text>
+</g>
+<g class="state-Quiet">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="210.88" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="36.86" lengthAdjust="spacing">Quiet</tspan>
 </text>
+</g>
+<g class="state-Humming">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="196.26" y="179.55" font-size="14" fill="#000000" font-weight="bold" textLength="66.11" lengthAdjust="spacing">Humming</tspan>
 </text>
+</g>
+<g class="transition-Quiet-Humming-compressor_20_on">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="129.85" y="139.73" font-size="12" fill="#000000" textLength="85.46" lengthAdjust="spacing">compressor on</tspan>
 </text>
+</g>
+<g class="transition-Humming-Quiet-cold_20_enough">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="243.31" y="139.73" font-size="12" fill="#000000" textLength="70.5" lengthAdjust="spacing">cold enough</tspan>
 </text>
+</g>
+<g class="state-Oven">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="419.34" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="36.26" lengthAdjust="spacing">Oven</tspan>
 </text>
+</g>
+<g class="state-Off">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="432.44" y="198.58" font-size="14" fill="#000000" font-weight="bold" textLength="21.94" lengthAdjust="spacing">Off</tspan>
 </text>
+</g>
+<g class="state-Heating">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="416.7" y="276.85" font-size="14" fill="#000000" font-weight="bold" textLength="53.42" lengthAdjust="spacing">Heating</tspan>
 </text>
+</g>
+<g class="transition-Off-Heating-turn_20_the_20_knob">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="353.81" y="237.02" font-size="12" fill="#000000" textLength="75.6" lengthAdjust="spacing">turn the knob</tspan>
 </text>
+</g>
+<g class="transition-Heating-Off-turn_20_it_20_back">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="457.41" y="237.02" font-size="12" fill="#000000" textLength="63.72" lengthAdjust="spacing">turn it back</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="206.6" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="119.94" lengthAdjust="spacing">A kitchen at night</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

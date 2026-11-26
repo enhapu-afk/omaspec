@@ -33,9 +33,6 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
-    if d.frame.parts {
-        canvas.mark_parts();
-    }
     let family = canvas.family();
     let annotations = Annotations::new(
         &d.frame,
@@ -205,13 +202,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let map = canvas.place(
         crate::map::Map {
             bands: titles,
-            // Only a pane that glides asks for the parts, and only it reads
-            // the lines.
-            wires: if d.frame.parts {
-                found.wires()
-            } else {
-                Vec::new()
-            },
+            wires: found.wires(),
             places: found.places,
             ..crate::map::Map::default()
         },

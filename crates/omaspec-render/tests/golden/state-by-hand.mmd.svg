@@ -1,41 +1,77 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="123" height="268" viewBox="0 0 123 268">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="123" height="268" viewBox="0 0 123 268" data-omaspec="parts">
 <rect x="0" y="0" width="123" height="268" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="43.68" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Idle" id="state-Idle">
 <rect x="17.23" y="54" width="52.89" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Running" id="state-Running">
 <rect x="1.32" y="134.59" width="84.73" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Done" id="state-Done">
 <rect x="11.8" y="215.18" width="63.76" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Idle" id="transition-start-Idle">
 <polyline points="43.68,22 43.68,44" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Running-start" id="transition-Idle-Running-start">
 <polyline points="43.68,54 43.68,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Running-Idle-stop" id="transition-Running-Idle-stop">
 <path d="M86.04,144.59 L86.04,144.59 C95.4,144.59 102.99,137.01 102.99,127.65 L102.99,99.16 C102.99,86.53 92.75,76.3 80.13,76.3 L80.13,76.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Running-Done-finish" id="transition-Running-Done-finish">
 <polyline points="43.68,166.89 43.68,205.18" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Idle">
 <polygon points="39.68,44 43.68,54 47.68,44 43.68,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Running-start">
 <polygon points="39.68,124.59 43.68,134.59 47.68,124.59 43.68,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Running-Idle-stop">
 <polygon points="80.13,72.3 70.13,76.3 80.13,80.3 76.13,76.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Running-Done-finish">
 <polygon points="39.68,205.18 43.68,215.18 47.68,205.18 43.68,209.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Idle">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="31.23" y="74.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
+</g>
+<g class="state-Running">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="15.32" y="155.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="56.73" lengthAdjust="spacing">Running</tspan>
 </text>
+</g>
+<g class="state-Done">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="25.8" y="236.18" font-size="14" fill="#0F172A" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
 </text>
+</g>
+<g class="transition-Idle-Running-start">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="11" y="104.9" font-size="14" fill="#0F172A" textLength="29.68" lengthAdjust="spacing">start</tspan>
 </text>
+</g>
+<g class="transition-Running-Idle-stop">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="71.05" y="107.7" font-size="14" fill="#0F172A" textLength="28.94" lengthAdjust="spacing">stop</tspan>
 </text>
+</g>
+<g class="transition-Running-Done-finish">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="49.68" y="195.88" font-size="14" fill="#0F172A" textLength="35.9" lengthAdjust="spacing">finish</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

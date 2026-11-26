@@ -1,71 +1,137 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="327" height="518" viewBox="0 0 327 518">
+<svg xmlns="http://www.w3.org/2000/svg" width="327" height="518" viewBox="0 0 327 518" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="149.57" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Idle" id="state-Idle">
 <rect x="123.13" y="54" width="52.89" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Busy" id="state-Busy">
 <rect x="62.7" y="202.53" width="244.26" height="295.12" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="62.7" y1="237.82" x2="306.97" y2="237.82" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start-Busy" id="start-Busy">
 <ellipse cx="90.67" cy="273.82" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Working" id="state-Working">
 <rect x="79.08" y="361.92" width="86.3" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Checking" id="state-Checking">
 <rect x="110.7" y="453.35" width="93.14" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Idle" id="transition-start-Idle">
 <polyline points="149.57,22 149.57,44" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Busy-start" id="transition-Idle-Busy-start">
 <path d="M135.13,86.3 L135.13,102.88 C135.13,108.08 130.91,112.3 125.71,112.3 L125.71,112.3 C120.51,112.3 116.29,116.51 116.29,121.72 L116.29,192.53" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Busy-Idle-done" id="transition-Busy-Idle-done">
 <path d="M128.29,202.53 L128.29,132.94 C128.29,127.06 133.05,122.3 138.93,122.3 L138.93,122.3 C144.81,122.3 149.57,117.53 149.57,111.65 L149.57,96.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Checking-Idle-fail" id="transition-Checking-Idle-fail">
 <path d="M191.85,453.35 L191.85,427.82 C191.85,415.89 201.52,406.22 213.45,406.22 L213.45,406.22 C225.38,406.22 235.05,396.55 235.05,384.62 L235.05,147.81 C235.05,128.2 219.15,112.3 199.54,112.3 L180.02,112.3 C171.18,112.3 164.02,105.13 164.02,96.3 L164.02,96.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Busy-Working" id="transition-start-Busy-Working">
 <polyline points="90.67,284.82 90.67,351.92" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Working-Checking" id="transition-Working-Checking">
 <polyline points="153.37,394.22 153.37,443.35" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Idle">
 <polygon points="145.57,44 149.57,54 153.57,44 149.57,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Busy-start">
 <polygon points="112.29,192.53 116.29,202.53 120.29,192.53 116.29,196.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Busy-Idle-done">
 <polygon points="153.57,96.3 149.57,86.3 145.57,96.3 149.57,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Checking-Idle-fail">
 <polygon points="168.02,96.3 164.02,86.3 160.02,96.3 164.02,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Busy-Working">
 <polygon points="86.67,351.92 90.67,361.92 94.67,351.92 90.67,355.92" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Working-Checking">
 <polygon points="149.37,443.35 153.37,453.35 157.37,443.35 153.37,447.35" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="note-transition-Idle-Busy-start-on-1" id="note-transition-Idle-Busy-start-on-1">
 <path d="M0,144.26 L0,186.53 L110.29,186.53 L110.29,154.26 L100.29,144.26 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M100.29,144.26 L100.29,154.26 L110.29,154.26" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="note-transition-Busy-Idle-done-on-1" id="note-transition-Busy-Idle-done-on-1">
 <path d="M134.29,151.83 L134.29,178.96 L223.05,178.96 L223.05,161.83 L213.05,151.83 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M213.05,151.83 L213.05,161.83 L223.05,161.83" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="note-transition-Checking-Idle-fail-on-1" id="note-transition-Checking-Idle-fail-on-1">
 <path d="M152.45,266.92 L152.45,294.05 L232.05,294.05 L232.05,276.92 L222.05,266.92 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M222.05,266.92 L222.05,276.92 L232.05,276.92" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="note-transition-Working-Checking-on-1" id="note-transition-Working-Checking-on-1">
 <path d="M74.67,410.22 L74.67,437.35 L147.37,437.35 L147.37,420.22 L137.37,410.22 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M137.37,410.22 L137.37,420.22 L147.37,420.22" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="state-Idle">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="137.13" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
+</g>
+<g class="state-Busy">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="167.71" y="223.52" font-size="14" fill="#000000" font-weight="bold" textLength="34.26" lengthAdjust="spacing">Busy</tspan>
 </text>
+</g>
+<g class="state-Working">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="93.08" y="382.92" font-size="14" fill="#000000" font-weight="bold" textLength="58.3" lengthAdjust="spacing">Working</tspan>
 </text>
+</g>
+<g class="state-Checking">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="124.7" y="474.34" font-size="14" fill="#000000" font-weight="bold" textLength="65.14" lengthAdjust="spacing">Checking</tspan>
 </text>
+</g>
+<g class="note-transition-Working-Checking-on-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="80.67" y="428.28" font-size="13" fill="#000000" textLength="56.71" lengthAdjust="spacing">each one</tspan>
 </text>
+</g>
+<g class="transition-Idle-Busy-start">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="84.85" y="137.43" font-size="12" fill="#000000" textLength="25.44" lengthAdjust="spacing">start</tspan>
 </text>
+</g>
+<g class="transition-Busy-Idle-done">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="134.29" y="145" font-size="12" fill="#000000" textLength="28.63" lengthAdjust="spacing">done</tspan>
 </text>
+</g>
+<g class="transition-Checking-Idle-fail">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="215.06" y="260.09" font-size="12" fill="#000000" textLength="16.99" lengthAdjust="spacing">fail</tspan>
 </text>
+</g>
+<g class="note-transition-Idle-Busy-start-on-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="6" y="162.33" font-size="13" fill="#000000" textLength="94.29" lengthAdjust="spacing">counts the jobs</tspan>
 <tspan x="6" y="177.46" font-size="13" fill="#000000" textLength="82.49" lengthAdjust="spacing">as they come</tspan>
 </text>
+</g>
+<g class="note-transition-Busy-Idle-done-on-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="140.29" y="169.89" font-size="13" fill="#000000" textLength="72.76" lengthAdjust="spacing">back to rest</tspan>
 </text>
+</g>
+<g class="note-transition-Checking-Idle-fail-on-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="158.45" y="284.99" font-size="13" fill="#000000" textLength="63.6" lengthAdjust="spacing">a crossing</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

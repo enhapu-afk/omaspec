@@ -50,9 +50,6 @@ pub struct Diagram {
     pub commits: Vec<Commit>,
     pub look: Look,
     pub settings: Settings,
-    /// Each lane and each commit in a part of its own (docs/adr/0029):
-    /// what a build sets down line by line, and a glide takes whole.
-    pub parts: bool,
 }
 
 /// The way time runs.
@@ -329,9 +326,6 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
 pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let mut canvas = Canvas::new(&diagram.look.font_name, false);
     canvas.sketch(diagram.look.sketch);
-    if diagram.parts {
-        canvas.mark_parts();
-    }
     let family = canvas.family();
     let look = &diagram.look;
     let title = match &diagram.title {

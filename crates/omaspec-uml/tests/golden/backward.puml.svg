@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="301" height="440" viewBox="0 0 301 440">
+<svg xmlns="http://www.w3.org/2000/svg" width="301" height="440" viewBox="0 0 301 440" data-omaspec="parts">
 <g transform="translate(74.71,10)">
 <g id="lines">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
@@ -27,52 +27,82 @@
 <polygon points="6,387.28 10,397.28 14,387.28 10,391.28" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="start" id="start">
 <ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="test" id="test">
 <polygon points="-2,52 10,40 22,52 10,64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="test-more_20_data_3f_" id="test-more_20_data_3f_">
 <polygon points="-31.1,203.94 -19.1,191.94 39.1,191.94 51.1,203.94 39.1,215.94 -19.1,215.94" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-19.09" y="207.74" font-size="11" fill="#000000" textLength="58.19" lengthAdjust="spacing">more data?</tspan>
 </text>
+</g>
+<g class="action-This_20_is_20_backward" id="action-This_20_is_20_backward">
 <rect x="99.71" y="110.98" width="116.01" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="109.71" y="132.12" font-size="12" fill="#000000" textLength="96.01" lengthAdjust="spacing">This is backward</tspan>
 </text>
+</g>
+<g class="label-yes" id="label-yes">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="53.1" y="200.34" font-size="11" fill="#000000" textLength="18.4" lengthAdjust="spacing">yes</tspan>
 </text>
+</g>
+<g class="label-no" id="label-no">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="14" y="227.14" font-size="11" fill="#000000" textLength="13.1" lengthAdjust="spacing">no</tspan>
 </text>
+</g>
+<g class="action-Read_20_the_20_data" id="action-Read_20_the_20_data">
 <rect x="-39.16" y="84" width="98.32" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-29.16" y="105.14" font-size="12" fill="#000000" textLength="78.32" lengthAdjust="spacing">Read the data</tspan>
 </text>
+</g>
+<g class="action-Generate_20_the_20_diagrams" id="action-Generate_20_the_20_diagrams">
 <rect x="-64.71" y="137.97" width="149.42" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-54.71" y="159.1" font-size="12" fill="#000000" textLength="129.42" lengthAdjust="spacing">Generate the diagrams</tspan>
 </text>
+</g>
+<g class="test-2" id="test-2">
 <polygon points="-2,251.74 10,239.74 22,251.74 10,263.74" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="test-answer_3f_" id="test-answer_3f_">
 <polygon points="-23.83,365.28 -11.83,353.28 31.83,353.28 43.83,365.28 31.83,377.28 -11.83,377.28" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-11.83" y="369.09" font-size="11" fill="#000000" textLength="43.66" lengthAdjust="spacing">answer?</tspan>
 </text>
+</g>
+<g class="action-Wait_20_a_20_minute_20_and_20_try_20_again" id="action-Wait_20_a_20_minute_20_and_20_try_20_again">
 <rect x="66.83" y="284.54" width="97.4" height="47.94" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="76.83" y="305.68" font-size="12" fill="#000000" textLength="77.4" lengthAdjust="spacing">Wait a minute</tspan>
 <tspan x="76.83" y="319.65" font-size="12" fill="#000000" textLength="73.94" lengthAdjust="spacing">and try again</tspan>
 </text>
+</g>
+<g class="label-timeout" id="label-timeout">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="121.53" y="344.69" font-size="11" fill="#000000" textLength="39.01" lengthAdjust="spacing">timeout</tspan>
 </text>
+</g>
+<g class="label-retry" id="label-retry">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="121.53" y="263.95" font-size="11" fill="#000000" textLength="24.46" lengthAdjust="spacing">retry</tspan>
 </text>
+</g>
+<g class="action-Ask" id="action-Ask">
 <rect x="-10.6" y="283.74" width="41.2" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-0.6" y="304.88" font-size="12" fill="#000000" textLength="21.2" lengthAdjust="spacing">Ask</tspan>
 </text>
+</g>
+<g class="stop" id="stop">
 <ellipse cx="10" cy="408.28" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="10" cy="408.28" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
 </g>
 </g>
 </svg>

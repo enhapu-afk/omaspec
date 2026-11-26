@@ -1,31 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="296" viewBox="0 0 120 296">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="296" viewBox="0 0 120 296" data-omaspec="parts">
 <rect x="0" y="0" width="120" height="296" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="49.83" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Cold" id="state-Cold">
 <rect x="20.05" y="54" width="59.56" height="32.3" rx="8" ry="8" fill="#99CCFF" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Warm" id="state-Warm">
 <rect x="15.26" y="134.59" width="69.15" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Hot" id="state-Hot">
 <rect x="0" y="215.18" width="99.66" height="60.23" rx="8" ry="8" fill="#FF9966" stroke="#333333" stroke-width="2"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Cold" id="transition-start-Cold">
 <polyline points="49.83,22 49.83,44" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Cold-Warm-heat" id="transition-Cold-Warm-heat">
 <polyline points="41.83,86.3 41.83,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Warm-Hot-heat" id="transition-Warm-Hot-heat">
 <polyline points="41.83,166.89 41.83,205.18" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Hot-Warm-cool" id="transition-Hot-Warm-cool">
 <polyline points="57.83,215.18 57.83,176.89" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Warm-Cold-cool" id="transition-Warm-Cold-cool">
 <polyline points="57.83,134.59 57.83,96.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Cold">
 <polygon points="45.83,44 49.83,54 53.83,44 49.83,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Cold-Warm-heat">
 <polygon points="37.83,124.59 41.83,134.59 45.83,124.59 41.83,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Warm-Hot-heat">
 <polygon points="37.83,205.18 41.83,215.18 45.83,205.18 41.83,209.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Hot-Warm-cool">
 <polygon points="61.83,176.89 57.83,166.89 53.83,176.89 57.83,172.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Warm-Cold-cool">
 <polygon points="61.83,96.3 57.83,86.3 53.83,96.3 57.83,92.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Cold">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="34.05" y="74.99" font-size="14" fill="#000033" font-weight="bold" textLength="31.56" lengthAdjust="spacing">Cold</tspan>
 </text>
+</g>
+<g class="state-Warm">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="29.26" y="155.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="41.15" lengthAdjust="spacing">Warm</tspan>
 </text>
+</g>
+<g class="state-Hot">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="37.75" y="236.18" font-size="14" fill="#0F172A" font-weight="bold" textLength="24.16" lengthAdjust="spacing">Hot</tspan>
 </text>
@@ -35,18 +68,27 @@
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="14" y="264.58" font-size="12" fill="#0F172A" textLength="71.66" lengthAdjust="spacing">do not touch</tspan>
 </text>
+</g>
+<g class="transition-Cold-Warm-heat">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="6.95" y="115.29" font-size="14" fill="#0F172A" textLength="28.88" lengthAdjust="spacing">heat</tspan>
 </text>
+</g>
+<g class="transition-Warm-Hot-heat">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="6.95" y="195.88" font-size="14" fill="#0F172A" textLength="28.88" lengthAdjust="spacing">heat</tspan>
 </text>
+</g>
+<g class="transition-Hot-Warm-cool">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="63.83" y="195.88" font-size="14" fill="#0F172A" textLength="28.18" lengthAdjust="spacing">cool</tspan>
 </text>
+</g>
+<g class="transition-Warm-Cold-cool">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="63.83" y="115.29" font-size="14" fill="#0F172A" textLength="28.18" lengthAdjust="spacing">cool</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

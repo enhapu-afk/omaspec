@@ -486,19 +486,11 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
     let machine = classified.kind == omaspec_core::Kind::State;
     let table = views.table && machine;
     let orbit = views.orbit && machine && !table;
-    let parts = marks_parts(source, language, &classified);
-    if folds.is_empty() && !nested && !parts && !table && !orbit {
+    if folds.is_empty() && !nested && !table && !orbit {
         return text;
     }
     if !text.ends_with('\n') {
         text.push('\n');
-    }
-    // Each box, mark and line's words in a group of its own, for a glide
-    // to take whole (docs/adr/0029).
-    if parts {
-        text.push_str(&omaspec_uml::fold::parts_line(
-            language == Language::Mermaid,
-        ));
     }
     for name in folds {
         text.push_str(&omaspec_uml::fold::line(
@@ -522,22 +514,6 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
         ));
     }
     text
-}
-
-/// Whether the drawer of `source`, classified as `kind`, marks its parts
-/// for a glide (docs/adr/0029): state machines, structures, activity
-/// diagrams and Mermaid's flowcharts, mind maps of both, Mermaid's git
-/// graphs, PlantUML's WBS and JSON and YAML cards. `the_drawers_that_mark_parts_are_asked_for_them` keeps it true.
-fn marks_parts(source: &str, language: Language, kind: &omaspec_core::DiagramKind) -> bool {
-    use omaspec_core::Kind;
-    match language {
-        _ if matches!(kind.kind, Kind::State | Kind::Structure | Kind::Activity) => true,
-        Language::Mermaid => matches!(kind.name.as_ref(), "Mind map" | "Git graph"),
-        Language::PlantUml => matches!(
-            omaspec_core::kind::plantuml_block(source).as_str(),
-            "mindmap" | "wbs" | "json" | "yaml"
-        ),
-    }
 }
 
 /// Whether `source` is a state machine, the kind drawn as a table too.

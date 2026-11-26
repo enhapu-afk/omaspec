@@ -1,92 +1,190 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="229" height="815" viewBox="0 0 229 815">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="229" height="815" viewBox="0 0 229 815" data-omaspec="parts">
 <rect x="0" y="0" width="229" height="815" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="149.25" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Shop" id="state-Shop">
 <rect x="0" y="54" width="208.53" height="601.96" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
 <line x1="0" y1="89.3" x2="208.53" y2="89.3" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="start-Shop" id="start-Shop">
 <ellipse cx="126.25" cy="108.3" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Browsing" id="state-Browsing">
 <rect x="80.86" y="151.3" width="92.65" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Cart" id="state-Cart">
 <rect x="12" y="231.89" width="138.38" height="412.07" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
 <line x1="12" y1="267.18" x2="150.38" y2="267.18" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="start-Cart" id="start-Cart">
 <ellipse cx="98.18" cy="286.18" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Filling" id="state-Filling">
 <rect x="65.97" y="329.18" width="68.96" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Checkout" id="state-Checkout">
 <rect x="24" y="409.78" width="114.38" height="222.18" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
 <line x1="24" y1="445.07" x2="138.38" y2="445.07" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="start-Checkout" id="start-Checkout">
 <ellipse cx="77.45" cy="464.07" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Address" id="state-Address">
 <rect x="37.39" y="507.07" width="85.82" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Payment" id="state-Payment">
 <rect x="36" y="587.66" width="88.61" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="state-Done" id="state-Done">
 <rect x="48.43" y="704.26" width="63.76" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g class="end" id="end">
 <ellipse cx="80.3" cy="781.55" rx="13" ry="13" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
 <ellipse cx="80.3" cy="781.55" rx="5.46" ry="5.46" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Shop" id="transition-start-Shop">
 <polyline points="149.25,22 149.25,44" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Done-end" id="transition-Done-end">
 <polyline points="80.3,736.55 80.3,758.55" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Payment-Done-paid" id="transition-Payment-Done-paid">
 <polyline points="80.3,619.96 80.3,694.26" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Shop-Browsing" id="transition-start-Shop-Browsing">
 <polyline points="126.25,119.3 126.25,141.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Browsing-Cart-add" id="transition-Browsing-Cart-add">
 <polyline points="119.18,183.59 119.18,221.89" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Cart-Browsing-continue" id="transition-Cart-Browsing-continue">
 <polyline points="133.18,231.89 133.18,193.59" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Cart-Filling" id="transition-start-Cart-Filling">
 <polyline points="98.18,297.18 98.18,319.18" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Filling-Checkout-buy" id="transition-Filling-Checkout-buy">
 <polyline points="100.45,361.48 100.45,399.78" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Checkout-Address" id="transition-start-Checkout-Address">
 <polyline points="77.45,475.07 77.45,497.07" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Address-Payment-next" id="transition-Address-Payment-next">
 <polyline points="72.29,539.37 72.29,577.66" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Payment-Address-back" id="transition-Payment-Address-back">
 <polyline points="88.29,587.66 88.29,549.37" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Shop">
 <polygon points="145.25,44 149.25,54 153.25,44 149.25,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Done-end">
 <polygon points="76.3,758.55 80.3,768.55 84.3,758.55 80.3,762.55" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Payment-Done-paid">
 <polygon points="76.3,694.26 80.3,704.26 84.3,694.26 80.3,698.26" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Shop-Browsing">
 <polygon points="122.25,141.3 126.25,151.3 130.25,141.3 126.25,145.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Browsing-Cart-add">
 <polygon points="115.18,221.89 119.18,231.89 123.18,221.89 119.18,225.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Cart-Browsing-continue">
 <polygon points="137.18,193.59 133.18,183.59 129.18,193.59 133.18,189.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Cart-Filling">
 <polygon points="94.18,319.18 98.18,329.18 102.18,319.18 98.18,323.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Filling-Checkout-buy">
 <polygon points="96.45,399.78 100.45,409.78 104.45,399.78 100.45,403.78" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-start-Checkout-Address">
 <polygon points="73.45,497.07 77.45,507.07 81.45,497.07 77.45,501.07" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Address-Payment-next">
 <polygon points="68.29,577.66 72.29,587.66 76.29,577.66 72.29,581.66" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g class="transition-Payment-Address-back">
 <polygon points="92.29,549.37 88.29,539.37 84.29,549.37 88.29,545.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Shop">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="86.62" y="74.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="35.29" lengthAdjust="spacing">Shop</tspan>
 </text>
+</g>
+<g class="state-Browsing">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="94.86" y="172.29" font-size="14" fill="#0F172A" font-weight="bold" textLength="64.65" lengthAdjust="spacing">Browsing</tspan>
 </text>
+</g>
+<g class="state-Cart">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="66.53" y="252.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="29.32" lengthAdjust="spacing">Cart</tspan>
 </text>
+</g>
+<g class="state-Filling">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="79.97" y="350.18" font-size="14" fill="#0F172A" font-weight="bold" textLength="40.96" lengthAdjust="spacing">Filling</tspan>
 </text>
+</g>
+<g class="state-Checkout">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="48.09" y="430.77" font-size="14" fill="#0F172A" font-weight="bold" textLength="66.21" lengthAdjust="spacing">Checkout</tspan>
 </text>
+</g>
+<g class="state-Address">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="51.39" y="528.06" font-size="14" fill="#0F172A" font-weight="bold" textLength="57.82" lengthAdjust="spacing">Address</tspan>
 </text>
+</g>
+<g class="state-Payment">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="50" y="608.66" font-size="14" fill="#0F172A" font-weight="bold" textLength="60.61" lengthAdjust="spacing">Payment</tspan>
 </text>
+</g>
+<g class="transition-Address-Payment-next">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="37.63" y="568.36" font-size="14" fill="#0F172A" textLength="28.66" lengthAdjust="spacing">next</tspan>
 </text>
+</g>
+<g class="transition-Payment-Address-back">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="94.29" y="568.36" font-size="14" fill="#0F172A" textLength="32.12" lengthAdjust="spacing">back</tspan>
 </text>
+</g>
+<g class="transition-Filling-Checkout-buy">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="106.45" y="390.47" font-size="14" fill="#0F172A" textLength="24.71" lengthAdjust="spacing">buy</tspan>
 </text>
+</g>
+<g class="transition-Browsing-Cart-add">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="88.18" y="212.58" font-size="14" fill="#0F172A" textLength="25" lengthAdjust="spacing">add</tspan>
 </text>
+</g>
+<g class="transition-Cart-Browsing-continue">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="139.18" y="212.58" font-size="14" fill="#0F172A" textLength="57.34" lengthAdjust="spacing">continue</tspan>
 </text>
+</g>
+<g class="state-Done">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="62.43" y="725.25" font-size="14" fill="#0F172A" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
 </text>
+</g>
+<g class="transition-Payment-Done-paid">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="86.3" y="684.95" font-size="14" fill="#0F172A" textLength="28.39" lengthAdjust="spacing">paid</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

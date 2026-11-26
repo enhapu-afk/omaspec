@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="546" height="302" viewBox="0 0 546 302">
+<svg xmlns="http://www.w3.org/2000/svg" width="546" height="302" viewBox="0 0 546 302" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g id="lines">
 <line x1="32.49" y1="80.26" x2="32.49" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
@@ -19,53 +19,77 @@
 <line x1="200.79" y1="60.26" x2="200.79" y2="80.26" fill="none" stroke="#181818" stroke-width="1.5"/>
 </g>
 <g>
+<g class="node-Content" id="node-Content">
 <rect x="0" y="100.26" width="64.99" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="10" y="121.4" font-size="12" fill="#000000" textLength="44.99" lengthAdjust="spacing">Content</tspan>
 </text>
+</g>
+<g class="node-Write_20_the_20_pages" id="node-Write_20_the_20_pages">
 <rect x="42.49" y="149.23" width="109.69" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="52.49" y="170.37" font-size="12" fill="#000000" textLength="89.69" lengthAdjust="spacing">Write the pages</tspan>
 </text>
+</g>
+<g class="node-Proofread" id="node-Proofread">
 <rect x="42.49" y="198.2" width="76.62" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="52.49" y="219.34" font-size="12" fill="#000000" textLength="56.62" lengthAdjust="spacing">Proofread</tspan>
 </text>
+</g>
+<g class="node-Design" id="node-Design">
 <rect x="172.18" y="100.26" width="59.35" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="182.18" y="121.4" font-size="12" fill="#000000" textLength="39.35" lengthAdjust="spacing">Design</tspan>
 </text>
+</g>
+<g class="node-Pick_20_the_20_colors" id="node-Pick_20_the_20_colors">
 <rect x="211.86" y="149.23" width="103.77" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="221.86" y="170.37" font-size="12" fill="#000000" textLength="83.77" lengthAdjust="spacing">Pick the colors</tspan>
 </text>
+</g>
+<g class="node-Draw_20_the_20_icons" id="node-Draw_20_the_20_icons">
 <rect x="211.86" y="198.2" width="104.88" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="221.86" y="219.34" font-size="12" fill="#000000" textLength="84.88" lengthAdjust="spacing">Draw the icons</tspan>
 </text>
+</g>
+<g class="node-Release" id="node-Release">
 <rect x="336.73" y="100.26" width="64.7" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="346.73" y="121.4" font-size="12" fill="#000000" textLength="44.7" lengthAdjust="spacing">Release</tspan>
 </text>
+</g>
+<g class="node-Buy_20_the_20_domain" id="node-Buy_20_the_20_domain">
 <rect x="379.08" y="149.23" width="108.24" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="389.08" y="170.37" font-size="12" fill="#000000" textLength="88.24" lengthAdjust="spacing">Buy the domain</tspan>
 </text>
+</g>
+<g class="node-Deploy" id="node-Deploy">
 <rect x="379.08" y="198.2" width="59.85" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="389.08" y="219.34" font-size="12" fill="#000000" textLength="39.85" lengthAdjust="spacing">Deploy</tspan>
 </text>
+</g>
+<g class="node-Check_20_the_20_links" id="node-Check_20_the_20_links">
 <rect x="419.01" y="247.17" width="106.87" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="429.01" y="268.3" font-size="12" fill="#000000" textLength="86.87" lengthAdjust="spacing">Check the links</tspan>
 </text>
+</g>
+<g class="node-Website_20_launch" id="node-Website_20_launch">
 <rect x="147.05" y="26.3" width="107.47" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="157.05" y="47.43" font-size="12" fill="#000000" textLength="87.47" lengthAdjust="spacing">Website launch</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="185.54" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="154.8" lengthAdjust="spacing">Launching the website</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

@@ -1,27 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="551" height="185" viewBox="0 0 551 185">
+<svg xmlns="http://www.w3.org/2000/svg" width="551" height="185" viewBox="0 0 551 185" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="package-shop" id="package-shop">
 <polygon points="56.63,24.3 56.63,0 0,0 0,164.86 224.57,164.86 224.57,24.3" fill="#EEEEEE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="component-Front" id="component-Front">
 <rect x="12.43" y="32.3" width="82.52" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="74.95" y="37.3" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
 <rect x="74.95" y="43.8" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="component-Api" id="component-Api">
 <rect x="138.95" y="32.3" width="73.62" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="192.57" y="37.3" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
 <rect x="192.57" y="43.8" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="database-Sessions" id="database-Sessions">
 <ellipse cx="53.69" cy="143.86" rx="41.69" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="12" y="115.56" width="83.39" height="28.3" fill="#FEFECE"/>
 <line x1="12" y1="115.56" x2="12" y2="143.86" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="95.39" y1="115.56" x2="95.39" y2="143.86" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="53.69" cy="115.56" rx="41.69" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="component-Billing" id="component-Billing">
 <rect x="268.57" y="108.58" width="107.33" height="42.26" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="355.9" y="113.58" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
 <rect x="355.9" y="120.08" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="component-Lamp" id="component-Lamp">
 <rect x="419.9" y="115.56" width="88.61" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="488.51" y="120.56" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
 <rect x="488.51" y="127.06" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="component-Light_20_switch" id="component-Light_20_switch">
 <rect x="398.34" y="32.3" width="131.74" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="510.08" y="37.3" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
 <rect x="510.08" y="43.8" width="14" height="4.5" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
 </g>
 <g id="lines">
 <polyline points="464.21,60.59 464.21,105.56" fill="none" stroke="#181818" stroke-width="1"/>
@@ -32,33 +46,49 @@
 <polygon points="49.69,96.56 53.69,106.56 57.69,96.56 53.69,101.06" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="package-shop">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="16.99" font-size="14" fill="#000000" textLength="32.63" lengthAdjust="spacing">shop</tspan>
 </text>
+</g>
+<g class="component-Front">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="38.43" y="51.29" font-size="14" fill="#000000" textLength="30.52" lengthAdjust="spacing">Web</tspan>
 </text>
+</g>
+<g class="component-Api">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="164.95" y="51.29" font-size="14" fill="#000000" textLength="21.62" lengthAdjust="spacing">Api</tspan>
 </text>
+</g>
+<g class="database-Sessions">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="134.55" font-size="14" fill="#000000" textLength="59.39" lengthAdjust="spacing">Sessions</tspan>
 </text>
+</g>
+<g class="component-Billing">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="294.57" y="125.71" font-size="12" fill="#000000" font-style="italic" textLength="55.33" lengthAdjust="spacing">«service»</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="302.45" y="141.54" font-size="14" fill="#000000" textLength="39.56" lengthAdjust="spacing">Billing</tspan>
 </text>
+</g>
+<g class="component-Lamp">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="445.9" y="134.55" font-size="14" fill="#000000" textLength="36.61" lengthAdjust="spacing">Lamp</tspan>
 </text>
+</g>
+<g class="component-Light_20_switch">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="424.34" y="51.29" font-size="14" fill="#000000" textLength="79.74" lengthAdjust="spacing">Light switch</tspan>
 </text>
+</g>
+<g class="link-Api-Billing-charge" id="link-Api-Billing-charge">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="328.24" y="87.73" font-size="12" fill="#000000" textLength="39.55" lengthAdjust="spacing">charge</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

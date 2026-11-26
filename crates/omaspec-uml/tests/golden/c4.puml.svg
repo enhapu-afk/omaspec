@@ -1,30 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1141" height="747" viewBox="0 0 1141 747">
+<svg xmlns="http://www.w3.org/2000/svg" width="1141" height="747" viewBox="0 0 1141 747" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="person-rider" id="person-rider">
 <ellipse cx="319.9" cy="92.28" rx="13" ry="13" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
 <rect x="224.61" y="101.28" width="190.58" height="69.22" rx="24" ry="24" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g class="person-mechanic" id="person-mechanic">
 <ellipse cx="641.52" cy="92.28" rx="13" ry="13" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
 <rect x="537.46" y="101.28" width="208.12" height="69.22" rx="24" ry="24" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g class="rectangle-rental" id="rectangle-rental">
 <rect x="207.52" y="269.45" width="652.04" height="457" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,5"/>
+</g>
+<g class="rectangle-app" id="rectangle-app">
 <rect x="219.52" y="322.04" width="200.76" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g class="rectangle-api" id="rectangle-api">
 <rect x="219.52" y="470.49" width="157.62" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g class="database-db" id="database-db">
 <ellipse cx="602.86" cy="550" rx="85.13" ry="9" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
 <rect x="517.72" y="470.49" width="170.26" height="79.51" fill="#2C76BF"/>
 <line x1="517.72" y1="470.49" x2="517.72" y2="550" fill="none" stroke="#4A8BCB" stroke-width="1"/>
 <line x1="687.99" y1="470.49" x2="687.99" y2="550" fill="none" stroke="#4A8BCB" stroke-width="1"/>
 <ellipse cx="602.86" cy="470.49" rx="85.13" ry="9" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g class="queue-events" id="queue-events">
 <ellipse cx="513.54" cy="674.69" rx="10" ry="39.76" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
 <rect x="513.54" y="634.94" width="202.13" height="79.51" fill="#2C76BF"/>
 <line x1="513.54" y1="634.94" x2="715.67" y2="634.94" fill="none" stroke="#4A8BCB" stroke-width="1"/>
 <line x1="513.54" y1="714.45" x2="715.67" y2="714.45" fill="none" stroke="#4A8BCB" stroke-width="1"/>
 <ellipse cx="715.67" cy="674.69" rx="10" ry="39.76" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g class="rectangle-workshop" id="rectangle-workshop">
 <rect x="603.51" y="322.04" width="169.87" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g class="rectangle-payments" id="rectangle-payments">
 <rect x="0" y="643.08" width="163.52" height="63.22" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+</g>
+<g class="rectangle-locks" id="rectangle-locks">
 <rect x="789.58" y="93.28" width="149.05" height="63.22" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+</g>
+<g class="rectangle-c4_legend" id="rectangle-c4_legend">
 <rect x="982.63" y="26.3" width="137.94" height="197.18" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,4"/>
+</g>
+<g class="rectangle-c4_legend_0" id="rectangle-c4_legend_0">
 <rect x="1019.86" y="62.59" width="63.48" height="28.3" rx="8" ry="8" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g class="rectangle-c4_legend_1" id="rectangle-c4_legend_1">
 <rect x="994.63" y="122.89" width="113.94" height="28.3" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+</g>
+<g class="rectangle-c4_legend_2" id="rectangle-c4_legend_2">
 <rect x="1012.94" y="183.18" width="77.32" height="28.3" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+</g>
 </g>
 <g id="lines">
 <polyline points="319.9,170.5 319.9,312.04" fill="none" stroke="#181818" stroke-width="1"/>
@@ -45,94 +73,140 @@
 <polygon points="735.99,411.55 731.99,401.55 727.99,411.55 731.99,407.05" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="person-rider">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="299.41" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="40.98" lengthAdjust="spacing">Rider</tspan>
 <tspan x="242.61" y="158.19" font-size="13" fill="#FFFFFF" textLength="154.58" lengthAdjust="spacing">Rents a bike with the app</tspan>
 </text>
+</g>
+<g class="person-mechanic">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="603.1" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="76.83" lengthAdjust="spacing">Mechanic</tspan>
 <tspan x="555.46" y="158.19" font-size="13" fill="#FFFFFF" textLength="172.12" lengthAdjust="spacing">Keeps the bikes on the road</tspan>
 </text>
+</g>
+<g class="rectangle-rental">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="497.21" y="288.44" font-size="14" fill="#000000" font-weight="bold" textLength="72.66" lengthAdjust="spacing">Bike rental</tspan>
 <tspan x="508.05" y="304.74" font-size="12" fill="#000000" textLength="50.98" lengthAdjust="spacing">[System]</tspan>
 </text>
+</g>
+<g class="rectangle-app">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="282.79" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="74.22" lengthAdjust="spacing">Rider app</tspan>
 <tspan x="250.64" y="359.66" font-size="12" fill="#FFFFFF" textLength="138.52" lengthAdjust="spacing">[Container: Kotlin, Swift]</tspan>
 <tspan x="231.52" y="392.25" font-size="13" fill="#FFFFFF" textLength="176.76" lengthAdjust="spacing">Finds a bike, unlocks it, pays</tspan>
 </text>
+</g>
+<g class="rectangle-api">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="258.27" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="80.11" lengthAdjust="spacing">Rental API</tspan>
 <tspan x="231.52" y="508.1" font-size="12" fill="#FFFFFF" textLength="133.62" lengthAdjust="spacing">[Container: Rust, axum]</tspan>
 <tspan x="233.06" y="540.7" font-size="13" fill="#FFFFFF" textLength="130.53" lengthAdjust="spacing">Rentals, prices, bikes</tspan>
 </text>
+</g>
+<g class="database-db">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="573.62" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="58.46" lengthAdjust="spacing">Rentals</tspan>
 <tspan x="533.62" y="508.1" font-size="12" fill="#FFFFFF" textLength="138.47" lengthAdjust="spacing">[Container: PostgreSQL]</tspan>
 <tspan x="529.72" y="540.7" font-size="13" fill="#FFFFFF" textLength="146.26" lengthAdjust="spacing">Riders, rentals, invoices</tspan>
 </text>
+</g>
+<g class="queue-events">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="564.11" y="655.78" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="90.99" lengthAdjust="spacing">Bike events</tspan>
 <tspan x="557.81" y="672.55" font-size="12" fill="#FFFFFF" textLength="103.58" lengthAdjust="spacing">[Container: NATS]</tspan>
 <tspan x="525.54" y="705.14" font-size="13" fill="#FFFFFF" textLength="168.13" lengthAdjust="spacing">Where each bike is, its lock</tspan>
 </text>
+</g>
+<g class="rectangle-workshop">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="647.94" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="81.02" lengthAdjust="spacing">Workshop</tspan>
 <tspan x="627.56" y="359.66" font-size="12" fill="#FFFFFF" textLength="121.78" lengthAdjust="spacing">[Container: Web app]</tspan>
 <tspan x="615.51" y="392.25" font-size="13" fill="#FFFFFF" textLength="145.87" lengthAdjust="spacing">Repairs and spare parts</tspan>
 </text>
+</g>
+<g class="rectangle-payments">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="663.93" font-size="16" fill="#000000" font-weight="bold" textLength="139.52" lengthAdjust="spacing">Payment provider</tspan>
 <tspan x="26.92" y="697" font-size="13" fill="#000000" textLength="109.68" lengthAdjust="spacing">Cards and wallets</tspan>
 </text>
+</g>
+<g class="rectangle-locks">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="817.94" y="114.13" font-size="16" fill="#000000" font-weight="bold" textLength="92.34" lengthAdjust="spacing">Smart locks</tspan>
 <tspan x="801.58" y="147.19" font-size="13" fill="#000000" textLength="125.05" lengthAdjust="spacing">A lock on every bike</tspan>
 </text>
+</g>
+<g class="rectangle-c4_legend">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1026.1" y="45.29" font-size="14" fill="#000000" font-weight="bold" textLength="50.99" lengthAdjust="spacing">Legend</tspan>
 </text>
+</g>
+<g class="rectangle-c4_legend_0">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1031.86" y="81.58" font-size="12" fill="#FFFFFF" textLength="39.48" lengthAdjust="spacing">person</tspan>
 </text>
+</g>
+<g class="rectangle-c4_legend_1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1006.63" y="141.88" font-size="12" fill="#000000" textLength="89.94" lengthAdjust="spacing">external system</tspan>
 </text>
+</g>
+<g class="rectangle-c4_legend_2">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1024.94" y="202.18" font-size="12" fill="#FFFFFF" textLength="53.32" lengthAdjust="spacing">container</tspan>
 </text>
+</g>
+<g class="link-rider-app-_3c_b_3e_Uses_3c__2f_b_3e_" id="link-rider-app-_3c_b_3e_Uses_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="325.9" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="29.38" lengthAdjust="spacing">Uses</tspan>
 </text>
+</g>
+<g class="link-locks-events-_3c_b_3e_Reports_3c__2f_b_3e_" id="link-locks-events-_3c_b_3e_Reports_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="768.44" y="440.19" font-size="12" fill="#000000" font-weight="bold" textLength="45.95" lengthAdjust="spacing">Reports</tspan>
 <tspan x="768.44" y="454.16" font-size="12" fill="#000000" font-style="italic" textLength="44.28" lengthAdjust="spacing">[MQTT]</tspan>
 </text>
+</g>
+<g class="link-api-payments-_3c_b_3e_Charges_3c__2f_b_3e_" id="link-api-payments-_3c_b_3e_Charges_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="26.09" y="586.14" font-size="12" fill="#000000" font-weight="bold" textLength="49.67" lengthAdjust="spacing">Charges</tspan>
 <tspan x="26.09" y="600.1" font-size="12" fill="#000000" font-style="italic" textLength="48.55" lengthAdjust="spacing">[HTTPS]</tspan>
 </text>
+</g>
+<g class="link-mechanic-workshop-_3c_b_3e_Uses_3c__2f_b_3e_" id="link-mechanic-workshop-_3c_b_3e_Uses_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="694.45" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="29.38" lengthAdjust="spacing">Uses</tspan>
 </text>
+</g>
+<g class="link-app-api-_3c_b_3e_Calls_3c__2f_b_3e_" id="link-app-api-_3c_b_3e_Calls_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="304.33" y="428.69" font-size="12" fill="#000000" font-weight="bold" textLength="29.08" lengthAdjust="spacing">Calls</tspan>
 <tspan x="304.33" y="442.66" font-size="12" fill="#000000" font-style="italic" textLength="85.64" lengthAdjust="spacing">[JSON/HTTPS]</tspan>
 </text>
+</g>
+<g class="link-api-db-_3c_b_3e_Reads_20_and_20_writes_3c__2f_b_3e_" id="link-api-db-_3c_b_3e_Reads_20_and_20_writes_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="397.14" y="489.44" font-size="12" fill="#000000" font-weight="bold" textLength="100.58" lengthAdjust="spacing">Reads and writes</tspan>
 <tspan x="397.14" y="503.41" font-size="12" fill="#000000" font-style="italic" textLength="32.42" lengthAdjust="spacing">[SQL]</tspan>
 </text>
+</g>
+<g class="link-api-events-_3c_b_3e_Listens_20_to_3c__2f_b_3e_" id="link-api-events-_3c_b_3e_Listens_20_to_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="558.72" y="593.12" font-size="12" fill="#000000" font-weight="bold" textLength="57.08" lengthAdjust="spacing">Listens to</tspan>
 </text>
+</g>
+<g class="link-workshop-events-_3c_b_3e_Low_20_battery_2c__20_flat_20_tyre_3c__2f_b_3e_" id="link-workshop-events-_3c_b_3e_Low_20_battery_2c__20_flat_20_tyre_3c__2f_b_3e_">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="633.8" y="608.81" font-size="12" fill="#000000" font-weight="bold" textLength="122.5" lengthAdjust="spacing">Low battery, flat tyre</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="483.36" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="153.85" lengthAdjust="spacing">Bike rental: containers</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

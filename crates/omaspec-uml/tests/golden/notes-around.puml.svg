@@ -1,11 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="441" height="281" viewBox="0 0 441 281">
+<svg xmlns="http://www.w3.org/2000/svg" width="441" height="281" viewBox="0 0 441 281" data-omaspec="parts">
 <g transform="translate(227.6,10)">
 <g>
+<g class="partition-Counter" id="partition-Counter">
 <rect x="-217.6" y="83.97" width="420.62" height="144.23" fill="none" stroke="#000000" stroke-width="1.5"/>
 <path d="M-154.43,83.97 L-154.43,93.26 L-164.43,103.26 L-217.6,103.26" fill="none" stroke="#000000" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-214.6" y="97.96" font-size="14" fill="#000000" textLength="53.17" lengthAdjust="spacing">Counter</tspan>
 </text>
+</g>
 </g>
 <g id="lines">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
@@ -18,36 +20,52 @@
 <polygon points="6,228.2 10,238.2 14,228.2 10,232.2" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="start" id="start">
 <ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="note-Every_20_morning" id="note-Every_20_morning">
 <path d="M-167.77,44.42 L-167.77,69.55 L-56.67,69.55 L-56.67,54.42 L-66.67,44.42 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M-66.67,44.42 L-66.67,54.42 L-56.67,54.42" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-161.77" y="61.48" font-size="13" fill="#000000" textLength="89.1" lengthAdjust="spacing">Every morning</tspan>
 </text>
+</g>
+<g class="action-Open_20_the_20_shop" id="action-Open_20_the_20_shop">
 <rect x="-41.67" y="40" width="103.34" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-31.67" y="61.14" font-size="12" fill="#000000" textLength="83.34" lengthAdjust="spacing">Open the shop</tspan>
 </text>
+</g>
+<g class="note-Before_20_anyone_20_comes" id="note-Before_20_anyone_20_comes">
 <path d="M-207.6,124.68 L-207.6,149.81 L-50.73,149.81 L-50.73,134.68 L-60.73,124.68 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M-60.73,124.68 L-60.73,134.68 L-50.73,134.68" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-201.6" y="141.75" font-size="13" fill="#000000" textLength="134.88" lengthAdjust="spacing">Before anyone comes</tspan>
 </text>
+</g>
+<g class="action-Count_20_the_20_till" id="action-Count_20_the_20_till">
 <rect x="-35.73" y="120.26" width="91.46" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-25.73" y="141.4" font-size="12" fill="#000000" textLength="71.46" lengthAdjust="spacing">Count the till</tspan>
 </text>
+</g>
+<g class="note-Then_20_it_20_is_20_open" id="note-Then_20_it_20_is_20_open">
 <path d="M80.29,178.65 L80.29,203.78 L193.02,203.78 L193.02,188.65 L183.02,178.65 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M183.02,178.65 L183.02,188.65 L193.02,188.65" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="86.29" y="195.71" font-size="13" fill="#000000" textLength="90.73" lengthAdjust="spacing">Then it is open</tspan>
 </text>
+</g>
+<g class="action-Unlock_20_the_20_door" id="action-Unlock_20_the_20_door">
 <rect x="-45.29" y="174.23" width="110.58" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-35.29" y="195.37" font-size="12" fill="#000000" textLength="90.58" lengthAdjust="spacing">Unlock the door</tspan>
 </text>
+</g>
+<g class="stop" id="stop">
 <ellipse cx="10" cy="249.2" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
 <ellipse cx="10" cy="249.2" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
 </g>
 </g>
 </svg>

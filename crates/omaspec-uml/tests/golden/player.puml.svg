@@ -1,65 +1,129 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="313" height="354" viewBox="0 0 313 354">
+<svg xmlns="http://www.w3.org/2000/svg" width="313" height="354" viewBox="0 0 313 354" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="133.62" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Stopped" id="state-Stopped">
 <rect x="90.78" y="80.3" width="85.68" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Playing" id="state-Playing">
 <rect x="0" y="182.56" width="78.79" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Paused" id="state-Paused">
 <rect x="96.69" y="300.82" width="78.93" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="end" id="end">
 <ellipse cx="256.35" cy="198.71" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
 <ellipse cx="256.35" cy="198.71" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Stopped" id="transition-start-Stopped">
 <polyline points="133.62,48.3 133.62,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Stopped-Playing-play" id="transition-Stopped-Playing-play">
 <path d="M102.78,112.59 L102.78,112.59 C102.78,126.95 91.14,138.59 76.78,138.59 L65.36,138.59 C46.6,138.59 31.4,153.8 31.4,172.56 L31.4,172.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Paused-pause" id="transition-Playing-Paused-pause">
 <path d="M50.79,214.86 L50.79,220.13 C50.79,237.1 64.55,250.86 81.52,250.86 L81.52,250.86 C98.48,250.86 112.24,264.61 112.24,281.58 L112.24,290.82" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Paused-Playing-play" id="transition-Paused-Playing-play">
 <path d="M126.65,300.82 L126.65,270.79 C126.65,254.26 113.25,240.86 96.72,240.86 L82.79,240.86 C73.96,240.86 66.79,233.69 66.79,224.86 L66.79,224.86" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Stopped-stop" id="transition-Playing-Stopped-stop">
 <path d="M47.4,182.56 L47.4,182.56 C47.4,163.8 62.6,148.59 81.36,148.59 L92.78,148.59 C107.14,148.59 118.78,136.95 118.78,122.59 L118.78,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Paused-Stopped-stop" id="transition-Paused-Stopped-stop">
 <path d="M163.62,300.82 L163.62,156.17 C163.62,151.98 160.22,148.59 156.04,148.59 L156.04,148.59 C151.85,148.59 148.46,145.2 148.46,141.01 L148.46,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Playing-next_20_track" id="transition-Playing-Playing-next_20_track">
 <path d="M78.79,191.71 L87.79,191.71 C91.66,191.71 94.79,194.84 94.79,198.71 L94.79,199.71 C94.79,203.02 92.11,205.71 88.79,205.71 L88.79,205.71" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Stopped-end-close" id="transition-Stopped-end-close">
 <path d="M164.46,112.59 L164.46,112.59 C164.46,126.95 176.1,138.59 190.46,138.59 L219.23,138.59 C239.73,138.59 256.35,155.21 256.35,175.71 L256.35,175.71" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Stopped">
 <polygon points="129.62,70.3 133.62,80.3 137.62,70.3 133.62,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Stopped-Playing-play">
 <polygon points="27.4,172.56 31.4,182.56 35.4,172.56 31.4,176.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Paused-pause">
 <polygon points="108.24,290.82 112.24,300.82 116.24,290.82 112.24,294.82" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Paused-Playing-play">
 <polygon points="70.79,224.86 66.79,214.86 62.79,224.86 66.79,220.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Stopped-stop">
 <polygon points="122.78,122.59 118.78,112.59 114.78,122.59 118.78,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Paused-Stopped-stop">
 <polygon points="152.46,122.59 148.46,112.59 144.46,122.59 148.46,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Playing-Playing-next_20_track">
 <polygon points="88.79,201.71 78.79,205.71 88.79,209.71 84.79,205.71" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Stopped-end-close">
 <polygon points="252.35,175.71 256.35,185.71 260.35,175.71 256.35,179.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Stopped">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="104.78" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="57.68" lengthAdjust="spacing">Stopped</tspan>
 </text>
+</g>
+<g class="state-Playing">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="14" y="203.55" font-size="14" fill="#000000" font-weight="bold" textLength="50.79" lengthAdjust="spacing">Playing</tspan>
 </text>
+</g>
+<g class="state-Paused">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="110.69" y="321.82" font-size="14" fill="#000000" font-weight="bold" textLength="50.93" lengthAdjust="spacing">Paused</tspan>
 </text>
+</g>
+<g class="transition-Stopped-Playing-play">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1.66" y="163.73" font-size="12" fill="#000000" textLength="23.74" lengthAdjust="spacing">play</tspan>
 </text>
+</g>
+<g class="transition-Playing-Paused-pause">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="71.73" y="275.92" font-size="12" fill="#000000" textLength="34.51" lengthAdjust="spacing">pause</tspan>
 </text>
+</g>
+<g class="transition-Paused-Playing-play">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="132.65" y="265.99" font-size="12" fill="#000000" textLength="23.74" lengthAdjust="spacing">play</tspan>
 </text>
+</g>
+<g class="transition-Playing-Stopped-stop">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="53.4" y="175.96" font-size="12" fill="#000000" textLength="24.8" lengthAdjust="spacing">stop</tspan>
 </text>
+</g>
+<g class="transition-Paused-Stopped-stop">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="169.62" y="265.99" font-size="12" fill="#000000" textLength="24.8" lengthAdjust="spacing">stop</tspan>
 </text>
+</g>
+<g class="transition-Playing-Playing-next_20_track">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="98.79" y="202.86" font-size="12" fill="#000000" textLength="56.56" lengthAdjust="spacing">next track</tspan>
 </text>
+</g>
+<g class="transition-Stopped-end-close">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="262.35" y="163.73" font-size="12" fill="#000000" textLength="30.29" lengthAdjust="spacing">close</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="95.22" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="102.19" lengthAdjust="spacing">A media player</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

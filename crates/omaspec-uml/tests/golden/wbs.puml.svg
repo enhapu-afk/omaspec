@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1437" height="371" viewBox="0 0 1437 371">
+<svg xmlns="http://www.w3.org/2000/svg" width="1437" height="371" viewBox="0 0 1437 371" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <line x1="51.72" y1="80.26" x2="51.72" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
@@ -26,76 +26,112 @@
 <line x1="648" y1="60.26" x2="648" y2="80.26" fill="none" stroke="#181818" stroke-width="1.5"/>
 </g>
 <g>
+<g class="node-Left_20_of_20_the_20_row" id="node-Left_20_of_20_the_20_row">
 <rect x="0" y="100.26" width="103.44" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="10" y="121.4" font-size="12" fill="#000000" textLength="83.44" lengthAdjust="spacing">Left of the row</tspan>
 </text>
+</g>
+<g class="node-Launch_20_the_20_project" id="node-Launch_20_the_20_project">
 <rect x="123.44" y="100.26" width="126.14" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="133.44" y="121.4" font-size="12" fill="#000000" textLength="106.14" lengthAdjust="spacing">Launch the project</tspan>
 </text>
+</g>
+<g class="node-Complete_20_Stakeholder_20_Research" id="node-Complete_20_Stakeholder_20_Research">
 <rect x="196.51" y="149.23" width="202.64" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="206.51" y="170.37" font-size="12" fill="#000000" textLength="182.64" lengthAdjust="spacing">Complete Stakeholder Research</tspan>
 </text>
+</g>
+<g class="node-Initial_20_Implementation_20_Plan" id="node-Initial_20_Implementation_20_Plan">
 <rect x="196.51" y="198.2" width="168.22" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="206.51" y="219.34" font-size="12" fill="#000000" textLength="148.22" lengthAdjust="spacing">Initial Implementation Plan</tspan>
 </text>
+</g>
+<g class="node-Design_20_phase" id="node-Design_20_phase">
 <rect x="599.57" y="100.26" width="97.23" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="609.57" y="121.4" font-size="12" fill="#000000" textLength="77.23" lengthAdjust="spacing">Design phase</tspan>
 </text>
+</g>
+<g class="node-Measure_20_AsIs_20_performance_20_metrics" id="node-Measure_20_AsIs_20_performance_20_metrics">
 <rect x="419.15" y="149.23" width="219.04" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="429.15" y="170.37" font-size="12" fill="#000000" textLength="199.04" lengthAdjust="spacing">Measure AsIs performance metrics</tspan>
 </text>
+</g>
+<g class="node-Identify_20_Quick_20_Wins" id="node-Identify_20_Quick_20_Wins">
 <rect x="508.01" y="198.2" width="130.18" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="518.01" y="219.34" font-size="12" fill="#000000" textLength="110.18" lengthAdjust="spacing">Identify Quick Wins</tspan>
 </text>
+</g>
+<g class="node-Model_20_of_20_AsIs_20_Processes_20_Completed" id="node-Model_20_of_20_AsIs_20_Processes_20_Completed">
 <rect x="785.97" y="149.23" width="225.8" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="795.97" y="170.37" font-size="12" fill="#000000" textLength="205.8" lengthAdjust="spacing">Model of AsIs Processes Completed</tspan>
 </text>
+</g>
+<g class="node-Model_20_of_20_AsIs_20_Processes_20_Completed1" id="node-Model_20_of_20_AsIs_20_Processes_20_Completed1">
 <rect x="658.19" y="198.2" width="230.68" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="668.19" y="219.34" font-size="12" fill="#000000" textLength="210.68" lengthAdjust="spacing">Model of AsIs Processes Completed1</tspan>
 </text>
+</g>
+<g class="node-Model_20_of_20_AsIs_20_Processes_20_Completed2" id="node-Model_20_of_20_AsIs_20_Processes_20_Completed2">
 <rect x="908.87" y="198.2" width="233.12" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="918.87" y="219.34" font-size="12" fill="#000000" textLength="213.12" lengthAdjust="spacing">Model of AsIs Processes Completed2</tspan>
 </text>
+</g>
+<g class="node-Complete_20_innovate_20_phase" id="node-Complete_20_innovate_20_phase">
 <rect x="1161.99" y="100.26" width="164.59" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1171.99" y="121.4" font-size="12" fill="#000000" textLength="144.59" lengthAdjust="spacing">Complete innovate phase</tspan>
 </text>
+</g>
+<g class="node-colored" id="node-colored">
 <rect x="1254.29" y="149.23" width="63.01" height="33.97" fill="#87CEEB" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1264.29" y="170.37" font-size="12" fill="#000000" textLength="43.01" lengthAdjust="spacing">colored</tspan>
 </text>
+</g>
+<g class="node-without_20_a_20_box" id="node-without_20_a_20_box">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1254.29" y="210.34" font-size="12" fill="#000000" textLength="76.54" lengthAdjust="spacing">without a box</tspan>
 </text>
+</g>
+<g class="node-below_20_an_20_empty_20_node" id="node-below_20_an_20_empty_20_node">
 <rect x="1274.29" y="229.17" width="142.36" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1284.29" y="250.3" font-size="12" fill="#000000" textLength="122.36" lengthAdjust="spacing">below an empty node</tspan>
 </text>
+</g>
+<g class="node-several_20_lines" id="node-several_20_lines">
 <rect x="1254.29" y="278.14" width="61.23" height="47.94" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="1264.29" y="299.27" font-size="12" fill="#000000" textLength="41.23" lengthAdjust="spacing">several</tspan>
 <tspan x="1264.29" y="313.24" font-size="12" fill="#000000" textLength="26.23" lengthAdjust="spacing">lines</tspan>
 </text>
+</g>
+<g class="node-Business_20_Process_20_Modelling_20_WBS" id="node-Business_20_Process_20_Modelling_20_WBS">
 <rect x="543.07" y="26.3" width="209.86" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="553.07" y="47.43" font-size="12" fill="#000000" textLength="189.86" lengthAdjust="spacing">Business Process Modelling WBS</tspan>
 </text>
+</g>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="612.4" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="191.84" lengthAdjust="spacing">Business process modelling</tspan>
 </text>
+</g>
+<g class="caption" id="caption">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="655.22" y="347.06" font-size="14" fill="#000000" textLength="106.22" lengthAdjust="spacing">Figure 3: a WBS</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

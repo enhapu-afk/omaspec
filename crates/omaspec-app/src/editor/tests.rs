@@ -2968,18 +2968,13 @@ fn a_key_deeper_down_folds_what_it_holds_not_the_card_around_it() {
     assert_eq!(app.notice.as_deref(), Some("a/b folded"));
 }
 
-/// Each drawer that marks its parts is asked for them, and only those
-/// (docs/adr/0029): a kind renamed in the classifier must not stop it.
+/// Each drawer that marks its parts marks them in every picture, and only
+/// those have any (docs/adr/0029, 0037): a kind renamed in the classifier
+/// must not stop it.
 #[test]
-fn the_drawers_that_mark_parts_are_asked_for_them() {
-    let plain = crate::worker::Views {
-        nested: false,
-        table: false,
-        orbit: false,
-    };
-    let asked = |source: &str, language: Language| {
-        crate::worker::folded(source, language, &[], plain).contains("parts (Omaspec)")
-    };
+fn the_drawers_that_mark_parts_mark_them() {
+    let marks =
+        |source: &str, language: Language| crate::paper::testing::drawn(source, language).parts;
     for (source, language) in [
         ("@startuml\n[*] --> A\n@enduml\n", Language::PlantUml),
         ("@startuml\nclass A\n@enduml\n", Language::PlantUml),
@@ -2994,7 +2989,7 @@ fn the_drawers_that_mark_parts_are_asked_for_them() {
         ("mindmap\n  A\n", Language::Mermaid),
         ("gitGraph\n  commit\n", Language::Mermaid),
     ] {
-        assert!(asked(source, language), "{source}");
+        assert!(marks(source, language), "{source}");
     }
     for (source, language) in [
         ("@startuml\nA -> B\n@enduml\n", Language::PlantUml),
@@ -3005,7 +3000,7 @@ fn the_drawers_that_mark_parts_are_asked_for_them() {
         ("sequenceDiagram\nA->>B: hi\n", Language::Mermaid),
         ("pie\n\"a\": 1\n", Language::Mermaid),
     ] {
-        assert!(!asked(source, language), "{source}");
+        assert!(!marks(source, language), "{source}");
     }
 }
 
@@ -3021,13 +3016,12 @@ fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
     assert!(
         crate::worker::folded(json, Language::PlantUml, &[], nested).contains("layout (Omaspec)")
     );
-    // A state machine is asked for its parts, never nested.
+    // A state machine is never asked for nested.
     assert_eq!(
         crate::worker::folded(state, Language::PlantUml, &[], nested),
-        format!("{state}' parts (Omaspec)\n")
+        state
     );
-    // Only a state machine is asked for its table; a JSON diagram for
-    // its parts.
+    // Only a state machine is asked for its table.
     let table = crate::worker::Views {
         nested: false,
         table: true,
@@ -3035,7 +3029,7 @@ fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
     };
     assert_eq!(
         crate::worker::folded(json, Language::PlantUml, &[], table),
-        format!("{json}' parts (Omaspec)\n")
+        json
     );
     assert!(
         crate::worker::folded(

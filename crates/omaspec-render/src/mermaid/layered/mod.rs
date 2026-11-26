@@ -185,11 +185,6 @@ fn draw(
     };
     let mut canvas = Canvas::new(&theme.font_family, false);
     canvas.sketch(super::head::hand_drawn(source));
-    // The pane's parts (docs/adr/0029): each node and subgraph by its place
-    // in the tree, each line's words by its edge.
-    if omaspec_uml::fold::parts(source) {
-        canvas.mark_parts();
-    }
     if let Some(bands) = &bands {
         lanes::paint(&mut canvas, &palette, bands);
     }

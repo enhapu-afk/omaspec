@@ -28,7 +28,6 @@ pub fn try_draw(theme: &Theme, fenced: &str, over: super::Over) -> Option<(Strin
         .extend(diagram.root.part(&omaspec_uml::hand::apart(fenced)));
     omaspec_uml::state::label_by_hand(&mut diagram.root, &omaspec_uml::hand::labels(fenced));
     diagram.fold(&omaspec_uml::fold::read(fenced));
-    diagram.frame.parts = omaspec_uml::fold::parts(fenced);
     match over {
         super::Over::Nothing => {}
         super::Over::Marks(marks) => diagram.mark(marks),

@@ -1,73 +1,145 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="229" height="525" viewBox="0 0 229 525">
+<svg xmlns="http://www.w3.org/2000/svg" width="229" height="525" viewBox="0 0 229 525" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="state-Ready" id="state-Ready">
 <rect x="33.73" y="54" width="107.84" height="212.87" rx="8" ry="8" fill="#ADD8E6" stroke="#00008B" stroke-width="1"/>
 <line x1="33.73" y1="86.97" x2="141.57" y2="86.97" fill="none" stroke="#00008B" stroke-width="1"/>
+</g>
+<g class="start-Ready" id="start-Ready">
 <ellipse cx="87.65" cy="105.97" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Checking" id="state-Checking">
 <rect x="45.73" y="148.97" width="83.84" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Loaded" id="state-Loaded">
 <rect x="51.96" y="224.9" width="71.38" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Failed" id="state-Failed">
 <rect x="5.64" y="328.84" width="81.86" height="41.61" rx="8" ry="8" fill="#FFB6C1" stroke="#FF0000" stroke-width="1"/>
+</g>
+<g class="state-Finished" id="state-Finished">
 <rect x="112.71" y="416.42" width="77.93" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start" id="start">
 <ellipse cx="87.65" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Running" id="state-Running">
 <rect x="131.5" y="334.66" width="76.62" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="end" id="end">
 <ellipse cx="151.67" cy="491.38" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
 <ellipse cx="151.67" cy="491.38" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Ready" id="transition-start-Ready">
 <polyline points="87.65,22 87.65,44" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Ready-Running-start" id="transition-Ready-Running-start">
 <path d="M129.57,266.87 L129.57,266.87 C129.57,273.5 134.94,278.87 141.57,278.87 L149.69,278.87 C160.8,278.87 169.81,287.88 169.81,298.99 L169.81,324.66" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Ready-Failed-broken" id="transition-Ready-Failed-broken">
 <polyline points="45.73,266.87 45.73,318.84" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Running-Finished-done" id="transition-Running-Finished-done">
 <polyline points="151.67,364.63 151.67,406.42" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Failed-Ready-retry" id="transition-Failed-Ready-retry">
 <polyline points="58.15,328.84 58.15,276.87" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Finished-end" id="transition-Finished-end">
 <polyline points="151.67,446.38 151.67,468.38" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Ready-Checking" id="transition-start-Ready-Checking">
 <polyline points="87.65,116.97 87.65,138.97" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Checking-Loaded-ok" id="transition-Checking-Loaded-ok">
 <polyline points="87.65,178.94 87.65,214.9" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Ready">
 <polygon points="83.65,44 87.65,54 91.65,44 87.65,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Ready-Running-start">
 <polygon points="165.81,324.66 169.81,334.66 173.81,324.66 169.81,328.66" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Ready-Failed-broken">
 <polygon points="41.73,318.84 45.73,328.84 49.73,318.84 45.73,322.84" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Running-Finished-done">
 <polygon points="147.67,406.42 151.67,416.42 155.67,406.42 151.67,410.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Failed-Ready-retry">
 <polygon points="62.15,276.87 58.15,266.87 54.15,276.87 58.15,272.87" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Finished-end">
 <polygon points="147.67,468.38 151.67,478.38 155.67,468.38 151.67,472.38" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Ready-Checking">
 <polygon points="83.65,138.97 87.65,148.97 91.65,138.97 87.65,142.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Checking-Loaded-ok">
 <polygon points="83.65,214.9 87.65,224.9 91.65,214.9 87.65,218.9" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Ready">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="47.71" y="73.14" font-size="12" fill="#000000" font-weight="bold" textLength="79.88" lengthAdjust="spacing">Getting ready</tspan>
 </text>
+</g>
+<g class="state-Checking">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="59.73" y="168.1" font-size="12" fill="#000000" font-weight="bold" textLength="55.84" lengthAdjust="spacing">Checking</tspan>
 </text>
+</g>
+<g class="state-Loaded">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="65.96" y="244.04" font-size="12" fill="#000000" font-weight="bold" textLength="43.38" lengthAdjust="spacing">Loaded</tspan>
 </text>
+</g>
+<g class="transition-Checking-Loaded-ok">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="93.65" y="206.07" font-size="12" fill="#000000" textLength="13.79" lengthAdjust="spacing">ok</tspan>
 </text>
+</g>
+<g class="state-Failed">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="28.95" y="347.98" font-size="12" fill="#000000" font-weight="bold" textLength="35.23" lengthAdjust="spacing">Failed</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="19.64" y="360.09" font-size="10" fill="#000000" textLength="53.86" lengthAdjust="spacing">retries later</tspan>
 </text>
+</g>
+<g class="state-Finished">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="126.71" y="435.55" font-size="12" fill="#006400" font-weight="bold" textLength="49.93" lengthAdjust="spacing">Finished</tspan>
 </text>
+</g>
+<g class="state-Running">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="145.5" y="353.8" font-size="12" fill="#000000" font-weight="bold" textLength="48.62" lengthAdjust="spacing">Running</tspan>
 </text>
+</g>
+<g class="transition-Ready-Running-start">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="175.81" y="294.01" font-size="12" fill="#000000" textLength="25.44" lengthAdjust="spacing">start</tspan>
 </text>
+</g>
+<g class="transition-Ready-Failed-broken">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="294.01" font-size="12" fill="#000000" textLength="39.73" lengthAdjust="spacing">broken</tspan>
 </text>
+</g>
+<g class="transition-Running-Finished-done">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="157.67" y="397.58" font-size="12" fill="#000000" textLength="28.63" lengthAdjust="spacing">done</tspan>
 </text>
+</g>
+<g class="transition-Failed-Ready-retry">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="64.15" y="294.01" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">retry</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

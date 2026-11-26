@@ -26,9 +26,6 @@ pub fn draw_mapped(d: &MindMap) -> Result<(String, map::Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::MindMap)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
-    if d.frame.parts {
-        canvas.mark_parts();
-    }
     canvas.shadows(skin.shadow);
     let family = canvas.family();
     let annotations = Annotations::new(
@@ -607,8 +604,9 @@ mod tests {
             !ground.contains("Socks") && ground.contains("<path"),
             "{ground}"
         );
+        // Every picture marks them, the old line asking for them aside.
         let plain = crate::render(&source.replace("' parts (Omaspec)\n", "")).unwrap();
-        assert!(!crate::has_parts(&plain));
+        assert!(crate::has_parts(&plain));
     }
 
     #[test]

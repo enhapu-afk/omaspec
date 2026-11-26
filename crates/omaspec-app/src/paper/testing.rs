@@ -26,7 +26,9 @@ pub fn drawn_without_parts(source: &str, language: Language) -> Drawn {
         java_fallback: false,
         ..Config::default()
     });
-    let out = renderer.render(source, language).unwrap();
+    let mut out = renderer.render(source, language).unwrap();
+    // As the Java engine's picture: no parts of Omaspec's.
+    out.svg = omaspec_uml::unmarked(&out.svg);
     Drawn::of(out).unwrap()
 }
 

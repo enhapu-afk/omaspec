@@ -1,84 +1,152 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1264" height="245" viewBox="0 0 1264 245">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1264" height="245" viewBox="0 0 1264 245" data-omaspec="parts">
 <rect x="0" y="0" width="1264" height="245" fill="#FFFFFF"/>
 <g transform="translate(14,10)">
 <g>
+<g class="branch-main" id="branch-main">
 <line x1="125.48" y1="68.37" x2="1239.45" y2="68.37" fill="none" stroke="#C6D4E8" stroke-width="1.5" stroke-dasharray="3,4"/>
+</g>
+<g class="branch-develop" id="branch-develop">
 <line x1="125.48" y1="132.37" x2="1239.45" y2="132.37" fill="none" stroke="#E8C6CA" stroke-width="1.5" stroke-dasharray="3,4"/>
+</g>
+<g class="branch-feature_2f_search" id="branch-feature_2f_search">
 <line x1="125.48" y1="196.37" x2="1239.45" y2="196.37" fill="none" stroke="#C1E0C7" stroke-width="1.5" stroke-dasharray="3,4"/>
 </g>
+</g>
 <g>
+<g class="commit-main-0" id="commit-main-0">
 <line x1="153.48" y1="68.37" x2="267.79" y2="68.37" fill="none" stroke="#81A0CB" stroke-width="3"/>
+</g>
+<g class="commit-login" id="commit-login">
 <path d="M267.79,68.37 L267.79,118.37 C267.79,126.1 274.06,132.37 281.79,132.37 L382.11,132.37" fill="none" stroke="#CB818A" stroke-width="3"/>
+</g>
+<g class="commit-feature_2f_search-0" id="commit-feature_2f_search-0">
 <path d="M382.11,132.37 L382.11,182.37 C382.11,190.1 388.37,196.37 396.11,196.37 L496.42,196.37" fill="none" stroke="#76B983" stroke-width="3"/>
+</g>
+<g class="commit-search" id="commit-search">
 <line x1="496.42" y1="196.37" x2="610.73" y2="196.37" fill="none" stroke="#76B983" stroke-width="3"/>
+</g>
+<g class="commit-develop-0" id="commit-develop-0">
 <line x1="382.11" y1="132.37" x2="725.04" y2="132.37" fill="none" stroke="#CB818A" stroke-width="3"/>
 <path d="M610.73,196.37 L711.04,196.37 C718.78,196.37 725.04,190.1 725.04,182.37 L725.04,132.37" fill="none" stroke="#76B983" stroke-width="3"/>
+</g>
+<g class="commit-hotfix" id="commit-hotfix">
 <line x1="267.79" y1="68.37" x2="839.36" y2="68.37" fill="none" stroke="#81A0CB" stroke-width="3"/>
+</g>
+<g class="commit-develop-1" id="commit-develop-1">
 <line x1="725.04" y1="132.37" x2="953.67" y2="132.37" fill="none" stroke="#CB818A" stroke-width="3"/>
 <line x1="839.36" y1="68.37" x2="953.67" y2="132.37" fill="none" stroke="#636875" stroke-width="1.5" stroke-dasharray="4,4"/>
+</g>
+<g class="commit-develop-2" id="commit-develop-2">
 <line x1="953.67" y1="132.37" x2="1067.98" y2="132.37" fill="none" stroke="#CB818A" stroke-width="3"/>
+</g>
+<g class="commit-main-1" id="commit-main-1">
 <line x1="839.36" y1="68.37" x2="1182.29" y2="68.37" fill="none" stroke="#81A0CB" stroke-width="3"/>
 <path d="M1067.98,132.37 L1168.29,132.37 C1176.02,132.37 1182.29,126.1 1182.29,118.37 L1182.29,68.37" fill="none" stroke="#CB818A" stroke-width="3"/>
 </g>
+</g>
 <g>
+<g class="branch-main">
 <rect x="61.69" y="55.22" width="55.79" height="26.3" rx="4" ry="4" fill="#81A0CB"/>
+</g>
+<g class="branch-develop">
 <rect x="40.37" y="119.22" width="77.12" height="26.3" rx="4" ry="4" fill="#CB818A"/>
+</g>
+<g class="branch-feature_2f_search">
 <rect x="-4" y="183.22" width="121.48" height="26.3" rx="4" ry="4" fill="#76B983"/>
+</g>
+<g class="commit-init" id="commit-init">
 <ellipse cx="153.48" cy="68.37" rx="9" ry="9" fill="#81A0CB"/>
 <rect x="142.43" y="81.37" width="22.09" height="15.36" rx="2" ry="2" fill="#FFFFFF"/>
+</g>
+<g class="commit-main-0">
 <ellipse cx="267.79" cy="68.37" rx="9" ry="9" fill="#81A0CB"/>
+</g>
+<g class="commit-login">
 <ellipse cx="382.11" cy="132.37" rx="9" ry="9" fill="#CB818A"/>
 <rect x="365.97" y="145.37" width="32.27" height="15.36" rx="2" ry="2" fill="#FFFFFF"/>
+</g>
+<g class="commit-feature_2f_search-0">
 <ellipse cx="496.42" cy="196.37" rx="9" ry="9" fill="#76B983"/>
+</g>
+<g class="commit-search">
 <rect x="601.73" y="187.37" width="18" height="18" rx="2" ry="2" fill="#76B983"/>
 <rect x="589.3" y="209.37" width="42.86" height="15.36" rx="2" ry="2" fill="#FFFFFF"/>
+</g>
+<g class="commit-develop-0">
 <ellipse cx="725.04" cy="132.37" rx="9" ry="9" fill="#FFFFFF" stroke="#CB818A" stroke-width="3"/>
 <ellipse cx="725.04" cy="132.37" rx="3.5" ry="3.5" fill="#CB818A"/>
+</g>
+<g class="commit-hotfix">
 <ellipse cx="839.36" cy="68.37" rx="9" ry="9" fill="#81A0CB"/>
 <line x1="835.31" y1="64.32" x2="843.41" y2="72.42" fill="none" stroke="#FFFFFF" stroke-width="2"/>
 <line x1="835.31" y1="72.42" x2="843.41" y2="64.32" fill="none" stroke="#FFFFFF" stroke-width="2"/>
 <rect x="821" y="81.37" width="36.72" height="15.36" rx="2" ry="2" fill="#FFFFFF"/>
 <rect x="818.53" y="35.01" width="41.65" height="19.36" rx="3" ry="3" fill="#E2E3E5" stroke="#878B95" stroke-width="1"/>
+</g>
+<g class="commit-develop-1">
 <ellipse cx="953.67" cy="132.37" rx="9" ry="9" fill="#CB818A"/>
 <ellipse cx="950.17" cy="133.87" rx="2.2" ry="2.2" fill="#FFFFFF"/>
 <ellipse cx="957.17" cy="133.87" rx="2.2" ry="2.2" fill="#FFFFFF"/>
 <rect x="897.51" y="99.01" width="112.31" height="19.36" rx="3" ry="3" fill="#E2E3E5" stroke="#878B95" stroke-width="1"/>
+</g>
+<g class="commit-develop-2">
 <ellipse cx="1067.98" cy="132.37" rx="9" ry="9" fill="#CB818A"/>
+</g>
+<g class="commit-main-1">
 <ellipse cx="1182.29" cy="68.37" rx="9" ry="9" fill="#FFFFFF" stroke="#81A0CB" stroke-width="3"/>
 <ellipse cx="1182.29" cy="68.37" rx="3.5" ry="3.5" fill="#81A0CB"/>
 <rect x="1161.47" y="35.01" width="41.65" height="19.36" rx="3" ry="3" fill="#E2E3E5" stroke="#878B95" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="branch-main">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="73.69" y="73.21" font-size="14" fill="#000000" textLength="31.79" lengthAdjust="spacing">main</tspan>
 </text>
+</g>
+<g class="branch-develop">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="52.37" y="137.21" font-size="14" fill="#000000" textLength="53.12" lengthAdjust="spacing">develop</tspan>
 </text>
+</g>
+<g class="branch-feature_2f_search">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="8" y="201.21" font-size="14" fill="#000000" textLength="97.48" lengthAdjust="spacing">feature/search</tspan>
 </text>
+</g>
+<g class="commit-init">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="145.43" y="93.02" font-size="11.48" fill="#0F172A" textLength="16.09" lengthAdjust="spacing">init</tspan>
 </text>
+</g>
+<g class="commit-login">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="368.97" y="157.02" font-size="11.48" fill="#0F172A" textLength="26.27" lengthAdjust="spacing">login</tspan>
 </text>
+</g>
+<g class="commit-search">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="592.3" y="221.02" font-size="11.48" fill="#0F172A" textLength="36.86" lengthAdjust="spacing">search</tspan>
 </text>
+</g>
+<g class="commit-hotfix">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="824" y="93.02" font-size="11.48" fill="#0F172A" textLength="30.72" lengthAdjust="spacing">hotfix</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="824.53" y="48.66" font-size="11.48" fill="#0F172A" textLength="29.65" lengthAdjust="spacing">v1.0.1</tspan>
 </text>
+</g>
+<g class="commit-develop-1">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="903.51" y="112.66" font-size="11.48" fill="#0F172A" textLength="100.31" lengthAdjust="spacing">cherry-pick: hotfix</tspan>
 </text>
+</g>
+<g class="commit-main-1">
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="1167.47" y="48.66" font-size="11.48" fill="#0F172A" textLength="29.65" lengthAdjust="spacing">v1.1.0</tspan>
 </text>
+</g>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="563.25" y="16.24" font-size="17.5" fill="#0F172A" font-weight="bold" textLength="108.95" lengthAdjust="spacing">Release flow</tspan>
 </text>

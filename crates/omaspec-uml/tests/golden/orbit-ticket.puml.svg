@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="505" height="512" viewBox="0 0 505 512">
+<svg xmlns="http://www.w3.org/2000/svg" width="505" height="512" viewBox="0 0 505 512" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g id="lines">
 <polyline points="303.52,144.41 304.05,144.63 305.39,145.19 306.72,145.77 308.04,146.37 309.36,146.98 310.67,147.61 311.97,148.25 313.27,148.9 314.56,149.57 315.84,150.26 317.11,150.96 318.37,151.67 319.63,152.4 320.87,153.15 322.11,153.9 323.34,154.68 324.56,155.46 325.78,156.26 326.98,157.07 328.17,157.9 329.35,158.74 330.53,159.6 331.69,160.46 332.85,161.34 333.99,162.24 335.12,163.15 336.25,164.07 337.36,165 338.46,165.94 339.55,166.9 340.63,167.87 341.7,168.86 342.76,169.85 343.8,170.86 344.84,171.88 345.86,172.91 346.87,173.95 347.87,175 348.85,176.07 349.83,177.15 350.79,178.23 351.74,179.33 352.68,180.44 353.24,181.13" fill="none" stroke="#181818" stroke-width="1"/>
@@ -73,9 +73,11 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="46.23" y="260.11" font-size="12" fill="#000000" textLength="70.5" lengthAdjust="spacing">after a week</tspan>
 </text>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="187.63" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="109.44" lengthAdjust="spacing">A support ticket</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

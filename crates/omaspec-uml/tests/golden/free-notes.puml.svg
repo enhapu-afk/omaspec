@@ -1,51 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="314" height="335" viewBox="0 0 314 335">
+<svg xmlns="http://www.w3.org/2000/svg" width="314" height="335" viewBox="0 0 314 335" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="start" id="start">
 <ellipse cx="117.84" cy="21.13" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Idle" id="state-Idle">
 <rect x="91.4" y="74.26" width="52.89" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Busy" id="state-Busy">
 <rect x="0" y="152.53" width="235.69" height="161.86" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="0" y1="187.82" x2="235.69" y2="187.82" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="start-Busy" id="start-Busy">
 <ellipse cx="55.15" cy="216.96" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="state-Working" id="state-Working">
 <rect x="12" y="270.09" width="86.3" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="note-N2" id="note-N2">
 <path d="M110.15,195.82 L110.15,238.09 L223.69,238.09 L223.69,205.82 L213.69,195.82 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M213.69,195.82 L213.69,205.82 L223.69,205.82" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="note-N1" id="note-N1">
 <path d="M172.84,0 L172.84,42.26 L293.86,42.26 L293.86,10 L283.86,0 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M283.86,0 L283.86,10 L293.86,10" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 </g>
+</g>
 <g id="lines">
+<g class="transition-start-Idle" id="transition-start-Idle">
 <polyline points="117.84,32.13 117.84,64.26" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Busy-go" id="transition-Idle-Busy-go">
 <polyline points="109.84,106.56 109.84,142.53" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Busy-Idle-done" id="transition-Busy-Idle-done">
 <polyline points="125.84,152.53 125.84,116.56" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Busy-Working" id="transition-start-Busy-Working">
 <polyline points="55.15,227.96 55.15,260.09" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Idle">
 <polygon points="113.84,64.26 117.84,74.26 121.84,64.26 117.84,68.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Idle-Busy-go">
 <polygon points="105.84,142.53 109.84,152.53 113.84,142.53 109.84,146.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Busy-Idle-done">
 <polygon points="129.84,116.56 125.84,106.56 121.84,116.56 125.84,112.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Busy-Working">
 <polygon points="51.15,260.09 55.15,270.09 59.15,260.09 55.15,264.09" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
+</g>
 <g>
+<g class="state-Idle">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="105.4" y="95.26" font-size="14" fill="#000000" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
+</g>
+<g class="state-Busy">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="100.71" y="173.52" font-size="14" fill="#000000" font-weight="bold" textLength="34.26" lengthAdjust="spacing">Busy</tspan>
 </text>
+</g>
+<g class="state-Working">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="26" y="291.08" font-size="14" fill="#000000" font-weight="bold" textLength="58.3" lengthAdjust="spacing">Working</tspan>
 </text>
+</g>
+<g class="note-N2">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="116.15" y="213.89" font-size="13" fill="#000000" textLength="97.54" lengthAdjust="spacing">Inside the state,</tspan>
 <tspan x="116.15" y="229.02" font-size="13" fill="#000000" textLength="62.65" lengthAdjust="spacing">in a block.</tspan>
 </text>
+</g>
+<g class="note-N1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="178.84" y="18.06" font-size="13" fill="#000000" textLength="102.8" lengthAdjust="spacing">Lives on its own,</tspan>
 <tspan x="178.84" y="33.2" font-size="13" fill="#000000" textLength="105.01" lengthAdjust="spacing">beside the states</tspan>
 </text>
+</g>
+<g class="transition-Idle-Busy-go">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="89.29" y="133.7" font-size="12" fill="#000000" textLength="14.56" lengthAdjust="spacing">go</tspan>
 </text>
+</g>
+<g class="transition-Busy-Idle-done">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="131.84" y="133.7" font-size="12" fill="#000000" textLength="28.63" lengthAdjust="spacing">done</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

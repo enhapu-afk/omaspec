@@ -1,22 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="304" height="271" viewBox="0 0 304 271">
+<svg xmlns="http://www.w3.org/2000/svg" width="304" height="271" viewBox="0 0 304 271" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
+<g class="actor-Guest" id="actor-Guest">
 <ellipse cx="40.62" cy="8" rx="7" ry="7" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="40.62" y1="15" x2="40.62" y2="31" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="29.62" y1="21" x2="51.62" y2="21" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="40.62" y1="31" x2="30.62" y2="45" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="40.62" y1="31" x2="50.62" y2="45" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="usecase-Refund" id="usecase-Refund">
 <ellipse cx="155.24" cy="34.15" rx="42" ry="20" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="note-Hint" id="note-Hint">
 <path d="M0,112.3 L0,139.43 L81.24,139.43 L81.24,121.34 L72.2,112.3 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M72.2,112.3 L72.2,121.34 L81.24,121.34" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="actor-Clerk" id="actor-Clerk">
 <ellipse cx="40.62" cy="191.43" rx="7" ry="7" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="40.62" y1="198.43" x2="40.62" y2="214.43" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="29.62" y1="204.43" x2="51.62" y2="204.43" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="40.62" y1="214.43" x2="30.62" y2="228.43" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="40.62" y1="214.43" x2="50.62" y2="228.43" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="usecase-Login" id="usecase-Login">
 <ellipse cx="155.24" cy="217.58" rx="42" ry="20" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="note-usecase-Login-right-1" id="note-usecase-Login-right-1">
 <path d="M207.24,197.58 L207.24,224.71 L283.51,224.71 L283.51,206.62 L274.47,197.58 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M274.47,197.58 L274.47,206.62 L283.51,206.62" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
 </g>
 <g id="lines">
 <polyline points="67.62,217.58 103.24,217.58" fill="none" stroke="#181818" stroke-width="1"/>
@@ -25,24 +37,36 @@
 <polygon points="103.24,38.15 113.24,34.15 103.24,30.15 107.74,34.15" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
+<g class="actor-Guest">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="21.2" y="63.99" font-size="14" fill="#000000" textLength="38.85" lengthAdjust="spacing">Guest</tspan>
 </text>
+</g>
+<g class="usecase-Refund">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="131.51" y="38.99" font-size="14" fill="#000000" textLength="47.47" lengthAdjust="spacing">Refund</tspan>
 </text>
+</g>
+<g class="note-Hint">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="6" y="130.36" font-size="13" fill="#000000" textLength="63.24" lengthAdjust="spacing">remember</tspan>
 </text>
+</g>
+<g class="actor-Clerk">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="23.26" y="247.42" font-size="14" fill="#000000" textLength="34.72" lengthAdjust="spacing">Clerk</tspan>
 </text>
+</g>
+<g class="usecase-Login">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="136.97" y="222.42" font-size="14" fill="#000000" textLength="36.55" lengthAdjust="spacing">Login</tspan>
 </text>
+</g>
+<g class="note-usecase-Login-right-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="213.24" y="215.64" font-size="13" fill="#000000" textLength="60.27" lengthAdjust="spacing">password</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

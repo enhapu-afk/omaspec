@@ -319,7 +319,9 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         let mut exported = exported;
         if let (Some(prefix), Picture::One(bytes)) = (args.id_prefix, &mut exported.picture) {
             let svg = String::from_utf8_lossy(bytes);
-            *bytes = omaspec_render::prefix_ids(&svg, prefix).into_bytes();
+            // Its ids and its parts' classes alike (docs/adr/0037).
+            let owned = omaspec_render::prefix_ids(&svg, prefix);
+            *bytes = omaspec_uml::prefix_classes(&owned, prefix).into_bytes();
         }
         // One diagram holds every name asked to fold, or nothing is
         // written.

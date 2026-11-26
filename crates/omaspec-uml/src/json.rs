@@ -258,9 +258,6 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
 pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let look = Look::read(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&look.font_name, false);
-    if diagram.frame.parts {
-        canvas.mark_parts();
-    }
     canvas.sketch(look.sketch);
     let family = canvas.family();
     let notes = Annotations::new(&diagram.frame, look.around, family)?;

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="754" height="387" viewBox="0 0 754 387">
+<svg xmlns="http://www.w3.org/2000/svg" width="754" height="387" viewBox="0 0 754 387" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <rect x="0" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F1F1F1" stroke="#8D8D8D" stroke-width="1"/>
@@ -169,9 +169,11 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="423.34" y="363.76" font-size="13" fill="#000000" font-style="italic" textLength="55.37" lengthAdjust="spacing">not rated</tspan>
 </text>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="282.76" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="168.48" lengthAdjust="spacing">What a bookshop can do</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>

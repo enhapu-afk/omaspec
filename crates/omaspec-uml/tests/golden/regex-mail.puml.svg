@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="387" height="159" viewBox="0 0 387 159">
+<svg xmlns="http://www.w3.org/2000/svg" width="387" height="159" viewBox="0 0 387 159" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <line x1="8" y1="85.86" x2="22" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
@@ -85,9 +85,11 @@
 <tspan x="298.81" y="61.51" font-size="10" fill="#000000" textLength="17.5" lengthAdjust="spacing">{2,}</tspan>
 </text>
 <polygon points="358.5,85.86 352,82.86 352,88.86" fill="#000000"/>
+<g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="130.05" y="11.14" font-size="12" fill="#000000" font-weight="bold" textLength="106.9" lengthAdjust="spacing">An e-mail address</tspan>
 </text>
+</g>
 </g>
 </g>
 </svg>
