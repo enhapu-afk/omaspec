@@ -80,6 +80,8 @@ pub enum Widget {
         items: Vec<Item>,
     },
     Text(String),
+    /// `[OK]`, its words as written between the brackets: a space at
+    /// either end widens it ([`draw`]).
     Button(String),
     Field(String),
     Check {

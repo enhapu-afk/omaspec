@@ -485,7 +485,8 @@ fn widget(text: &str, no: usize) -> Result<Widget, Declined> {
         }
     }
     if let Some(inner) = text.strip_prefix('[').and_then(|t| t.strip_suffix(']')) {
-        return Ok(Widget::Button(inner.trim().to_owned()));
+        // Its spaces are kept: they widen the button, as PlantUML's.
+        return Ok(Widget::Button(inner.to_owned()));
     }
     if let Some(inner) = text.strip_prefix('"').and_then(|t| t.strip_suffix('"')) {
         return Ok(Widget::Field(inner.trim_end().to_owned()));
@@ -605,7 +606,7 @@ mod tests {
             rows[6],
             Row::Cells(vec![
                 Widget::Button("Cancel".into()),
-                Widget::Button("OK".into())
+                Widget::Button(" OK ".into())
             ])
         );
     }

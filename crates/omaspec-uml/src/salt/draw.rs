@@ -64,6 +64,18 @@ impl Painter<'_> {
 
     /// What a text field holds, as written: `****` is a password, not
     /// Creole.
+    /// A button's words and its size: each space before or after them
+    /// widens it by two thirds of the font's size, as PlantUML's 8 units
+    /// a space at its 12, and they stand in its middle (REQ-135).
+    fn button(&self, text: &str, font: Font) -> Result<(Block, (f32, f32)), Declined> {
+        let words = text.trim();
+        let spaces = text.len() - words.len();
+        let b = self.words(words, font)?;
+        let width = (b.width + 20.0 + spaces as f32 * font.size * 2.0 / 3.0).max(44.0);
+        let height = b.height + 6.0;
+        Ok((b, (width, height)))
+    }
+
     fn plain(&self, text: &str, font: Font) -> Block {
         text::styled(
             vec![vec![(text.to_owned(), text::Style::from(font))]],
@@ -86,8 +98,8 @@ impl Painter<'_> {
                 (b.width, b.height)
             }
             Widget::Button(text) => {
-                let b = self.words(text, font)?;
-                ((b.width + 20.0).max(44.0), b.height + 6.0)
+                let (_, size) = self.button(text, font)?;
+                size
             }
             Widget::Field(text) => {
                 let b = self.plain(text, font);
@@ -255,8 +267,8 @@ impl Painter<'_> {
                 canvas.text(Layer::Front, &b, (x, y + (h - b.height) / 2.0), Align::Left);
             }
             Widget::Button(text) => {
-                let b = tied(self.words(text, font)?, at);
-                let (bw, bh) = ((b.width + 20.0).max(44.0), b.height + 6.0);
+                let (b, (bw, bh)) = self.button(text, font)?;
+                let b = tied(b, at);
                 let top = y + (h - bh) / 2.0;
                 canvas.rect(
                     Layer::Frames,
@@ -654,6 +666,28 @@ impl Look {
 
 #[cfg(test)]
 mod tests {
+    /// REQ-135: spaces round a button's words widen it, on either side
+    /// alike, as PlantUML's; its words stand in its middle.
+    #[test]
+    fn spaces_widen_a_button() {
+        let svg = crate::render(
+            "@startsalt\n{\n  [Touch grass]\n  [Touch grass      ]\n  [      Touch grass]\n  [   Touch grass   ]\n}\n@endsalt\n",
+        )
+        .unwrap();
+        let widths: Vec<f32> = svg
+            .split("<rect ")
+            .skip(1)
+            .filter(|rect| rect.contains(r#"rx="6""#))
+            .map(|rect| {
+                let at = rect.find(r#"width=""#).unwrap() + 7;
+                rect[at..].split('"').next().unwrap().parse().unwrap()
+            })
+            .collect();
+        assert_eq!(widths.len(), 4, "{svg}");
+        assert!(widths[1] > widths[0] + 40.0, "{widths:?}");
+        assert!((widths[1] - widths[2]).abs() < 0.01 && (widths[1] - widths[3]).abs() < 0.01);
+    }
+
     /// Each row's words are tied to the line it is written on, a tree's
     /// items to theirs, so a build and a click find them by their line.
     #[test]

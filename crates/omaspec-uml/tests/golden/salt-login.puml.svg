@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="166" height="94" viewBox="0 0 166 94">
+<svg xmlns="http://www.w3.org/2000/svg" width="181" height="94" viewBox="0 0 181 94">
 <g transform="translate(10,10)">
 <g>
-<rect x="0" y="0" width="145.73" height="73.4" fill="none" stroke="#000000" stroke-width="1"/>
-<line x1="74.63" y1="22.13" x2="141.73" y2="22.13" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="0" y="0" width="160.64" height="73.4" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="74.63" y1="22.13" x2="156.64" y2="22.13" fill="none" stroke="#000000" stroke-width="1"/>
 <line x1="74.63" y1="18.13" x2="74.63" y2="22.13" fill="none" stroke="#000000" stroke-width="1"/>
-<line x1="74.63" y1="44.26" x2="141.73" y2="44.26" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="74.63" y1="44.26" x2="156.64" y2="44.26" fill="none" stroke="#000000" stroke-width="1"/>
 <line x1="74.63" y1="40.26" x2="74.63" y2="44.26" fill="none" stroke="#000000" stroke-width="1"/>
 <rect x="4" y="48.26" width="62.63" height="21.13" rx="6" ry="6" fill="#FFFFFF" stroke="#000000" stroke-width="1.6"/>
-<rect x="74.63" y="48.26" width="44" height="21.13" rx="6" ry="6" fill="#FFFFFF" stroke="#000000" stroke-width="1.6"/>
+<rect x="74.63" y="48.26" width="82.01" height="21.13" rx="6" ry="6" fill="#FFFFFF" stroke="#000000" stroke-width="1.6"/>
 </g>
 <g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -26,7 +26,7 @@
 <tspan x="14" y="63.33" font-size="13" fill="#000000" textLength="42.63" lengthAdjust="spacing">Cancel</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="87.29" y="63.33" font-size="13" fill="#000000" textLength="18.68" lengthAdjust="spacing">OK</tspan>
+<tspan x="106.29" y="63.33" font-size="13" fill="#000000" textLength="18.68" lengthAdjust="spacing">OK</tspan>
 </text>
 </g>
 </g>

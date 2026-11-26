@@ -2299,6 +2299,14 @@ is open and the reasoning around it.
       they stand, tabs and a tree's items too; beside a block the other
       cells of a row stand at its top, as PlantUML stands them, not in
       its middle; an untied picture comes with its own `@end…` line.
+- [x] Spaces widen a Salt button (REQ-135, 2026-11-26): `[Ok        ]`
+      was as wide as `[Ok]`, the reader trimming what stands between the
+      brackets, where PlantUML widens a button by each space at either
+      end, 8 units a space at its 12, and stands the words in its middle.
+      A button keeps its words as written now, and each space before or
+      after them widens it by two thirds of the font's size;
+      `salt-login.puml` (`[  OK   ]`) and `salt-widgets.puml` (`[ Save ]`)
+      are a little wider.
 
 ## Next
 
