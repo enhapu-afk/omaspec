@@ -2306,7 +2306,10 @@ is open and the reasoning around it.
       A button keeps its words as written now, and each space before or
       after them widens it by two thirds of the font's size;
       `salt-login.puml` (`[  OK   ]`) and `salt-widgets.puml` (`[ Save ]`)
-      are a little wider.
+      are a little wider. After the review: a blank counts once however
+      many bytes it takes (an ideographic space was three), and the words
+      stand in the middle with the spaces after them or before them
+      alike, as PlantUML's do (held by the test).
 
 ## Next
 

@@ -62,20 +62,21 @@ impl Painter<'_> {
         text::block(text, font, self.family).map_err(|e| Declined::at(0, e))
     }
 
-    /// What a text field holds, as written: `****` is a password, not
-    /// Creole.
-    /// A button's words and its size: each space before or after them
+    /// A button's words and its size: each blank before or after them
     /// widens it by two thirds of the font's size, as PlantUML's 8 units
-    /// a space at its 12, and they stand in its middle (REQ-135).
+    /// a space at its 12, and they stand in its middle, however many
+    /// stand on either side (REQ-135).
     fn button(&self, text: &str, font: Font) -> Result<(Block, (f32, f32)), Declined> {
         let words = text.trim();
-        let spaces = text.len() - words.len();
+        let spaces = text.chars().count() - words.chars().count();
         let b = self.words(words, font)?;
         let width = (b.width + 20.0 + spaces as f32 * font.size * 2.0 / 3.0).max(44.0);
         let height = b.height + 6.0;
         Ok((b, (width, height)))
     }
 
+    /// What a text field holds, as written: `****` is a password, not
+    /// Creole.
     fn plain(&self, text: &str, font: Font) -> Block {
         text::styled(
             vec![vec![(text.to_owned(), text::Style::from(font))]],
@@ -686,6 +687,29 @@ mod tests {
         assert_eq!(widths.len(), 4, "{svg}");
         assert!(widths[1] > widths[0] + 40.0, "{widths:?}");
         assert!((widths[1] - widths[2]).abs() < 0.01 && (widths[1] - widths[3]).abs() < 0.01);
+        // Spaces after the words or before them: in the middle alike, as
+        // PlantUML 1.2026.8 stands them (x 42.833 in a button of 84 both).
+        let xs: Vec<&str> = svg
+            .split("<text ")
+            .skip(1)
+            .map(|text| {
+                let at = text.find(r#" x=""#).unwrap() + 4;
+                text[at..].split('"').next().unwrap()
+            })
+            .collect();
+        assert_eq!(xs[1], xs[2], "{xs:?}");
+        // One ideographic space is one blank, not its three bytes.
+        let wide = crate::render("@startsalt\n{\n  [\u{3000}OK]\n  [ OK]\n}\n@endsalt\n").unwrap();
+        let rects: Vec<&str> = wide
+            .split("<rect ")
+            .skip(1)
+            .filter(|rect| rect.contains(r#"rx="6""#))
+            .map(|rect| {
+                let at = rect.find(r#"width=""#).unwrap() + 7;
+                rect[at..].split('"').next().unwrap()
+            })
+            .collect();
+        assert_eq!(rects[0], rects[1], "{rects:?}");
     }
 
     /// Each row's words are tied to the line it is written on, a tree's
