@@ -1527,9 +1527,15 @@ impl Canvas {
         });
         let mut out =
             String::with_capacity(self.layers.iter().map(String::len).sum::<usize>() + 256);
+        // A picture whose parts are marked says so at its root.
+        let marks = if self.marks_parts {
+            format!(" {MARKED}")
+        } else {
+            String::new()
+        };
         let _ = write!(
             out,
-            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}">"#,
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}"{marks}>"#,
             n(shown_width),
             n(shown_height),
             n(width),
@@ -1776,6 +1782,18 @@ pub fn without_lines(svg: &str) -> Option<String> {
     Some(format!("{}{}", &svg[..start], &svg[end..]))
 }
 
+/// What the root of a picture whose parts Omaspec marked carries: the
+/// groups of other engines' pictures (mmdr's, the Java PlantUML's) have
+/// classes too, which are no parts.
+pub const MARKED: &str = r#"data-omaspec="parts""#;
+
+/// Whether the root of `svg` says Omaspec marked its parts ([`MARKED`]).
+fn marked(svg: &str) -> bool {
+    svg.find("<svg")
+        .and_then(|at| svg[at..].find('>').map(|end| &svg[at..at + end]))
+        .is_some_and(|root| root.contains(MARKED))
+}
+
 /// The class of the part whose group `rest` starts with, where it is
 /// one: its first word, and none of the groups a page lays over a
 /// picture (`omaspec-links`, `omaspec-play`).
@@ -1785,9 +1803,12 @@ fn part_class(rest: &str) -> Option<&str> {
     (!class.starts_with("omaspec-")).then_some(class)
 }
 
-/// Where each group of a part starts in `svg`, with its class.
+/// Where each group of a part starts in `svg`, with its class: none in
+/// a picture Omaspec did not mark ([`MARKED`]).
 fn part_starts(svg: &str) -> impl Iterator<Item = (usize, &str)> {
+    let marked = marked(svg);
     svg.match_indices(PART)
+        .filter(move |_| marked)
         .filter_map(|(at, _)| part_class(&svg[at..]).map(|class| (at, class)))
 }
 
@@ -1813,18 +1834,16 @@ pub fn part_groups(svg: &str) -> Vec<(String, &str)> {
 /// out.
 pub fn numbered(svg: &str) -> String {
     let mut out = String::with_capacity(svg.len() + 256);
-    let mut rest = svg;
-    let mut count = 0;
-    while let Some((at, class)) = part_starts(rest).next() {
-        let Some(end) = rest[at..].find('>') else {
+    let mut done = 0;
+    for (count, (at, class)) in part_starts(svg).enumerate() {
+        let Some(end) = svg[at..].find('>') else {
             break;
         };
-        count += 1;
-        out.push_str(&rest[..at]);
-        let _ = write!(out, r#"{PART}{class}" id="{class}~{count}">"#);
-        rest = &rest[at + end + 1..];
+        out.push_str(&svg[done..at]);
+        let _ = write!(out, r#"{PART}{class}" id="{class}~{}">"#, count + 1);
+        done = at + end + 1;
     }
-    out.push_str(rest);
+    out.push_str(&svg[done..]);
     out
 }
 
@@ -1834,7 +1853,7 @@ pub fn part_of_id(id: &str) -> Option<String> {
 }
 
 /// Brings the group open in `out` to the one of `part`: closes another
-/// part's, opens `part`'s with the next of `groups` for its id.
+/// part's, opens `part`'s, its name as its class.
 fn sync(out: &mut String, open: &mut Option<String>, part: Option<&str>) {
     if open.as_deref() == part {
         return;
@@ -1874,15 +1893,19 @@ fn name_first(layer: &str, named: &mut std::collections::HashSet<String>) -> Str
 /// what a glide draws under the parts it glides. None when it has none.
 pub fn without_parts(svg: &str) -> Option<String> {
     let mut out = String::with_capacity(svg.len());
-    let mut rest = svg;
+    let mut done = 0;
     let mut found = false;
-    while let Some((start, _)) = part_starts(rest).next() {
-        let length = group_length(&rest[start..])?;
-        out.push_str(&rest[..start]);
-        rest = &rest[start + length..];
+    for (start, _) in part_starts(svg) {
+        // A part inside one taken out already went with it.
+        if start < done {
+            continue;
+        }
+        let length = group_length(&svg[start..])?;
+        out.push_str(&svg[done..start]);
+        done = start + length;
         found = true;
     }
-    out.push_str(rest);
+    out.push_str(&svg[done..]);
     found.then_some(out)
 }
 
@@ -1890,6 +1913,9 @@ pub fn without_parts(svg: &str) -> Option<String> {
 /// ([`Canvas::part`]): the picture as a file or an export shows it.
 pub fn unmarked(svg: &str) -> String {
     let mut out = String::with_capacity(svg.len());
+    if !marked(svg) {
+        return svg.to_owned();
+    }
     // For each group open, whether it is a part's, whose close goes too.
     let mut groups: Vec<bool> = Vec::new();
     let mut index = 0;
@@ -1914,7 +1940,8 @@ pub fn unmarked(svg: &str) -> String {
             index += length;
         }
     }
-    out
+    // Nor does its root say it marks them.
+    out.replacen(&format!(" {MARKED}"), "", 1)
 }
 
 /// The name of the part whose groups have the class `class`: the class
@@ -2343,6 +2370,22 @@ mod tests {
         // A character no id holds is written as an element's would be.
         assert_eq!(part_id("a b"), "a_20_b");
         assert_eq!(part_name(""), None);
+    }
+
+    /// Another engine's groups have classes too (mmdr's `node`, the Java
+    /// PlantUML's `entity`): only a picture whose root says Omaspec marked
+    /// its parts has any, and the others are read and left as they are.
+    #[test]
+    fn only_omaspec_s_own_groups_are_parts() {
+        let other = r#"<svg xmlns="http://www.w3.org/2000/svg"><g class="node" transform="translate(4,5)"><rect width="3" height="3"/></g></svg>"#;
+        assert!(!has_parts(other));
+        assert!(part_groups(other).is_empty());
+        assert_eq!(numbered(other), other);
+        assert_eq!(without_parts(other), None);
+        assert_eq!(unmarked(other), other);
+        let own = other.replace("<svg ", &format!("<svg {MARKED} "));
+        assert!(has_parts(&own));
+        assert_eq!(part_groups(&own)[0].0, "node");
     }
 
     /// Each group of a part carries its name as a class; the first group of

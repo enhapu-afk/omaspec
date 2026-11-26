@@ -2366,7 +2366,7 @@ mod tests {
         }
         // Without the line, the same picture has none.
         let plain = crate::render(&source.replace("' parts (Omaspec)\n", "")).unwrap();
-        assert!(!plain.contains("part-"));
+        assert!(!crate::has_parts(&plain));
     }
 
     /// A state that holds others is a frame: its fill steps toward the

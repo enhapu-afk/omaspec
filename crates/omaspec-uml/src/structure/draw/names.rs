@@ -15,6 +15,8 @@ use crate::svg::{Given, element, push_written};
 pub(in crate::structure) struct Names {
     nodes: HashMap<Vec<usize>, String>,
     edges: HashMap<(Vec<usize>, usize), String>,
+    /// A line's multiplicities, at its start and at its end.
+    cards: HashMap<(Vec<usize>, usize), [String; 2]>,
 }
 
 impl Names {
@@ -44,8 +46,11 @@ impl Names {
 
     /// The part of a line's multiplicity at its start, or at its end.
     pub(in crate::structure) fn card(&self, path: &[usize], slot: usize, at_start: bool) -> String {
-        let side = if at_start { "from" } else { "to" };
-        format!("{}.{side}", self.edge(path, slot))
+        self.cards
+            .get(&(path.to_vec(), slot))
+            .map(|[from, to]| if at_start { from } else { to })
+            .cloned()
+            .unwrap_or_default()
     }
 
     fn nodes_of(&mut self, group: &Group, path: &mut Vec<usize>, given: &mut Given) {
@@ -80,7 +85,13 @@ impl Names {
                 name.push('-');
                 push_written(&mut name, words);
             }
-            self.edges.insert((path.clone(), slot), given.unique(name));
+            let words = given.unique(name);
+            let cards = [
+                given.unique(format!("{words}.from")),
+                given.unique(format!("{words}.to")),
+            ];
+            self.cards.insert((path.clone(), slot), cards);
+            self.edges.insert((path.clone(), slot), words);
         }
         for (index, node) in group.nodes.iter().enumerate() {
             path.push(index);

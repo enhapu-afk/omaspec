@@ -531,6 +531,17 @@ fn plan(diagram: &Diagram, names: &[Block], words: &[Words], top: f32) -> Plan {
 }
 
 fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], words: &[Words]) {
+    // Each branch's and commit's part, named once: a name two would
+    // share takes `-2` (docs/adr/0037).
+    let mut given = crate::svg::Given::default();
+    let branch_parts: Vec<String> = diagram
+        .branches
+        .iter()
+        .map(|branch| given.unique(branch_part(&branch.name)))
+        .collect();
+    let commit_parts: Vec<String> = (0..diagram.commits.len())
+        .map(|turn| given.unique(commit_part(diagram, turn)))
+        .collect();
     let look = &diagram.look;
     let paper = look.background.unwrap_or(Color::WHITE);
     let across = plan.direction == Direction::Across;
@@ -544,7 +555,7 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], w
     };
     for (lane, name) in shown.iter().enumerate() {
         let branch = &diagram.branches[lane];
-        canvas.part_on(&branch_part(&branch.name), branch.line, |canvas| {
+        canvas.part_on(&branch_parts[lane], branch.line, |canvas| {
             let color = lane_color(look, lane);
             let l = plan.lanes[lane];
             let from = plan.page(plan.start - plan.lead, l);
@@ -565,7 +576,7 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], w
     // The lines between the commits, under their marks.
     for (turn, commit) in diagram.commits.iter().enumerate() {
         // A commit's lines come with it: what it came from runs to it.
-        canvas.part_on(&commit_part(diagram, turn), commit.line, |canvas| {
+        canvas.part_on(&commit_parts[turn], commit.line, |canvas| {
             let here = plan.at(turn, commit.branch);
             let own = Stroke::new(lane_color(look, commit.branch), 3.0);
             if let Some(parent) = commit.parent {
@@ -603,7 +614,7 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], w
     }
 
     for (turn, commit) in diagram.commits.iter().enumerate() {
-        canvas.part_on(&commit_part(diagram, turn), commit.line, |canvas| {
+        canvas.part_on(&commit_parts[turn], commit.line, |canvas| {
             let at = plan.at(turn, commit.branch);
             let color = lane_color(look, commit.branch);
             mark(canvas, commit, at, color, paper);

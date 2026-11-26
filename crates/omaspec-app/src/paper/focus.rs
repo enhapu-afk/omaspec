@@ -75,7 +75,7 @@ impl Outline {
 
     /// The outline of each part in `tree` whose name starts with `start`,
     /// as [`Self::of`] finds it: the notes of a box, whose parts are named
-    /// after its own (`note:state:A#right0`).
+    /// after its own (`note-state-A-right-1`).
     pub fn every(tree: &usvg::Tree, start: &str) -> Vec<Outline> {
         // A part's groups are its class, a `~` and their number
         // (`omaspec_uml::numbered`).
@@ -100,7 +100,7 @@ impl Outline {
         self.bounds
     }
 
-    /// The outline of the part whose groups' ids start with `id` and a `-`.
+    /// The outline of the part whose groups' ids start with `id` and a `~` ([`omaspec_uml::numbered`]).
     fn of_id(tree: &usvg::Tree, id: &str) -> Option<Outline> {
         let prefix = format!("{id}~");
         let mut best: Option<(f32, &usvg::Path)> = None;

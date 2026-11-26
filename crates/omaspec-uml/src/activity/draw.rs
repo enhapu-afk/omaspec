@@ -119,6 +119,8 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     // Swimlanes: fills, titles and the lines between them.
     if !d.lanes.is_empty() {
         let stroke = Stroke::new(skin.lane_border, skin.lane_thickness);
+        // Each lane's and border's part by its lane's name, given once.
+        let mut given = crate::svg::Given::default();
         for (lane, &(left, right)) in columns.iter().enumerate() {
             if let Some(color) = &d.lanes[lane].color {
                 let fill = crate::color::parse(color)
@@ -136,7 +138,8 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
             // A swimlane's name and each line between two are parts no
             // box takes: they glide on their own (docs/adr/0029).
             let name = super::parts::words(&titles[lane]);
-            canvas.part(&crate::svg::element("lane", &name), |canvas| {
+            let lane_part = given.unique(crate::svg::element("lane", &name));
+            canvas.part(&lane_part, |canvas| {
                 canvas.text(
                     Layer::Front,
                     &titles[lane],
@@ -145,11 +148,13 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
                 );
             });
             if lane == 0 {
-                canvas.part("border-left", |canvas| {
+                // The left edge: a name no lane's border takes.
+                canvas.part("border", |canvas| {
                     canvas.line(Layer::Lifelines, (left, lanes_top), (left, bottom), stroke);
                 });
             }
-            canvas.part(&crate::svg::element("border", &name), |canvas| {
+            let border = given.unique(crate::svg::element("border", &name));
+            canvas.part(&border, |canvas| {
                 canvas.line(
                     Layer::Lifelines,
                     (right, lanes_top),

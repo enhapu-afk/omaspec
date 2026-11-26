@@ -152,8 +152,8 @@ fn prefix(at: usize) -> String {
 }
 
 /// The class of the groups of `part`, which the page finds within the
-/// picture `at` of the glide's two (docs/adr/0037).
-fn part(_at: usize, part: &str) -> String {
+/// picture of the glide's two it is drawn in (docs/adr/0037).
+fn part(part: &str) -> String {
     omaspec_uml::part_id(part)
 }
 
@@ -166,14 +166,13 @@ fn data(folding: &Folding) -> Value {
     let glides: Vec<Value> = folding
         .glides
         .iter()
-        .enumerate()
-        .map(|(at, glide)| {
+        .map(|glide| {
             let boxes: Vec<Value> = glide
                 .boxes
                 .iter()
                 .map(|b| {
                     json!({
-                        "parts": [part(at, &b.parts[0]), part(at + 1, &b.parts[1])],
+                        "parts": [part(&b.parts[0]), part(&b.parts[1])],
                         "from": rect(b.from),
                         "to": rect(b.to),
                         "role": role(b.role),
@@ -194,7 +193,7 @@ fn data(folding: &Folding) -> Value {
                         line.words[side]
                             .iter()
                             .map(|name| match name {
-                                Some(name) => json!(part(at + side, name)),
+                                Some(name) => json!(part(name)),
                                 None => Value::Null,
                             })
                             .collect()

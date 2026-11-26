@@ -401,8 +401,8 @@ fn n(value: f32) -> String {
 #[cfg(test)]
 mod tests {
     /// Asked for its parts, a JSON diagram draws each card in a group of
-    /// its own, named as its map names it (the top one, which has none,
-    /// as `json:top`), with the dots of its rows; the arrows between the
+    /// its own, named as its map names it (`json-home`, the top one as
+    /// `json`), with the dots of its rows; the arrows between the
     /// cards are in the map, to glide with them.
     #[test]
     fn a_json_card_is_a_part_and_its_arrows_are_in_the_map() {
