@@ -2202,6 +2202,18 @@ is open and the reasoning around it.
       tiles' ids so too; before, a note that said `url(#x)` was changed in
       a tile. One picture takes a prefix; a PNG, a JPEG or `--check` none.
 
+## From the research run of 2026-11-26
+
+- [x] A chart is PlantUML whatever its lines say (2026-11-26):
+      `@startchart` was missing from the words that tell a PlantUML
+      diagram, so a chart with a line that starts as a Mermaid kind does
+      (`pie`, `block`, `packet`) was read as Mermaid, even in a `.puml`
+      file; in a Markdown fence it was put inside `@startuml`, and its
+      kind went unnamed. The words after `@start` are one table now
+      (`lang::PLANTUML_BLOCKS`, each with its kind's name), which the
+      language, the kind and a Markdown file's blocks read; a test holds
+      it to every block the engine draws (`omaspec_uml::start_words`).
+
 ## Next
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it

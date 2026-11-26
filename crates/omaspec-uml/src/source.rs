@@ -43,6 +43,33 @@ pub enum Kind {
     Math,
 }
 
+/// The word after `@start` of each type the engine draws.
+const KINDS: &[(&str, Kind)] = &[
+    ("uml", Kind::Uml),
+    ("mindmap", Kind::MindMap),
+    ("wbs", Kind::Wbs),
+    ("gantt", Kind::Gantt),
+    ("chart", Kind::Chart),
+    ("flow", Kind::Flow),
+    ("storymap", Kind::StoryMap),
+    ("capabilities", Kind::Capabilities),
+    ("json", Kind::Json),
+    ("yaml", Kind::Yaml),
+    ("nwdiag", Kind::Network),
+    ("salt", Kind::Salt),
+    ("ebnf", Kind::Ebnf),
+    ("regex", Kind::Regex),
+    ("ditaa", Kind::Ditaa),
+    ("latex", Kind::Latex),
+    ("math", Kind::Math),
+];
+
+/// The words after `@start` the engine draws (`uml`, `chart`, …), in
+/// lowercase: what tells a text's language holds itself to them.
+pub fn start_words() -> impl Iterator<Item = &'static str> {
+    KINDS.iter().map(|(word, _)| *word)
+}
+
 /// One line of the diagram's body.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Line<'a> {
@@ -78,25 +105,12 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
                 .split(|c: char| c.is_whitespace() || c == '(')
                 .next()
                 .unwrap_or_default();
-            let kind = match word.to_ascii_lowercase().as_str() {
-                "startuml" => Kind::Uml,
-                "startmindmap" => Kind::MindMap,
-                "startwbs" => Kind::Wbs,
-                "startgantt" => Kind::Gantt,
-                "startchart" => Kind::Chart,
-                "startflow" => Kind::Flow,
-                "startstorymap" => Kind::StoryMap,
-                "startcapabilities" => Kind::Capabilities,
-                "startjson" => Kind::Json,
-                "startyaml" => Kind::Yaml,
-                "startnwdiag" => Kind::Network,
-                "startsalt" => Kind::Salt,
-                "startebnf" => Kind::Ebnf,
-                "startregex" => Kind::Regex,
-                "startditaa" => Kind::Ditaa,
-                "startlatex" => Kind::Latex,
-                "startmath" => Kind::Math,
-                _ => {
+            let named = word
+                .get("start".len()..)
+                .and_then(|block| KINDS.iter().find(|(w, _)| w.eq_ignore_ascii_case(block)));
+            let kind = match named {
+                Some(&(_, kind)) => kind,
+                None => {
                     return Err(Declined::at(
                         at,
                         format!("`@{word}` diagrams are drawn by the Java PlantUML only"),

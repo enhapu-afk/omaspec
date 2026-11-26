@@ -347,6 +347,14 @@ mod tests {
     }
 
     #[test]
+    fn a_chart_in_a_fence_is_not_put_inside_startuml() {
+        let found = blocks("```plantuml\n@startchart\nbar [1]\n@endchart\n```\n");
+        assert_eq!(found.len(), 1);
+        assert!(!found[0].wrapped);
+        assert_eq!(found[0].code, "@startchart\nbar [1]\n@endchart");
+    }
+
+    #[test]
     fn a_masked_document_has_one_diagram_on_its_lines() {
         let found = blocks(DOC);
         let lines = DOC.split('\n').count();

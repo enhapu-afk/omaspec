@@ -64,16 +64,45 @@ impl Language {
     }
 }
 
+/// Each word after `@start` that tells a PlantUML diagram, and the name of
+/// its kind: every one the engine draws ([`omaspec_uml::start_words`], a
+/// test holds this to it) and those only the Java PlantUML draws. The
+/// language, the kind and the blocks of a Markdown file are told by it.
+pub(crate) const PLANTUML_BLOCKS: &[(&str, &str)] = &[
+    ("uml", "UML"),
+    ("mindmap", "Mind map"),
+    ("wbs", "WBS"),
+    ("gantt", "Gantt chart"),
+    ("chart", "Chart"),
+    ("flow", "Signal flow"),
+    ("storymap", "Story map"),
+    ("capabilities", "Capability map"),
+    ("chronology", "Chronology"),
+    ("json", "JSON"),
+    ("yaml", "YAML"),
+    ("salt", "Salt UI"),
+    ("latex", "Formula"),
+    ("math", "Formula"),
+    ("ditaa", "Ditaa"),
+    ("dot", "Graphviz"),
+    ("tree", "Tree"),
+    ("nwdiag", "Network diagram"),
+    ("ebnf", "EBNF"),
+    ("regex", "Regex"),
+];
+
+/// The words of [`PLANTUML_BLOCKS`] as one alternation of a pattern.
+fn block_words() -> String {
+    let words: Vec<&str> = PLANTUML_BLOCKS.iter().map(|(word, _)| *word).collect();
+    words.join("|")
+}
+
 pub(crate) fn puml_start() -> &'static Regex {
-    re!(
-        r"(?i)^@start(uml|mindmap|json|latex|math|wbs|salt|tree|chronology|gantt|ditaa|dot|yaml|flow|storymap|capabilities|nwdiag|ebnf|regex)\b"
-    )
+    re!(&format!(r"(?i)^@start({})\b", block_words()))
 }
 
 pub(crate) fn puml_end() -> &'static Regex {
-    re!(
-        r"(?i)^@end(uml|mindmap|json|latex|math|wbs|salt|tree|chronology|gantt|ditaa|dot|yaml|flow|storymap|capabilities|nwdiag|ebnf|regex)\b"
-    )
+    re!(&format!(r"(?i)^@end({})\b", block_words()))
 }
 
 /// A line that begins a Mermaid diagram, as mermaid.js writes its kinds:
@@ -192,7 +221,7 @@ pub fn looks_like_diagram(text: &str) -> bool {
     }
     let head: Vec<&str> = t.split('\n').take(12).collect();
     if puml_start().is_match(&t)
-        || re!(r"(?i)@start(?:uml|mindmap|json|wbs|gantt|flow)\b").is_match(&head.join("\n"))
+        || re!(&format!(r"(?i)@start(?:{})\b", block_words())).is_match(&head.join("\n"))
     {
         return true;
     }
@@ -234,6 +263,24 @@ mod tests {
     #[test]
     fn plantuml_marker_beats_mermaid_header() {
         assert_eq!(detect("flowchart TD\n@startuml\n@enduml", None), PlantUml);
+        // A chart's line that starts as a Mermaid kind does (`pie`) leaves
+        // it PlantUML, whatever its file is called.
+        let chart = "@startchart\nbar \"x\" [1, 2]\npie {A : 1}\n@endchart";
+        assert_eq!(detect(chart, None), PlantUml);
+        assert_eq!(detect(chart, Some(Mermaid)), PlantUml);
+        assert!(looks_like_diagram("notes\n@startchart\nbar [1]"));
+    }
+
+    #[test]
+    fn every_block_the_engine_draws_tells_plantuml() {
+        for word in omaspec_uml::start_words() {
+            assert!(
+                PLANTUML_BLOCKS.iter().any(|(block, _)| *block == word),
+                "`@start{word}` is drawn by the engine but not in PLANTUML_BLOCKS"
+            );
+            assert!(puml_start().is_match(&format!("@start{word}")));
+            assert!(puml_end().is_match(&format!("@END{word}")));
+        }
     }
 
     #[test]

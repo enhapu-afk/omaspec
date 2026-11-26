@@ -137,7 +137,7 @@ pub enum Diagram {
 }
 
 pub use preprocess::{Included, Includes, library_missing};
-pub use source::{Line, front_title};
+pub use source::{Line, front_title, start_words};
 pub use text::as_mermaid;
 
 /// Parses `source`, or declines. The preprocessor runs first; `!include`

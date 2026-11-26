@@ -56,27 +56,10 @@ pub fn classify(code: &str, lang: Language) -> DiagramKind {
 
 /// `@start…` blocks other than `uml` name their kind directly.
 fn block_name(block: &str) -> Option<&'static str> {
-    Some(match block {
-        "mindmap" => "Mind map",
-        "wbs" => "WBS",
-        "gantt" => "Gantt chart",
-        "chart" => "Chart",
-        "flow" => "Signal flow",
-        "storymap" => "Story map",
-        "capabilities" => "Capability map",
-        "chronology" => "Chronology",
-        "json" => "JSON",
-        "yaml" => "YAML",
-        "salt" => "Salt UI",
-        "latex" | "math" => "Formula",
-        "ditaa" => "Ditaa",
-        "dot" => "Graphviz",
-        "tree" => "Tree",
-        "nwdiag" => "Network diagram",
-        "ebnf" => "EBNF",
-        "regex" => "Regex",
-        _ => return None,
-    })
+    crate::lang::PLANTUML_BLOCKS
+        .iter()
+        .find(|(word, _)| *word == block)
+        .map(|(_, name)| *name)
 }
 
 /// The structure kinds, checked on the part of a line before its label.
@@ -334,6 +317,10 @@ mod tests {
         );
         assert_eq!(puml("@startuml\n(Login) -- User\n@enduml"), Kind::Structure);
         assert_eq!(puml("@startmindmap\n* a\n@endmindmap"), Kind::Other);
+        assert_eq!(
+            classify("@startchart\nbar [1]\n@endchart", Language::PlantUml).name,
+            "Chart"
+        );
         assert_eq!(puml("@startuml\n- one\n- two\n@enduml"), Kind::Activity);
         assert_eq!(puml("@startuml\n* one\n** two\n@enduml"), Kind::Activity);
         assert_eq!(
