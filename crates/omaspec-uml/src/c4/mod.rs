@@ -116,6 +116,34 @@ pub enum Kind {
     ComponentQueueExt,
 }
 
+impl Kind {
+    /// The family its name starts with (docs/adr/0037): `person`,
+    /// `system`, `container`, `component`.
+    pub fn family(self) -> &'static str {
+        match self {
+            Kind::Person | Kind::PersonExt => "person",
+            Kind::System
+            | Kind::SystemDb
+            | Kind::SystemQueue
+            | Kind::SystemExt
+            | Kind::SystemDbExt
+            | Kind::SystemQueueExt => "system",
+            Kind::Container
+            | Kind::ContainerDb
+            | Kind::ContainerQueue
+            | Kind::ContainerExt
+            | Kind::ContainerDbExt
+            | Kind::ContainerQueueExt => "container",
+            Kind::Component
+            | Kind::ComponentDb
+            | Kind::ComponentQueue
+            | Kind::ComponentExt
+            | Kind::ComponentDbExt
+            | Kind::ComponentQueueExt => "component",
+        }
+    }
+}
+
 /// How a relationship is drawn. The four directions leave that side of the
 /// source; a back relationship is dashed; a bi-relationship has two heads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

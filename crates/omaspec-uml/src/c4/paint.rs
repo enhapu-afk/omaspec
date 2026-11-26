@@ -120,19 +120,88 @@ pub(super) fn readable(fill: Color, preferred: Color) -> Color {
     }
 }
 
+/// Each element, boundary and relation named from the source
+/// (docs/adr/0037): by its family and its alias (`person-customer`,
+/// `system-bank`, `boundary-c1`), a relation by what it joins and says.
+struct Names {
+    shapes: Vec<String>,
+    boundaries: Vec<String>,
+    rels: Vec<String>,
+}
+
+impl Names {
+    fn of(diagram: &Diagram) -> Names {
+        let mut given = crate::svg::Given::default();
+        let shapes = diagram
+            .shapes
+            .iter()
+            .map(|s| given.unique(crate::svg::element(s.kind.family(), &s.id)))
+            .collect();
+        let boundaries = diagram
+            .boundaries
+            .iter()
+            .map(|b| given.unique(crate::svg::element("boundary", &b.id)))
+            .collect();
+        let id = |at: usize| diagram.shapes.get(at).map_or("", |s| s.id.as_str());
+        let rels = diagram
+            .rels
+            .iter()
+            .map(|r| given.unique(crate::svg::link_name(id(r.from), id(r.to), &r.label)))
+            .collect();
+        Names {
+            shapes,
+            boundaries,
+            rels,
+        }
+    }
+}
+
+/// A relation's heads and the chip of its words.
+fn paint_rel_end(canvas: &mut Canvas, diagram: &Diagram, rel: &super::lay::PlacedRel) {
+    if let (Some(first), Some(last)) = (rel.points.first(), rel.points.last()) {
+        arrow(canvas, *last, prev_point(&rel.points, false), rel.color);
+        if rel.bi {
+            arrow(canvas, *first, prev_point(&rel.points, true), rel.color);
+        }
+    }
+    let page = diagram.look.background.unwrap_or(Color::WHITE);
+    canvas.rect(
+        Layer::Front,
+        (rel.chip.x, rel.chip.y, rel.chip.w, rel.chip.h),
+        4.0,
+        Some(page),
+        Some(Stroke::new(rel.color.mix(page, 0.45), 1.0)),
+    );
+    paint_lines(
+        canvas,
+        rel.chip.x + rel.chip.w / 2.0,
+        rel.chip.y + 4.0,
+        &rel.lines,
+    );
+}
+
+/// The name at `at` of `names`; none past its end.
+fn at(names: &[String], at: usize) -> &str {
+    names.get(at).map_or("", String::as_str)
+}
+
 pub(super) fn paint(canvas: &mut Canvas, diagram: &Diagram, laid: &Laid) {
+    canvas.whole();
+    let names = Names::of(diagram);
     for (index, placed) in laid.boundaries.iter().enumerate() {
         let (fill, border, _) = boundary_paint(&diagram.boundaries[index], &diagram.look);
-        canvas.rect(
-            Layer::Frames,
-            (placed.rect.x, placed.rect.y, placed.rect.w, placed.rect.h),
-            BOUND_ROUND,
-            fill,
-            Some(Stroke::new(border, 1.25).dashed(7.0, 5.0)),
-        );
-        paint_lines(canvas, placed.rect.cx(), placed.rect.y + 8.0, &placed.lines);
+        canvas.part(at(&names.boundaries, index), |canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (placed.rect.x, placed.rect.y, placed.rect.w, placed.rect.h),
+                BOUND_ROUND,
+                fill,
+                Some(Stroke::new(border, 1.25).dashed(7.0, 5.0)),
+            );
+            paint_lines(canvas, placed.rect.cx(), placed.rect.y + 8.0, &placed.lines);
+        });
     }
-    for rel in &laid.rels {
+    for (index, rel) in laid.rels.iter().enumerate() {
         let mut stroke = Stroke::new(rel.color, diagram.look.thickness);
         if rel.dashed {
             stroke = stroke.dashed(7.0, 4.0);
@@ -143,43 +212,30 @@ pub(super) fn paint(canvas: &mut Canvas, diagram: &Diagram, laid: &Laid) {
             shorten(&mut points, 9.0, false);
         }
         if points.len() >= 2 {
-            canvas.polyline(Layer::Lifelines, &points, stroke);
+            canvas.part(at(&names.rels, index), |canvas| {
+                canvas.polyline(Layer::Lifelines, &points, stroke);
+            });
         }
     }
     for (index, placed) in laid.shapes.iter().enumerate() {
         let style = shape_paint(&diagram.shapes[index], &diagram.look);
-        paint_mark(canvas, placed.rect, &style, diagram.look.thickness);
-        let top = match style.mark {
-            Mark::Figure => placed.rect.y + 56.0,
-            Mark::Cylinder => placed.rect.y + 20.0,
-            _ => placed.rect.y + 10.0,
-        };
-        let text_h = stack_height(&placed.lines);
-        let room = placed.rect.bottom() - top - 8.0;
-        let y = top + (room - text_h).max(0.0) / 2.0;
-        paint_lines(canvas, placed.rect.cx(), y, &placed.lines);
+        canvas.part(at(&names.shapes, index), |canvas| {
+            paint_mark(canvas, placed.rect, &style, diagram.look.thickness);
+            let top = match style.mark {
+                Mark::Figure => placed.rect.y + 56.0,
+                Mark::Cylinder => placed.rect.y + 20.0,
+                _ => placed.rect.y + 10.0,
+            };
+            let text_h = stack_height(&placed.lines);
+            let room = placed.rect.bottom() - top - 8.0;
+            let y = top + (room - text_h).max(0.0) / 2.0;
+            paint_lines(canvas, placed.rect.cx(), y, &placed.lines);
+        });
     }
-    for rel in &laid.rels {
-        if let (Some(first), Some(last)) = (rel.points.first(), rel.points.last()) {
-            arrow(canvas, *last, prev_point(&rel.points, false), rel.color);
-            if rel.bi {
-                arrow(canvas, *first, prev_point(&rel.points, true), rel.color);
-            }
-        }
-        let page = diagram.look.background.unwrap_or(Color::WHITE);
-        canvas.rect(
-            Layer::Front,
-            (rel.chip.x, rel.chip.y, rel.chip.w, rel.chip.h),
-            4.0,
-            Some(page),
-            Some(Stroke::new(rel.color.mix(page, 0.45), 1.0)),
-        );
-        paint_lines(
-            canvas,
-            rel.chip.x + rel.chip.w / 2.0,
-            rel.chip.y + 4.0,
-            &rel.lines,
-        );
+    for (index, rel) in laid.rels.iter().enumerate() {
+        canvas.part(at(&names.rels, index), |canvas| {
+            paint_rel_end(canvas, diagram, rel)
+        });
     }
     if let Some(title) = &laid.title {
         let right = laid
@@ -194,12 +250,14 @@ pub(super) fn paint(canvas: &mut Canvas, diagram: &Diagram, laid: &Laid) {
             .map(|shape| shape.rect.x)
             .chain(laid.boundaries.iter().map(|boundary| boundary.rect.x))
             .fold(0.0_f32, f32::min);
-        canvas.text(
-            Layer::Front,
-            title,
-            ((left + right) / 2.0, 0.0),
-            Align::Center,
-        );
+        canvas.part("title", |canvas| {
+            canvas.text(
+                Layer::Front,
+                title,
+                ((left + right) / 2.0, 0.0),
+                Align::Center,
+            );
+        });
     }
 }
 

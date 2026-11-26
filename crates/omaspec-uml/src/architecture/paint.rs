@@ -49,78 +49,140 @@ pub(super) fn glyph_ink(tile: Color) -> Color {
     }
 }
 
+/// Each group, service, junction and edge named from the source
+/// (docs/adr/0037): `group-api`, `service-db`, `junction-hub`, an edge
+/// by what it joins (`link-db-server`).
+fn names(diagram: &Diagram) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let mut given = crate::svg::Given::default();
+    let groups: Vec<String> = diagram
+        .groups
+        .iter()
+        .map(|g| given.unique(crate::svg::element("group", &g.id)))
+        .collect();
+    let nodes: Vec<String> = diagram
+        .nodes
+        .iter()
+        .map(|n| {
+            let kind = if n.junction { "junction" } else { "service" };
+            given.unique(crate::svg::element(kind, &n.id))
+        })
+        .collect();
+    let id = |at: usize, group: bool| match group {
+        true => diagram.groups.get(at).map_or("", |g| g.id.as_str()),
+        false => diagram.nodes.get(at).map_or("", |n| n.id.as_str()),
+    };
+    let edges = diagram
+        .edges
+        .iter()
+        .map(|e| {
+            let name = crate::svg::link_name(id(e.from, e.from_group), id(e.to, e.to_group), "");
+            given.unique(name)
+        })
+        .collect();
+    (groups, nodes, edges)
+}
+
 pub(super) fn paint(canvas: &mut Canvas, diagram: &Diagram, laid: &Laid) {
+    canvas.whole();
+    let (groups, nodes, edges) = names(diagram);
+    let name = |names: &[String], at: usize| names.get(at).cloned().unwrap_or_default();
     let look = &diagram.look;
     let tile = tile_color(look);
     let glyph = glyph_ink(tile);
-    for group in &laid.groups {
-        canvas.rect(
-            Layer::Frames,
-            (group.rect.x, group.rect.y, group.rect.w, group.rect.h),
-            10.0,
-            None,
-            Some(Stroke::new(look.line, 1.25).dashed(7.0, 5.0)),
-        );
-        let icon = Rect {
-            x: group.rect.x + 8.0,
-            y: group.rect.y + 8.0,
-            w: 22.0,
-            h: 22.0,
-        };
-        paint_tile(canvas, icon, tile, group.icon, glyph);
-        canvas.text(
-            Layer::Front,
-            &group.label,
-            (
-                icon.right() + 6.0,
-                icon.y + (icon.h - group.label.height) / 2.0,
-            ),
-            Align::Left,
-        );
+    for (index, group) in laid.groups.iter().enumerate() {
+        canvas.part(&name(&groups, index), |canvas| {
+            paint_group(canvas, group, look, (tile, glyph))
+        });
     }
-    for edge in &laid.edges {
-        let mut points = edge.points.clone();
-        if edge.arrow_end {
-            shorten(&mut points, 8.0, true);
-        }
-        if edge.arrow_start {
-            shorten(&mut points, 8.0, false);
-        }
-        if points.len() >= 2 {
-            canvas.polyline(Layer::Bars, &points, Stroke::new(look.line, 1.75));
-        }
-        if edge.arrow_end
-            && let (Some(tip), Some(from)) = (edge.points.last(), edge.points.iter().rev().nth(1))
-        {
-            arrow(canvas, *tip, *from, look.line);
-        }
-        if edge.arrow_start
-            && let (Some(tip), Some(from)) = (edge.points.first(), edge.points.get(1))
-        {
-            arrow(canvas, *tip, *from, look.line);
-        }
+    for (index, edge) in laid.edges.iter().enumerate() {
+        canvas.part(&name(&edges, index), |canvas| {
+            paint_edge(canvas, edge, look)
+        });
     }
     for (index, node) in laid.nodes.iter().enumerate() {
-        if diagram.nodes[index].junction {
-            canvas.ellipse(
-                Layer::Bars,
-                (node.tile.cx(), node.tile.cy()),
-                (node.tile.w / 2.0, node.tile.h / 2.0),
-                Some(look.line),
-                None,
-            );
-            continue;
-        }
-        paint_tile(canvas, node.tile, tile, diagram.nodes[index].icon, glyph);
-        if let Some(label) = &node.label {
-            canvas.text(
-                Layer::Front,
-                label,
-                (node.tile.cx(), node.tile.bottom() + 4.0),
-                Align::Center,
-            );
-        }
+        canvas.part(&name(&nodes, index), |canvas| {
+            if diagram.nodes[index].junction {
+                canvas.ellipse(
+                    Layer::Bars,
+                    (node.tile.cx(), node.tile.cy()),
+                    (node.tile.w / 2.0, node.tile.h / 2.0),
+                    Some(look.line),
+                    None,
+                );
+                return;
+            }
+            paint_tile(canvas, node.tile, tile, diagram.nodes[index].icon, glyph);
+            if let Some(label) = &node.label {
+                canvas.text(
+                    Layer::Front,
+                    label,
+                    (node.tile.cx(), node.tile.bottom() + 4.0),
+                    Align::Center,
+                );
+            }
+        });
     }
+    paint_title(canvas, laid);
+}
+
+/// A group's frame, its icon and its words.
+fn paint_group(
+    canvas: &mut Canvas,
+    group: &super::lay::PlacedGroup,
+    look: &super::Look,
+    (tile, glyph): (Color, Color),
+) {
+    canvas.rect(
+        Layer::Frames,
+        (group.rect.x, group.rect.y, group.rect.w, group.rect.h),
+        10.0,
+        None,
+        Some(Stroke::new(look.line, 1.25).dashed(7.0, 5.0)),
+    );
+    let icon = Rect {
+        x: group.rect.x + 8.0,
+        y: group.rect.y + 8.0,
+        w: 22.0,
+        h: 22.0,
+    };
+    paint_tile(canvas, icon, tile, group.icon, glyph);
+    canvas.text(
+        Layer::Front,
+        &group.label,
+        (
+            icon.right() + 6.0,
+            icon.y + (icon.h - group.label.height) / 2.0,
+        ),
+        Align::Left,
+    );
+}
+
+/// An edge and its heads.
+fn paint_edge(canvas: &mut Canvas, edge: &super::lay::PlacedEdge, look: &super::Look) {
+    let mut points = edge.points.clone();
+    if edge.arrow_end {
+        shorten(&mut points, 8.0, true);
+    }
+    if edge.arrow_start {
+        shorten(&mut points, 8.0, false);
+    }
+    if points.len() >= 2 {
+        canvas.polyline(Layer::Bars, &points, Stroke::new(look.line, 1.75));
+    }
+    if edge.arrow_end
+        && let (Some(tip), Some(from)) = (edge.points.last(), edge.points.iter().rev().nth(1))
+    {
+        arrow(canvas, *tip, *from, look.line);
+    }
+    if edge.arrow_start
+        && let (Some(tip), Some(from)) = (edge.points.first(), edge.points.get(1))
+    {
+        arrow(canvas, *tip, *from, look.line);
+    }
+}
+
+/// The title, over the middle of what is drawn.
+fn paint_title(canvas: &mut Canvas, laid: &Laid) {
     if let Some(title) = &laid.title {
         let right = laid
             .nodes
@@ -134,12 +196,14 @@ pub(super) fn paint(canvas: &mut Canvas, diagram: &Diagram, laid: &Laid) {
             .map(|node| node.tile.x)
             .chain(laid.groups.iter().map(|group| group.rect.x))
             .fold(0.0_f32, f32::min);
-        canvas.text(
-            Layer::Front,
-            title,
-            ((left + right) / 2.0, 0.0),
-            Align::Center,
-        );
+        canvas.part("title", |canvas| {
+            canvas.text(
+                Layer::Front,
+                title,
+                ((left + right) / 2.0, 0.0),
+                Align::Center,
+            );
+        });
     }
 }
 

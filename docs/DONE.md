@@ -2388,6 +2388,19 @@ is open and the reasoning around it.
       point where they meet, has none. The words keep their own part
       (`label-yes`), as the pane glides them. 20 golden SVGs changed,
       by their groups alone.
+- [x] An id for every box and line, step 2, the kinds that marked no
+      parts: ER, C4, architecture, block, kanban, journey and timeline
+      diagrams (2026-11-26,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)). Each names its
+      elements and lines from the source and is drawn as a whole, as
+      before (`data-omaspec="named"`): `entity-CUSTOMER` and
+      `link-CUSTOMER-ORDER-places`; `person-customer`, `system-bank`,
+      `boundary-b1` and `link-customer-bank-Uses`; `group-api`,
+      `service-db`, `junction-hub`, `link-db-server`; `block-a`,
+      `link-a-b`; `column-Todo`, `card-Ship`; `section-Morning`,
+      `task-Read`; `period-2020`, `event-Launch`; their titles `title`.
+      `link_name` and `first_line` name a line alike in every drawer;
+      `tests/ids.rs` of omaspec-render holds each kind to its names.
 
 ## Next
 

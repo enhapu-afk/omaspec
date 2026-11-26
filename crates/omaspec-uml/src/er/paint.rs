@@ -24,17 +24,39 @@ pub(super) fn paint_diagram(
     diagram: &Diagram,
     laid: &Laid,
 ) -> Result<(), Declined> {
+    // Each entity and relation named from the source (docs/adr/0037),
+    // the picture drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
+    let entities: Vec<String> = diagram
+        .entities
+        .iter()
+        .map(|e| given.unique(crate::svg::element("entity", &e.key)))
+        .collect();
+    let key = |at: usize| diagram.entities.get(at).map_or("", |e| e.key.as_str());
+    let relations: Vec<String> = diagram
+        .relations
+        .iter()
+        .map(|r| {
+            let said = r.label.as_deref().unwrap_or_default();
+            given.unique(crate::svg::link_name(key(r.from), key(r.to), said))
+        })
+        .collect();
     for (index, relation) in diagram.relations.iter().enumerate() {
-        paint_relation(canvas, diagram, laid, relation, index)?;
+        canvas.part(&relations[index], |canvas| {
+            paint_relation(canvas, diagram, laid, relation, index)
+        })?;
     }
     for (index, entity) in diagram.entities.iter().enumerate() {
-        paint_entity(
-            canvas,
-            diagram,
-            &laid.measured[index],
-            laid.boxes[index],
-            entity,
-        );
+        canvas.part(&entities[index], |canvas| {
+            paint_entity(
+                canvas,
+                diagram,
+                &laid.measured[index],
+                laid.boxes[index],
+                entity,
+            );
+        });
     }
     if let Some(title) = &laid.title {
         let width = laid
@@ -42,7 +64,9 @@ pub(super) fn paint_diagram(
             .iter()
             .map(|rect| rect.right())
             .fold(title.width, f32::max);
-        canvas.text(Layer::Front, title, (width / 2.0, 0.0), Align::Center);
+        canvas.part("title", |canvas| {
+            canvas.text(Layer::Front, title, (width / 2.0, 0.0), Align::Center);
+        });
     }
     Ok(())
 }

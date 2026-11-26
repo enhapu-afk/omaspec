@@ -29,6 +29,9 @@ pub(super) fn paint(
     family: Family,
 ) -> Result<(), Declined> {
     let look = &diagram.look;
+    canvas.whole();
+    let (groups, nodes, edges) = names(diagram);
+    let name = |names: &[String], at: usize| names.get(at).cloned().unwrap_or_default();
     for (index, group) in diagram.groups.iter().enumerate() {
         let rect = laid.groups[index];
         if rect.w <= 0.0 || rect.h <= 0.0 {
@@ -37,19 +40,25 @@ pub(super) fn paint(
         let fill = group.fill.unwrap_or_else(|| group_fill(look));
         let color = group.stroke.unwrap_or_else(|| border(look));
         let width = group.stroke_width.unwrap_or(1.4);
-        canvas.rect(
-            Layer::Frames,
-            (rect.x, rect.y, rect.w, rect.h),
-            8.0,
-            Some(fill),
-            Some(Stroke::new(color, width).dashed(7.0, 5.0)),
-        );
+        canvas.part(&name(&groups, index), |canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (rect.x, rect.y, rect.w, rect.h),
+                8.0,
+                Some(fill),
+                Some(Stroke::new(color, width).dashed(7.0, 5.0)),
+            );
+        });
     }
     for (index, node) in diagram.nodes.iter().enumerate() {
-        draw_node(canvas, node, laid.nodes[index], look);
+        canvas.part(&name(&nodes, index), |canvas| {
+            draw_node(canvas, node, laid.nodes[index], look);
+        });
     }
     for (index, edge) in diagram.edges.iter().enumerate() {
-        draw_edge(canvas, edge, &laid.edges[index], look);
+        canvas.part(&name(&edges, index), |canvas| {
+            draw_edge(canvas, edge, &laid.edges[index], look);
+        });
     }
     for (index, group) in diagram.groups.iter().enumerate() {
         let caption = if group.label.is_empty() {
@@ -64,7 +73,9 @@ pub(super) fn paint(
         let rect = laid.groups[index];
         let band = laid.bands[index];
         let y = rect.y + (band - block.height).max(2.0) / 2.0;
-        canvas.text(Layer::Front, &block, (rect.cx(), y), Align::Center);
+        canvas.part(&name(&groups, index), |canvas| {
+            canvas.text(Layer::Front, &block, (rect.cx(), y), Align::Center);
+        });
     }
     for (index, node) in diagram.nodes.iter().enumerate() {
         let fill = node.fill.unwrap_or_else(|| tile(look));
@@ -72,12 +83,14 @@ pub(super) fn paint(
         let block = text::block(&node.label, Font::new(look.font_size, color), family)
             .map_err(|_| Declined::at(node.line, "a label"))?;
         let (x, y) = anchor(node.shape, laid.nodes[index]);
-        canvas.text(
-            Layer::Front,
-            &block,
-            (x, y - block.height / 2.0),
-            Align::Center,
-        );
+        canvas.part(&name(&nodes, index), |canvas| {
+            canvas.text(
+                Layer::Front,
+                &block,
+                (x, y - block.height / 2.0),
+                Align::Center,
+            );
+        });
     }
     for (index, edge) in diagram.edges.iter().enumerate() {
         if let (Some(label), Some(rect)) = (&edge.label, laid.edge_labels[index]) {
@@ -87,7 +100,9 @@ pub(super) fn paint(
                 family,
             )
             .map_err(|_| Declined::at(label.line, "a label"))?;
-            canvas.text(Layer::Front, &block, (rect.cx(), rect.y), Align::Center);
+            canvas.part(&name(&edges, index), |canvas| {
+                canvas.text(Layer::Front, &block, (rect.cx(), rect.y), Align::Center);
+            });
         }
     }
     if let (Some(title), Some(rect)) = (&diagram.title, laid.title) {
@@ -97,9 +112,41 @@ pub(super) fn paint(
             family,
         )
         .map_err(|_| Declined::at(title.line, "a title"))?;
-        canvas.text(Layer::Front, &block, (rect.cx(), rect.y), Align::Center);
+        canvas.part("title", |canvas| {
+            canvas.text(Layer::Front, &block, (rect.cx(), rect.y), Align::Center);
+        });
     }
     Ok(())
+}
+
+/// Each group, block and edge named from the source (docs/adr/0037):
+/// `group-api`, `block-db`, an edge by what it joins and says
+/// (`link-api-db-reads`).
+fn names(diagram: &Diagram) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let mut given = crate::svg::Given::default();
+    let groups: Vec<String> = diagram
+        .groups
+        .iter()
+        .map(|g| given.unique(crate::svg::element("group", &g.id)))
+        .collect();
+    let nodes: Vec<String> = diagram
+        .nodes
+        .iter()
+        .map(|n| given.unique(crate::svg::element("block", &n.id)))
+        .collect();
+    let id = |end: &super::End| match *end {
+        super::End::Node(at) => diagram.nodes.get(at).map_or("", |n| n.id.as_str()),
+        super::End::Group(at) => diagram.groups.get(at).map_or("", |g| g.id.as_str()),
+    };
+    let edges = diagram
+        .edges
+        .iter()
+        .map(|e| {
+            let said = e.label.as_ref().map_or("", |t| t.value.as_str());
+            given.unique(crate::svg::link_name(id(&e.from), id(&e.to), said))
+        })
+        .collect();
+    (groups, nodes, edges)
 }
 
 pub(super) fn tile(look: &Look) -> Color {

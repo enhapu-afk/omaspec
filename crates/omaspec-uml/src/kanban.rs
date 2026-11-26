@@ -186,50 +186,76 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         })
         .fold(0.0, f32::max);
 
+    // Each column and card named by its words (docs/adr/0037), the
+    // board drawn as a whole.
+    canvas.whole();
+    let mut given = crate::svg::Given::default();
+    let mut named = |kind: &str, label: &str| {
+        given.unique(crate::svg::element(kind, crate::svg::first_line(label)))
+    };
     for (index, (column, (head, cards))) in diagram.columns.iter().zip(&laid).enumerate() {
         let x = index as f32 * (COLUMN_W + COLUMN_GAP);
-        canvas.rect(
-            Layer::Background,
-            (x, top, COLUMN_W, tallest),
-            8.0,
-            Some(look.column),
-            None,
-        );
-        canvas.text(Layer::Front, head, (x + PAD, top + PAD), Align::Left);
+        let part = named("column", &column.label);
+        canvas.part(&part, |canvas| {
+            canvas.rect(
+                Layer::Background,
+                (x, top, COLUMN_W, tallest),
+                8.0,
+                Some(look.column),
+                None,
+            );
+            canvas.text(Layer::Front, head, (x + PAD, top + PAD), Align::Left);
+        });
         let mut y = top + PAD + head.height + PAD;
         for (card, laid) in column.cards.iter().zip(cards) {
-            let rect = (x + PAD, y, inner, laid.height);
-            canvas.rect(
-                Layer::Bars,
-                rect,
-                5.0,
-                Some(look.card),
-                Some(Stroke::new(look.border, 1.0)),
-            );
-            if let Some(priority) = card.priority {
-                let color = look.priorities[priority as usize];
-                let bar = (x + PAD, y + 3.0, BAR, laid.height - 6.0);
-                canvas.rect(Layer::Bars, bar, 2.0, Some(color), None);
-            }
-            let left = x + PAD + BAR + CARD_PAD;
-            canvas.text(Layer::Front, &laid.words, (left, y + CARD_PAD), Align::Left);
-            let foot = y + CARD_PAD + laid.words.height + 6.0;
-            if let Some(ticket) = &laid.ticket {
-                canvas.text(Layer::Front, ticket, (left, foot), Align::Left);
-            }
-            if let Some(assigned) = &laid.assigned {
-                let right = x + PAD + inner - CARD_PAD;
-                canvas.text(Layer::Front, assigned, (right, foot), Align::Right);
-            }
+            let part = named("card", &card.label);
+            canvas.part(&part, |canvas| {
+                draw_card(canvas, look, card, laid, (x, y, inner))
+            });
             y += laid.height + CARD_GAP;
         }
     }
     if let Some(block) = &title {
         let count = diagram.columns.len().max(1) as f32;
         let width = count * COLUMN_W + (count - 1.0) * COLUMN_GAP;
-        canvas.text(Layer::Front, block, (width / 2.0, 0.0), Align::Center);
+        canvas.part("title", |canvas| {
+            canvas.text(Layer::Front, block, (width / 2.0, 0.0), Align::Center);
+        });
     }
     Ok(canvas.finish(10.0, look.background))
+}
+
+/// A card at `x` and `y` of its column, `inner` wide.
+fn draw_card(
+    canvas: &mut Canvas,
+    look: &Look,
+    card: &Card,
+    laid: &Laid,
+    (x, y, inner): (f32, f32, f32),
+) {
+    let rect = (x + PAD, y, inner, laid.height);
+    canvas.rect(
+        Layer::Bars,
+        rect,
+        5.0,
+        Some(look.card),
+        Some(Stroke::new(look.border, 1.0)),
+    );
+    if let Some(priority) = card.priority {
+        let color = look.priorities[priority as usize];
+        let bar = (x + PAD, y + 3.0, BAR, laid.height - 6.0);
+        canvas.rect(Layer::Bars, bar, 2.0, Some(color), None);
+    }
+    let left = x + PAD + BAR + CARD_PAD;
+    canvas.text(Layer::Front, &laid.words, (left, y + CARD_PAD), Align::Left);
+    let foot = y + CARD_PAD + laid.words.height + 6.0;
+    if let Some(ticket) = &laid.ticket {
+        canvas.text(Layer::Front, ticket, (left, foot), Align::Left);
+    }
+    if let Some(assigned) = &laid.assigned {
+        let right = x + PAD + inner - CARD_PAD;
+        canvas.text(Layer::Front, assigned, (right, foot), Align::Right);
+    }
 }
 
 /// Black on a light fill, white on a dark one.

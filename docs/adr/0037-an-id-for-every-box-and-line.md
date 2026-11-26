@@ -3,6 +3,7 @@
 Status: accepted, 2026-11-26 (REQ-132); its first step (point 7) is
 done the same day, and of the second its sequence diagrams and the
 lines of structure diagrams, flowcharts, mind maps, WBS and activity
+diagrams, and ER, C4, architecture, block, kanban, journey and timeline
 diagrams. Replaces point 2 of [0029](0029-a-glide-by-parts.md),
 the parts only for the pane, and the way its point 1 writes their names.
 
@@ -126,7 +127,9 @@ Measured on a state machine of seven states, 16 part groups made its SVG
   its veil message by message. A participant's head, foot, lifeline and
   bars are its element, its id on its head; a note beside a message is
   one of its own.
-  Whether messages should glide is a question of its own.
+  Whether messages should glide is a question of its own. The kinds
+  that marked no parts before are named so too: drawn as a whole, as
+  they were.
 - A line many links share (a WBS's spine, the bar over a row, an
   activity diagram's run into a point where branches meet) is no one
   link's: it stays in the lines' group without an id, and each link's

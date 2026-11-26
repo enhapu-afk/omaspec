@@ -124,16 +124,85 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         Some(block) => block.height + 12.0,
         None => 0.0,
     };
+    // Each section, period and event named by its words (docs/adr/0037),
+    // the timeline drawn as a whole.
+    canvas.whole();
+    let names = Names::of(diagram);
     if diagram.down {
-        paint_down(&mut canvas, diagram, family, top)?;
+        paint_down(&mut canvas, diagram, (family, &names), top)?;
     } else {
-        paint_across(&mut canvas, diagram, family, top)?;
+        paint_across(&mut canvas, diagram, (family, &names), top)?;
     }
     if let Some(block) = &title {
         let (x, align) = title_anchor(diagram);
-        canvas.text(Layer::Front, block, (x, 0.0), align);
+        canvas.part("title", |canvas| {
+            canvas.text(Layer::Front, block, (x, 0.0), align);
+        });
     }
     Ok(canvas.finish(10.0, diagram.look.background))
+}
+
+/// Each section, period and event named by its words (docs/adr/0037):
+/// `section-Early`, `period-2020`, `event-Launch`.
+struct Names {
+    sections: Vec<String>,
+    periods: Vec<Vec<String>>,
+    events: Vec<Vec<Vec<String>>>,
+}
+
+impl Names {
+    fn of(diagram: &Diagram) -> Names {
+        let mut given = crate::svg::Given::default();
+        let mut named = |kind: &str, label: &str| {
+            given.unique(crate::svg::element(kind, crate::svg::first_line(label)))
+        };
+        let mut names = Names {
+            sections: Vec::new(),
+            periods: Vec::new(),
+            events: Vec::new(),
+        };
+        for section in &diagram.sections {
+            names.sections.push(named("section", &section.label));
+            let mut periods = Vec::new();
+            let mut events = Vec::new();
+            for period in &section.periods {
+                periods.push(named("period", &period.label));
+                events.push(
+                    period
+                        .events
+                        .iter()
+                        .map(|e| named("event", &e.label))
+                        .collect(),
+                );
+            }
+            names.periods.push(periods);
+            names.events.push(events);
+        }
+        names
+    }
+
+    fn section(&self, at: usize) -> &str {
+        self.sections.get(at).map_or("", String::as_str)
+    }
+
+    fn period(&self, (section, period): (usize, usize)) -> &str {
+        self.periods
+            .get(section)
+            .and_then(|p| p.get(period))
+            .map_or("", String::as_str)
+    }
+
+    fn events(&self, (section, period): (usize, usize)) -> &[String] {
+        self.events
+            .get(section)
+            .and_then(|p| p.get(period))
+            .map_or(&[], Vec::as_slice)
+    }
+}
+
+/// The name at `slot` of `names`; none past its end.
+fn at(names: &[String], slot: usize) -> &str {
+    names.get(slot).map_or("", String::as_str)
 }
 
 fn title_anchor(diagram: &Diagram) -> (f32, Align) {
@@ -152,7 +221,7 @@ fn title_anchor(diagram: &Diagram) -> (f32, Align) {
 fn paint_across(
     canvas: &mut Canvas,
     diagram: &Diagram,
-    family: Family,
+    (family, names): (Family, &Names),
     top: f32,
 ) -> Result<(), Declined> {
     let bands = diagram
@@ -180,7 +249,7 @@ fn paint_across(
         arrow_y,
         bands,
     };
-    paint(canvas, diagram, family, &place)?;
+    paint(canvas, diagram, (family, names), &place)?;
     let count = diagram.period_count();
     if count > 0 {
         let width = (count - 1) as f32 * STEP + BOX_W;
@@ -254,7 +323,7 @@ struct Place {
 fn paint(
     canvas: &mut Canvas,
     diagram: &Diagram,
-    family: Family,
+    (family, names): (Family, &Names),
     place: &Place,
 ) -> Result<(), Declined> {
     let mut index = 0usize;
@@ -267,33 +336,50 @@ fn paint(
         let width = count as f32 * BOX_W + (count - 1) as f32 * GAP;
         if place.bands {
             let fill = fill_of(diagram, section_index);
-            canvas.card(
-                Layer::Bars,
-                (x, place.section_y, width, SECTION_H),
-                5.0,
-                fill,
-            );
-            if !section.label.is_empty() {
-                let block = text::block(
-                    &section.label,
-                    Font::new(diagram.look.label_size, on_fill(fill)),
-                    family,
-                )
-                .map_err(|reason| Declined::at(section.line, reason))?;
-                canvas.text(
-                    Layer::Front,
-                    &block,
-                    (
-                        x + width / 2.0,
-                        place.section_y + (SECTION_H - block.height) / 2.0,
-                    ),
-                    Align::Center,
-                );
-            }
+            canvas.part(
+                names.section(section_index),
+                |canvas| -> Result<(), Declined> {
+                    canvas.card(
+                        Layer::Bars,
+                        (x, place.section_y, width, SECTION_H),
+                        5.0,
+                        fill,
+                    );
+                    if !section.label.is_empty() {
+                        let block = text::block(
+                            &section.label,
+                            Font::new(diagram.look.label_size, on_fill(fill)),
+                            family,
+                        )
+                        .map_err(|reason| Declined::at(section.line, reason))?;
+                        canvas.text(
+                            Layer::Front,
+                            &block,
+                            (
+                                x + width / 2.0,
+                                place.section_y + (SECTION_H - block.height) / 2.0,
+                            ),
+                            Align::Center,
+                        );
+                    }
+                    Ok(())
+                },
+            )?;
         }
-        for period in &section.periods {
+        for (period_index, period) in section.periods.iter().enumerate() {
             let fill = fill_of(diagram, if place.bands { section_index } else { index });
-            paint_period(canvas, diagram, family, period, fill, index, place)?;
+            let at = (section_index, period_index);
+            canvas.part(names.period(at), |canvas| {
+                paint_period(
+                    canvas,
+                    diagram,
+                    (family, names.events(at)),
+                    period,
+                    fill,
+                    index,
+                    place,
+                )
+            })?;
             index += 1;
         }
     }
@@ -303,7 +389,7 @@ fn paint(
 fn paint_period(
     canvas: &mut Canvas,
     diagram: &Diagram,
-    family: Family,
+    (family, events): (Family, &[String]),
     period: &Period,
     fill: Color,
     index: usize,
@@ -330,16 +416,18 @@ fn paint_period(
     );
     let card = event_fill(fill);
     let mut y = place.event_y;
-    for event in &period.events {
+    for (slot, event) in period.events.iter().enumerate() {
         let block = card_words(&event.label, diagram, on_fill(card), family, event.line)?;
         let height = card_height(&block, EVENT_H);
-        canvas.card(Layer::Bars, (x, y, BOX_W, height), 5.0, card);
-        canvas.text(
-            Layer::Front,
-            &block,
-            (center, y + (height - block.height) / 2.0),
-            Align::Center,
-        );
+        canvas.part(at(events, slot), |canvas| {
+            canvas.card(Layer::Bars, (x, y, BOX_W, height), 5.0, card);
+            canvas.text(
+                Layer::Front,
+                &block,
+                (center, y + (height - block.height) / 2.0),
+                Align::Center,
+            );
+        });
         y += height + EVENT_GAP;
     }
     Ok(())
@@ -370,7 +458,7 @@ fn paint_arrow_down(canvas: &mut Canvas, x: f32, y0: f32, y1: f32, ink: Color) {
 fn paint_down(
     canvas: &mut Canvas,
     diagram: &Diagram,
-    family: Family,
+    (family, names): (Family, &Names),
     top: f32,
 ) -> Result<(), Declined> {
     let bands = diagram
@@ -387,26 +475,35 @@ fn paint_down(
         if bands {
             let fill = fill_of(diagram, section_index);
             let width = row_width(section);
-            canvas.card(Layer::Bars, (DOWN_X, y, width, SECTION_H), 5.0, fill);
-            if !section.label.is_empty() {
-                let block = text::block(
-                    &section.label,
-                    Font::new(diagram.look.label_size, on_fill(fill)),
-                    family,
-                )
-                .map_err(|reason| Declined::at(section.line, reason))?;
-                canvas.text(
-                    Layer::Front,
-                    &block,
-                    (DOWN_X + width / 2.0, y + (SECTION_H - block.height) / 2.0),
-                    Align::Center,
-                );
-            }
+            canvas.part(
+                names.section(section_index),
+                |canvas| -> Result<(), Declined> {
+                    canvas.card(Layer::Bars, (DOWN_X, y, width, SECTION_H), 5.0, fill);
+                    if !section.label.is_empty() {
+                        let block = text::block(
+                            &section.label,
+                            Font::new(diagram.look.label_size, on_fill(fill)),
+                            family,
+                        )
+                        .map_err(|reason| Declined::at(section.line, reason))?;
+                        canvas.text(
+                            Layer::Front,
+                            &block,
+                            (DOWN_X + width / 2.0, y + (SECTION_H - block.height) / 2.0),
+                            Align::Center,
+                        );
+                    }
+                    Ok(())
+                },
+            )?;
             y += SECTION_H + 16.0;
         }
-        for period in &section.periods {
+        for (period_index, period) in section.periods.iter().enumerate() {
             let fill = fill_of(diagram, if bands { section_index } else { index });
-            paint_period_down(canvas, diagram, family, period, fill, y)?;
+            let at = (section_index, period_index);
+            canvas.part(names.period(at), |canvas| {
+                paint_period_down(canvas, diagram, (family, names.events(at)), period, fill, y)
+            })?;
             last_bottom = y + PERIOD_H;
             y += ROW;
             index += 1;
@@ -421,7 +518,7 @@ fn paint_down(
 fn paint_period_down(
     canvas: &mut Canvas,
     diagram: &Diagram,
-    family: Family,
+    (family, events): (Family, &[String]),
     period: &Period,
     fill: Color,
     y: f32,
@@ -449,13 +546,15 @@ fn paint_period_down(
         let height = card_height(&block, EVENT_H);
         // Level with its period, however tall its words make it.
         let event_y = mid - height / 2.0;
-        canvas.card(Layer::Bars, (ex, event_y, BOX_W, height), 5.0, card);
-        canvas.text(
-            Layer::Front,
-            &block,
-            (ex + BOX_W / 2.0, event_y + (height - block.height) / 2.0),
-            Align::Center,
-        );
+        canvas.part(at(events, slot), |canvas| {
+            canvas.card(Layer::Bars, (ex, event_y, BOX_W, height), 5.0, card);
+            canvas.text(
+                Layer::Front,
+                &block,
+                (ex + BOX_W / 2.0, event_y + (height - block.height) / 2.0),
+                Align::Center,
+            );
+        });
     }
     Ok(())
 }

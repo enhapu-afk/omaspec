@@ -134,13 +134,18 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         // nothing above 6 or below 0 moves the row.
         line_bottom: face_base + 6.0 * SCORE_STEP + FACE_R + 8.0,
     };
+    // Each section and task named by its words (docs/adr/0037), the
+    // journey drawn as a whole.
+    canvas.whole();
     paint_tasks(&mut canvas, diagram, family, &place)?;
     if diagram.task_count() > 0 {
         paint_arrow(&mut canvas, diagram, x0, arrow_y);
     }
     paint_legend(&mut canvas, &legend, top);
     if let Some(block) = &title {
-        canvas.text(Layer::Front, block, (x0, 0.0), Align::Left);
+        canvas.part("title", |canvas| {
+            canvas.text(Layer::Front, block, (x0, 0.0), Align::Left);
+        });
     }
     Ok(canvas.finish(10.0, diagram.look.background))
 }
@@ -220,6 +225,10 @@ fn paint_tasks(
     place: &Place,
 ) -> Result<(), Declined> {
     let mut index = 0usize;
+    let mut given = crate::svg::Given::default();
+    let mut named = |kind: &str, label: &str| {
+        given.unique(crate::svg::element(kind, crate::svg::first_line(label)))
+    };
     for (section_index, section) in diagram.sections.iter().enumerate() {
         let count = section.tasks.len();
         if count == 0 {
@@ -228,13 +237,17 @@ fn paint_tasks(
         let x = place.x0 + index as f32 * (TASK_W + GAP);
         let width = count as f32 * TASK_W + (count - 1) as f32 * GAP;
         let fill = section_fill(diagram, section_index);
-        canvas.card(
-            Layer::Bars,
-            (x, place.section_y, width, SECTION_H),
-            3.0,
-            fill,
-        );
-        if !section.label.is_empty() {
+        let part = named("section", &section.label);
+        canvas.part(&part, |canvas| {
+            canvas.card(
+                Layer::Bars,
+                (x, place.section_y, width, SECTION_H),
+                3.0,
+                fill,
+            );
+            if section.label.is_empty() {
+                return Ok(());
+            }
             let block = text::block(
                 &section.label,
                 Font::new(diagram.look.label_size, on_fill(fill)),
@@ -250,9 +263,13 @@ fn paint_tasks(
                 ),
                 Align::Center,
             );
-        }
+            Ok(())
+        })?;
         for task in &section.tasks {
-            paint_task(canvas, diagram, family, task, fill, index, place)?;
+            let part = named("task", &task.label);
+            canvas.part(&part, |canvas| {
+                paint_task(canvas, diagram, family, task, fill, index, place)
+            })?;
             index += 1;
         }
     }

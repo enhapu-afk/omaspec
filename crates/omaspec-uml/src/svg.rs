@@ -2060,6 +2060,30 @@ pub fn element(kind: &str, name: &str) -> String {
     id
 }
 
+/// A line's name by what it joins and what it says, the first line of
+/// its words (docs/adr/0037): `link-Order-Customer-places`, without words
+/// `link-Order-Customer`.
+pub fn link_name(from: &str, to: &str, said: &str) -> String {
+    let mut name = String::from("link");
+    for end in [from, to] {
+        name.push('-');
+        push_written(&mut name, end);
+    }
+    let said = first_line(said);
+    if !said.is_empty() {
+        name.push('-');
+        push_written(&mut name, said);
+    }
+    name
+}
+
+/// The first line of `text` as a name holds it, trimmed: up to a written
+/// `\n` or a line break.
+pub fn first_line(text: &str) -> &str {
+    let first = text.split("\\n").next().unwrap_or_default();
+    first.split('\n').next().unwrap_or_default().trim()
+}
+
 /// `name` onto `id` as [`element`] writes a name.
 pub fn push_written(id: &mut String, name: &str) {
     for c in name.chars() {
