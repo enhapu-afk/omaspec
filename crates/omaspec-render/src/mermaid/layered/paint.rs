@@ -425,6 +425,7 @@ pub(super) fn cap_shape(points: &[(f32, f32)], start: bool, cap: Cap) -> Vec<Hea
                 ],
                 closed: true,
                 fill: HeadFill::Ink,
+                color: None,
             }]
         }
         Cap::Circle => {
@@ -439,6 +440,7 @@ pub(super) fn cap_shape(points: &[(f32, f32)], start: bool, cap: Cap) -> Vec<Hea
                 points,
                 closed: true,
                 fill: HeadFill::Ink,
+                color: None,
             }]
         }
         Cap::Cross => {
@@ -454,6 +456,7 @@ pub(super) fn cap_shape(points: &[(f32, f32)], start: bool, cap: Cap) -> Vec<Hea
                         ],
                         closed: false,
                         fill: HeadFill::None,
+                        color: None,
                     }
                 })
                 .collect()

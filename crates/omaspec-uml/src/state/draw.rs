@@ -128,13 +128,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         (&mut Vec::new(), &names),
         &mut map,
     );
-    map.wires = wires(
-        &arrows,
-        &scene,
-        &diagram.frame.by_hand,
-        (skin.curve, skin.strict),
-        &names,
-    );
+    map.wires = wires(&arrows, &scene, &diagram.frame.by_hand, &skin, &names);
     map.places = nest::places(&diagram.root, &scene, &diagram.frame.held);
     map.quiet = choices::names(&diagram.root);
     notes_inside(&scene, &names, &mut map.inside);
@@ -1725,12 +1719,20 @@ pub(super) fn arrow_head(canvas: &mut Canvas, skin: &Skin, points: &[(f32, f32)]
     let Some(head) = head_shape(points, skin.strict) else {
         return;
     };
+    let color = head_color(skin, stroke).unwrap_or(stroke.color);
     let solid = Stroke {
         dash: None,
         width: stroke.width.min(1.5),
-        ..stroke
+        color,
     };
-    canvas.polygon(Layer::Lines, &head, Some(stroke.color), Some(solid));
+    canvas.polygon(Layer::Lines, &head, Some(color), Some(solid));
+}
+
+/// The color of a head on a line drawn with `stroke`: the heads' own on a
+/// line in the diagram's arrow color, where one is set (`ArrowHeadColor`,
+/// `HeadColor`); else the line's, which one of its own color keeps.
+pub(super) fn head_color(skin: &Skin, stroke: Stroke) -> Option<Color> {
+    skin.arrow_head.filter(|_| stroke.color == skin.arrow.color)
 }
 
 /// The arrowhead at the end of `points`: a filled triangle, with a notch

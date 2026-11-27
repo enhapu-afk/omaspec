@@ -58,6 +58,10 @@ pub struct Skin {
     /// line, not in a diamond.
     pub merge_line: bool,
     pub arrow: Stroke,
+    /// `skinparam ArrowHeadColor`, a style's `HeadColor`: the heads of
+    /// the arrows in the diagram's arrow color; one with a color of its
+    /// own keeps it in its head, as in PlantUML.
+    pub arrow_head: Option<Color>,
     /// `skinparam ArrowHeadColor none`: lines without heads, but those
     /// written in a style of their own.
     pub heads: bool,
@@ -120,6 +124,7 @@ impl Default for Skin {
             vertical_if: false,
             merge_line: false,
             arrow: Stroke::new(dark, 1.0),
+            arrow_head: None,
             curve: CURVE,
             arrow_font: Font::new(11.0, black),
             start: Color::hex(0x222222),
@@ -280,9 +285,9 @@ impl Skin {
                 "roundcorner" | "activityroundcorner" => skin.round = p.corner()?,
                 "backgroundcolor" => skin.background = p.paint()?,
                 "arrowcolor" => skin.arrow.color = p.solid()?,
-                // A color of the heads' own waits on the map, which hands
-                // a head the color of its line to every pane.
                 "arrowheadcolor" if value.eq_ignore_ascii_case("none") => skin.heads = false,
+                // The heads' own color, which the map hands on with them.
+                "arrowheadcolor" => skin.arrow_head = Some(p.solid()?),
                 "arrowthickness" => skin.arrow.width = p.number(0.1, 20.0)?,
                 "arrowstyle" => {
                     skin.arrow.dash = match value.to_ascii_lowercase().as_str() {
@@ -450,6 +455,7 @@ pub const STYLE: &[Element] = &[
         &["element", "activityDiagram", "arrow"],
         &[
             (Prop::LineColor, "ArrowColor"),
+            (Prop::HeadColor, "ArrowHeadColor"),
             (Prop::LineThickness, "ArrowThickness"),
             (Prop::LineStyle, "ArrowStyle"),
             (Prop::FontColor, "ArrowFontColor"),

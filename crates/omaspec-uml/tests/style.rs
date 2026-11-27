@@ -130,3 +130,55 @@ fn what_is_not_drawn_declines_at_its_line() {
         assert!(err.reason.contains(part), "{head}: {}", err.reason);
     }
 }
+
+/// REQ-146: `HeadColor` colors the heads of the arrows in the diagram's
+/// arrow color, their outline and their ink, as `skinparam ArrowHeadColor`
+/// does, in class, state and activity diagrams (the old syntax's too); an
+/// arrow of its own color keeps it in its head, and the lines keep theirs.
+/// The map hands the color on with the heads, for a pane to draw them so.
+/// A sequence diagram takes it and draws as before, as PlantUML does.
+#[test]
+fn the_heads_of_arrows_take_a_color_of_their_own() {
+    let style = "<style>\narrow {\n  HeadColor #FF0000\n}\n</style>";
+    for body in [
+        "class A\nclass B\nclass C\nA --> B\nA -[#00AA00]-> C",
+        "[*] --> A\nA --> B\nA -[#00AA00]-> C",
+        "start\n:a;\n-[#00AA00]->\n:b;\nstop",
+        "(*) --> \"a\"\n-[#00AA00]-> \"b\"",
+    ] {
+        let plain = render("", body);
+        for head in [style, "skinparam ArrowHeadColor #FF0000"] {
+            let source = format!("@startuml\n{head}\n{body}\n@enduml\n");
+            let (svg, map) = omaspec_uml::render_mapped(&source, None)
+                .unwrap_or_else(|e| panic!("{body}: {e:?}"));
+            let polygons: Vec<&str> = svg
+                .split("<polygon ")
+                .skip(1)
+                .filter_map(|p| p.split(r#"fill=""#).nth(1)?.split('"').next())
+                .collect();
+            assert!(polygons.contains(&"#FF0000"), "{body}: {polygons:?}");
+            assert!(polygons.contains(&"#00AA00"), "{body}: {polygons:?}");
+            // The lines keep their color: no stroke but a head's is red.
+            let strokes = svg.matches(r##"stroke="#FF0000""##).count();
+            let heads = svg.matches(r##"fill="#FF0000" stroke="#FF0000""##).count();
+            assert_eq!(strokes, heads, "{body}");
+            let colored: Vec<_> = map
+                .wires
+                .iter()
+                .flat_map(|wire| wire.heads.iter().map(|head| head.color))
+                .collect();
+            assert!(
+                colored.contains(&Some(omaspec_uml::Color::hex(0xFF0000))),
+                "{body}: {colored:?}"
+            );
+            assert!(colored.contains(&None), "{body}: {colored:?}");
+            assert_ne!(svg, plain, "{body}");
+        }
+    }
+    let body = "A -> B : hi";
+    assert_eq!(render(style, body), render("", body));
+    assert_eq!(
+        render("skinparam ArrowHeadColor #FF0000", body),
+        render("", body)
+    );
+}

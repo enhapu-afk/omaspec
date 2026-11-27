@@ -182,7 +182,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
             found.run(
                 laid.path.clone(),
                 laid.points.clone(),
-                laid.head.clone(),
+                (laid.head.clone(), painter.head_color(edge.stroke)),
                 edge.stroke,
             );
         }
@@ -318,6 +318,16 @@ impl Painter<'_> {
         edge.head && (self.skin.heads || edge.styled)
     }
 
+    /// The color of a head on a line drawn with `stroke`: the heads' own
+    /// on a line in the diagram's arrow color, where one is set
+    /// (`ArrowHeadColor`, `HeadColor`); else the line's, which one of its
+    /// own color keeps, as in PlantUML.
+    fn head_color(&self, stroke: Stroke) -> Option<crate::color::Color> {
+        self.skin
+            .arrow_head
+            .filter(|_| stroke.color == self.skin.arrow.color)
+    }
+
     /// Draws `edge` as [`Self::laid`] laid it.
     fn paint_edge(&self, canvas: &mut Canvas, edge: &Edge, laid: &Laid) {
         let arrive = if self.headed(edge) { HEAD_LENGTH } else { 0.0 };
@@ -329,12 +339,13 @@ impl Painter<'_> {
             edge.stroke,
         );
         if let Some(head) = &laid.head {
+            let color = self.head_color(edge.stroke).unwrap_or(edge.stroke.color);
             let solid = Stroke {
                 dash: None,
                 width: edge.stroke.width.min(1.5),
-                color: edge.stroke.color,
+                color,
             };
-            canvas.polygon(Layer::Lines, head, Some(edge.stroke.color), Some(solid));
+            canvas.polygon(Layer::Lines, head, Some(color), Some(solid));
         }
     }
 
@@ -1003,7 +1014,7 @@ mod tests {
 
     /// `ArrowHeadColor none` draws lines without heads, but on an arrow
     /// written in a style of its own, as PlantUML; a color of their own
-    /// declines.
+    /// colors them, and the map hands it on with them.
     #[test]
     fn arrow_heads_take_none() {
         let source = "@startuml\nstart\n:Hello world;\n:Next;\nstop\n@enduml\n";
@@ -1023,7 +1034,16 @@ mod tests {
             assert_eq!(heads(&svg), 1, "{own}: {svg}");
         }
         let red = source.replace("start\n", "skinparam ArrowHeadColor #FF0000\nstart\n");
-        assert!(crate::render_mapped(&red, None).is_err());
+        let (svg, map) = crate::render_mapped(&red, None).unwrap();
+        assert_eq!(heads(&svg), 3, "{svg}");
+        assert_eq!(svg.matches(r##"fill="#FF0000""##).count(), 3, "{svg}");
+        let red = Some(crate::color::Color::hex(0xFF0000));
+        assert!(
+            map.wires
+                .iter()
+                .flat_map(|w| &w.heads)
+                .all(|h| h.color == red)
+        );
     }
 
     /// Under `conditionStyle diamond`, the words on the arrow into a branch

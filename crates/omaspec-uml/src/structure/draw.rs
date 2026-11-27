@@ -122,7 +122,7 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
                     &scene,
                     hands,
                     |points| crate::curve::flatten(points, skin.curve),
-                    |path, slot, drawn| dress(&scene, (path, slot), drawn, skin.strict, &names),
+                    |path, slot, drawn| dress(&scene, (path, slot), drawn, &skin, &names),
                 ),
                 misses: {
                     let mut misses = misses;
@@ -2269,6 +2269,12 @@ fn draw_head(
     let Some(shape) = head_shape(tip, from, head, skin.strict) else {
         return;
     };
+    // A line in the diagram's arrow color takes the heads' own, where one
+    // is set; one of its own color keeps that in its head.
+    let stroke = match head_color(skin, stroke) {
+        Some(color) => Stroke { color, ..stroke },
+        None => stroke,
+    };
     let solid = Stroke {
         dash: None,
         width: stroke.width.min(1.5),
@@ -2341,7 +2347,14 @@ fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Op
         points,
         closed,
         fill,
+        color: None,
     })
+}
+
+/// The color of a head on a line drawn with `stroke`: the heads' own on a
+/// line in the diagram's arrow color, where one is set; else the line's.
+fn head_color(skin: &Skin, stroke: Stroke) -> Option<Color> {
+    skin.arrow_head.filter(|_| stroke.color == skin.arrow.color)
 }
 
 /// How the line at `slot` of the container at `path` is drawn, with the
@@ -2350,7 +2363,7 @@ fn dress(
     scene: &Scene,
     (path, slot): (&[usize], usize),
     drawn: &[(f32, f32)],
-    strict: bool,
+    skin: &Skin,
     names: &Names,
 ) -> Dress {
     let mut here = scene;
@@ -2368,10 +2381,12 @@ fn dress(
         };
     };
     let last = drawn.len() - 1;
+    let color = head_color(skin, edge.look.stroke);
     let heads = [
-        head_shape(drawn[0], drawn[1], edge.look.from_head, strict),
-        head_shape(drawn[last], drawn[last - 1], edge.look.to_head, strict),
-    ];
+        head_shape(drawn[0], drawn[1], edge.look.from_head, skin.strict),
+        head_shape(drawn[last], drawn[last - 1], edge.look.to_head, skin.strict),
+    ]
+    .map(|head| head.map(|head| map::Head { color, ..head }));
     let words = names.edge(path, slot);
     let card =
         |card: &Block, at_start| (!card.is_empty()).then(|| names.card(path, slot, at_start));

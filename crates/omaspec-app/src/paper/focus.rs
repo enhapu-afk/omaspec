@@ -696,15 +696,19 @@ impl canvas::Program<Message> for FocusLayer<'_> {
                             builder.close();
                         }
                     });
+                    // A head of its own color keeps it, lit as its line.
+                    let ink = head
+                        .color
+                        .map_or(line.color, |omaspec_uml::Color(r, g, b)| Color {
+                            a: line.color.a,
+                            ..Color::from_rgb8(r, g, b)
+                        });
                     match head.fill {
-                        HeadFill::Ink => frame.fill(&mark, line.color),
+                        HeadFill::Ink => frame.fill(&mark, ink),
                         HeadFill::Paper => frame.fill(&mark, ground),
                         HeadFill::None => {}
                     }
-                    frame.stroke(
-                        &mark,
-                        Stroke::default().with_color(line.color).with_width(width),
-                    );
+                    frame.stroke(&mark, Stroke::default().with_color(ink).with_width(width));
                 }
             }
         }

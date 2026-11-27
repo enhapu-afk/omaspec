@@ -361,6 +361,7 @@ fn arrow(canvas: &mut Canvas, ink: Color, from: (f32, f32), card: &Card, to: &Ca
             points: head.to_vec(),
             closed: true,
             fill: HeadFill::Ink,
+            color: None,
         }],
         fixed: true,
         words: Default::default(),

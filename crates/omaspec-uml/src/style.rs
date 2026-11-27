@@ -38,6 +38,8 @@ pub enum Prop {
     BarWidth,
     Padding,
     Margin,
+    /// An arrow's head, apart from its line (`HeadColor`).
+    HeadColor,
     /// One the engine does not draw yet: `MaximumWidth`, ….
     Other,
 }
@@ -70,7 +72,7 @@ const PROPS: [(&str, Option<Prop>); 30] = [
     ("HyperLinkColor", None),
     ("HyperlinkUnderlineStyle", None),
     ("HyperlinkUnderlineThickness", None),
-    ("HeadColor", Some(Prop::Other)),
+    ("HeadColor", Some(Prop::HeadColor)),
     ("LineColor", Some(Prop::LineColor)),
     ("LineStyle", Some(Prop::LineStyle)),
     ("Padding", Some(Prop::Padding)),
@@ -339,6 +341,7 @@ impl Element {
             | Prop::BarWidth
             | Prop::Padding
             | Prop::Margin
+            | Prop::HeadColor
             | Prop::Other => return None,
         };
         Some(format!("{}{usual}", self.prefix))
@@ -638,7 +641,7 @@ fn no_shadow(value: &str) -> bool {
 /// A style's value as the skinparam takes it.
 fn skinparam_value(prop: Prop, value: &str) -> String {
     match prop {
-        Prop::BackGroundColor | Prop::LineColor | Prop::FontColor
+        Prop::BackGroundColor | Prop::LineColor | Prop::FontColor | Prop::HeadColor
             if value.eq_ignore_ascii_case("none") =>
         {
             "transparent".to_owned()

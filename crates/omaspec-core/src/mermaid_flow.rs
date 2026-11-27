@@ -497,9 +497,50 @@ pub fn wrong(body: &str) -> Option<(usize, String)> {
     None
 }
 
+/// The subgraphs written with a shape (`subgraph core@{ shape: hex }`),
+/// which neither mermaid.js nor Omaspec draws yet (mermaid-js PR 8912):
+/// each stays a frame, the shape kept for when one does (REQ-144). The
+/// zero-based line of each, and its shape as written; a rectangle, which
+/// a frame is, is none.
+pub fn frame_shapes(body: &str) -> Vec<(usize, String)> {
+    body.lines()
+        .enumerate()
+        .filter_map(|(at, line)| {
+            let rest = line.trim_start().strip_prefix("subgraph")?;
+            if !rest.starts_with(char::is_whitespace) {
+                return None;
+            }
+            let inside = &rest[rest.find("@{")? + 2..];
+            let inside = &inside[..inside.find('}')?];
+            let shape = inside.split(',').find_map(|pair| {
+                let (key, value) = pair.split_once(':')?;
+                (key.trim() == "shape").then(|| value.trim().trim_matches(['"', '\'']).to_owned())
+            })?;
+            (!shape.is_empty() && !matches!(shape.as_str(), "rect" | "rectangle"))
+                .then_some((at, shape))
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// REQ-144: a subgraph's shape is told as drawn by nothing yet, on
+    /// its line; a frame's own rectangle, a plain subgraph and a node's
+    /// shape are not.
+    #[test]
+    fn a_subgraph_s_shape_is_told() {
+        let code = "---\ntitle: Onion\n---\nflowchart TD\n  subgraph core@{ shape: hex, label: \"Core\" }\n    A\n  end\n  subgraph box@{ shape: rect }\n    B\n  end\n  subgraph plain\n    C@{ shape: hex }\n  end\n";
+        let found: Vec<(usize, String)> = crate::lint::lint(code, crate::Language::Mermaid)
+            .into_iter()
+            .filter(|f| f.code == "frame-shape")
+            .map(|f| (f.line, f.message))
+            .collect();
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].0, 4, "{found:?}");
+        assert!(found[0].1.contains("`hex`") && found[0].1.contains("stays a frame"));
+    }
 
     fn said(body: &str) -> Option<usize> {
         wrong(body).map(|(line, _)| line)

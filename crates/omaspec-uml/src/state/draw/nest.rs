@@ -477,15 +477,16 @@ pub(super) fn places(
     )
 }
 
-/// Every transition drawn, as a [`Wire`] for the map. `curve` is how far
-/// the lines curve, `strict` whether the heads are plain triangles.
+/// Every transition drawn, as a [`Wire`] for the map, its lines curving
+/// and its heads drawn as `skin` draws them.
 pub(super) fn wires(
     arrows: &[(Arrow, Key)],
     scene: &Scene,
     hands: &[(usize, hand::Line)],
-    (curve, strict): (f32, bool),
+    skin: &Skin,
     names: &super::Names,
 ) -> Vec<Wire> {
+    let (curve, strict) = (skin.curve, skin.strict);
     let top = placements(&scene.nodes);
     by_hand::wires(
         &top,
@@ -493,17 +494,22 @@ pub(super) fn wires(
         scene,
         hands,
         |points| drawn_route(points, curve),
-        |path, slot, drawn| Dress {
-            stroke: edge_at(scene, path, slot).map_or(Stroke::new(Color::BLACK, 1.0), |e| e.look),
-            heads: super::head_shape(drawn, strict)
-                .map(|points| Head {
-                    points,
-                    closed: true,
-                    fill: HeadFill::Ink,
-                })
-                .into_iter()
-                .collect(),
-            words: [Some(names.edge(path, slot)), None, None],
+        |path, slot, drawn| {
+            let stroke =
+                edge_at(scene, path, slot).map_or(Stroke::new(Color::BLACK, 1.0), |e| e.look);
+            Dress {
+                stroke,
+                heads: super::head_shape(drawn, strict)
+                    .map(|points| Head {
+                        points,
+                        closed: true,
+                        fill: HeadFill::Ink,
+                        color: super::head_color(skin, stroke),
+                    })
+                    .into_iter()
+                    .collect(),
+                words: [Some(names.edge(path, slot)), None, None],
+            }
         },
     )
 }

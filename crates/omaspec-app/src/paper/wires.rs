@@ -78,6 +78,12 @@ fn ink(wire: &Wire) -> Color {
     Color::from_rgb8(r, g, b)
 }
 
+/// A head's own color, where it has one ([`Head::color`]).
+fn own_color(head: &Head) -> Option<Color> {
+    head.color
+        .map(|omaspec_uml::Color(r, g, b)| Color::from_rgb8(r, g, b))
+}
+
 impl Line {
     fn dressed(wire: &Wire) -> Line {
         Line {
@@ -419,6 +425,8 @@ struct Mark {
     closed: bool,
     fill: HeadFill,
     alpha: f32,
+    /// Its own color, where its head has one; else its line's.
+    color: Option<Color>,
 }
 
 /// Draws every line of `glide` where it is at `sheets.t`, its words
@@ -586,7 +594,7 @@ fn paint_line(frame: &mut Frame, line: &Line, s: &Sheets) {
         }
         let ink = Color {
             a: mark.alpha,
-            ..ink
+            ..mark.color.unwrap_or(ink)
         };
         let path = polyline(&mark.points, mark.closed);
         match mark.fill {
@@ -628,6 +636,7 @@ fn marks_between(from: &Shape, to: &Shape, s: &Sheets, way: f32) -> Vec<Mark> {
                     closed: a.closed,
                     fill: a.fill,
                     alpha: 1.0,
+                    color: own_color(if way < 0.5 { a } else { b }),
                 }
             })
             .collect();
@@ -645,6 +654,7 @@ fn marks_on(heads: &[Head], sheet: (Rectangle, Size), alpha: f32) -> Vec<Mark> {
             closed: head.closed,
             fill: head.fill,
             alpha,
+            color: own_color(head),
         })
         .collect()
 }

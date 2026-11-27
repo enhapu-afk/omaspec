@@ -241,6 +241,7 @@ fn route(route: &Route) -> Value {
         .heads
         .iter()
         .map(|head| {
+            // A head of its own color carries it; else it is its line's.
             json!({
                 "points": points(&head.points),
                 "closed": head.closed,
@@ -249,6 +250,7 @@ fn route(route: &Route) -> Value {
                     HeadFill::Paper => "paper",
                     HeadFill::None => "none",
                 },
+                "color": head.color.map(|color| color.to_string()),
             })
         })
         .collect();

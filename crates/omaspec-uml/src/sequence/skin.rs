@@ -293,6 +293,11 @@ impl Skin {
                 "roundcorner" => skin.round = p.corner()?,
                 "backgroundcolor" => skin.background = p.paint()?,
                 "arrowcolor" => skin.arrow = p.solid()?,
+                // PlantUML colors no sequence arrow's head apart from its
+                // line, whichever names it.
+                "arrowheadcolor" => {
+                    p.solid()?;
+                }
                 "arrowthickness" => skin.arrow_thickness = p.number(0.1, 20.0)?,
                 // PlantUML's own name colors the cross too; the short one,
                 // which it does not take, the lifelines alone.
@@ -552,6 +557,7 @@ pub const STYLE: &[Element] = &[
         &["element", "sequenceDiagram", "arrow"],
         &[
             (Prop::LineColor, "ArrowColor"),
+            (Prop::HeadColor, "ArrowHeadColor"),
             (Prop::LineThickness, "ArrowThickness"),
             (Prop::FontColor, "ArrowFontColor"),
             (Prop::FontSize, "ArrowFontSize"),

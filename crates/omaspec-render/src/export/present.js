@@ -693,8 +693,8 @@ if (typeof document !== "undefined") {
                 if (!head) return mark.setAttribute("opacity", 0);
                 set(mark, {
                   d: `M${head.points.map((p) => p.join(",")).join("L")}${head.closed ? "z" : ""}`,
-                  fill: head.fill === "ink" ? line.color : head.fill === "paper" ? hollow : "none",
-                  stroke: line.color,
+                  fill: head.fill === "ink" ? head.color || line.color : head.fill === "paper" ? hollow : "none",
+                  stroke: head.color || line.color,
                   "stroke-width": line.width,
                   "stroke-linejoin": "round",
                   opacity: line.alpha,

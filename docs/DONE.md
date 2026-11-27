@@ -2581,6 +2581,26 @@ is open and the reasoning around it.
       icon's doc says what is so: no icon's id repeats (a gradient used
       inside and outside a picture in a note is defined twice, the same).
 
+## From the tester's run of 2026-11-27
+
+- [x] A subgraph's shape is told (REQ-144, 2026-11-27): `subgraph
+      core@{ shape: hex }` stays a frame, as mermaid.js draws it too
+      until it draws a subgraph in a shape (mermaid-js PR 8912); lint
+      says so on its line now (`frame-shape`, info), where the shape went
+      without a word. A rectangle, which a frame is, is none.
+- [x] The heads of arrows in a color of their own (REQ-146, 2026-11-27):
+      a style's `HeadColor` and `skinparam ArrowHeadColor` color the
+      heads, their outline and their ink, of the arrows in the diagram's
+      arrow color, in class, state and activity diagrams and the old
+      activity syntax, as PlantUML 1.2026.8 does; an arrow of its own
+      color (`-[#green]->`) keeps it in its head, and the lines keep
+      theirs. A sequence diagram takes both and draws as before, as
+      PlantUML does, where the style had sent it to the Java PlantUML.
+      The map hands the color on with each head (`map::Head::color`), so
+      a glide, the focus, a build and a fold's page draw the heads as the
+      picture does; that was why a color of the heads' own had declined
+      until now.
+
 ## Next
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it

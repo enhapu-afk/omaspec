@@ -40,6 +40,10 @@ pub struct Skin {
     /// color, so a dark theme's accent stays visible on the background.
     pub state: Look,
     pub arrow: Stroke,
+    /// `skinparam ArrowHeadColor`, a style's `HeadColor`: the heads of
+    /// the arrows in the diagram's arrow color; one with a color of its
+    /// own keeps it in its head, as in PlantUML.
+    pub arrow_head: Option<Color>,
     /// How far a transition's corners curve; none with `linetype ortho`.
     pub curve: f32,
     pub arrow_font: Font,
@@ -94,6 +98,7 @@ impl Default for Skin {
                 font: Font::new(14.0, black),
             },
             arrow: Stroke::new(dark, 1.0),
+            arrow_head: None,
             curve: crate::curve::RADIUS,
             arrow_font: Font::new(12.0, black),
             note: Look {
@@ -327,6 +332,7 @@ impl Skin {
                 "roundcorner" | "stateroundcorner" => skin.round = p.corner()?,
                 "backgroundcolor" => skin.background = p.paint()?,
                 "arrowcolor" => skin.arrow.color = p.solid()?,
+                "arrowheadcolor" => skin.arrow_head = Some(p.solid()?),
                 "linetype" => skin.curve = crate::curve::linetype(p)?,
                 "arrowthickness" => skin.arrow.width = p.number(0.1, 20.0)?,
                 "arrowstyle" => {
@@ -522,6 +528,7 @@ pub const STYLE: &[Element] = &[
         &["element", "stateDiagram", "arrow"],
         &[
             (Prop::LineColor, "ArrowColor"),
+            (Prop::HeadColor, "ArrowHeadColor"),
             (Prop::LineThickness, "ArrowThickness"),
             (Prop::LineStyle, "ArrowStyle"),
             (Prop::FontColor, "ArrowFontColor"),

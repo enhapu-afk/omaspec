@@ -982,6 +982,7 @@ there keeps its meaning.
 | `trace-line`, `trace-deviation`, `trace-unchecked`, `trace-no-start`, `trace-too-many-ways` | a trace: a line not read, an event the machine does not take, and what could not be followed |
 | `stale-entry`, `by-hand-miss` | an entry by hand (a line, a held box) that no longer holds |
 | `unknown-icon`, `faint-color`, `unheeded-setting` | an icon the set does not have, a color too faint to read, a setting nothing heeds |
+| `frame-shape` | a Mermaid subgraph's shape (`subgraph core@{ shape: hex }`), which neither mermaid.js nor Omaspec draws yet: it stays a frame |
 | `embedded-diagram` | a diagram inside a diagram (`{{` to `}}`) the engine does not draw, so Omaspec writes it as its text, and why |
 | `unseen-character` | a character nobody sees (a zero-width space, a mark that turns the text's direction) on the line; the fix takes it out |
 | `not-mermaid-js` | Omaspec draws it, mermaid.js (GitHub) does not |
@@ -989,7 +990,7 @@ there keeps its meaning.
 | `project-file` | the project's file does not read |
 | `not-drawn` | `check`: no engine draws the diagram |
 
-These carry their fix where it is sure, 13 of the 36 rules: `missing-end`,
+These carry their fix where it is sure, 13 of the 37 rules: `missing-end`,
 `unclosed-block` (but a `repeat`), `unknown-head`, `declared-twice`,
 `undeclared-participant`, `lane-spelling`, `dead-end`, `transition-twice`, `stale-entry`,
 `unknown-icon`, `faint-color`, `unseen-character` and `not-mermaid-js`. The others leave a

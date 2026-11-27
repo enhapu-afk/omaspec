@@ -138,6 +138,10 @@ pub const RULES: &[Rule] = &[
         Never("mermaid.js heeds it where Omaspec does not"),
     ),
     rule(
+        "frame-shape",
+        Never("the shape is the writer's, kept for when Mermaid draws it"),
+    ),
+    rule(
         "embedded-diagram",
         Never("the engine lacks the diagram inside, not the text"),
     ),

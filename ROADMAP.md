@@ -386,6 +386,20 @@ what is plainly missing, then the larger pieces.
       it out otherwise and a label stays on a state. Needs the failing diagram and
       the machine's fonts (`fc-match sans-serif`).
 
+## From the tester's run of 2026-11-27
+
+Checked against main: REQ-132 (ids from the source) was done after
+1.3.0 ([0037](docs/adr/0037-an-id-for-every-box-and-line.md)). What is
+left, in the order it is taken:
+
+- [ ] REQ-145: `portin` and `portout` drawn natively, `portout` on the
+      bottom border: with the component diagram of the guide's step 4.
+- [ ] REQ-144: a Mermaid subgraph in a shape (`@{ shape: hex }`) drawn
+      once mermaid.js draws one (mermaid-js PR 8912); until then lint
+      tells it (docs/DONE.md).
+- [ ] REQ-143: Mermaid's `component-beta`, once mermaid-js merges it (PR
+      8903): its syntax may change until then.
+
 ## Next
 
 What comes after 0.4, announced in the README. Lines by hand, projects and

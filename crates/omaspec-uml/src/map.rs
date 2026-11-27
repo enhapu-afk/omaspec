@@ -187,6 +187,17 @@ pub struct Head {
     /// Whether the last point joins the first.
     pub closed: bool,
     pub fill: HeadFill,
+    /// Its own color, its outline's and its ink's, where the diagram's
+    /// heads have one (`skinparam ArrowHeadColor`, a style's `HeadColor`);
+    /// else its line's ([`Head::ink`]).
+    pub color: Option<crate::color::Color>,
+}
+
+impl Head {
+    /// The color it is drawn in, on a line of `line`'s.
+    pub fn ink(&self, line: crate::color::Color) -> crate::color::Color {
+        self.color.unwrap_or(line)
+    }
 }
 
 /// What a mark is filled with.

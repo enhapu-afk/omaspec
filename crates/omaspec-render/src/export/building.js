@@ -98,7 +98,7 @@
       const mark = document.createElementNS(NS, head.closed ? "polygon" : "polyline");
       mark.setAttribute("points", head.points.map((p) => p.join(",")).join(" "));
       mark.setAttribute("fill", head.fill);
-      mark.setAttribute("stroke", wire.color);
+      mark.setAttribute("stroke", head.color || wire.color);
       mark.setAttribute("stroke-width", Math.min(wire.width, 1.5));
       mark.setAttribute("stroke-linejoin", "round");
       drawnLines.appendChild(mark);

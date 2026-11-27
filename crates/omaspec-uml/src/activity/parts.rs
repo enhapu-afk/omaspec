@@ -72,6 +72,8 @@ struct Run {
     path: Vec<(f32, f32)>,
     head: Option<Vec<(f32, f32)>>,
     stroke: Stroke,
+    /// Its head's own color, where it has one ([`crate::map::Head::color`]).
+    head_color: Option<crate::color::Color>,
 }
 
 /// Where a run ends: on a shape, or at a point.
@@ -165,12 +167,13 @@ impl Found {
         name
     }
 
-    /// A line: its corners as laid, its points as drawn, and its head.
+    /// A line: its corners as laid, its points as drawn, and its head,
+    /// in a color of its own or not.
     pub fn run(
         &mut self,
         path: Vec<(f32, f32)>,
         points: Vec<(f32, f32)>,
-        head: Option<Vec<(f32, f32)>>,
+        (head, head_color): (Option<Vec<(f32, f32)>>, Option<crate::color::Color>),
         stroke: Stroke,
     ) {
         self.runs.push(Run {
@@ -178,6 +181,7 @@ impl Found {
             path,
             head,
             stroke,
+            head_color,
         });
     }
 
@@ -424,6 +428,7 @@ impl Found {
                     points: points.clone(),
                     closed: true,
                     fill: HeadFill::Ink,
+                    color: self.runs[last].head_color,
                 })
                 .collect(),
             fixed: true,

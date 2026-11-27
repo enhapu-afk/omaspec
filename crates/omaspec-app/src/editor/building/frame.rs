@@ -480,17 +480,20 @@ pub(super) fn drawn_lines(
         );
         if drawn >= 1.0 {
             for head in &wire.heads {
+                // A head of its own color, else its line's.
+                let ink = head
+                    .color
+                    .map_or_else(|| wire.color.clone(), |c| c.to_string());
                 let fill = match head.fill {
-                    HeadFill::Ink => wire.color.clone(),
+                    HeadFill::Ink => ink.clone(),
                     HeadFill::Paper => picture.paper.clone(),
                     HeadFill::None => "none".to_owned(),
                 };
                 let shape = if head.closed { "polygon" } else { "polyline" };
                 let _ = write!(
                     out,
-                    r#"<{shape} points="{}" fill="{fill}" stroke="{}" stroke-width="{}" stroke-linejoin="round"/>"#,
+                    r#"<{shape} points="{}" fill="{fill}" stroke="{ink}" stroke-width="{}" stroke-linejoin="round"/>"#,
                     joined(&head.points),
-                    wire.color,
                     wire.width.min(1.5),
                 );
             }

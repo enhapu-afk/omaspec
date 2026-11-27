@@ -195,10 +195,11 @@ fn data(b: &Building) -> Value {
                 "points": head.points.iter().map(point).collect::<Vec<_>>(),
                 "closed": head.closed,
                 "fill": match head.fill {
-                    HeadFill::Ink => wire.color.to_string(),
+                    HeadFill::Ink => head.ink(wire.color).to_string(),
                     HeadFill::Paper => b.colors.picture.to_string(),
                     HeadFill::None => "none".to_owned(),
                 },
+                "color": head.ink(wire.color).to_string(),
             })).collect::<Vec<_>>(),
             "color": wire.color.to_string(),
             "width": round(wire.width),

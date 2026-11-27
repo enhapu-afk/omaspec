@@ -183,6 +183,16 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
             let rows = mermaid_rows(&lines);
             if portable::is_flowchart(&code) {
                 portable::findings(&lines, &rows, &mut findings);
+                for (line, shape) in crate::mermaid_flow::frame_shapes(body) {
+                    findings.push(Finding::new(
+                        "frame-shape",
+                        line + offset,
+                        Severity::Info,
+                        format!(
+                            "the subgraph's shape `{shape}` is not drawn: neither mermaid.js nor Omaspec draws a subgraph in a shape yet, so it stays a frame"
+                        ),
+                    ));
+                }
             }
             // The engine's reader says where each name is written; the
             // lines are read by pattern where it declines.
