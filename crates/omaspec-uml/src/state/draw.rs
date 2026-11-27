@@ -1775,6 +1775,57 @@ mod tests {
         (diagram.root, scene)
     }
 
+    /// Lines within a rank that pass a state between their two, inside a
+    /// state that holds them and is laid out with what is around it, run
+    /// over and under in its room: under its name's band, above its
+    /// bottom border, and their words with them.
+    #[test]
+    fn lanes_past_a_state_stay_inside_the_one_that_holds_them() {
+        let svg = crate::render(
+            "@startuml\nstate Outer {\n  A -> M\n  M -> B\n  A -> B : over\n  B -> A : under\n}\n[*] --> M\nB --> Z\n@enduml\n",
+        )
+        .unwrap();
+        let number = |text: &str, name: &str| -> f32 {
+            let at = text.find(&format!(" {name}=\"")).unwrap() + name.len() + 3;
+            text[at..].split('"').next().unwrap().parse().unwrap()
+        };
+        let outer = &svg[svg.find(r#"id="state-Outer">"#).unwrap()..];
+        let (top, bottom) = (
+            number(outer, "y"),
+            number(outer, "y") + number(outer, "height"),
+        );
+        let band = number(&outer[outer.find("<line").unwrap()..], "y1");
+        assert!(band > top && band < bottom);
+        for (id, word) in [
+            ("transition-A-B-over", "over"),
+            ("transition-B-A-under", "under"),
+        ] {
+            let path = &svg[svg.find(&format!(r#"id="{id}">"#)).unwrap()..];
+            let d = path
+                .split(r#"d=""#)
+                .nth(1)
+                .unwrap()
+                .split('"')
+                .next()
+                .unwrap();
+            let ys: Vec<f32> = d
+                .split(|c: char| c.is_ascii_alphabetic() || c == ' ')
+                .filter(|pair| pair.contains(','))
+                .map(|pair| pair.split(',').nth(1).unwrap().parse().unwrap())
+                .collect();
+            assert!(
+                ys.iter().all(|&y| y > band && y < bottom),
+                "{id}: {ys:?} in {band}..{bottom}"
+            );
+            let label = svg.find(&format!(">{word}</tspan>")).unwrap();
+            let baseline = number(&svg[svg[..label].rfind("<tspan").unwrap()..label], "y");
+            assert!(
+                baseline - 14.0 > band && baseline < bottom,
+                "{word} at {baseline}"
+            );
+        }
+    }
+
     /// Lines side by side between two states with a label between them:
     /// each runs straight, the box they meet is wide enough for that, and
     /// the label keeps off the line that is not its own. `start` read on

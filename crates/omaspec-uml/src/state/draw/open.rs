@@ -314,6 +314,14 @@ impl<'a> Nested for States<'a> {
     }
 
     fn band(&self, node: &Placed) -> Rect {
+        // A folder's name is in its tab, on its left.
+        if node.item.folder {
+            return Rect {
+                w: node.item.tab().1,
+                h: node.item.band(),
+                ..node.rect
+            };
+        }
         let w = node
             .item
             .description

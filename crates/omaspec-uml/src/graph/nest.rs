@@ -1110,8 +1110,10 @@ pub(super) struct Stacks {
 
 impl Stacks {
     /// `room` is what each frame keeps under its name for the lines that
-    /// pass it.
-    pub fn new(tree: &Tree, spans: &[Span], room: &[f32]) -> Self {
+    /// pass it; `lanes` what it keeps at least above its first rank (its
+    /// name's band included) and below its last for the lines within a
+    /// rank that run over and under the boxes there.
+    pub fn new(tree: &Tree, spans: &[Span], room: &[f32], lanes: (&[f32], &[f32])) -> Self {
         let count = tree.count();
         let children = tree.children();
         let mut before = vec![0.0f32; count];
@@ -1128,8 +1130,13 @@ impl Stacks {
                     .fold(0.0f32, f32::max)
             };
             let under_name = room.get(f).copied().unwrap_or(0.0);
-            before[f] = tree.pads[f].before + under_name + inner(&before, |s| s.0, first);
-            after[f] = tree.pads[f].after + inner(&after, |s| s.1, last);
+            let (above, below) = (
+                lanes.0.get(f).copied().unwrap_or(0.0),
+                lanes.1.get(f).copied().unwrap_or(0.0),
+            );
+            before[f] =
+                (tree.pads[f].before + under_name + inner(&before, |s| s.0, first)).max(above);
+            after[f] = tree.pads[f].after + inner(&after, |s| s.1, last).max(below);
         }
         Stacks { before, after }
     }

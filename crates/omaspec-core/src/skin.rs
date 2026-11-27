@@ -322,7 +322,15 @@ pub fn edit_in(
                 "json" => tables_omarchy("jsonDiagram", colors, font),
                 "yaml" => tables_omarchy("yamlDiagram", colors, font),
                 "nwdiag" => network_omarchy(colors, font),
-                _ => plantuml(p, colors, font, sequence(code)),
+                // What it destroys is read without a pack already there,
+                // which may hold the style itself.
+                _ => {
+                    let bare = match &block {
+                        Some(range) => format!("{}{}", &code[..range.start], &code[range.end..]),
+                        None => code.to_owned(),
+                    };
+                    plantuml(p, colors, font, sequence(&bare))
+                }
             }
         }
         Language::PlantUml => plantuml(p, colors, font, false),
@@ -880,6 +888,11 @@ mod tests {
         ] {
             assert!(!pack(other).contains("<style>"), "{other}");
         }
+        // A pack already there is not what the diagram destroys: once its
+        // body is only an include, the style goes.
+        let skinned = text.replace("A -> B\ndestroy B\n", "!include t.iuml\n");
+        assert!(skinned.contains("<style>") && !skinned.contains("destroy B"));
+        assert!(!pack(&skinned).contains("<style>"), "{}", pack(&skinned));
         for other in Pack::ALL.into_iter().filter(|p| *p != Pack::Omarchy) {
             let text = apply(
                 "@startuml\nA -> B\n@enduml\n",

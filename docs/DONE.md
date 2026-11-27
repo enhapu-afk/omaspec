@@ -829,7 +829,28 @@ is open and the reasoning around it.
       they pass a package's in a structure diagram; the folder keeps its
       tab and a little of its top beside it. A state that holds others
       keeps its band. `legacy-partitions.puml` is PlantUML's concert in
-      folders.
+      folders. The shape is PlantUML's; the border and the fill are the
+      state's, as in every look (PlantUML's are black, 1.5 wide, with no
+      fill).
+- [x] What the review of the folders and of the first review's fixes
+      found (2026-11-27). Of the lines within a rank between the same two
+      states, only one holds, and the room it asks for is now that of the
+      widest label among them, so a long label on the way back stands
+      between the two rather than across them. Where such lines pass
+      states between their two, the room for their lanes is kept once
+      the ranks are ordered (`graph::Lanes`): in the gaps beside their
+      rank and in the state that holds them, under its name and above its
+      bottom, so no lane leaves its frame or runs into the next rank;
+      lanes stand a label and room apart, and an outer one leaves its box
+      further from the side that faces the other, short of the middle
+      where the lines along the flow leave. A line takes the side its
+      turn gives it where it fits, else the other. The Omarchy pack reads
+      whether a diagram destroys a participant without the pack already
+      in it, whose own style would answer yes. Labels keep off a folder's
+      tab, not off the middle of its top. Folded (`--fold`), a partition
+      is a state's box with what it holds, as a folded state is: a
+      folder's tab would leave the lines that come in from above ending
+      in the air beside it, as they do at a folded package's.
 
 ### Step 5: what every diagram shares
 
