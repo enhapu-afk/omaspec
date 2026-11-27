@@ -2479,6 +2479,16 @@ is open and the reasoning around it.
       (`Canvas::begin_icon` for marks a drawer draws), and the check of
       how well a picture reads sees each against what lies under it, not
       only the first (`omaspec_uml::is_icon`).
+- [x] What the nightly fuzzing found (2026-11-27): three frames whose
+      slots lay, on the mean, at one place in their ranks (boxes of two
+      frames written in turn, and a line from one frame itself) were told
+      apart by where each started in a rank, which differed from rank to
+      rank: one stood left of another on one rank and right of it on the
+      next, the frames held none of their boxes and two boxes lay on top
+      of each other. Of two such frames the one written later now lies a
+      hair after the other, on every rank (`graph::nest::keys`). Ten
+      minutes of fuzzing and the corpus's 7,306 inputs found no frames in
+      two orders after it; no picture of the tests changed.
 
 ## Next
 

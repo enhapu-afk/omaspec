@@ -391,9 +391,23 @@ pub(super) fn keys(
             sum[f].1 += 1;
         }
     }
-    sum.into_iter()
+    let mut keys: Vec<f32> = sum
+        .into_iter()
         .map(|(total, n)| if n == 0 { 0.5 } else { total / n as f32 })
-        .collect()
+        .collect();
+    // Two frames at one place on the mean would be told apart by where
+    // each starts in a rank ([`sort_row`]), which differs from rank to
+    // rank, and stand in another order on each: the one written later
+    // lies a hair after the other, on every rank.
+    let mut by_key: Vec<usize> = (0..count).collect();
+    by_key.sort_by(|&a, &b| keys[a].total_cmp(&keys[b]).then(a.cmp(&b)));
+    for pair in by_key.windows(2) {
+        let (before, now) = (pair[0], pair[1]);
+        if keys[now] <= keys[before] {
+            keys[now] = keys[before].next_up();
+        }
+    }
+    keys
 }
 
 /// What a rank is sorted by.
@@ -1281,6 +1295,40 @@ mod tests {
             laid.nodes
         );
         assert!(lending.y < members.y + members.h, "{members:?} {lending:?}");
+    }
+
+    /// Frames whose slots lie at one place on the mean still stand in one
+    /// order on every rank: the boxes of two of them, written in turn,
+    /// and a line from one of them, left them in two orders, the frames
+    /// around nothing they held and two boxes on top of each other (found
+    /// by the layout's fuzzing).
+    #[test]
+    fn frames_tied_on_the_mean_keep_one_order() {
+        let nodes = [node(40.0, 30.0); 6];
+        let frames = [frame(None), frame(None), frame(None)];
+        let within = [Some(0), Some(1), Some(2), Some(2), Some(1), Some(2)];
+        // Frame 1 itself to the box of frame 0.
+        let edges = [edge(7, 0), edge(2, 3), edge(4, 1)];
+        let laid = framed(&nodes, &frames, &within, &edges, &[], Direction::Down);
+        for (index, &f) in within.iter().enumerate() {
+            let f = f.unwrap();
+            assert!(
+                inside(laid.nodes[index], laid.frames[f]),
+                "{index} {:?} {:?}",
+                laid.nodes[index],
+                laid.frames[f]
+            );
+        }
+        for a in 0..nodes.len() {
+            for b in a + 1..nodes.len() {
+                assert!(apart(laid.nodes[a], laid.nodes[b]), "{a} {b}");
+            }
+        }
+        for a in 0..3 {
+            for b in a + 1..3 {
+                assert!(apart(laid.frames[a], laid.frames[b]), "{a} {b}");
+            }
+        }
     }
 
     /// Frames inside frames hold what they hold, and their padding.
