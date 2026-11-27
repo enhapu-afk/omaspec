@@ -1,55 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="306" height="837" viewBox="0 0 306 837" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="306" height="729" viewBox="0 0 306 729" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <g class="start" id="start">
 <ellipse cx="142.75" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-Active" id="state-Active">
-<rect x="0" y="80.3" width="285.5" height="412.42" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="80.3" width="285.5" height="304.42" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="0" y1="115.59" x2="285.5" y2="115.59" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="0" y1="302.15" x2="285.5" y2="302.15" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
+<line x1="0" y1="248.15" x2="285.5" y2="248.15" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
 </g>
 <g class="start-Active.1" id="start-Active.1">
-<ellipse cx="140.2" cy="134.59" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="27.73" cy="139.74" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-NumLockOff" id="state-NumLockOff">
-<rect x="82.73" y="177.59" width="114.95" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="82.73" y="123.59" width="114.95" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-NumLockOn" id="state-NumLockOn">
-<rect x="83.94" y="255.86" width="112.53" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="83.94" y="201.86" width="112.53" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="start-Active.2" id="start-Active.2">
-<ellipse cx="142.75" cy="327.15" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="28.78" cy="278.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-CapsLockOff" id="state-CapsLockOff">
-<rect x="83.78" y="370.15" width="117.94" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="83.78" y="262.15" width="117.94" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-CapsLockOn" id="state-CapsLockOn">
-<rect x="84.99" y="448.42" width="115.51" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="84.99" y="340.42" width="115.51" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-Paused" id="state-Paused">
-<rect x="30" y="538.68" width="225.49" height="219.86" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
-<line x1="30" y1="573.98" x2="255.49" y2="573.98" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="136.95" y1="573.98" x2="136.95" y2="758.54" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
+<rect x="30" y="430.68" width="225.49" height="219.86" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
+<line x1="30" y1="465.98" x2="255.49" y2="465.98" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="136.95" y1="465.98" x2="136.95" y2="650.54" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
 </g>
 <g class="start-Paused.1" id="start-Paused.1">
-<ellipse cx="82.48" cy="592.98" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="82.48" cy="484.98" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-Waiting" id="state-Waiting">
-<rect x="42" y="635.98" width="80.95" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="42" y="527.98" width="80.95" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="start-Paused.2" id="start-Paused.2">
-<ellipse cx="197.22" cy="592.98" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="197.22" cy="484.98" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-Buffering" id="state-Buffering">
-<rect x="150.95" y="635.98" width="92.54" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="150.95" y="527.98" width="92.54" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="state-Ready" id="state-Ready">
-<rect x="161.76" y="714.24" width="70.92" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="161.76" y="606.24" width="70.92" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="end" id="end">
-<ellipse cx="142.75" cy="803.54" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
-<ellipse cx="142.75" cy="803.54" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="142.75" cy="695.54" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="142.75" cy="695.54" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 </g>
 <g id="lines">
@@ -57,73 +57,73 @@
 <polyline points="142.75,48.3 142.75,70.3" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-Active-Paused-pause" id="transition-Active-Paused-pause">
-<polyline points="142.75,492.71 142.75,528.68" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="142.75,384.71 142.75,420.68" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-Paused-end" id="transition-Paused-end">
-<polyline points="142.75,758.54 142.75,780.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="142.75,650.54 142.75,672.54" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Active.1-NumLockOff" id="transition-start-Active.1-NumLockOff">
-<polyline points="140.2,145.59 140.2,167.59" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="38.73,139.74 72.73,139.74" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-NumLockOff-NumLockOn-EvNumLockPressed" id="transition-NumLockOff-NumLockOn-EvNumLockPressed">
-<polyline points="132.2,209.89 132.2,245.86" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="132.2,155.89 132.2,191.86" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-NumLockOn-NumLockOff-EvNumLockPressed" id="transition-NumLockOn-NumLockOff-EvNumLockPressed">
-<polyline points="148.2,255.86 148.2,219.89" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="148.2,201.86 148.2,165.89" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Active.2-CapsLockOff" id="transition-start-Active.2-CapsLockOff">
-<polyline points="142.75,338.15 142.75,360.15" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="39.78,278.3 73.78,278.3" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-CapsLockOff-CapsLockOn-EvCapsLockPressed" id="transition-CapsLockOff-CapsLockOn-EvCapsLockPressed">
-<polyline points="134.75,402.45 134.75,438.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="134.75,294.45 134.75,330.42" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-CapsLockOn-CapsLockOff-EvCapsLockPressed" id="transition-CapsLockOn-CapsLockOff-EvCapsLockPressed">
-<polyline points="150.75,448.42 150.75,412.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="150.75,340.42 150.75,304.45" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Paused.1-Waiting" id="transition-start-Paused.1-Waiting">
-<polyline points="82.48,603.98 82.48,625.98" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="82.48,495.98 82.48,517.98" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Paused.2-Buffering" id="transition-start-Paused.2-Buffering">
-<polyline points="197.22,603.98 197.22,625.98" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="197.22,495.98 197.22,517.98" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-Buffering-Ready-full" id="transition-Buffering-Ready-full">
-<polyline points="197.22,668.27 197.22,704.24" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="197.22,560.27 197.22,596.24" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Active">
 <polygon points="138.75,70.3 142.75,80.3 146.75,70.3 142.75,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-Active-Paused-pause">
-<polygon points="138.75,528.68 142.75,538.68 146.75,528.68 142.75,532.68" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="138.75,420.68 142.75,430.68 146.75,420.68 142.75,424.68" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-Paused-end">
-<polygon points="138.75,780.54 142.75,790.54 146.75,780.54 142.75,784.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="138.75,672.54 142.75,682.54 146.75,672.54 142.75,676.54" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Active.1-NumLockOff">
-<polygon points="136.2,167.59 140.2,177.59 144.2,167.59 140.2,171.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="72.73,143.74 82.73,139.74 72.73,135.74 76.73,139.74" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-NumLockOff-NumLockOn-EvNumLockPressed">
-<polygon points="128.2,245.86 132.2,255.86 136.2,245.86 132.2,249.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="128.2,191.86 132.2,201.86 136.2,191.86 132.2,195.86" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-NumLockOn-NumLockOff-EvNumLockPressed">
-<polygon points="152.2,219.89 148.2,209.89 144.2,219.89 148.2,215.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="152.2,165.89 148.2,155.89 144.2,165.89 148.2,161.89" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Active.2-CapsLockOff">
-<polygon points="138.75,360.15 142.75,370.15 146.75,360.15 142.75,364.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="73.78,282.3 83.78,278.3 73.78,274.3 77.78,278.3" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-CapsLockOff-CapsLockOn-EvCapsLockPressed">
-<polygon points="130.75,438.42 134.75,448.42 138.75,438.42 134.75,442.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="130.75,330.42 134.75,340.42 138.75,330.42 134.75,334.42" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-CapsLockOn-CapsLockOff-EvCapsLockPressed">
-<polygon points="154.75,412.45 150.75,402.45 146.75,412.45 150.75,408.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="154.75,304.45 150.75,294.45 146.75,304.45 150.75,300.45" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Paused.1-Waiting">
-<polygon points="78.48,625.98 82.48,635.98 86.48,625.98 82.48,629.98" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="78.48,517.98 82.48,527.98 86.48,517.98 82.48,521.98" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-start-Paused.2-Buffering">
-<polygon points="193.22,625.98 197.22,635.98 201.22,625.98 197.22,629.98" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="193.22,517.98 197.22,527.98 201.22,517.98 197.22,521.98" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="transition-Buffering-Ready-full">
-<polygon points="193.22,704.24 197.22,714.24 201.22,704.24 197.22,708.24" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="193.22,596.24 197.22,606.24 201.22,596.24 197.22,600.24" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 </g>
 <g>
@@ -134,72 +134,72 @@
 </g>
 <g class="state-NumLockOff">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="96.73" y="198.58" font-size="14" fill="#000000" font-weight="bold" textLength="86.95" lengthAdjust="spacing">NumLockOff</tspan>
+<tspan x="96.73" y="144.58" font-size="14" fill="#000000" font-weight="bold" textLength="86.95" lengthAdjust="spacing">NumLockOff</tspan>
 </text>
 </g>
 <g class="state-NumLockOn">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="97.94" y="276.85" font-size="14" fill="#000000" font-weight="bold" textLength="84.53" lengthAdjust="spacing">NumLockOn</tspan>
+<tspan x="97.94" y="222.85" font-size="14" fill="#000000" font-weight="bold" textLength="84.53" lengthAdjust="spacing">NumLockOn</tspan>
 </text>
 </g>
 <g class="transition-NumLockOff-NumLockOn-EvNumLockPressed">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="12" y="237.02" font-size="12" fill="#000000" textLength="114.2" lengthAdjust="spacing">EvNumLockPressed</tspan>
+<tspan x="12" y="183.02" font-size="12" fill="#000000" textLength="114.2" lengthAdjust="spacing">EvNumLockPressed</tspan>
 </text>
 </g>
 <g class="transition-NumLockOn-NumLockOff-EvNumLockPressed">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="154.2" y="237.02" font-size="12" fill="#000000" textLength="114.2" lengthAdjust="spacing">EvNumLockPressed</tspan>
+<tspan x="154.2" y="183.02" font-size="12" fill="#000000" textLength="114.2" lengthAdjust="spacing">EvNumLockPressed</tspan>
 </text>
 </g>
 <g class="state-CapsLockOff">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="97.78" y="391.14" font-size="14" fill="#000000" font-weight="bold" textLength="89.94" lengthAdjust="spacing">CapsLockOff</tspan>
+<tspan x="97.78" y="283.14" font-size="14" fill="#000000" font-weight="bold" textLength="89.94" lengthAdjust="spacing">CapsLockOff</tspan>
 </text>
 </g>
 <g class="state-CapsLockOn">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="98.99" y="469.41" font-size="14" fill="#000000" font-weight="bold" textLength="87.51" lengthAdjust="spacing">CapsLockOn</tspan>
+<tspan x="98.99" y="361.41" font-size="14" fill="#000000" font-weight="bold" textLength="87.51" lengthAdjust="spacing">CapsLockOn</tspan>
 </text>
 </g>
 <g class="transition-CapsLockOff-CapsLockOn-EvCapsLockPressed">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="12" y="429.58" font-size="12" fill="#000000" textLength="116.75" lengthAdjust="spacing">EvCapsLockPressed</tspan>
+<tspan x="12" y="321.58" font-size="12" fill="#000000" textLength="116.75" lengthAdjust="spacing">EvCapsLockPressed</tspan>
 </text>
 </g>
 <g class="transition-CapsLockOn-CapsLockOff-EvCapsLockPressed">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="156.75" y="429.58" font-size="12" fill="#000000" textLength="116.75" lengthAdjust="spacing">EvCapsLockPressed</tspan>
+<tspan x="156.75" y="321.58" font-size="12" fill="#000000" textLength="116.75" lengthAdjust="spacing">EvCapsLockPressed</tspan>
 </text>
 </g>
 <g class="state-Paused">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="117.28" y="559.67" font-size="14" fill="#000000" font-weight="bold" textLength="50.93" lengthAdjust="spacing">Paused</tspan>
+<tspan x="117.28" y="451.67" font-size="14" fill="#000000" font-weight="bold" textLength="50.93" lengthAdjust="spacing">Paused</tspan>
 </text>
 </g>
 <g class="state-Waiting">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="56" y="656.97" font-size="14" fill="#000000" font-weight="bold" textLength="52.95" lengthAdjust="spacing">Waiting</tspan>
+<tspan x="56" y="548.97" font-size="14" fill="#000000" font-weight="bold" textLength="52.95" lengthAdjust="spacing">Waiting</tspan>
 </text>
 </g>
 <g class="state-Buffering">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="164.95" y="656.97" font-size="14" fill="#000000" font-weight="bold" textLength="64.54" lengthAdjust="spacing">Buffering</tspan>
+<tspan x="164.95" y="548.97" font-size="14" fill="#000000" font-weight="bold" textLength="64.54" lengthAdjust="spacing">Buffering</tspan>
 </text>
 </g>
 <g class="state-Ready">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="175.76" y="735.23" font-size="14" fill="#000000" font-weight="bold" textLength="42.92" lengthAdjust="spacing">Ready</tspan>
+<tspan x="175.76" y="627.23" font-size="14" fill="#000000" font-weight="bold" textLength="42.92" lengthAdjust="spacing">Ready</tspan>
 </text>
 </g>
 <g class="transition-Buffering-Ready-full">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="203.22" y="695.41" font-size="12" fill="#000000" textLength="17.34" lengthAdjust="spacing">full</tspan>
+<tspan x="203.22" y="587.41" font-size="12" fill="#000000" textLength="17.34" lengthAdjust="spacing">full</tspan>
 </text>
 </g>
 <g class="transition-Active-Paused-pause">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="148.75" y="519.85" font-size="12" fill="#000000" textLength="34.51" lengthAdjust="spacing">pause</tspan>
+<tspan x="148.75" y="411.85" font-size="12" fill="#000000" textLength="34.51" lengthAdjust="spacing">pause</tspan>
 </text>
 </g>
 <g class="title" id="title">

@@ -64,7 +64,10 @@ two, since one rank could not hold both ends of a line.
   since 2026-11-16, REQ-075: `-right->`, `-up->`, a start of the word
   as PlantUML takes it, `-r->`, `-do->`, before or after a style,
   `-[#red]up->`); a line that points back (`a <-up- b`) sets `b` above
-  `a` all the same. Between boxes of different states a direction
+  `a` all the same. A state transition of one dash and no word
+  (`a -> b`, `a <- b`) is held as `-right->` is, the states in the order
+  written, as PlantUML ranks them (2026-11-27), and so is one in the old
+  activity syntax. Between boxes of different states a direction
   across the flow is a line like any other. Mermaid's drawers pass
   `level: None`.
 - Two boxes held after one (`a -right-> b`, `a -right-> c`) stand as

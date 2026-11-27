@@ -1467,6 +1467,15 @@ fn transition(text: &str, line: usize) -> Option<Result<RawArrow, Declined>> {
             format!("`{run}` is no arrow for PlantUML, which takes `->`, `-->` or `<--`"),
         )));
     }
+    // One dash and no word (`A -> B`) stands the second state beside the
+    // first, in its rank, as PlantUML lays it; the states keep the order
+    // they are written in, `A <- B` too (docs/adr/0027).
+    let toward = toward.or_else(|| {
+        (run.matches('-').count() == 1).then_some(match backward {
+            true => Toward::Left,
+            false => Toward::Right,
+        })
+    });
     Some(
         raw_arrow(left, right, backward, None, Dash::Solid, false, line)
             .map(|raw| RawArrow { toward, ..raw }),
@@ -2340,6 +2349,13 @@ mod tests {
             ("A <-up-- B", "B", Some(Toward::Down)),
             ("A -[#red]--> B", "A", None),
             ("A --[#red]-> B", "A", None),
+            // One dash holds the second state beside the first, in the
+            // order written.
+            ("A -> B", "A", Some(Toward::Right)),
+            ("A->B", "A", Some(Toward::Right)),
+            ("A <- B", "B", Some(Toward::Left)),
+            ("A --> B", "A", None),
+            ("A <--- B", "B", None),
         ] {
             let d = diagram(&format!("@startuml\n{arrow}\n@enduml\n"));
             let edge = &d.root.edges[0];

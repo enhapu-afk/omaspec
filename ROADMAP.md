@@ -64,8 +64,7 @@ Done; what was drawn but different too (docs/DONE.md).
 
 ### Step 2: the state diagram (36 of 36)
 
-- [ ] Drawn but different: one dash (`A -> B`) lays its states beside
-      each other in PlantUML; here it is a line down as `-->` is.
+Done; what was drawn but different too (docs/DONE.md).
 
 ### Step 3: the activity diagram (62 of 62; the legacy syntax 13 of 13)
 

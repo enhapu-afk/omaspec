@@ -522,6 +522,15 @@ is open and the reasoning around it.
       ground does, both its colors (`repaint`, `legible`). A typo in a
       gradient says so, and a style for a depth or a property a
       stereotype's states do not take names them.
+- [x] One dash lays two states side by side (2026-11-27): `A -> B` holds
+      `B` in the rank of `A`, right after it, as `-right->` does
+      ([0027](adr/0027-a-line-within-a-rank.md)), where it had been a
+      line down as `-->` is. As in PlantUML the states keep the order
+      they are written in, `A <- B` too, and in a diagram that runs to
+      the right the second stands below. A word or a style keeps its own
+      way; where a hold cannot be, the line is one like any other. The
+      old activity syntax read one dash so already. `regions.puml` puts
+      the start of each region beside its first state, as PlantUML does.
 
 ### Step 3: the activity diagram
 
