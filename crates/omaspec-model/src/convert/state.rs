@@ -851,7 +851,10 @@ mod tests {
         let mermaid = both(code, Language::PlantUml, Language::Mermaid).unwrap();
         let said: Vec<&str> = mermaid.notices.iter().map(|n| n.message.as_str()).collect();
         assert!(said.iter().any(|m| m.contains("Colors")), "{said:?}");
-        assert!(said.iter().any(|m| m.contains("puts its states")), "{said:?}");
+        assert!(
+            said.iter().any(|m| m.contains("puts its states")),
+            "{said:?}"
+        );
         assert!(
             said.iter().any(|m| m.contains("only left and right")),
             "{said:?}"
