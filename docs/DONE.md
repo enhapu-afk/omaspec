@@ -318,6 +318,16 @@ is open and the reasoning around it.
       `<style>` for it, in a sequence diagram only: engines that read no
       style would decline one. Mermaid's sequence diagrams keep the cross
       in the color of their lifelines.
+- [x] A note leaves its message the cross and the bar (2026-11-27), as
+      PlantUML reads it: a participant destroyed or a bar opened after a
+      note, or several, ends or starts at the message before them, where
+      the cross had stood under the notes and the bar had started there.
+      After a group the cross is a row of its own, as before. `omaspec
+      convert` writes such a `destroy` before its message, as Mermaid
+      wants it, where it had written Mermaid it could not read back ("a
+      bug in Omaspec"); one after a group, which follows no message of
+      its own, is refused, saying that Mermaid destroys a participant
+      only at a message.
 
 ### Step 2: the state diagram
 

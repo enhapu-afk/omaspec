@@ -1651,13 +1651,17 @@ impl<'a> Drawer<'a> {
     fn item(&mut self, canvas: &mut Canvas, k: usize) -> usize {
         let d = self.d;
         let item = &d.items[k];
-        // A duration is drawn over what came before: the row goes on.
+        // A duration is drawn over what came before: the row goes on. A
+        // note leaves the message before it the last arrow, as PlantUML
+        // reads it: a bar opened or a participant destroyed after the note
+        // starts or ends at that message.
         if !matches!(
             item,
             Item::Activate { .. }
                 | Item::Deactivate { .. }
                 | Item::Destroy { .. }
                 | Item::Duration { .. }
+                | Item::Note(_)
         ) {
             self.last_arrow = None;
             if !matches!(item, Item::Message(_) | Item::Note(_)) {
@@ -4077,6 +4081,28 @@ mod tests {
         assert_eq!(count(&svg, ">B</tspan>"), 1);
         let svg = crate::render("participant X\nA -> B\nhide unlinked").unwrap();
         assert_eq!(count(&svg, ">X</tspan>"), 0);
+    }
+
+    /// A note leaves the message before it the last arrow, as PlantUML
+    /// reads it: a participant destroyed or a bar opened after the note
+    /// ends or starts at that message; after a group it is a row of its
+    /// own.
+    #[test]
+    fn a_note_leaves_its_message_the_cross_and_the_bar() {
+        let mut arrow = 0.0;
+        laid_out("A -> B : q\ndestroy B", |d| arrow = d.life_end[1].unwrap());
+        laid_out(
+            "A -> B : q\nnote over B : x\nnote over A, B : y\ndestroy B",
+            |d| {
+                assert_eq!(d.life_end[1], Some(arrow));
+            },
+        );
+        laid_out("A -> B : q\nnote over B : x\nactivate B\nB -> A : r", |d| {
+            assert_eq!(d.bars[0].start, arrow);
+        });
+        laid_out("A -> B : q\nalt ok\n  A -> B : r\nend\ndestroy B", |d| {
+            assert!(d.life_end[1].unwrap() > arrow + 40.0);
+        });
     }
 
     #[test]

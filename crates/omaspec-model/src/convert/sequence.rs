@@ -288,9 +288,13 @@ impl Writer {
                 Item::Ref { text, .. } => {
                     return Err(self.refuse(text.line, "Mermaid has no ref"));
                 }
-                Item::Destroy { participant, .. } => {
-                    let id = self.id(d, *participant);
-                    self.out.push(format!("    destroy {id}"));
+                // One after no message of its own (after a group, say):
+                // Mermaid destroys a participant only at a message.
+                Item::Destroy { line, .. } => {
+                    return Err(self.refuse(
+                        *line,
+                        "Mermaid destroys a participant only at a message of its own, and this destroy follows none",
+                    ));
                 }
             }
         }
@@ -600,7 +604,8 @@ impl Writer {
 }
 
 /// The `destroy` after this message, skipping the activations the message
-/// itself opened. Only when that participant sends or receives it.
+/// itself opened and the notes after it, as PlantUML puts the cross on the
+/// message across them. Only when that participant sends or receives it.
 fn destroy_after(
     d: &Diagram,
     from: usize,
@@ -609,7 +614,7 @@ fn destroy_after(
     let mut j = from + 1;
     while let Some(item) = d.items.get(j) {
         match item {
-            Item::Activate { .. } | Item::Deactivate { .. } => j += 1,
+            Item::Activate { .. } | Item::Deactivate { .. } | Item::Note(_) => j += 1,
             Item::Destroy { participant, .. }
                 if m.from == End::Participant(*participant)
                     || m.to == End::Participant(*participant) =>
@@ -786,6 +791,27 @@ sequenceDiagram
         );
         assert!(back.code.contains("destroy Late\n"), "{}", back.code);
         assert!(!back.code.contains("rect "), "{}", back.code);
+    }
+
+    /// A `destroy` after notes on its message is that message's, as
+    /// PlantUML draws it, and comes back; one after a group follows no
+    /// message of its own, which Mermaid cannot write: refused, saying so.
+    #[test]
+    fn a_destroy_after_a_note_is_its_message_s() {
+        let code = "@startuml\nA -> B : q\nnote over B : x\ndestroy B\n@enduml\n";
+        let mermaid = both(code, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(
+            mermaid
+                .code
+                .contains("destroy B\n    A->>B: q\n    Note over B: x\n"),
+            "{}",
+            mermaid.code
+        );
+        let code = "@startuml\nA -> B : q\nalt ok\n  A -> B : r\nend\ndestroy B\n@enduml\n";
+        let err = both(code, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert!(err.reason.contains("only at a message"), "{err:?}");
+        // The line of the `destroy`, counted from 0.
+        assert_eq!(err.line, Some(5), "{err:?}");
     }
 
     #[test]
