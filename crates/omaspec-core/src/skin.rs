@@ -253,6 +253,7 @@ pub const LIGHT: Colors<'static> = Colors {
     accent: "#2f6fdb",
     muted: "#6b7280",
     note: "#fdf6d8",
+    destroy: "#cf222e",
 };
 
 /// Omaspec's dark palette: light text on near black, a lighter blue.
@@ -263,6 +264,7 @@ pub const DARK: Colors<'static> = Colors {
     accent: "#79a6f0",
     muted: "#8b93a1",
     note: "#3a3526",
+    destroy: "#f47067",
 };
 
 /// The colors the Omarchy pack writes in, as `#rrggbb`.
@@ -278,6 +280,8 @@ pub struct Colors<'a> {
     pub muted: &'a str,
     /// Notes.
     pub note: &'a str,
+    /// The cross of a destroyed participant, red as PlantUML draws it.
+    pub destroy: &'a str,
 }
 
 const PLANTUML_MARK: &str = "' skin: ";
@@ -318,10 +322,10 @@ pub fn edit_in(
                 "json" => tables_omarchy("jsonDiagram", colors, font),
                 "yaml" => tables_omarchy("yamlDiagram", colors, font),
                 "nwdiag" => network_omarchy(colors, font),
-                _ => plantuml(p, colors, font),
+                _ => plantuml(p, colors, font, sequence(code)),
             }
         }
-        Language::PlantUml => plantuml(p, colors, font),
+        Language::PlantUml => plantuml(p, colors, font, false),
         Language::Mermaid => mermaid(p, colors, font),
     });
     match (block, text) {
@@ -407,7 +411,15 @@ fn mermaid_spot(code: &str, lines: &[Range<usize>]) -> usize {
     lines.get(at).map_or(code.len(), |r| r.start)
 }
 
-fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
+/// Whether `code` is a sequence diagram, which takes the color of a
+/// destroyed participant's cross.
+fn sequence(code: &str) -> bool {
+    crate::classify(code, Language::PlantUml).kind == crate::Kind::Sequence
+}
+
+/// The pack's block for a PlantUML diagram; `sequence` for a sequence
+/// diagram's, whose Omarchy colors color a destroyed participant's cross.
+fn plantuml(pack: Pack, c: &Colors, font: Option<&str>, sequence: bool) -> String {
     let mut body: Vec<String> = match pack {
         Pack::Plain => {
             let mut lines = vec![
@@ -512,6 +524,17 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
                 format!("skinparam ActivityEndColor {}", c.text),
                 format!("skinparam ActivityBarColor {}", c.muted),
             ]);
+            // PlantUML has no skinparam for the cross, only a style; the
+            // engines that read no `<style>` decline one, so only a
+            // sequence diagram is given it. It comes after the lifelines'
+            // color, which sets the cross too.
+            if sequence {
+                lines.push(format!(
+                    "<style>\nsequenceDiagram {{\n  lifeLine {{\n    destroy {{\n      \
+                     LineColor {}\n    }}\n  }}\n}}\n</style>",
+                    c.destroy
+                ));
+            }
             lines
         }
     };
@@ -703,6 +726,7 @@ mod tests {
         accent: "#e68e0d",
         muted: "#555555",
         note: "#2a2a2a",
+        destroy: "#ff5f5f",
     };
 
     fn apply(code: &str, language: Language, pack: Option<Pack>) -> String {
@@ -820,5 +844,37 @@ mod tests {
         );
         assert!(text.contains("skinparam backgroundColor #121212"));
         assert!(text.contains("skinparam ParticipantBorderColor #e68e0d"));
+    }
+
+    /// A sequence diagram's pack colors a destroyed participant's cross,
+    /// by a style after the lifelines' color; any other diagram's has no
+    /// `<style>`, which not every engine reads.
+    #[test]
+    fn the_omarchy_pack_colors_a_destroyed_participant_s_cross() {
+        let pack = |code: &str| apply(code, Language::PlantUml, Some(Pack::Omarchy));
+        let text = pack("@startuml\nA -> B\ndestroy B\n@enduml\n");
+        let style = text.find("<style>").expect("a style");
+        assert!(
+            text.contains("    destroy {\n      LineColor #ff5f5f\n"),
+            "{text}"
+        );
+        assert!(text.find("SequenceLifeLineBorderColor").unwrap() < style);
+        assert!(style < text.find(PLANTUML_END).unwrap());
+        for other in [
+            "@startuml\n[*] --> A\n@enduml\n",
+            "@startuml\nclass A\n@enduml\n",
+            "@startuml\nrobust \"Web\" as W\n@enduml\n",
+            "@startgantt\n[Build] lasts 2 days\n@endgantt\n",
+        ] {
+            assert!(!pack(other).contains("<style>"), "{other}");
+        }
+        for other in Pack::ALL.into_iter().filter(|p| *p != Pack::Omarchy) {
+            let text = apply(
+                "@startuml\nA -> B\n@enduml\n",
+                Language::PlantUml,
+                Some(other),
+            );
+            assert!(!text.contains("<style>"), "{other:?}");
+        }
     }
 }

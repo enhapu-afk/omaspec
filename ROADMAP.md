@@ -60,9 +60,7 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
 
 ### Step 1: the sequence diagram (79 of 79)
 
-- [ ] Drawn but different: the cross of a destroyed participant is red in
-      PlantUML (`#A80036`), in the lifeline's color here; in the themes'
-      colors it wants a color of their own.
+Done; what was drawn but different too (docs/DONE.md).
 
 ### Step 2: the state diagram (36 of 36)
 

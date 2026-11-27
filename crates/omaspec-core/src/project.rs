@@ -88,7 +88,15 @@ impl LookPack {
 }
 
 /// The colors a look may set, as the color packs name them.
-pub const COLOR_NAMES: [&str; 6] = ["background", "surface", "text", "accent", "muted", "note"];
+pub const COLOR_NAMES: [&str; 7] = [
+    "background",
+    "surface",
+    "text",
+    "accent",
+    "muted",
+    "note",
+    "destroy",
+];
 
 /// A line of `omaspec-project.toml` that does not hold.
 #[derive(Debug, Clone, PartialEq, Eq)]

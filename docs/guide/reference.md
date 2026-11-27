@@ -136,7 +136,7 @@ and CI alike. The file and the source stored in an image stay as written.
 ```toml
 [look]
 pack = "light"        # plain, spec, presentation, sketch, vivid, light, dark, or auto (light, and dark under a dark scheme)
-accent = "#d73a49"    # with light or dark: background, surface, text, accent, muted, note
+accent = "#d73a49"    # with light or dark: background, surface, text, accent, muted, note, destroy
 font = "Lato"         # skinparam defaultFontName, Mermaid's fontFamily; Inter without it
 ```
 

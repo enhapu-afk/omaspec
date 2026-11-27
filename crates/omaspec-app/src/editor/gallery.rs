@@ -1327,6 +1327,7 @@ mod tests {
             accent: "#7aa2f7",
             muted: "#565f89",
             note: "#2f334d",
+            destroy: "#f7768e",
         };
         for example in EXAMPLES {
             let language = example.language();

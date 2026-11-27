@@ -306,6 +306,18 @@ is open and the reasoning around it.
       and declines between an anchor and itself; the outline lists
       neither a message from `Participant` as a declaration nor a group's
       colors in its label.
+- [x] The cross of a destroyed participant in a color of its own
+      (2026-11-27): PlantUML's red (`#A80036`) in the file's own colors,
+      gray in `monochrome`, where it had the lifeline's color. As in
+      PlantUML the lifelines' color sets it too, and so does a style for
+      `destroy` (`LineColor`), the later of the two winning. In the
+      theme's colors it takes the theme's red, made legible on the paper
+      and on a group's box, and Omaspec's light and dark palette have a
+      red of their own (`destroy`, which a project's `[look]` may set).
+      PlantUML has no skinparam for it, so the Omarchy pack writes a
+      `<style>` for it, in a sequence diagram only: engines that read no
+      style would decline one. Mermaid's sequence diagrams keep the cross
+      in the color of their lifelines.
 
 ### Step 2: the state diagram
 

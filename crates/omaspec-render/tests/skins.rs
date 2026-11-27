@@ -12,6 +12,7 @@ const COLORS: Colors = Colors {
     accent: "#e68e0d",
     muted: "#666666",
     note: "#2a2a2a",
+    destroy: "#ff5f5f",
 };
 
 #[test]
@@ -49,7 +50,7 @@ fn plantuml_packs_draw_natively() {
         java_fallback: false,
         ..Config::default()
     });
-    let code = "@startuml\nactor User\ndatabase DB\nUser -> DB ++ : query\nalt found\n  DB --> User -- : rows\nend\nnote over DB : indexed\n@enduml\n";
+    let code = "@startuml\nactor User\ndatabase DB\nUser -> DB ++ : query\nalt found\n  DB --> User -- : rows\nend\nnote over DB : indexed\ndestroy DB\n@enduml\n";
     let bare = renderer.render(code, Language::PlantUml).unwrap();
     assert_eq!(bare.engine, Engine::NativePlantUml);
     for pack in Pack::ALL {
@@ -60,11 +61,13 @@ fn plantuml_packs_draw_natively() {
         let svg = renderer.render(&skinned, Language::PlantUml).unwrap().svg;
         assert_ne!(svg, bare.svg, "{pack:?} changes nothing");
         if pack == Pack::Omarchy {
-            // The light defaults are all replaced.
-            for light in ["#E2E2F0", "#FEFFDD", "#EEEEEE", "#FFFFFF"] {
+            // The light defaults are all replaced; the cross of the
+            // destroyed participant takes the theme's red.
+            for light in ["#E2E2F0", "#FEFFDD", "#EEEEEE", "#FFFFFF", "#A80036"] {
                 assert!(!svg.contains(light), "{light} left in {svg}");
             }
             assert!(svg.contains("#121212") && svg.contains("#E68E0D"), "{svg}");
+            assert!(svg.contains(r##"stroke="#FF5F5F""##), "{svg}");
         }
     }
 }

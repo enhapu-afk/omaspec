@@ -1871,7 +1871,7 @@ impl<'a> Drawer<'a> {
                     }
                 };
                 let x = self.x[c];
-                let stroke = Stroke::new(self.skin.lifeline, 2.0);
+                let stroke = Stroke::new(self.skin.destroy, 2.0);
                 canvas.line(
                     Layer::Front,
                     (x - 9.0, at - 9.0),
@@ -4276,5 +4276,36 @@ mod tests {
         let svg =
             crate::render("skinparam monochrome true\nparticipant A #ff0000\nA -> A").unwrap();
         assert!(!svg.contains("#FF0000") && svg.contains("#4D4D4D"));
+    }
+
+    /// The cross of a destroyed participant is PlantUML's red. The
+    /// lifelines' color sets it too, and so does a style for `destroy`:
+    /// of the two the later wins, as in PlantUML. Monochrome grays it.
+    #[test]
+    fn a_destroyed_participant_s_cross_is_red_until_set() {
+        let cross = |head: &str| {
+            let svg = crate::render(&format!("{head}\nA -> B\ndestroy B")).unwrap();
+            let strokes: Vec<&str> = svg
+                .split("<line ")
+                .skip(1)
+                .filter(|l| l.contains(r#"stroke-width="2""#))
+                .filter_map(|l| l.split(r#"stroke=""#).nth(1)?.split('"').next())
+                .collect();
+            assert_eq!(strokes.len(), 2, "{svg}");
+            assert_eq!(strokes[0], strokes[1]);
+            strokes[0].to_owned()
+        };
+        assert_eq!(cross(""), "#A80036");
+        let lifeline = "skinparam SequenceLifeLineBorderColor #00AA00";
+        let style = "<style>\ndestroy { LineColor #0000FF }\n</style>";
+        assert_eq!(cross(lifeline), "#00AA00");
+        assert_eq!(cross(&format!("{lifeline}\n{style}")), "#0000FF");
+        assert_eq!(cross(&format!("{style}\n{lifeline}")), "#00AA00");
+        let nested =
+            "<style>\nsequenceDiagram {\n  lifeLine {\n    LineColor #00AA00\n  }\n}\n</style>";
+        assert_eq!(cross(nested), "#00AA00");
+        assert_eq!(cross("skinparam monochrome true"), "#383838");
+        // Only its color is drawn so far.
+        assert!(crate::render("<style>\ndestroy { LineThickness 5 }\n</style>\nA -> B").is_err());
     }
 }

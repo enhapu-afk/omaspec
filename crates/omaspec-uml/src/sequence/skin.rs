@@ -54,6 +54,9 @@ pub struct Skin {
     pub stereotype_font: Font,
     pub lifeline: Color,
     pub lifeline_thickness: f32,
+    /// The cross of a destroyed participant: red, until the lifelines'
+    /// color or a style for `destroy` sets it, as in PlantUML.
+    pub destroy: Color,
     /// Activation bars; their border is the lifeline's color.
     pub activation_fill: Paint,
     pub group_border: Color,
@@ -127,6 +130,7 @@ impl Default for Skin {
             stereotype_font: Font::new(12.0, black).italic(),
             lifeline: DARK,
             lifeline_thickness: 0.5,
+            destroy: Color::hex(0xA80036),
             activation_fill: Some(Color::WHITE),
             group_border: black,
             group_thickness: 1.5,
@@ -291,8 +295,11 @@ impl Skin {
                 "arrowcolor" => skin.arrow = p.solid()?,
                 "arrowthickness" => skin.arrow_thickness = p.number(0.1, 20.0)?,
                 "lifelinebordercolor" | "sequencelifelinebordercolor" => {
-                    skin.lifeline = p.solid()?
+                    skin.lifeline = p.solid()?;
+                    skin.destroy = skin.lifeline;
                 }
+                // A style for `destroy`; PlantUML has no skinparam for it.
+                "sequencedestroycolor" => skin.destroy = p.solid()?,
                 "sequencelifelinebackgroundcolor" => skin.activation_fill = p.paint()?,
                 "sequencegroupbordercolor" => skin.group_border = p.solid()?,
                 "sequencegroupborderthickness" => skin.group_thickness = p.number(0.1, 20.0)?,
@@ -561,7 +568,10 @@ pub const STYLE: &[Element] = &[
         "SequenceDelay",
         TEXT,
     ),
-    Element::keys(&["element", "sequenceDiagram", "lifeLine", "destroy"], &[]),
+    Element::keys(
+        &["element", "sequenceDiagram", "lifeLine", "destroy"],
+        &[(Prop::LineColor, "SequenceDestroyColor")],
+    ),
     Element::new(&["element", "sequenceDiagram", "note"], "Note", LOOK),
     Element::keys(&["element", "sequenceDiagram", "note", "hnote"], &[]),
     Element::keys(&["element", "sequenceDiagram", "note", "rnote"], &[]),

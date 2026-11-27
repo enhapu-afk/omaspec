@@ -275,6 +275,7 @@ pub struct Hex {
     pub accent: String,
     pub muted: String,
     pub note: String,
+    pub destroy: String,
 }
 
 impl Hex {
@@ -287,6 +288,12 @@ impl Hex {
             accent: hex(p.accent),
             muted: hex(p.dark_foreground),
             note: hex(p.selection),
+            // A cross lies on the paper and on a group's box.
+            destroy: hex(p.red.legible_on(
+                &[p.background, p.lighter_background],
+                p.foreground,
+                omaspec_theme::tokens::MIN_CONTRAST,
+            )),
         }
     }
 
@@ -304,6 +311,7 @@ impl Hex {
             "accent" => &mut self.accent,
             "muted" => &mut self.muted,
             "note" => &mut self.note,
+            "destroy" => &mut self.destroy,
             _ => return,
         };
         color.clone_into(slot);
@@ -317,6 +325,7 @@ impl Hex {
             accent: &self.accent,
             muted: &self.muted,
             note: &self.note,
+            destroy: &self.destroy,
         }
     }
 }
@@ -330,6 +339,7 @@ impl From<&Colors<'_>> for Hex {
             accent: c.accent.to_owned(),
             muted: c.muted.to_owned(),
             note: c.note.to_owned(),
+            destroy: c.destroy.to_owned(),
         }
     }
 }
@@ -559,6 +569,42 @@ impl LineShift {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The cross of a destroyed participant reads on the paper and on a
+    /// group's box: in Omaspec's two palettes and in every theme Omarchy
+    /// ships (where it is installed), whose red it takes.
+    #[test]
+    fn a_destroyed_participant_s_cross_reads_in_every_look() {
+        use omaspec_theme::{Rgb, tokens::MIN_CONTRAST};
+        let reads = |hex: &Hex, name: &str| {
+            let rgb = |c: &str| Rgb::parse_hex(c).unwrap_or_else(|| panic!("{name}: {c}"));
+            let cross = rgb(&hex.destroy);
+            for paper in [&hex.background, &hex.surface] {
+                let ratio = cross.contrast(rgb(paper));
+                assert!(ratio >= MIN_CONTRAST, "{name}: {ratio:.2} on {paper}");
+            }
+        };
+        reads(&Hex::from(&LIGHT), "light");
+        reads(&Hex::from(&DARK), "dark");
+        let Ok(dirs) = std::fs::read_dir("/usr/share/omarchy/themes") else {
+            return;
+        };
+        for dir in dirs.flatten() {
+            let Ok(p) = Palette::load(&dir.path().join("colors.toml")) else {
+                continue;
+            };
+            let p = p.legible();
+            let hex = Hex::of(&p);
+            reads(&hex, &dir.file_name().to_string_lossy());
+            // A red that reads already is the theme's own.
+            if [p.background, p.lighter_background]
+                .iter()
+                .all(|paper| p.red.contrast(*paper) >= MIN_CONTRAST)
+            {
+                assert_eq!(hex.destroy, p.red.to_string());
+            }
+        }
+    }
 
     /// A look lays its skin before the diagram, some seventy lines of it;
     /// what is drawn through [`render`] tells the file's lines all the

@@ -406,8 +406,8 @@
 </text>
 </g>
 <g class="participant-Late">
-<line x1="830.95" y1="1025.34" x2="848.95" y2="1043.34" fill="none" stroke="#181818" stroke-width="2"/>
-<line x1="830.95" y1="1043.34" x2="848.95" y2="1025.34" fill="none" stroke="#181818" stroke-width="2"/>
+<line x1="830.95" y1="1025.34" x2="848.95" y2="1043.34" fill="none" stroke="#A80036" stroke-width="2"/>
+<line x1="830.95" y1="1043.34" x2="848.95" y2="1025.34" fill="none" stroke="#A80036" stroke-width="2"/>
 </g>
 <g class="delay-5_20_minutes_20_later" id="delay-5_20_minutes_20_later">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
