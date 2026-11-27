@@ -34,6 +34,11 @@ pub struct Diagram {
     /// as Mermaid draws `autonumber`; else before its words, as PlantUML
     /// writes it.
     pub numbers_circled: bool,
+    /// A note leaves the message before it the last arrow, as PlantUML
+    /// reads it: a bar opened or closed, a participant destroyed after
+    /// notes starts or ends at that message. Mermaid's start and end below
+    /// the notes.
+    pub through_notes: bool,
     /// Title, header, footer, caption, legend, main frame, scale and
     /// skinparams.
     pub frame: Frame,

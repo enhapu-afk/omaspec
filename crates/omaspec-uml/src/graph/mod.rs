@@ -279,6 +279,9 @@ const LEVEL_MARK: f32 = 28.0;
 const LEVEL_STEP: f32 = 16.0;
 /// How far such a line stays from the corners of its boxes.
 const LEVEL_CORNER: f32 = 8.0;
+/// Between the ends of two lanes on one side of a box, which run over or
+/// under the boxes between their two: a head and room.
+const LEVEL_NEST: f32 = 12.0;
 /// How far before the boxes a line runs that passes over one between
 /// its two.
 const LEVEL_OVER: f32 = 14.0;
@@ -1002,9 +1005,9 @@ fn in_ranks(
 }
 
 /// The room the lanes of lines within a rank take, which pass boxes
-/// between their two: above and below a frame's ranks (from its top,
-/// its name's band included; from its last rank's end), and in the gaps
-/// between ranks (after the rank of the same index).
+/// between their two: above a frame's first rank, under its name and the
+/// lines that pass it, and below its last, and in the gaps between ranks
+/// (after the rank of the same index).
 struct Lanes {
     above: Vec<f32>,
     below: Vec<f32>,
@@ -1067,7 +1070,7 @@ impl Lanes {
             let span = frame.and_then(|f| Some((f, spans.get(f).copied().flatten()?)));
             match span {
                 Some((f, (first, _))) if first == r => {
-                    lanes.above[f] = lanes.above[f].max(frames[f].name.height + over);
+                    lanes.above[f] = lanes.above[f].max(over);
                 }
                 _ if r > 0 && over > 0.0 => {
                     lanes.gaps[r - 1] = lanes.gaps[r - 1].max(over + LEVEL_OVER);
@@ -1256,19 +1259,11 @@ fn level_route(
         }
         let (below, lane) = mine;
         // The lanes of a side nest: an outer one leaves its box further
-        // from the side that faces the other, short of the middle, where
-        // the lines along the flow leave.
-        let total = lanes[usize::from(below)];
+        // from the side that faces the other, a head and room apart, as
+        // far as the box reaches.
         let inset = |r: Rect| {
             let first = (r.w / 4.0).min(LEVEL_END);
-            let last = (r.w / 2.0 - LEVEL_CORNER).max(first);
-            match total {
-                0 | 1 => first,
-                _ => {
-                    let spread = (last - first).min((total - 1) as f32 * LEVEL_STEP / 2.0);
-                    first + spread * lane as f32 / (total - 1) as f32
-                }
-            }
+            (first + lane as f32 * LEVEL_NEST).min((r.w - LEVEL_CORNER).max(first))
         };
         let (leave, arrive) = if a.x <= b.x {
             (a.right() - inset(a), b.x + inset(b))
@@ -2860,9 +2855,9 @@ mod tests {
         // two lanes over, two under, a label and room apart, clear of the
         // boxes under them.
         let nodes = [
-            node(80.0, 40.0),
-            node(60.0, 40.0),
-            node(60.0, 40.0),
+            node(40.0, 30.0),
+            node(40.0, 30.0),
+            node(40.0, 30.0),
             node(60.0, 40.0),
             node(60.0, 40.0),
             node(60.0, 40.0),
@@ -2904,6 +2899,15 @@ mod tests {
             "{} {}",
             run(2),
             run(4)
+        );
+        // The lanes of a side end a head and room apart on their boxes,
+        // narrow ones too.
+        let end = |at: usize| laid.routes[at].points.last().unwrap().0;
+        assert!(
+            (end(4) - end(2)).abs() >= LEVEL_NEST - 0.5,
+            "{} {}",
+            end(2),
+            end(4)
         );
         let label = |at: usize| {
             let route = &laid.routes[at];

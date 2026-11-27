@@ -1651,18 +1651,19 @@ impl<'a> Drawer<'a> {
     fn item(&mut self, canvas: &mut Canvas, k: usize) -> usize {
         let d = self.d;
         let item = &d.items[k];
-        // A duration is drawn over what came before: the row goes on. A
-        // note leaves the message before it the last arrow, as PlantUML
-        // reads it: a bar opened or a participant destroyed after the note
-        // starts or ends at that message.
-        if !matches!(
-            item,
+        // A duration is drawn over what came before: the row goes on. In
+        // PlantUML a note leaves the message before it the last arrow: a
+        // bar opened or a participant destroyed after the note starts or
+        // ends at that message ([`Diagram::through_notes`]).
+        let passes = match item {
             Item::Activate { .. }
-                | Item::Deactivate { .. }
-                | Item::Destroy { .. }
-                | Item::Duration { .. }
-                | Item::Note(_)
-        ) {
+            | Item::Deactivate { .. }
+            | Item::Destroy { .. }
+            | Item::Duration { .. } => true,
+            Item::Note(_) => d.through_notes,
+            _ => false,
+        };
+        if !passes {
             self.last_arrow = None;
             if !matches!(item, Item::Message(_) | Item::Note(_)) {
                 self.level = None;
@@ -2116,11 +2117,12 @@ impl<'a> Drawer<'a> {
                         && matches!(i, Item::Note(note) if matches!(note.place, NotePlace::Message(_)))
                 })
                 .map(|(_, i)| i)
-                .take_while(|i| {
-                    matches!(
-                        i,
-                        Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. }
-                    )
+                // In PlantUML across the notes after it too, as the bar
+                // starts at the message.
+                .take_while(|i| match i {
+                    Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. } => true,
+                    Item::Note(_) => d.through_notes,
+                    _ => false,
                 })
                 .filter(|i| matches!(i, Item::Activate { participant, .. } if Some(self.col(*participant)) == column))
                 .count()
@@ -4103,6 +4105,48 @@ mod tests {
         laid_out("A -> B : q\nalt ok\n  A -> B : r\nend\ndestroy B", |d| {
             assert!(d.life_end[1].unwrap() > arrow + 40.0);
         });
+        // The message stops at the bar it opens across the note, its
+        // edge, as it does at one opened right after it; a message to
+        // itself comes back to the edge too.
+        let tip = |source: &str| {
+            let svg = crate::render(source).unwrap();
+            let arrow = svg.split("<polygon points=\"").nth(1).unwrap();
+            let first = arrow.split(' ').nth(1).unwrap();
+            first.split(',').next().unwrap().parse::<f32>().unwrap()
+        };
+        assert_eq!(
+            tip("A -> B : q\nnote over B : x\nactivate B\nB -> A : r"),
+            tip("A -> B : q\nactivate B\nnote over B : x\nB -> A : r")
+        );
+        let (mut alone, mut noted) = (Vec::new(), Vec::new());
+        laid_out("A -> A : self\nactivate A", |d| alone = d.bars.clone());
+        laid_out("A -> A : self\nnote left of A : n\nactivate A", |d| {
+            noted = d.bars.clone()
+        });
+        assert_eq!(alone[0].start, noted[0].start);
+    }
+
+    /// Mermaid opens and closes a bar after a note below the note: its
+    /// notes leave no message the last arrow.
+    #[test]
+    fn a_mermaid_note_keeps_the_bar_below_it() {
+        let d = super::super::from_mermaid(
+            "sequenceDiagram\n  A->>B: q\n  Note over B: a note\n  activate B\n  B->>A: r\n  deactivate B\n",
+        )
+        .unwrap();
+        assert!(!d.through_notes);
+        let skin = Skin::from_params(&d.frame.skinparams).unwrap();
+        let (drawer, _) = laid(&d, &skin).unwrap();
+        let mut plantuml = 0.0;
+        laid_out(
+            "A -> B : q\nnote over B : a note\nactivate B\nB -> A : r",
+            |d| plantuml = d.bars[0].start,
+        );
+        assert!(
+            drawer.bars[0].start > plantuml + 20.0,
+            "{}",
+            drawer.bars[0].start
+        );
     }
 
     #[test]

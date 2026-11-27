@@ -1804,7 +1804,7 @@ mod tests {
         ] {
             let path = &svg[svg.find(&format!(r#"id="{id}">"#)).unwrap()..];
             let d = path
-                .split(r#"d=""#)
+                .split(r#" d=""#)
                 .nth(1)
                 .unwrap()
                 .split('"')
@@ -1816,7 +1816,7 @@ mod tests {
                 .map(|pair| pair.split(',').nth(1).unwrap().parse().unwrap())
                 .collect();
             assert!(
-                ys.iter().all(|&y| y > band && y < bottom),
+                ys.len() > 4 && ys.iter().all(|&y| y > band && y < bottom),
                 "{id}: {ys:?} in {band}..{bottom}"
             );
             let label = svg.find(&format!(">{word}</tspan>")).unwrap();
@@ -1826,6 +1826,36 @@ mod tests {
                 "{word} at {baseline}"
             );
         }
+        // Two lanes over: the outer one's words above its own run, not
+        // pushed down beside the inner one's, under the name.
+        let svg = crate::render(
+            "@startuml\nstate Outer {\n  A -> M\n  M -> B\n  A -> B : over\n  B -> A : under\n  A -> B : third\n  B -> A : fourth\n}\n[*] --> M\nB --> Z\n@enduml\n",
+        )
+        .unwrap();
+        let outer = &svg[svg.find(r#"id="state-Outer">"#).unwrap()..];
+        let band = number(&outer[outer.find("<line").unwrap()..], "y1");
+        let run = |id: &str| -> f32 {
+            let path = &svg[svg.find(&format!(r#"id="{id}">"#)).unwrap()..];
+            let d = path
+                .split(r#" d=""#)
+                .nth(1)
+                .unwrap()
+                .split('"')
+                .next()
+                .unwrap();
+            d.split(|c: char| c.is_ascii_alphabetic() || c == ' ')
+                .filter(|pair| pair.contains(','))
+                .map(|pair| pair.split(',').nth(1).unwrap().parse::<f32>().unwrap())
+                .fold(f32::INFINITY, f32::min)
+        };
+        let baseline = |word: &str| {
+            let label = svg.find(&format!(">{word}</tspan>")).unwrap();
+            number(&svg[svg[..label].rfind("<tspan").unwrap()..label], "y")
+        };
+        let (over, third) = (run("transition-A-B-over"), run("transition-A-B-third"));
+        assert!(third < over, "{third} {over}");
+        assert!(baseline("third") < third && baseline("third") - 14.0 > band);
+        assert!(baseline("over") < over && baseline("over") > third);
     }
 
     /// Lines side by side between two states with a label between them:

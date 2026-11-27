@@ -328,6 +328,22 @@ is open and the reasoning around it.
       bug in Omaspec"); one after a group, which follows no message of
       its own, is refused, saying that Mermaid destroys a participant
       only at a message.
+- [x] What the review of the lanes and of the notes found (2026-11-28).
+      A Mermaid sequence diagram opens and closes a bar after a note
+      below the note again, as Mermaid does: only PlantUML's notes leave
+      the message before them the last arrow
+      (`sequence::Diagram::through_notes`). A message stops at the edge
+      of a bar it opens across notes, as at one opened right after it,
+      and a message to itself comes back to the edge. `omaspec convert`
+      writes a bar opened or closed after notes on a message right after
+      the message in Mermaid, so it starts and ends there as in
+      PlantUML; the other way it tells that PlantUML starts such a bar at
+      the message. Two participants destroyed at one message are refused
+      for that, not as following none. The lanes of a side end a head
+      and room apart on their boxes, narrow ones too, and a frame keeps
+      their room under its name and the lines that pass it, so the outer
+      lane's words stay above it; under `left to right direction` no room
+      for the name is kept beside the frame.
 
 ### Step 2: the state diagram
 
