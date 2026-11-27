@@ -42,8 +42,21 @@ pub const PART: &str = r#"<g class=""#;
 pub const GRID: &str = "grid";
 
 /// The id of the group around an icon drawn in a line of text: it is
-/// seen as the words beside it are, against what lies under it.
+/// seen as the words beside it are, against what lies under it. The
+/// picture's first icon has it, the next `icon-2`, `icon-3`, … in the
+/// order drawn, so no id repeats ([`is_icon`]).
 pub const ICON: &str = "icon";
+
+/// Whether `id` is that of an icon's group: [`ICON`], or it with a number.
+pub fn is_icon(id: &str) -> bool {
+    match id.strip_prefix(ICON) {
+        Some("") => true,
+        Some(rest) => rest
+            .strip_prefix('-')
+            .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit())),
+        None => false,
+    }
+}
 
 /// The face a diagram's words are set in unless it names another: Inter,
 /// shipped with the program (`omaspec-render/fonts`), so a picture looks
@@ -115,6 +128,8 @@ pub struct Canvas {
     id_layers: std::collections::HashMap<String, usize>,
     /// The part being drawn: its groups' class ([`part_id`]).
     part: Option<String>,
+    /// How many icons have been drawn: the next one's id ([`ICON`]).
+    icons: usize,
     /// For each layer, the part whose group is open there, among its
     /// shapes and among its shadows.
     open: [Option<String>; LAYERS],
@@ -195,6 +210,7 @@ impl Canvas {
             whole: false,
             id_layers: std::collections::HashMap::new(),
             part: None,
+            icons: 0,
             open: Default::default(),
             open_shades: Default::default(),
             links: Vec::new(),
@@ -523,6 +539,22 @@ impl Canvas {
 
     pub fn end_group(&mut self, layer: Layer) {
         self.at(layer).push_str("</g>");
+    }
+
+    /// Opens the group around marks seen as words are ([`ICON`]), until
+    /// [`Self::end_group`]: each takes the next id, as an icon does.
+    pub fn begin_icon(&mut self, layer: Layer) {
+        let id = self.icon_id();
+        self.begin_group(layer, &id);
+    }
+
+    /// The id of the next icon's group: [`ICON`], then `icon-2`, ….
+    fn icon_id(&mut self) -> String {
+        self.icons += 1;
+        match self.icons {
+            1 => ICON.to_owned(),
+            n => format!("{ICON}-{n}"),
+        }
     }
 
     /// From here on the words drawn are those of the zero-based `line` of
@@ -1065,7 +1097,8 @@ impl Canvas {
             out.insert_str(0, &behind);
         }
         for (x, baseline, icon, color) in icons {
-            let _ = write!(out, r#"<g id="{ICON}">"#);
+            let id = self.icon_id();
+            let _ = write!(out, r#"<g id="{id}">"#);
             self.icon(&mut out, &icon, (x, baseline), color);
             out.push_str("</g>");
         }
@@ -2798,6 +2831,36 @@ mod tests {
             "{lengths} {}",
             block.width
         );
+    }
+
+    /// Each icon in the words has an id of its own, and a mark seen as
+    /// words are takes the next: no id repeats in a picture.
+    #[test]
+    fn each_icon_has_an_id_of_its_own() {
+        let mut c = Canvas::new("sans-serif", false);
+        let font = Font::new(12.0, Color::BLACK);
+        let words = crate::text::block("<&cloud> up <&bolt>", font, c.family()).unwrap();
+        c.text(Layer::Front, &words, (0.0, 0.0), Align::Left);
+        c.begin_icon(Layer::Front);
+        c.ellipse(
+            Layer::Front,
+            (4.0, 30.0),
+            (2.0, 2.0),
+            Some(Color::BLACK),
+            None,
+        );
+        c.end_group(Layer::Front);
+        let svg = c.finish(0.0, None);
+        let ids: Vec<&str> = svg
+            .split(r#"<g id=""#)
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next())
+            .collect();
+        assert_eq!(ids, ["icon", "icon-2", "icon-3"], "{svg}");
+        assert!(ids.iter().all(|id| is_icon(id)));
+        for not in ["icons", "icon-", "icon-x", "node-icon", "grid"] {
+            assert!(!is_icon(not), "{not}");
+        }
     }
 
     /// In monochrome an emoji, which keeps its own colors whatever the

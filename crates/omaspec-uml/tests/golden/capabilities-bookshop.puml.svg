@@ -82,7 +82,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="117.76" font-size="13" fill="#FFFFFF" textLength="66.56" lengthAdjust="spacing">Newsletter</tspan>
 </text>
-<g id="icon">
+<g id="icon-2">
 <ellipse cx="26.5" cy="125.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="33.5" cy="125.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="40.5" cy="125.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
@@ -93,7 +93,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="129" y="117.76" font-size="13" fill="#000000" textLength="41.5" lengthAdjust="spacing">Events</tspan>
 </text>
-<g id="icon">
+<g id="icon-3">
 <ellipse cx="131.5" cy="125.33" rx="2.9" ry="2.9" fill="#000000"/>
 <ellipse cx="138.5" cy="125.33" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
 <ellipse cx="145.5" cy="125.33" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
@@ -109,7 +109,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="201.96" font-size="13" fill="#FFFFFF" textLength="73.14" lengthAdjust="spacing">Online shop</tspan>
 </text>
-<g id="icon">
+<g id="icon-4">
 <ellipse cx="26.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="33.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="40.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
@@ -120,7 +120,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="129" y="201.96" font-size="13" fill="#FFFFFF" textLength="39.73" lengthAdjust="spacing">Stores</tspan>
 </text>
-<g id="icon">
+<g id="icon-5">
 <ellipse cx="131.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="138.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="145.5" cy="209.53" rx="2.9" ry="2.9" fill="#FFFFFF"/>
@@ -131,7 +131,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="250.56" font-size="13" fill="#000000" textLength="59.99" lengthAdjust="spacing">Gift cards</tspan>
 </text>
-<g id="icon">
+<g id="icon-6">
 <ellipse cx="26.5" cy="258.13" rx="2.9" ry="2.9" fill="#000000"/>
 <ellipse cx="33.5" cy="258.13" rx="2.9" ry="2.9" fill="#000000"/>
 <ellipse cx="40.5" cy="258.13" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
@@ -142,7 +142,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="16" y="307.16" font-size="13" fill="#FFFFFF" font-weight="bold" textLength="48.27" lengthAdjust="spacing">Service</tspan>
 </text>
-<g id="icon">
+<g id="icon-7">
 <ellipse cx="18.5" cy="314.73" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="25.5" cy="314.73" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="32.5" cy="314.73" rx="2.9" ry="2.9" fill="#FFFFFF"/>
@@ -158,7 +158,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="266" y="75.16" font-size="13" fill="#FFFFFF" font-weight="bold" textLength="44.37" lengthAdjust="spacing">Buying</tspan>
 </text>
-<g id="icon">
+<g id="icon-8">
 <ellipse cx="268.5" cy="82.73" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="275.5" cy="82.73" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="282.5" cy="82.73" rx="2.9" ry="2.9" fill="#FFFFFF"/>
@@ -169,7 +169,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="266" y="123.76" font-size="13" fill="#000000" font-weight="bold" textLength="36.43" lengthAdjust="spacing">Stock</tspan>
 </text>
-<g id="icon">
+<g id="icon-9">
 <ellipse cx="268.5" cy="131.33" rx="2.9" ry="2.9" fill="#000000"/>
 <ellipse cx="275.5" cy="131.33" rx="2.9" ry="2.9" fill="#000000"/>
 <ellipse cx="282.5" cy="131.33" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
@@ -190,7 +190,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="516" y="75.16" font-size="13" fill="#000000" font-weight="bold" textLength="38.36" lengthAdjust="spacing">Hiring</tspan>
 </text>
-<g id="icon">
+<g id="icon-10">
 <ellipse cx="518.5" cy="82.73" rx="2.9" ry="2.9" fill="#000000"/>
 <ellipse cx="525.5" cy="82.73" rx="2.9" ry="2.9" fill="#000000"/>
 <ellipse cx="532.5" cy="82.73" rx="2.5" ry="2.5" fill="none" stroke="#000000" stroke-width="0.8"/>
@@ -201,7 +201,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="516" y="123.76" font-size="13" fill="#FFFFFF" font-weight="bold" textLength="44.11" lengthAdjust="spacing">Payroll</tspan>
 </text>
-<g id="icon">
+<g id="icon-11">
 <ellipse cx="518.5" cy="131.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="525.5" cy="131.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="532.5" cy="131.33" rx="2.9" ry="2.9" fill="#FFFFFF"/>
@@ -212,7 +212,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="516" y="172.36" font-size="13" fill="#FFFFFF" font-weight="bold" textLength="61.2" lengthAdjust="spacing">Accounts</tspan>
 </text>
-<g id="icon">
+<g id="icon-12">
 <ellipse cx="518.5" cy="179.93" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="525.5" cy="179.93" rx="2.9" ry="2.9" fill="#FFFFFF"/>
 <ellipse cx="532.5" cy="179.93" rx="2.9" ry="2.9" fill="#FFFFFF"/>

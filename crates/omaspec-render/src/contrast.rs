@@ -109,7 +109,7 @@ impl Walk {
     fn group(&mut self, group: &usvg::Group, opacity: f32, (grid, icon): (bool, bool)) {
         let opacity = opacity * group.opacity().get();
         let grid = grid || group.id() == omaspec_uml::GRID;
-        let icon = icon || group.id() == omaspec_uml::ICON;
+        let icon = icon || omaspec_uml::is_icon(group.id());
         for node in group.children() {
             match node {
                 Node::Group(inner) => self.group(inner, opacity, (grid, icon)),
@@ -295,6 +295,22 @@ mod tests {
         let pairs = pairs(svg).unwrap();
         assert_eq!(pairs.len(), 1);
         assert_eq!(pairs[0].color, (0, 0, 0));
+    }
+
+    /// Every icon is seen against what lies under it, as words are, not
+    /// only the picture's first.
+    #[test]
+    fn each_icon_lies_on_its_box() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40">
+            <rect x="5" y="5" width="190" height="30" fill="#303030"/>
+            <g id="icon"><path d="M 10 10 L 20 20" fill="none" stroke="#e0e0e0"/></g>
+            <g id="icon-2"><path d="M 110 10 L 120 20" fill="none" stroke="#e0e0e0"/></g>
+            </svg>"##;
+        let pairs = pairs(svg).unwrap();
+        assert_eq!(pairs.len(), 2, "{pairs:?}");
+        for pair in pairs {
+            assert_eq!(pair.on, (0x30, 0x30, 0x30), "{pair:?}");
+        }
     }
 
     #[test]

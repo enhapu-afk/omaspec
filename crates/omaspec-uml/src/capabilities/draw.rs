@@ -374,7 +374,7 @@ fn draw_own(canvas: &mut Canvas, tile: &Tile, (x, y): (f32, f32), look: &Look) {
                 _ => left.0 + DOT,
             };
             // Seen as the words above them are, on the tile.
-            c.begin_group(Layer::Front, crate::ICON);
+            c.begin_icon(Layer::Front);
             // A step reached is a dot filled, one not yet a ring.
             for i in 0..count {
                 let at = (first + i as f32 * DOTS, dots_y);

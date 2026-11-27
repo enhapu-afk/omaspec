@@ -73,8 +73,8 @@ pub use icons::{open_iconic_names, unknown_open_iconic};
 pub use svg::{
     Align, Canvas, FACE, FRAME_PARTS, GRID, Given, HAND_FONT, ICON, INTER_FACES, LINES, Layer,
     MONO_FACES, NAMED, PART, SANS_FACES, SERIF_FACES, Stroke, element, faces, glides_by_parts,
-    has_parts, notes_part, numbered, part_groups, part_id, part_name, part_of_id, prefix_classes,
-    push_written, unmarked, without_lines, without_parts,
+    has_parts, is_icon, notes_part, numbered, part_groups, part_id, part_name, part_of_id,
+    prefix_classes, push_written, unmarked, without_lines, without_parts,
 };
 pub use text::{
     Block, Family, Font, Link, Style, Written, block as measure_text, creole_link, emoji,

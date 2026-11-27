@@ -2470,6 +2470,15 @@ is open and the reasoning around it.
       both ends (`link-A.C.o-A.D.i`); a marble lane's id is on its name
       and marbles, not on the ground behind a label; a radar's axis or
       curve without an id is named by its words.
+- [x] Each icon has an id of its own (2026-11-27,
+      [0037](adr/0037-an-id-for-every-box-and-line.md)). An icon in the
+      words and a capability's dots were each drawn in `<g id="icon">`,
+      so a picture with several held that id many times (the gallery's
+      capability map twelve, an ArchiMate diagram seven). Now the first
+      is `icon`, the next `icon-2`, `icon-3`, … in the order drawn
+      (`Canvas::begin_icon` for marks a drawer draws), and the check of
+      how well a picture reads sees each against what lies under it, not
+      only the first (`omaspec_uml::is_icon`).
 
 ## Next
 

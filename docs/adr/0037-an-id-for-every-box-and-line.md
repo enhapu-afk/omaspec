@@ -36,7 +36,7 @@ part lies in groups `<g id="part-…-N">`. Those names do not serve a page:
    flowchart's), `package-Shop`. The word before the name is the
    element's kind as the diagram writes it, from one table in the engine,
    so a package and a class of one name differ, and no element's id meets
-   one of the engine's own (`lines`, `grid`, `icon`, a gradient's).
+   one of the engine's own (`lines`, `grid`, an icon's, a gradient's).
 2. **A line is named by what it joins and what it says.**
    `transition-Idle-Busy-start`, `message-Alice-Bob-hello`,
    `link-Order-Customer` (without words, the ends alone). A line whose
@@ -138,3 +138,8 @@ Measured on a state machine of seven states, 16 part groups made its SVG
   named by the shapes it joins without their kind
   (`link-green_3f_-Publish-yes`); its words keep the part of their own
   they glide in (`label-yes`).
+- An icon in the words, or a capability's dots, is no element: its
+  group is `icon`, the next `icon-2`, `icon-3`, … in the order drawn,
+  so no id repeats in a picture, and the check of how well it reads
+  knows each by its id (`omaspec_uml::is_icon`). A page names an icon by
+  the element it stands in.
