@@ -4305,6 +4305,10 @@ mod tests {
             "<style>\nsequenceDiagram {\n  lifeLine {\n    LineColor #00AA00\n  }\n}\n</style>";
         assert_eq!(cross(nested), "#00AA00");
         assert_eq!(cross("skinparam monochrome true"), "#383838");
+        // PlantUML takes no skinparam for the cross alone, nor the short
+        // name for the lifelines, which leaves it red.
+        assert!(crate::render("skinparam SequenceDestroyColor #0000FF\nA -> B").is_err());
+        assert_eq!(cross("skinparam LifeLineBorderColor #00AA00"), "#A80036");
         // Only its color is drawn so far.
         assert!(crate::render("<style>\ndestroy { LineThickness 5 }\n</style>\nA -> B").is_err());
     }

@@ -435,8 +435,9 @@ impl ToMermaid {
     }
 
     /// Tells what of how `arrow` is drawn Mermaid cannot write: its
-    /// colors and line style, and the way it was turned (`-right->`),
-    /// which Mermaid's lines have none of (docs/adr/0027).
+    /// colors and line style, and the way it lays its states out (one
+    /// dash, `-right->`), which Mermaid's lines have none of
+    /// (docs/adr/0027).
     fn look(&mut self, arrow: &omaspec_uml::state::Transition) {
         if arrow.color.is_some() || arrow.dash != Dash::Solid || arrow.bold {
             self.notice(
@@ -447,7 +448,7 @@ impl ToMermaid {
         if arrow.toward.is_some() {
             self.notice(
                 Some(arrow.line),
-                "The way the arrow is turned (-right->, -up->) is not carried over: Mermaid has none",
+                "Where the arrow puts its states (one dash ->, -right->, -up->) is not carried over: Mermaid has none",
             );
         }
     }
@@ -850,7 +851,7 @@ mod tests {
         let mermaid = both(code, Language::PlantUml, Language::Mermaid).unwrap();
         let said: Vec<&str> = mermaid.notices.iter().map(|n| n.message.as_str()).collect();
         assert!(said.iter().any(|m| m.contains("Colors")), "{said:?}");
-        assert!(said.iter().any(|m| m.contains("turned")), "{said:?}");
+        assert!(said.iter().any(|m| m.contains("puts its states")), "{said:?}");
         assert!(
             said.iter().any(|m| m.contains("only left and right")),
             "{said:?}"

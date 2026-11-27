@@ -411,10 +411,18 @@ fn mermaid_spot(code: &str, lines: &[Range<usize>]) -> usize {
     lines.get(at).map_or(code.len(), |r| r.start)
 }
 
-/// Whether `code` is a sequence diagram, which takes the color of a
-/// destroyed participant's cross.
+/// Whether `code` is a sequence diagram that destroys a participant,
+/// whose cross takes a color of its own. A diagram it includes is not
+/// read: one made of `!include` lines alone is no sequence diagram here,
+/// whatever it holds (a timing diagram's engine would decline the style).
 fn sequence(code: &str) -> bool {
-    crate::classify(code, Language::PlantUml).kind == crate::Kind::Sequence
+    let destroys = code.lines().any(|line| {
+        let line = line.trim_start();
+        line.get(..7)
+            .is_some_and(|word| word.eq_ignore_ascii_case("destroy"))
+            || line.contains("!!")
+    });
+    destroys && crate::classify(code, Language::PlantUml).kind == crate::Kind::Sequence
 }
 
 /// The pack's block for a PlantUML diagram; `sequence` for a sequence
@@ -861,6 +869,10 @@ mod tests {
         assert!(text.find("SequenceLifeLineBorderColor").unwrap() < style);
         assert!(style < text.find(PLANTUML_END).unwrap());
         for other in [
+            // A sequence that destroys no one, and one this text does not
+            // hold: what it includes may be a timing diagram.
+            "@startuml\nA -> B\n@enduml\n",
+            "@startuml\n!include t.iuml\n@enduml\n",
             "@startuml\n[*] --> A\n@enduml\n",
             "@startuml\nclass A\n@enduml\n",
             "@startuml\nrobust \"Web\" as W\n@enduml\n",

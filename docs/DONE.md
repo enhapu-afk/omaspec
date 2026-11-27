@@ -531,6 +531,25 @@ is open and the reasoning around it.
       way; where a hold cannot be, the line is one like any other. The
       old activity syntax read one dash so already. `regions.puml` puts
       the start of each region beside its first state, as PlantUML does.
+- [x] What the review of the cross's color and of the one dash found
+      (2026-11-27). Of two lines within a rank that point against each
+      other (`A -> B : start`, `B -> A : stop`), the second, whose hold
+      cannot be kept, has its label at the middle of its own line, not
+      far off beside its box; past boxes between them, the lines between
+      the same two take turns over the boxes and under them, so none
+      runs on another's way. A line whose hold cannot be is one like any
+      other to the rest of the layout too (trees, spans). The Omarchy
+      pack writes the cross's style only where the text destroys a
+      participant, so a diagram made of `!include`s (a timing diagram's
+      engine reads no style) draws as before. `skinparam
+      SequenceDestroyColor` is not read, as PlantUML has no such name,
+      and the short `LifeLineBorderColor`, which PlantUML does not take,
+      leaves the cross red. `omaspec convert` names one dash among the
+      ways an arrow puts its states that Mermaid cannot write. Where one
+      dash still differs from PlantUML: a state with its own loop or a
+      note beside it keeps the other below it, three or more after one
+      stand in the order written (PlantUML reverses them), and PlantUML
+      lets a rank give way where lines run in a circle.
 
 ### Step 3: the activity diagram
 

@@ -378,8 +378,9 @@ pub struct Transition {
     /// by hand ([`crate::hand::Label`]): before the line across the flow,
     /// or after it.
     pub label_before: Option<bool>,
-    /// The way the writer turned the arrow (`-right->`, `-up->`), which
-    /// lays its states out (docs/adr/0027).
+    /// The way the writer turned the arrow (`-right->`, `-up->`), or
+    /// one dash (`->`, as `-right->`), which lays its states out
+    /// (docs/adr/0027).
     pub toward: Option<Toward>,
     /// How much wider than an arrow it is drawn, where marks say so: a
     /// trace river's way as wide as it was taken ([`Marks::river`]).

@@ -518,6 +518,12 @@ fn in_ranks(
     let written = edges;
     let mut roomy = nodes.to_vec();
     let mut inner = edges.to_vec();
+    // One whose hold could not be is a line like any other from here on.
+    for (edge, line) in inner.iter_mut().zip(&level) {
+        if line.is_none() {
+            edge.level = None;
+        }
+    }
     for (index, line) in level.iter_mut().enumerate() {
         let Some(line) = line else { continue };
         let edge = written[index];
@@ -1023,11 +1029,13 @@ fn level_route(
             a.cy().min(b.cy()),
         )
     };
-    // The middle of the room before the second box.
-    let middle = if line.after {
-        b.x - line.span / 2.0
-    } else {
-        b.right() + line.span / 2.0
+    // The middle of the room before the second box; where the hold is
+    // not kept that room is not there, and the box may stand on the
+    // other side: the middle of the line itself.
+    let middle = match (line.kept, line.after) {
+        (false, _) => (start + end) / 2.0,
+        (true, true) => b.x - line.span / 2.0,
+        (true, false) => b.right() + line.span / 2.0,
     };
     let (across, along) = match direction {
         Direction::Down => (edge.label_width, edge.label_height),
@@ -1040,15 +1048,30 @@ fn level_route(
         .filter(|o| o.x < high && o.right() > low && o.y < at + 1.0 && o.bottom() > at - 1.0)
         .collect();
     if !passed.is_empty() {
-        let over = passed.iter().map(|o| o.y).fold(a.y.min(b.y), f32::min) - LEVEL_OVER;
-        let inset = |r: Rect| (r.w / 4.0).min(LEVEL_END);
+        // The lines between the same two take turns over the boxes and
+        // under them, each further out than the one before on its side,
+        // so none runs on another's way.
+        let lane = (nth / 2) as f32 * LEVEL_STEP;
+        let inset = |r: Rect| ((r.w / 4.0).min(LEVEL_END) + lane).min(r.w / 2.0);
         let (leave, arrive) = if a.x <= b.x {
             (a.right() - inset(a), b.x + inset(b))
         } else {
             (a.x + inset(a), b.right() - inset(b))
         };
-        let points = [(leave, a.y), (leave, over), (arrive, over), (arrive, b.y)];
-        let label = ((leave + arrive - across) / 2.0, over - along - LEVEL_LABEL);
+        let (from, to, run, words) = if nth % 2 == 1 {
+            let under = passed
+                .iter()
+                .map(|o| o.bottom())
+                .fold(a.bottom().max(b.bottom()), f32::max)
+                + LEVEL_OVER
+                + lane;
+            (a.bottom(), b.bottom(), under, under + LEVEL_LABEL)
+        } else {
+            let over = passed.iter().map(|o| o.y).fold(a.y.min(b.y), f32::min) - LEVEL_OVER - lane;
+            (a.y, b.y, over, over - along - LEVEL_LABEL)
+        };
+        let points = [(leave, from), (leave, run), (arrive, run), (arrive, to)];
+        let label = ((leave + arrive - across) / 2.0, words);
         return Route {
             points: points.into_iter().map(back).collect(),
             label_at: back(label),
@@ -2580,6 +2603,44 @@ mod tests {
             "one under the other"
         );
         assert!(laid.routes.iter().all(|route| route.points.len() >= 2));
+    }
+
+    /// Lines within a rank that point against each other (a toggle,
+    /// `a -> b` and `b -> a`) both run within it; the second's hold is not
+    /// kept, so its label stands at the middle of its own line, not in
+    /// room on the far side of its box. Past a box between them, the
+    /// lines between the same two take turns over the boxes and under.
+    #[test]
+    fn lines_within_a_rank_against_each_other_keep_their_labels_and_ways() {
+        let labelled = |from, to| Edge {
+            level: Some(true),
+            label_width: 30.0,
+            label_height: 14.0,
+            ..edge(from, to)
+        };
+        let nodes = [node(80.0, 40.0), node(60.0, 40.0)];
+        let laid = layout(&nodes, &[labelled(0, 1), labelled(1, 0)], Direction::Down);
+        let (a, b) = (laid.nodes[0], laid.nodes[1]);
+        assert!(b.x > a.right() && (a.y - b.y).abs() < 0.5, "side by side");
+        for route in &laid.routes {
+            let middle = route.label_at.0 + route.label_width / 2.0;
+            assert!(middle > a.right() && middle < b.x, "{:?}", route.label_at);
+        }
+        let nodes = [node(80.0, 40.0), node(60.0, 40.0), node(60.0, 40.0)];
+        let edges = [
+            labelled(0, 1),
+            labelled(1, 2),
+            labelled(0, 2),
+            labelled(2, 0),
+        ];
+        let laid = layout(&nodes, &edges, Direction::Down);
+        let top = laid.nodes.iter().map(|r| r.y).fold(f32::INFINITY, f32::min);
+        let bottom = laid.nodes.iter().map(|r| r.bottom()).fold(0.0, f32::max);
+        let (over, under) = (&laid.routes[2], &laid.routes[3]);
+        assert!(over.points[1].1 < top, "{:?}", over.points);
+        assert!(under.points[1].1 > bottom, "{:?}", under.points);
+        assert!(over.label_at.1 + over.label_height <= top);
+        assert!(under.label_at.1 >= bottom);
     }
 
     fn overlaps(a: Rect, b: Rect) -> bool {

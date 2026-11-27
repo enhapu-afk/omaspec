@@ -294,12 +294,16 @@ impl Skin {
                 "backgroundcolor" => skin.background = p.paint()?,
                 "arrowcolor" => skin.arrow = p.solid()?,
                 "arrowthickness" => skin.arrow_thickness = p.number(0.1, 20.0)?,
-                "lifelinebordercolor" | "sequencelifelinebordercolor" => {
+                // PlantUML's own name colors the cross too; the short one,
+                // which it does not take, the lifelines alone.
+                "lifelinebordercolor" => skin.lifeline = p.solid()?,
+                "sequencelifelinebordercolor" => {
                     skin.lifeline = p.solid()?;
                     skin.destroy = skin.lifeline;
                 }
-                // A style for `destroy`; PlantUML has no skinparam for it.
-                "sequencedestroycolor" => skin.destroy = p.solid()?,
+                // A style for `destroy`; PlantUML has no skinparam for it,
+                // so one written so is not read.
+                "sequencedestroycolor" if p.declared.is_some() => skin.destroy = p.solid()?,
                 "sequencelifelinebackgroundcolor" => skin.activation_fill = p.paint()?,
                 "sequencegroupbordercolor" => skin.group_border = p.solid()?,
                 "sequencegroupborderthickness" => skin.group_thickness = p.number(0.1, 20.0)?,
