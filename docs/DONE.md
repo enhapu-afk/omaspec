@@ -802,6 +802,15 @@ is open and the reasoning around it.
       stereotype's words under its name follow its font, and by hand the
       hand writes every word, while words that name a face keep it. The
       gallery has an activity in the old syntax (`tea.puml`).
+- [x] A partition of the old syntax is a folder (2026-11-27), as PlantUML
+      draws it: its name bold in a tab on its top left, a line under the
+      tab and none across the box, square corners, where it had been a
+      box with its name over a line as a state's
+      (`state::Node::folder`). Lines from above pass beside the tab, as
+      they pass a package's in a structure diagram; the folder keeps its
+      tab and a little of its top beside it. A state that holds others
+      keeps its band. `legacy-partitions.puml` is PlantUML's concert in
+      folders.
 
 ### Step 5: what every diagram shares
 

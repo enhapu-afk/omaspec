@@ -304,6 +304,9 @@ pub struct Node {
     pub stereotype: Option<String>,
     /// `state Name { … }`. An empty body is still a composite.
     pub composite: bool,
+    /// A partition of the old activity syntax: a folder, its name in a
+    /// tab on its top left, as PlantUML draws it.
+    pub folder: bool,
     pub children: Container,
     /// `[[url]]` on its declaration: a click on the state follows it.
     pub link: Option<crate::text::Link>,

@@ -70,6 +70,10 @@ const NOTE_PAD: f32 = 6.0;
 const HEAD_LENGTH: f32 = 10.0;
 /// How far a composite state's fill steps toward the paper.
 const FRAME_LIGHT: f32 = 0.7;
+/// The tab of a folder, as PlantUML draws a partition of the old activity
+/// syntax: the room left of its name and right of it, above and below it,
+/// and how far its slant runs down to the box.
+const FOLDER: (f32, f32, f32, f32) = (4.0, 2.0, 3.0, 7.0);
 const HEAD_HALF: f32 = 4.0;
 
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
@@ -261,6 +265,8 @@ struct Item {
     description: Vec<Block>,
     /// The words in the title band of a nested state; 0 for a leaf.
     header_h: f32,
+    /// A folder ([`super::Node::folder`]): its title in a tab, the band.
+    folder: bool,
     /// Between the title band and what a nested state holds.
     gap: f32,
     composite: bool,
@@ -295,10 +301,30 @@ const TAB: (f32, f32, f32) = (12.0, 33.0, 26.0);
 
 impl Item {
     /// How high the title band of a nested state is, from its top border
-    /// to the line under its words.
+    /// to the line under its words; a folder's, its tab.
     fn band(&self) -> f32 {
-        band(self.header_h)
+        match self.folder {
+            true => folder_band(self.header_h),
+            false => band(self.header_h),
+        }
     }
+
+    /// How wide a folder's tab is along its top, and with its slant.
+    fn tab(&self) -> (f32, f32) {
+        folder_tab(self.title.width)
+    }
+}
+
+/// How high a folder's tab is for words `header_h` high.
+fn folder_band(header_h: f32) -> f32 {
+    header_h + FOLDER.2 * 2.0
+}
+
+/// How wide a folder's tab is for a name `width` wide: along its top, and
+/// to the end of its slant.
+fn folder_tab(width: f32) -> (f32, f32) {
+    let top = FOLDER.0 + width + FOLDER.1;
+    (top, top + FOLDER.3)
 }
 
 /// [`Item::band`] for words `header_h` high.
@@ -350,7 +376,12 @@ fn measure_node(
         } else {
             layout_container(&node.children, every, family)?
         };
-        let title = node.label.measure(title_font(skin, node)?, family)?;
+        // A folder's name is bold, as PlantUML writes a partition's.
+        let font = match node.folder {
+            true => title_font(skin, node)?.bold(),
+            false => title_font(skin, node)?,
+        };
+        let title = node.label.measure(font, family)?;
         let description = text_blocks(&node.description, desc_font(skin), family)?;
         let header_h = stack_height(&title, &description);
         let header_w = stack_width(&title, &description);
@@ -359,9 +390,20 @@ fn measure_node(
         } else {
             COMP_GAP
         };
+        // A folder keeps its tab and some of its top beside it.
+        let (width, band) = match node.folder {
+            true => (
+                (children.width + COMP_PAD * 2.0).max(folder_tab(header_w).1 + COMP_PAD),
+                folder_band(header_h),
+            ),
+            false => (
+                header_w.max(children.width) + COMP_PAD * 2.0,
+                band(header_h),
+            ),
+        };
         return Ok(Measured {
-            width: header_w.max(children.width) + COMP_PAD * 2.0,
-            height: band(header_h) + gap + children.height + COMP_PAD,
+            width,
+            height: band + gap + children.height + COMP_PAD,
             flat: flat(node.kind),
             children,
             item: Item {
@@ -373,6 +415,7 @@ fn measure_node(
                 title,
                 description,
                 header_h,
+                folder: node.folder,
                 gap,
                 composite: true,
                 link: node.link.clone(),
@@ -471,6 +514,7 @@ fn measure_node(
             title,
             description,
             header_h: 0.0,
+            folder: false,
             gap: 0.0,
             composite: false,
             link: node.link.clone(),
@@ -1167,6 +1211,30 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
         Kind::State if skin.octagon && !node.item.composite => {
             actions::octagon(canvas, rect, node.item.fill, node.item.border);
         }
+        Kind::State if node.item.folder => {
+            let (x, y, band) = (rect.x, rect.y, node.item.band());
+            let (top, slant) = node.item.tab();
+            let outline = [
+                (x, y),
+                (x + top, y),
+                (x + slant, y + band),
+                (x + rect.w, y + band),
+                (x + rect.w, y + rect.h),
+                (x, y + rect.h),
+            ];
+            canvas.polygon(
+                Layer::Frames,
+                &outline,
+                node.item.fill,
+                Some(node.item.border),
+            );
+            canvas.line(
+                Layer::Frames,
+                (x, y + band),
+                (x + slant, y + band),
+                node.item.border,
+            );
+        }
         Kind::State => {
             let radius = skin.round.min(rect.w / 2.0).min(rect.h / 2.0);
             canvas.rect(
@@ -1357,7 +1425,8 @@ fn paint_point(canvas: &mut Canvas, node: &Placed) {
 }
 
 fn paint_divider(canvas: &mut Canvas, node: &Placed) {
-    if node.item.header_h <= 0.0 {
+    // A folder's line is under its tab, a part of its outline.
+    if node.item.header_h <= 0.0 || node.item.folder {
         return;
     }
     let y = node.rect.y + node.item.band();
@@ -1531,6 +1600,13 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
             .collect()
     });
     match node.item.kind {
+        // A folder's name stands in its tab, from the left.
+        Kind::State if node.item.folder => canvas.text(
+            Layer::Front,
+            &node.item.title,
+            (node.rect.x + FOLDER.0, node.rect.y + FOLDER.2),
+            Align::Left,
+        ),
         Kind::State if node.item.composite => {
             paint_stack(
                 canvas,

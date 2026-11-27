@@ -2,8 +2,9 @@
 //! the state diagram's tree and drawn by its drawer, as PlantUML lays it
 //! out on a graph too: an action is a state, `(*)` the start where an
 //! arrow leaves it and the end where one leads to it, an `if` a choice
-//! with its test beside it, `===B1===` a bar, a partition a box around
-//! the actions first named in it, a note a note on the action before it.
+//! with its test beside it, `===B1===` a bar, a partition a folder
+//! around the actions first named in it, a note a note on the action
+//! before it.
 //!
 //! An arrow without a start leaves the last thing named. In an `if` the
 //! first arrow of each branch leaves its choice, the words in brackets
@@ -521,6 +522,7 @@ impl Reader {
                         label: partition.label.clone(),
                         fill: partition.fill.clone(),
                         composite: true,
+                        folder: true,
                         children,
                         ..node_of(
                             String::new(),
@@ -599,6 +601,7 @@ fn node_of(key: String, label: Text, kind: Kind, line: usize) -> Node {
         text_color: None,
         stereotype: None,
         composite: false,
+        folder: false,
         children: Container::default(),
         link: None,
         line,
@@ -899,6 +902,55 @@ mod tests {
         assert_eq!(d.root.crossings.len(), 1);
         assert_eq!(d.root.crossings[0].from, [0, 2]);
         assert_eq!(d.root.crossings[0].to, [1, 0]);
+        // A partition is a folder; what it holds is not.
+        assert!(d.root.nodes.iter().all(|n| n.folder));
+        assert!(d.root.nodes[0].children.nodes.iter().all(|n| !n.folder));
+    }
+
+    /// A partition is drawn as PlantUML draws it: a folder, its name bold
+    /// in a tab on its top left, a line under the tab and none across the
+    /// box; a state that holds others keeps its band.
+    #[test]
+    fn a_partition_is_a_folder() {
+        let svg = crate::render("@startuml\npartition Conductor {\n  (*) --> Bows\n}\n@enduml\n")
+            .unwrap();
+        let folder = svg
+            .split("<polygon points=\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("a folder");
+        let points: Vec<(f32, f32)> = folder
+            .split(' ')
+            .map(|p| {
+                let (x, y) = p.split_once(',').unwrap();
+                (x.parse().unwrap(), y.parse().unwrap())
+            })
+            .collect();
+        assert_eq!(points.len(), 6, "{folder}");
+        let [(x, y), (tab, top), (slant, band), (right, under), _, _] = points[..] else {
+            unreachable!()
+        };
+        assert!(top == y && band == under && band > y, "{folder}");
+        assert!(x < tab && tab < slant && slant < right, "{folder}");
+        let name = svg.find(">Conductor<").expect("the name");
+        let text = &svg[svg[..name].rfind("<text").unwrap()..name];
+        assert!(
+            text.contains(r#"font-weight="bold""#) || text.contains("700"),
+            "{text}"
+        );
+        assert!(!text.contains("text-anchor=\"middle\""), "{text}");
+        // Its outline is the one polygon of six corners; a nested state's
+        // is a box, and the polygons are the heads.
+        let six = |svg: &str| {
+            svg.split("<polygon points=\"")
+                .skip(1)
+                .filter(|p| p.split('"').next().unwrap().split(' ').count() == 6)
+                .count()
+        };
+        assert_eq!(six(&svg), 1);
+        let nested =
+            crate::render("@startuml\nstate Outer {\n  [*] --> Inner\n}\n@enduml\n").unwrap();
+        assert_eq!(six(&nested), 0, "{nested}");
     }
 
     #[test]

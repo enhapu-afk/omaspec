@@ -83,6 +83,7 @@ pub(super) fn layout_regions(
                 title: Block::empty(),
                 description: Vec::new(),
                 header_h: 0.0,
+                folder: false,
                 gap: 0.0,
                 composite: true,
                 link: None,

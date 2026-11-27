@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="339" height="699" viewBox="0 0 339 699" data-omaspec="parts">
+<g transform="translate(10,10)">
+<g>
+<g class="state-Conductor" id="state-Conductor">
+<polygon points="0,26.3 68.44,26.3 75.44,46.26 168.82,46.26 168.82,439.14 0,439.14" fill="#FBFBFB" stroke="#181818" stroke-width="0.5"/>
+<line x1="0" y1="46.26" x2="75.44" y2="46.26" fill="none" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="start-Conductor" id="start-Conductor">
+<ellipse cx="88.97" cy="65.26" rx="11" ry="11" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+<g class="state-Climbs_20_on_20_Platform" id="state-Climbs_20_on_20_Platform">
+<rect x="21.12" y="108.26" width="135.7" height="29.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="fork-_3d__3d__3d_S1_3d__3d__3d_" id="fork-_3d__3d__3d_S1_3d__3d__3d_">
+<rect x="69.82" y="170.23" width="87" height="8" rx="2" ry="2" fill="#555555"/>
+</g>
+<g class="state-Bows" id="state-Bows">
+<rect x="43.22" y="210.23" width="59.2" height="29.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="fork-_3d__3d__3d_S2_3d__3d__3d_" id="fork-_3d__3d__3d_S2_3d__3d__3d_">
+<rect x="32.82" y="272.2" width="80" height="8" rx="2" ry="2" fill="#555555"/>
+</g>
+<g class="state-WavesArmes" id="state-WavesArmes">
+<rect x="12" y="397.17" width="103.28" height="29.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="state-Audience" id="state-Audience">
+<polygon points="212.82,342.2 274.91,342.2 281.91,362.17 318.21,362.17 318.21,439.14 212.82,439.14" fill="#87CEFA" stroke="#181818" stroke-width="0.5"/>
+<line x1="212.82" y1="362.17" x2="281.91" y2="362.17" fill="none" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="state-Applauds" id="state-Applauds">
+<rect x="224.82" y="397.17" width="81.39" height="29.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="state-Orchestra" id="state-Orchestra">
+<polygon points="3.46,471.14 68.24,471.14 75.24,491.1 123.82,491.1 123.82,678.04 3.46,678.04" fill="#CCCCEE" stroke="#181818" stroke-width="0.5"/>
+<line x1="3.46" y1="491.1" x2="75.24" y2="491.1" fill="none" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="state-Introduction" id="state-Introduction">
+<rect x="15.46" y="516.1" width="96.36" height="29.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="state-Play_20_music" id="state-Play_20_music">
+<rect x="19.07" y="578.07" width="89.13" height="29.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g class="end-Orchestra" id="end-Orchestra">
+<ellipse cx="63.64" cy="653.04" rx="13" ry="13" fill="none" stroke="#222222" stroke-width="1.5"/>
+<ellipse cx="63.64" cy="653.04" rx="5.46" ry="5.46" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+</g>
+<g id="lines">
+<g class="transition-_3d__3d__3d_S1_3d__3d__3d_-Applauds" id="transition-_3d__3d__3d_S1_3d__3d__3d_-Applauds">
+<path d="M144.82,178.23 L144.82,323.17 C144.82,348.57 165.42,369.17 190.82,369.17 L218.82,369.17 C228.76,369.17 236.82,377.23 236.82,387.17 L236.82,387.17" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Applauds-_3d__3d__3d_S2_3d__3d__3d_" id="transition-Applauds-_3d__3d__3d_S2_3d__3d__3d_">
+<path d="M252.82,397.17 L252.82,397.17 C252.82,387.23 244.76,379.17 234.82,379.17 L148.82,379.17 C122.31,379.17 100.82,357.68 100.82,331.17 L100.82,290.2" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-WavesArmes-Introduction" id="transition-WavesArmes-Introduction">
+<path d="M63.64,427.14 L63.64,441.33 C63.64,446.75 68.03,451.14 73.44,451.14 L73.44,451.14 C78.86,451.14 83.24,455.52 83.24,460.94 L83.24,488.3 C83.24,493.71 78.86,498.1 73.44,498.1 L71.64,498.1 C67.22,498.1 63.64,501.69 63.64,506.1 L63.64,506.1" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Conductor-Climbs_20_on_20_Platform" id="transition-start-Conductor-Climbs_20_on_20_Platform">
+<polyline points="88.97,76.26 88.97,98.26" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Climbs_20_on_20_Platform-_3d__3d__3d_S1_3d__3d__3d_" id="transition-Climbs_20_on_20_Platform-_3d__3d__3d_S1_3d__3d__3d_">
+<polyline points="93.9,138.23 93.9,160.23" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-_3d__3d__3d_S1_3d__3d__3d_-Bows" id="transition-_3d__3d__3d_S1_3d__3d__3d_-Bows">
+<polyline points="85.82,178.23 85.82,200.23" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Bows-_3d__3d__3d_S2_3d__3d__3d_" id="transition-Bows-_3d__3d__3d_S2_3d__3d__3d_">
+<polyline points="72.82,240.2 72.82,262.2" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-_3d__3d__3d_S2_3d__3d__3d_-WavesArmes" id="transition-_3d__3d__3d_S2_3d__3d__3d_-WavesArmes">
+<polyline points="68.23,280.2 68.23,387.17" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Introduction-Play_20_music" id="transition-Introduction-Play_20_music">
+<polyline points="63.64,546.07 63.64,568.07" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Play_20_music-end-Orchestra" id="transition-Play_20_music-end-Orchestra">
+<polyline points="63.64,608.04 63.64,630.04" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-_3d__3d__3d_S1_3d__3d__3d_-Applauds">
+<polygon points="232.82,387.17 236.82,397.17 240.82,387.17 236.82,391.17" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Applauds-_3d__3d__3d_S2_3d__3d__3d_">
+<polygon points="104.82,290.2 100.82,280.2 96.82,290.2 100.82,286.2" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-WavesArmes-Introduction">
+<polygon points="59.64,506.1 63.64,516.1 67.64,506.1 63.64,510.1" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-start-Conductor-Climbs_20_on_20_Platform">
+<polygon points="84.97,98.26 88.97,108.26 92.97,98.26 88.97,102.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Climbs_20_on_20_Platform-_3d__3d__3d_S1_3d__3d__3d_">
+<polygon points="89.9,160.23 93.9,170.23 97.9,160.23 93.9,164.23" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-_3d__3d__3d_S1_3d__3d__3d_-Bows">
+<polygon points="81.82,200.23 85.82,210.23 89.82,200.23 85.82,204.23" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Bows-_3d__3d__3d_S2_3d__3d__3d_">
+<polygon points="68.82,262.2 72.82,272.2 76.82,262.2 72.82,266.2" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-_3d__3d__3d_S2_3d__3d__3d_-WavesArmes">
+<polygon points="64.23,387.17 68.23,397.17 72.23,387.17 68.23,391.17" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Introduction-Play_20_music">
+<polygon points="59.64,568.07 63.64,578.07 67.64,568.07 63.64,572.07" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g class="transition-Play_20_music-end-Orchestra">
+<polygon points="59.64,630.04 63.64,640.04 67.64,630.04 63.64,634.04" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+</g>
+<g>
+<g class="state-Conductor">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="4" y="40.43" font-size="12" fill="#000000" font-weight="bold" textLength="62.44" lengthAdjust="spacing">Conductor</tspan>
+</text>
+</g>
+<g class="state-Climbs_20_on_20_Platform">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="35.12" y="127.4" font-size="12" fill="#000000" textLength="107.7" lengthAdjust="spacing">Climbs on Platform</tspan>
+</text>
+</g>
+<g class="state-Bows">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="57.22" y="229.37" font-size="12" fill="#000000" textLength="31.2" lengthAdjust="spacing">Bows</tspan>
+</text>
+</g>
+<g class="state-WavesArmes">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="26" y="416.3" font-size="12" fill="#000000" textLength="75.28" lengthAdjust="spacing">WavesArmes</tspan>
+</text>
+</g>
+<g class="state-Audience">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="216.82" y="356.34" font-size="12" fill="#000000" font-weight="bold" textLength="56.09" lengthAdjust="spacing">Audience</tspan>
+</text>
+</g>
+<g class="state-Applauds">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="238.82" y="416.3" font-size="12" fill="#000000" textLength="53.39" lengthAdjust="spacing">Applauds</tspan>
+</text>
+</g>
+<g class="state-Orchestra">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="7.46" y="485.27" font-size="12" fill="#000000" font-weight="bold" textLength="58.79" lengthAdjust="spacing">Orchestra</tspan>
+</text>
+</g>
+<g class="state-Introduction">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="29.46" y="535.24" font-size="12" fill="#000000" textLength="68.36" lengthAdjust="spacing">Introduction</tspan>
+</text>
+</g>
+<g class="state-Play_20_music">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="33.07" y="597.21" font-size="12" fill="#000000" textLength="61.13" lengthAdjust="spacing">Play music</tspan>
+</text>
+</g>
+<g class="title" id="title">
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="74.54" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="169.13" lengthAdjust="spacing">The concert, the old way</tspan>
+</text>
+</g>
+</g>
+</g>
+</svg>

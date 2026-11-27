@@ -218,23 +218,37 @@ impl<'a> Nested for States<'a> {
         let upward = container.mirrored && container.direction == Direction::Down;
         let (top, bottom) = (item.band() + COMP_GAP, COMP_PAD);
         let (top, bottom) = if upward { (bottom, top) } else { (top, bottom) };
+        // Lines from above pass beside the name: a folder's tab on its
+        // left, or the middle of the band.
+        let (min_width, name) = match item.folder {
+            true => {
+                let slant = item.tab().1;
+                let name = graph::Name {
+                    share: 0.0,
+                    offset: 0.0,
+                    width: slant,
+                    height: item.band(),
+                };
+                (slant + COMP_PAD, name)
+            }
+            false => {
+                let name = graph::Name {
+                    share: 0.5,
+                    offset: -name / 2.0,
+                    width: name,
+                    height: item.band(),
+                };
+                (header_w + COMP_PAD * 2.0, name)
+            }
+        };
         graph::Frame {
             parent: None,
             top,
             bottom,
             left: COMP_PAD,
             right: COMP_PAD,
-            min_width: header_w + COMP_PAD * 2.0,
-            name: if upward {
-                graph::Name::default()
-            } else {
-                graph::Name {
-                    share: 0.5,
-                    offset: -name / 2.0,
-                    width: name,
-                    height: item.band(),
-                }
-            },
+            min_width,
+            name: if upward { graph::Name::default() } else { name },
         }
     }
 

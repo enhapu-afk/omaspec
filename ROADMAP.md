@@ -68,9 +68,7 @@ Done; what was drawn but different too (docs/DONE.md).
 
 ### Step 3: the activity diagram (62 of 62; the legacy syntax 13 of 13)
 
-- [ ] Drawn but different: a partition of the old syntax is a box with
-      its name over a line, as a state's; PlantUML draws a folder with its
-      name in a tab.
+Done; what was drawn but different too (docs/DONE.md).
 
 ### Step 4: the other UML diagrams
 
