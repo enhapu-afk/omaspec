@@ -1,7 +1,7 @@
 //! The layout of graph diagrams on any graph the bytes describe: boxes,
 //! lines, some of them trees, frames around some boxes, and boxes held
 //! against others. No panic, every place finite, a route for every line,
-//! and no two boxes on top of each other.
+//! every box inside its frame and no two boxes on top of each other.
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
@@ -88,6 +88,28 @@ fuzz_target!(|bytes: &[u8]| {
     } else {
         Direction::Right
     };
+    // Now and then each frame's boxes in a chain, as the states of a
+    // container follow one another: frames then share ranks.
+    let mut edges = edges;
+    if next() % 2 == 1 {
+        for f in 0..count {
+            let members: Vec<usize> = (0..n).filter(|&i| within[i] == Some(f)).collect();
+            edges.extend(members.windows(2).map(|pair| Edge {
+                from: pair[0],
+                to: pair[1],
+                label_width: 0.0,
+                label_height: 0.0,
+                hidden: false,
+                apart: false,
+                marked: false,
+                arrival: 0,
+                departure: 0,
+                label_before: None,
+                level: None,
+                tree: None,
+            }));
+        }
+    }
     let laid = framed(&nodes, &frames, &within, &edges, &holds, direction);
     assert_eq!(laid.nodes.len(), n);
     assert_eq!(laid.routes.len(), edges.len());
@@ -97,6 +119,20 @@ fuzz_target!(|bytes: &[u8]| {
     }
     for route in &laid.routes {
         assert!(route.points.iter().all(|p| p.0.is_finite() && p.1.is_finite()));
+    }
+    // Every box inside its frame.
+    for (index, f) in within.iter().enumerate() {
+        if let Some(f) = *f {
+            let (inner, outer) = (laid.nodes[index], laid.frames[f]);
+            let holds = inner.x >= outer.x - 0.5
+                && inner.y >= outer.y - 0.5
+                && inner.x + inner.w <= outer.x + outer.w + 0.5
+                && inner.y + inner.h <= outer.y + outer.h + 0.5;
+            assert!(
+                holds,
+                "{index} {inner:?} outside frame {f} {outer:?}: {within:?} {edges:?}"
+            );
+        }
     }
     // No two boxes on top of each other.
     for (i, a) in laid.nodes.iter().enumerate() {

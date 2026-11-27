@@ -44,7 +44,7 @@ pub const GRID: &str = "grid";
 /// The id of the group around an icon drawn in a line of text: it is
 /// seen as the words beside it are, against what lies under it. The
 /// picture's first icon has it, the next `icon-2`, `icon-3`, … in the
-/// order drawn, so no id repeats ([`is_icon`]).
+/// order drawn, so no icon's id repeats ([`is_icon`]).
 pub const ICON: &str = "icon";
 
 /// Whether `id` is that of an icon's group: [`ICON`], or it with a number.
@@ -2834,7 +2834,7 @@ mod tests {
     }
 
     /// Each icon in the words has an id of its own, and a mark seen as
-    /// words are takes the next: no id repeats in a picture.
+    /// words are takes the next: no icon's id repeats in a picture.
     #[test]
     fn each_icon_has_an_id_of_its_own() {
         let mut c = Canvas::new("sans-serif", false);

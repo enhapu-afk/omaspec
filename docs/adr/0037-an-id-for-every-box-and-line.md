@@ -140,6 +140,6 @@ Measured on a state machine of seven states, 16 part groups made its SVG
   they glide in (`label-yes`).
 - An icon in the words, or a capability's dots, is no element: its
   group is `icon`, the next `icon-2`, `icon-3`, … in the order drawn,
-  so no id repeats in a picture, and the check of how well it reads
+  so no icon's id repeats in a picture, and the check of how well it reads
   knows each by its id (`omaspec_uml::is_icon`). A page names an icon by
   the element it stands in.

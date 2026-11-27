@@ -308,21 +308,25 @@ pub(super) fn order_ranks(
     for (rank, row) in boxes.into_iter().enumerate() {
         rows[2 * rank] = row;
     }
+    // The frames stand between the ranks of boxes as they stand on them.
+    let keys = framing.map(|(frames, count)| {
+        let pos = nest::positions(rows, slots);
+        let even: Vec<Vec<usize>> = rows.iter().step_by(2).cloned().collect();
+        nest::held_keys(&even, &pos, frames, count)
+    });
     for rank in (1..rows.len()).step_by(2) {
         for by_preds in [true, false] {
-            match framing {
-                Some((frames, count)) => {
+            match (framing, &keys) {
+                (Some((frames, _)), Some(keys)) => {
                     let pos = nest::positions(rows, slots);
-                    let even: Vec<Vec<usize>> = rows.iter().step_by(2).cloned().collect();
-                    let keys = nest::keys(&even, &pos, frames, count);
                     let by = if by_preds {
                         nest::By::Preds
                     } else {
                         nest::By::Succs
                     };
-                    nest::sort_row(&mut rows[rank], slots, &pos, by, frames, &keys);
+                    nest::sort_row(&mut rows[rank], slots, &pos, by, frames, keys);
                 }
-                None => {
+                _ => {
                     let pos = super::positions(rows, slots.len());
                     super::sort_row(&mut rows[rank], slots, &pos, by_preds);
                 }

@@ -410,6 +410,58 @@ pub(super) fn keys(
     keys
 }
 
+/// [`keys`] that keep the order sibling frames stand in on `held`, ranks
+/// already sorted: one that stands before another there lies before it
+/// on every other rank too, though its slots lie after it on the mean (a
+/// rank it holds alone, far over, pulls its mean past the other's).
+pub(super) fn held_keys(
+    held: &[Vec<usize>],
+    pos: &[f32],
+    frames: &[Vec<usize>],
+    count: usize,
+) -> Vec<f32> {
+    let mut keys = keys(held, pos, frames, count);
+    // Each two sibling frames next to each other on a rank, in the order
+    // they stand there: by where each begins, under the frame around them.
+    let mut before: Vec<(usize, usize)> = Vec::new();
+    for row in held {
+        let mut first: Vec<(Option<usize>, usize, usize)> = Vec::new();
+        let mut seen = vec![false; count];
+        for (index, &slot) in row.iter().enumerate() {
+            let chain = &frames[slot];
+            for (depth, &f) in chain.iter().enumerate() {
+                if !std::mem::replace(&mut seen[f], true) {
+                    let around = depth.checked_sub(1).map(|up| chain[up]);
+                    first.push((around, index, f));
+                }
+            }
+        }
+        first.sort_unstable();
+        before.extend(
+            first
+                .windows(2)
+                .filter(|pair| pair[0].0 == pair[1].0)
+                .map(|pair| (pair[0].2, pair[1].2)),
+        );
+    }
+    // The later of two lies a hair past the earlier, and so on down each
+    // such row of frames; a rank sorted under other keys may hold them in
+    // a ring, which stops after as many rounds as there are frames.
+    for _ in 0..count {
+        let mut moved = false;
+        for &(earlier, later) in &before {
+            if keys[later] <= keys[earlier] {
+                keys[later] = keys[earlier].next_up();
+                moved = true;
+            }
+        }
+        if !moved {
+            break;
+        }
+    }
+    keys
+}
+
 /// What a rank is sorted by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum By {
@@ -1326,6 +1378,57 @@ mod tests {
         }
         for a in 0..3 {
             for b in a + 1..3 {
+                assert!(apart(laid.frames[a], laid.frames[b]), "{a} {b}");
+            }
+        }
+    }
+
+    /// The lines between two ranks of boxes pass the frames in the order
+    /// the boxes stand in: two frames stood one way on every rank of boxes
+    /// they share, but their means lay the other way, so the points
+    /// between the ranks stood the other way round, and frames 0 and 1
+    /// held none of their boxes (found by the review of the fuzzing's fix).
+    #[test]
+    fn lines_between_ranks_pass_frames_in_the_order_of_their_boxes() {
+        let nodes = [node(40.0, 30.0); 20];
+        let frames = [frame(None); 4];
+        let mut within = [None; 20];
+        for (index, f) in [
+            (1, 0),
+            (4, 3),
+            (8, 1),
+            (9, 0),
+            (10, 1),
+            (11, 3),
+            (12, 1),
+            (18, 0),
+        ] {
+            within[index] = Some(f);
+        }
+        let edges = [
+            (1, 4),
+            (4, 11),
+            (13, 19),
+            (1, 9),
+            (9, 18),
+            (8, 10),
+            (0, 3),
+            (3, 6),
+        ]
+        .map(|(from, to)| edge(from, to));
+        let laid = framed(&nodes, &frames, &within, &edges, &[], Direction::Down);
+        for (index, &f) in within.iter().enumerate() {
+            if let Some(f) = f {
+                assert!(
+                    inside(laid.nodes[index], laid.frames[f]),
+                    "{index} {:?} {:?}",
+                    laid.nodes[index],
+                    laid.frames[f]
+                );
+            }
+        }
+        for a in 0..4 {
+            for b in a + 1..4 {
                 assert!(apart(laid.frames[a], laid.frames[b]), "{a} {b}");
             }
         }

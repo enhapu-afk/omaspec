@@ -2488,7 +2488,18 @@ is open and the reasoning around it.
       of each other. Of two such frames the one written later now lies a
       hair after the other, on every rank (`graph::nest::keys`). Ten
       minutes of fuzzing and the corpus's 7,306 inputs found no frames in
-      two orders after it; no picture of the tests changed.
+      two orders after it; no picture of the tests changed. After the
+      review: the points of lines between two ranks of boxes were sorted
+      by each frame's mean place, which may lie past another's though
+      the frame stands before it on every rank they share (one rank it
+      holds alone, far over, pulls it): the lines passed the frames the
+      other way round, and the frames held none of their boxes. They now
+      pass them in the order the boxes stand in (`nest::held_keys`); of
+      150,000 random graphs whose frames each chain their boxes, 12 broke
+      before and none after. The layout's fuzzing now chains a frame's
+      boxes too, now and then, and holds every box inside its frame. An
+      icon's doc says what is so: no icon's id repeats (a gradient used
+      inside and outside a picture in a note is defined twice, the same).
 
 ## Next
 
