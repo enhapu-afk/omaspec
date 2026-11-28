@@ -1126,7 +1126,10 @@ PlantUML draws before it, its letter and color by its kind (`C`, `I`, `A`, `E`, 
 stereotypeCBackgroundColor` and its kin, a style (`spot { spotEntity { BackgroundColor … }
 }`) and `circledCharacterRadius` set it, `hide circle` and `skinparam style strictuml` take
 it away. In the Omarchy look the circles take the theme's green, magenta, cyan, yellow and
-red, and its background or text for the letter, whichever reads. A file of lines alone (`Usuario <|-- Cliente`) is a class diagram, as in
+red, and its background or text for the letter, whichever reads. A note on a line
+(`note on link : words`, `note right on link #pink` and a block up to `end note`) is on
+the line written last and stands by its words, under them or on the side written, as
+PlantUML draws it. A file of lines alone (`Usuario <|-- Cliente`) is a class diagram, as in
 PlantUML. `skinparam groupInheritance 2` joins the lines from two or more subclasses into
 one stem under a single triangle ([ADR 0033](../adr/0033-subclasses-as-a-tree.md)). A
 line from a class to itself with multiplicities is a wider loop, the multiplicities

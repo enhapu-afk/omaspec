@@ -217,12 +217,15 @@ impl<'a> Nested for Elements<'a> {
             return Err(Declined::at(arrow.line, "a line needs two elements"));
         }
         let blocks = link_blocks(arrow, self.skin, self.family)?;
-        let look = Look::of(
-            arrow,
-            blocks.from_card,
-            blocks.to_card,
-            arrow_stroke(self.skin, arrow)?,
-        );
+        let look = Look {
+            note: blocks.note,
+            ..Look::of(
+                arrow,
+                blocks.from_card,
+                blocks.to_card,
+                arrow_stroke(self.skin, arrow)?,
+            )
+        };
         Ok((blocks.label, look))
     }
 

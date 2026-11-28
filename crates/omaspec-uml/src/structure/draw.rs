@@ -20,6 +20,7 @@ use crate::map::{self, HeadFill, Map};
 use crate::svg::{Align, Canvas, Layer, Stroke, n};
 use crate::text::{self, Block, Family, Font, Style};
 
+mod link_note;
 mod names;
 mod open;
 mod shapes;
@@ -351,6 +352,9 @@ struct Look {
     own_color: bool,
     /// `-[hidden]-`: laid out, not painted.
     hidden: bool,
+    /// `note on link`: the note and the line's words in the room the
+    /// layout keeps for the words.
+    note: Option<link_note::Drawn>,
 }
 
 impl Look {
@@ -366,6 +370,7 @@ impl Look {
             stroke,
             own_color: arrow.color.is_some(),
             hidden: arrow.hidden,
+            note: None,
         }
     }
 }
@@ -411,9 +416,11 @@ impl Row {
 }
 
 struct Labeled {
+    /// The room of the line's words, its note's too where it has one.
     label: Block,
     from_card: Block,
     to_card: Block,
+    note: Option<link_note::Drawn>,
 }
 
 fn child_origin(rect: Rect, item: &Measured) -> (f32, f32) {
@@ -928,10 +935,19 @@ fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Decl
         Some(text) if !link.hidden => text.measure_written(skin.arrow_font, family),
         _ => Ok(Block::empty()),
     };
+    let words = block(&link.label)?;
+    let (label, note) = match &link.note {
+        Some(note) if !link.hidden => {
+            let (room, drawn) = link_note::measure(note, words, skin, family)?;
+            (room, Some(drawn))
+        }
+        _ => (words, None),
+    };
     Ok(Labeled {
-        label: block(&link.label)?,
+        label,
         from_card: block(&link.from_card)?,
         to_card: block(&link.to_card)?,
+        note,
     })
 }
 
@@ -1199,12 +1215,15 @@ fn link_crossings(
             points: linked.points,
             label: blocks.label,
             label_at: linked.label_at,
-            look: Look::of(
-                &crossing.arrow,
-                blocks.from_card,
-                blocks.to_card,
-                arrow_stroke(skin, &crossing.arrow)?,
-            ),
+            look: Look {
+                note: blocks.note,
+                ..Look::of(
+                    &crossing.arrow,
+                    blocks.from_card,
+                    blocks.to_card,
+                    arrow_stroke(skin, &crossing.arrow)?,
+                )
+            },
         };
     }
     Ok(())
@@ -2256,8 +2275,9 @@ fn paint_labels(
 ) {
     for (slot, edge) in scene.edges.iter().enumerate() {
         let words = names.edge(path, slot);
-        canvas.part(&words, |canvas| {
-            canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
+        canvas.part(&words, |canvas| match &edge.look.note {
+            Some(note) => link_note::paint(canvas, note, edge.label_at),
+            None => canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left),
         });
         // Each multiplicity a part of its own, by its end: it travels
         // with that end, not with the words in the middle.

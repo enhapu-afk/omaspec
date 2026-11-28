@@ -478,6 +478,19 @@ pub struct Link {
     /// The side of the line its label takes, where the writer chose one
     /// by hand ([`crate::hand::Label`]).
     pub label_before: Option<bool>,
+    /// `note on link`: a note by its words.
+    pub note: Option<LinkNote>,
+}
+
+/// A note on a line (`note on link`, `note right on link #pink`), as
+/// PlantUML draws one: by the line's words, on the side written, under
+/// them where none is; in their place where the line has none.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LinkNote {
+    pub side: Option<Side>,
+    pub text: Text,
+    /// `#color` after `link`, as written.
+    pub fill: Option<String>,
 }
 
 /// A line whose ends lie in different boxes of one group. The paths lead

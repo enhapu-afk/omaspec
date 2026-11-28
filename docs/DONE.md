@@ -1067,6 +1067,17 @@ is open and the reasoning around it.
       `a.C` and `b.C` had been hidden. An actor or a component under
       `allowmixing`, a description diagram and `set separator none` keep
       names that are the whole diagram's.
+- [x] A note on a line in the structure diagrams (2026-11-28): `note on
+      link : words`, `note left|right|top|bottom on link`, a color of its
+      own (`#red`) and a block up to `end note`, on the line written
+      last, between packages too, as PlantUML reads it; a second one
+      takes the first one's place. The note and the line's words are one
+      block, the room the layout keeps for the words: the note under
+      them where no side is written or `bottom`, over them for `top`,
+      beside them for `left` and `right`, in their place where the line
+      has none. Its words are tied to their line, and read on a fill of
+      the writer's. A hidden line takes none, and a note needs a line
+      before it. The guide: the class diagram 65 of 84, 578 of 897.
 
 ### Step 5: what every diagram shares
 

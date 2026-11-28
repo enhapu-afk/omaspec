@@ -369,6 +369,7 @@ impl Reader {
             level: None,
             line,
             label_before: None,
+            note: None,
         });
         Ok(())
     }

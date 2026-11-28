@@ -998,6 +998,7 @@ impl Parser {
             level: None,
             line: rel.line,
             label_before: None,
+            note: None,
         };
         let from = &rel.from;
         let to = &rel.to;

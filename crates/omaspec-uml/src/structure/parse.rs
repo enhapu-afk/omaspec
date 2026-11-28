@@ -473,6 +473,8 @@ struct RawRel {
 struct Pending {
     from: RawName,
     to: RawName,
+    /// `note on link` after it.
+    note: Option<super::LinkNote>,
     from_card: Option<Text>,
     to_card: Option<Text>,
     from_head: Head,
@@ -881,6 +883,7 @@ impl Parser {
                         home: home.clone(),
                         strict: [false, false],
                         found: [None, None],
+                        note: None,
                     });
                 }
                 return Ok(at + 1);
@@ -1057,6 +1060,7 @@ impl Parser {
                 home: home.clone(),
                 strict: [true, false],
                 found: [None, None],
+                note: None,
             });
         }
         let key = self.node(&path).key.clone();
@@ -1370,6 +1374,7 @@ impl Parser {
             home: self.here(),
             strict,
             found,
+            note: None,
         });
         Ok(())
     }
@@ -1645,6 +1650,7 @@ impl Parser {
             level: None,
             line: item.line,
             label_before: None,
+            note: item.note.clone(),
         };
         if from == to {
             let index = *from.last().expect("a path");
@@ -1856,6 +1862,83 @@ impl Parser {
         Ok(())
     }
 
+    /// `note on link : words`, `note right on link #pink` and its words up
+    /// to `end note`: a note on the line written last, as PlantUML reads
+    /// it; `None` when the note is another.
+    fn link_note(
+        &mut self,
+        lines: &[Line],
+        at: usize,
+        rest: &str,
+    ) -> Result<Option<usize>, Declined> {
+        let Line { no, text, .. } = lines[at];
+        let mut words = rest.split_whitespace();
+        let first = words.next().unwrap_or_default().to_ascii_lowercase();
+        let (side, after) = match first.as_str() {
+            "left" => (Some(Side::Left), keyword(rest, "left")),
+            "right" => (Some(Side::Right), keyword(rest, "right")),
+            "top" => (Some(Side::Top), keyword(rest, "top")),
+            "bottom" => (Some(Side::Bottom), keyword(rest, "bottom")),
+            _ => (None, Some(rest)),
+        };
+        // `link`, or `link:` with its words right after it.
+        let Some(after) = after
+            .and_then(|after| keyword(after, "on"))
+            .and_then(|after| {
+                keyword(after, "link").or_else(|| {
+                    let (word, rest) = after.split_at_checked(4)?;
+                    (word.eq_ignore_ascii_case("link") && rest.starts_with(':')).then_some(rest)
+                })
+            })
+        else {
+            return Ok(None);
+        };
+        let mut after = after.trim_start();
+        let mut fill = None;
+        if after.starts_with('#') {
+            let end = after
+                .find(|c: char| c.is_whitespace() || c == ':')
+                .unwrap_or(after.len());
+            fill = Some(after[..end].to_owned());
+            after = after[end..].trim_start();
+        }
+        let (note, next) = if let Some(words) = after.strip_prefix(':') {
+            let words = words.trim();
+            let col = lines[at].at + offset_in(text, words);
+            let note = Text {
+                value: words.to_owned(),
+                line: no,
+                col: Some(col),
+            };
+            (note, at + 1)
+        } else if after.is_empty() {
+            let (body, next) = block_text(lines, at, "note", end_note)?;
+            (body, next)
+        } else {
+            return Err(Declined::at(
+                no,
+                format!("`note on link {}` is not supported yet", snippet(after)),
+            ));
+        };
+        if note.value.trim().is_empty() {
+            return Err(Declined::at(no, "a note needs text"));
+        }
+        let Some(line) = self.pending.last_mut() else {
+            return Err(Declined::at(no, "`note on link` needs a line before it"));
+        };
+        if line.hidden {
+            return Err(Declined::at(no, "a hidden line takes no note"));
+        }
+        // A second note on it takes the first one's place, as in PlantUML.
+        line.note = Some(super::LinkNote {
+            side,
+            text: note,
+            fill,
+        });
+        self.recent = Recent::Note;
+        Ok(Some(next))
+    }
+
     fn note(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
         let Line {
             no,
@@ -1869,8 +1952,8 @@ impl Parser {
         let rest = keyword(text, "rnote")
             .or_else(|| keyword(text, "note"))
             .unwrap_or(text);
-        if rest.to_ascii_lowercase().contains("on link") {
-            return Err(Declined::at(no, "a note on a line is not supported yet"));
+        if let Some(next) = self.link_note(lines, at, rest)? {
+            return Ok(next);
         }
         if keyword(rest, "over").is_some() {
             return Err(Declined::at(
