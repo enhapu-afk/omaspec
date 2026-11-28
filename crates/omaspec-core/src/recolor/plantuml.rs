@@ -423,6 +423,7 @@ fn element_line(shape: Shape, name: &str) -> Option<String> {
         Shape::Note | Shape::Point => return None,
         Shape::Class | Shape::Abstract => "class",
         Shape::Interface | Shape::Lollipop => "interface",
+        Shape::Diamond => "diamond",
         Shape::Enum => "enum",
         Shape::Entity => "entity",
         Shape::Annotation => "annotation",

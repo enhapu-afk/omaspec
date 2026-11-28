@@ -133,7 +133,8 @@ fn kind_of(shape: Shape) -> &'static str {
         | Shape::Enum
         | Shape::Entity
         | Shape::Annotation
-        | Shape::Point => "class",
+        | Shape::Point
+        | Shape::Diamond => "class",
         Shape::Interface | Shape::Lollipop => "interface",
         Shape::Component => "component",
         Shape::UseCase => "usecase",
@@ -223,7 +224,8 @@ impl Skin {
             | Shape::Enum
             | Shape::Entity
             | Shape::Annotation
-            | Shape::Point => &self.class_box,
+            | Shape::Point
+            | Shape::Diamond => &self.class_box,
             Shape::Interface | Shape::Lollipop => &self.interface_box,
             Shape::Component => &self.component,
             Shape::UseCase => &self.usecase,

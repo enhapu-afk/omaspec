@@ -67,6 +67,8 @@ const ACTOR_W: f32 = 40.0;
 /// How wide a lollipop's circle is, and the gap under it to its name.
 const LOLLIPOP: f32 = 16.0;
 const LOLLIPOP_GAP: f32 = 3.0;
+/// The side of an association's diamond (`<> D`), as PlantUML draws it.
+const DIAMOND: f32 = 24.0;
 
 pub fn draw(diagram: &super::Diagram) -> Result<String, Declined> {
     drawn(diagram, false).map(|(svg, _)| svg)
@@ -492,7 +494,7 @@ fn measure_element(
     }
     // An actor's and a use case's words belong to their figure.
     let left = skin.left && !matches!(el.shape, Shape::Actor | Shape::UseCase | Shape::Lollipop);
-    let (mut rows, mut body) = if el.shape == Shape::Point {
+    let (mut rows, mut body) = if matches!(el.shape, Shape::Point | Shape::Diamond) {
         (Vec::new(), 0)
     } else {
         rows_of(el, &look, family, left)?
@@ -575,6 +577,7 @@ fn measure_element(
             Shape::Lollipop => (LOLLIPOP, LOLLIPOP, 0.0, 0.0),
             // A point on a line, no box: the lines meet there.
             Shape::Point => (0.0, 0.0, 0.0, 0.0),
+            Shape::Diamond => (DIAMOND, DIAMOND, 0.0, 0.0),
             Shape::UseCase => {
                 let mut width = (all_w + PAD_X * 3.0).max(min_w.max(84.0));
                 let height = (all_h + PAD_Y * 3.0).max(40.0);
@@ -1329,6 +1332,7 @@ fn is_flat(shape: Shape) -> bool {
             | Shape::Storage
             | Shape::Hexagon
             | Shape::Lollipop
+            | Shape::Diamond
             | Shape::Point
     )
 }
@@ -1447,6 +1451,9 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
         Shape::Hexagon => {
             canvas.polygon(Layer::Frames, &hexagon(rect), node.item.fill, stroke);
         }
+        Shape::Diamond => {
+            canvas.polygon(Layer::Frames, &diamond(rect), node.item.fill, stroke);
+        }
         Shape::Package | Shape::Folder => {
             paint_tab(
                 canvas,
@@ -1530,6 +1537,7 @@ pub(crate) fn paint_outline(
             Some(stroke),
         ),
         Shape::Hexagon => canvas.polygon(Layer::Frames, &hexagon(rect), fill, Some(stroke)),
+        Shape::Diamond => canvas.polygon(Layer::Frames, &diamond(rect), fill, Some(stroke)),
         Shape::Package | Shape::Folder => {
             paint_tab(canvas, rect, 0.0, rect.w / 2.0, round, fill, stroke);
         }
@@ -1609,6 +1617,17 @@ fn paint_actor(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
 }
 
 /// A lollipop's circle at the top of `rect`, its name under it.
+/// The corners of a diamond in `rect`, from its top round.
+fn diamond(rect: Rect) -> [(f32, f32); 4] {
+    let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
+    [
+        (cx, rect.y),
+        (rect.x + rect.w, cy),
+        (cx, rect.y + rect.h),
+        (rect.x, cy),
+    ]
+}
+
 fn paint_lollipop(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
     let r = rect.w.min(rect.h) / 2.0;
     canvas.ellipse(

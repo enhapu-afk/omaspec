@@ -421,9 +421,13 @@ pub enum Shape {
     /// A note with no element of its own (`note "…" as N`).
     Note,
     /// An interface as a component diagram draws it (`() "Name"`, or an
-    /// `interface` without members beside components): a small circle,
-    /// its name under it.
+    /// `interface` without members beside components), or a class
+    /// diagram's `circle`: a small circle, its name under it.
     Lollipop,
+    /// `diamond D` or `<> D`: the point the lines of one association of
+    /// several classes meet, a small diamond without its name, as
+    /// PlantUML draws it.
+    Diamond,
     /// The middle of a line an association class meets (`(A, B) .. C`),
     /// as PlantUML makes one: laid out as a box of no size, drawn as
     /// nothing. The line between the two runs through it, and the class's

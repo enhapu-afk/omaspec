@@ -126,6 +126,7 @@ fn kind_word(shape: Shape) -> &'static str {
         Shape::Class => "class",
         Shape::Abstract => "abstract",
         Shape::Interface | Shape::Lollipop => "interface",
+        Shape::Diamond => "diamond",
         Shape::Enum => "enum",
         Shape::Entity => "entity",
         Shape::Annotation => "annotation",

@@ -1050,7 +1050,9 @@ as Mermaid has it. What a drawer leaves (a horizontal XY chart) is drawn by
 process. An interface beside components is a circle with its name under it, as PlantUML
 draws it there: `[Renderer] ..> () "Clipboard"`, `() HTTP`, an `interface` without
 members, or a name only lines name (`[A] --> B`); in a class diagram, and under
-`allowmixing`, it keeps its box. A git graph shows the ids its writer gave its commits; an id Mermaid would make
+`allowmixing`, an `interface` keeps its box, while `circle C` and `() C` are a circle
+there too. `diamond D` and `<> D` are the diamond the lines of an association of several
+classes meet at. A git graph shows the ids its writer gave its commits; an id Mermaid would make
 up is left out, since it says nothing and differs with every drawing. A YAML diagram is drawn as the
 JSON it stands for; anchors, aliases and tags, and a text over several lines outside a `|`
 or `>` block, are not read yet and name their line. A JSON or YAML diagram is drawn as

@@ -76,14 +76,14 @@ Done; what was drawn but different too (docs/DONE.md).
       and `hollow`, business use cases and actors (`(Use)/`, `:Actor:/`), a
       description over several lines in quotes, a name declared as a
       rectangle and then used as a use case, `note right of (Use)`.
-- [ ] Class (72 of 84): `header:` in a box's style, qualified ends
-      (`Shop [customerId: long] ---> …`), `circle` and `diamond` (`<>`),
-      names with `$`, `-class`, `page 2x2`, a line between a package and
+- [ ] Class (73 of 84): `header:` in a box's style, qualified ends
+      (`Shop [customerId: long] ---> …`), `stereotype` as a kind of class
+      (its circle's `S`), names with `$`, `-class`, `page 2x2`, a line between a package and
       one inside it (`foo1.foo2 +-- foo1.foo2.foo3`). Drawn but different: an
       association class outside the package of its pair stands a rank
       below its point, not beside it (a line within a rank across
       packages), and an interface's name is italic.
-- [ ] Object (4 of 13): `map`, `diamond`.
+- [ ] Object (5 of 13): `map`.
 - [ ] Component and deployment (22 of 35, 9 of 50): ports (`port`,
       `portin`, `portout`), long descriptions in brackets (`comp1 [ … ]`), a
       body for every element (`queue { … }`), the elements `action`,
@@ -144,7 +144,7 @@ Done; what was drawn but different too (docs/DONE.md).
       `control` and `label`.
 - [ ] Mind map and WBS (21 of 25, 12 of 17): `<code>`, `Padding`, a
       footer, lines between WBS nodes, `depth(n)`.
-- [ ] Archimate (6 of 11), maths (2 of 5), information engineering (2 of 4),
+- [ ] Archimate (7 of 11), maths (2 of 5), information engineering (2 of 4),
       `@startcreole`, the common commands (48 of 60).
 
 ## Architecture

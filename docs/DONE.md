@@ -1174,6 +1174,13 @@ is open and the reasoning around it.
       beside an arrowhead (`x-->`). A letter right after a name is the
       name's (`Dino--> B`), as PlantUML reads it, where it had been taken
       for a diamond. The guide: the class diagram 72 of 84, 588 of 897.
+- [x] Circles and diamonds in a class or object diagram (2026-11-28), as
+      PlantUML draws them: `circle C` and `() C` a small circle with its
+      name, `diamond D` and `<> D` a small diamond without it, where the
+      lines of an association of several classes meet (`<> diamond`,
+      `diamond - "from 0..*" Station`). Still declined: `stereotype` as a
+      kind of class. The guide: the class diagram 73 of 84, the object
+      diagram 5 of 13, 591 of 897.
 
 ### Step 5: what every diagram shares
 

@@ -2413,8 +2413,6 @@ fn rejected(text: &str) -> Option<&'static str> {
         "port",
         "portin",
         "portout",
-        "circle",
-        "diamond",
         "boundary",
         "control",
         "collections",
@@ -2467,6 +2465,9 @@ fn leading_shape(text: &str) -> Option<(Shape, Open, &str)> {
         ("card", Shape::Card, Open::Group),
         ("file", Shape::File, Open::Group),
         ("()", Shape::Lollipop, Open::None),
+        ("circle", Shape::Lollipop, Open::None),
+        ("diamond", Shape::Diamond, Open::None),
+        ("<>", Shape::Diamond, Open::None),
     ];
     for &(word, shape, open) in PHRASES {
         if let Some(rest) = phrase(text, word) {
@@ -2567,19 +2568,9 @@ fn lollipops(root: &mut Group) {
             circles(&mut node.children);
         }
     }
+    // In a class diagram `()` and `circle` are a circle all the same.
     if described(root) {
         circles(root);
-    } else {
-        // Without components, an interface is a class diagram's.
-        fn boxes(group: &mut Group) {
-            for node in &mut group.nodes {
-                if node.shape == Shape::Lollipop {
-                    node.shape = Shape::Interface;
-                }
-                boxes(&mut node.children);
-            }
-        }
-        boxes(root);
     }
 }
 
@@ -2592,7 +2583,9 @@ fn open_of(shape: Shape) -> Open {
         | Shape::Entity
         | Shape::Annotation
         | Shape::Object => Open::Members,
-        Shape::UseCase | Shape::Actor | Shape::Note | Shape::Lollipop => Open::None,
+        Shape::UseCase | Shape::Actor | Shape::Note | Shape::Lollipop | Shape::Diamond => {
+            Open::None
+        }
         _ => Open::Group,
     }
 }
@@ -2601,6 +2594,7 @@ fn shape_word(shape: Shape) -> &'static str {
     match shape {
         Shape::Class | Shape::Abstract => "class",
         Shape::Interface | Shape::Lollipop => "interface",
+        Shape::Diamond => "diamond",
         Shape::Enum => "enum",
         Shape::Entity => "entity",
         Shape::Annotation => "annotation",
@@ -5450,6 +5444,24 @@ mod tests {
         // with its cross.
         let svg = crate::render("@startuml\nclass A\nA #-- B\nA +-- C\n@enduml\n").unwrap();
         assert!(svg.matches("fill=\"#FFFFFF\"").count() >= 2, "{svg}");
+    }
+
+    /// `circle` and `()` are a circle in a class diagram too, `diamond`
+    /// and `<>` the diamond the lines of an association of several meet.
+    #[test]
+    fn circles_and_diamonds_in_a_class_diagram() {
+        let d = diagram(
+            "@startuml\nclass A\ncircle C1\n() C2\ndiamond D1\n<> D2\nA -- C1\nA -- D1\nD2 - \"to\" A\n@enduml\n",
+        );
+        let shape = |key: &str| d.root.nodes.iter().find(|n| n.key == key).unwrap().shape;
+        assert_eq!(shape("C1"), Shape::Lollipop);
+        assert_eq!(shape("C2"), Shape::Lollipop);
+        assert_eq!(shape("D1"), Shape::Diamond);
+        assert_eq!(shape("D2"), Shape::Diamond);
+        assert_eq!(d.root.edges.len(), 3);
+        // The diamond has no name drawn, as PlantUML draws it.
+        let svg = crate::render("@startuml\nclass A\ndiamond Hub\nA -- Hub\n@enduml\n").unwrap();
+        assert!(!svg.contains(">Hub<"), "{svg}");
     }
 
     #[test]
