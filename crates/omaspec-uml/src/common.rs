@@ -1293,6 +1293,12 @@ mod tests {
             svg.contains(">header</tspan>") && svg.contains(">title</tspan>"),
             "{svg}"
         );
+        // A description diagram's `title : x` is its title, as a sequence's.
+        let svg = crate::render("@startuml\ntitle : Hi\nactor U\nU --> (x)\n@enduml\n").unwrap();
+        assert!(
+            svg.contains(">Hi</tspan>") && !svg.contains(">title</tspan>"),
+            "{svg}"
+        );
         let svg = crate::render("@startuml\ncaption: Cap\nclass A\n@enduml\n").unwrap();
         assert!(
             svg.contains(">Cap</tspan>") && !svg.contains(">caption</tspan>"),

@@ -926,6 +926,29 @@ is open and the reasoning around it.
       does without: it lays the diagram out itself, unconnected boxes in a
       row where Smetana packs them. The guide: the class diagram 61 of 84,
       573 of 897 in all.
+- [x] What the review of the parted names and of the notes found
+      (2026-11-28). Only a class or an object diagram parts its names, as
+      PlantUML does: one with a component, a use case, an actor, a node or
+      their kin (but under `allowmixing`) keeps `com.acme` one package and
+      `a.b` one box, and takes `title : x` as its title. A declaration of
+      `C`, a line's end written before any `C` stood, and a parent
+      (`extends Socket`) are no class made from `a.b.C`; a line's short
+      name is the one class of that name, none where two have it. `.C` is
+      at the top, and a whole name whose first package stands at the top
+      is found from there. A class declared again by its whole name keeps
+      its short one, and a generic its `<T>`. `!pragma
+      useIntermediatePackages false` makes one package of a prefix only
+      where it would hold nothing but one package. A note and `hide` find
+      a class by its whole name through the packages declared; `hide` of
+      a whole name's last part passes by. A note on a member is found by
+      its note's line after `hide` and `remove`, which had crashed the
+      reader. A class named `Set` is no `set` line; under `set separator
+      ::` `X::Y` is a whole name. `together` across packages holds
+      nothing and draws; `class a` beside a package `a` made for `a.B` is
+      refused, as in PlantUML; a note after an association's pair says it
+      is not drawn yet. Still different: a namespace left empty by its
+      lines is drawn, and two lines alike between the same two boxes are
+      one.
 
 ### Step 5: what every diagram shares
 

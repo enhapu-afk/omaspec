@@ -280,9 +280,22 @@ fn plantuml(
             body = brace_balance(l);
             continue;
         }
-        if let Some(c) = re!(r"(?i)^title(?::\s*|\s+)(.+)$").captures(l) {
-            b.add_at(row, "title", label(&c[1]), 0);
-            continue;
+        // A title as the type reads it: `title: x` is a state in a state
+        // diagram, and `title : x` a class in a class diagram.
+        if let Some(c) = re!(r"(?i)^title(:)?\s*(.+)$").captures(l)
+            && (c.get(1).is_some() || l.as_bytes().get(5).is_some_and(u8::is_ascii_whitespace))
+        {
+            let words = c[2].trim();
+            let spaced = c.get(1).is_none() && words.starts_with(':');
+            let shown = match kind {
+                Kind::State if c.get(1).is_some() || spaced => None,
+                Kind::Structure if spaced => None,
+                _ => Some(words.trim_start_matches(':').trim_start()),
+            };
+            if let Some(words) = shown.filter(|w| !w.is_empty()) {
+                b.add_at(row, "title", label(words), 0);
+                continue;
+            }
         }
         if mind {
             if let Some(c) = re!(r"^([*+-]+)(?:\[[^\]]*\])?[_<>]*\s+(.+)$").captures(l) {

@@ -10,7 +10,7 @@
 //! circle` takes that word away, and `hide empty members` changes
 //! nothing.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use super::{Element, Group, Member, Shape, Slot};
 use crate::Declined;
@@ -294,23 +294,47 @@ pub(super) fn take_tags(text: &str) -> (String, Vec<String>) {
 /// Lays `directives` on the boxes of `root`; `tags` are each box's
 /// `$tag`s, by its path. A name that is no box and no kind's word is
 /// declined on its line.
+/// `separator` parts a class's whole name into its packages (`a.b.C`),
+/// which a directive may name it by.
 pub(super) fn apply(
     root: &mut Group,
     directives: &[Directive],
     tags: &[(Vec<usize>, String)],
+    separator: Option<&str>,
 ) -> Result<(), Declined> {
     if directives.is_empty() {
         return Ok(());
     }
     let mut boxes = Vec::new();
     walk(root, &mut Vec::new(), &mut boxes);
-    let directives = resolved(root, &boxes, directives)?;
+    // Each box's whole name, through the packages it stands in.
+    let whole: Vec<Option<String>> = boxes
+        .iter()
+        .map(|path| {
+            let sep = separator?;
+            (path.len() > 1).then(|| {
+                (1..=path.len())
+                    .map(|depth| node(root, &path[..depth]).label.value.clone())
+                    .collect::<Vec<_>>()
+                    .join(sep)
+            })
+        })
+        .collect();
+    let directives = resolved(root, &boxes, &whole, separator, directives)?;
     let mut linked = HashSet::new();
     lines_of(root, &mut Vec::new(), &mut linked);
+    let whole: HashMap<Vec<usize>, String> = boxes
+        .iter()
+        .cloned()
+        .zip(whole)
+        .filter_map(|(path, whole)| Some((path, whole?)))
+        .collect();
     let world = World {
         linked: &linked,
         tags,
         directives: &directives,
+        whole: &whole,
+        separator,
     };
     let mut gone = HashSet::new();
     let mut unseen = HashSet::new();
@@ -357,13 +381,15 @@ pub(super) fn apply(
 fn resolved(
     root: &Group,
     boxes: &[Vec<usize>],
+    whole: &[Option<String>],
+    separator: Option<&str>,
     directives: &[Directive],
 ) -> Result<Vec<Directive>, Declined> {
     let named = |name: &str| {
-        boxes.iter().any(|path| {
-            let el = node(root, path);
-            el.key == name || el.label.value == name
-        })
+        boxes
+            .iter()
+            .zip(whole)
+            .any(|(path, whole)| called(node(root, path), whole.as_deref(), separator, name))
     };
     directives
         .iter()
@@ -375,8 +401,17 @@ fn resolved(
                 | What::Kept { target, .. } => target,
                 What::Nothing => return Ok(directive),
             };
+            // The last part of a whole name (`Socket` of `net.Socket`)
+            // names no box, and PlantUML passes it by.
+            let last_part = |name: &str| {
+                boxes.iter().any(|path| {
+                    let el = node(root, path);
+                    el.label.value == name && el.key != name
+                })
+            };
             if let Target::Name(name) = target
                 && !named(name)
+                && !last_part(name)
             {
                 *target = Target::Kind(kind_of(name).ok_or_else(|| {
                     Declined::at(directive.line, format!("no box is called `{name}`"))
@@ -387,11 +422,25 @@ fn resolved(
         .collect()
 }
 
+/// Whether a box is called `name`: by its key, its whole name through
+/// the packages it stands in (`a.b.C`), or its label, but where that is
+/// only the last part of the whole name it was written by (a class made
+/// from `net.Socket` is not `Socket`), as PlantUML names them.
+fn called(el: &Element, whole: Option<&str>, separator: Option<&str>, name: &str) -> bool {
+    let made = separator.is_some_and(|sep| {
+        el.key != el.label.value && el.key.ends_with(&format!("{sep}{}", el.label.value))
+    });
+    el.key == name || whole == Some(name) || (el.label.value == name && !made)
+}
+
 /// What the directives are read against.
 struct World<'a> {
     linked: &'a HashSet<Vec<usize>>,
     tags: &'a [(Vec<usize>, String)],
     directives: &'a [Directive],
+    /// Each box's whole name through its packages ([`called`]).
+    whole: &'a HashMap<Vec<usize>, String>,
+    separator: Option<&'a str>,
 }
 
 fn kept(what: &What) -> Option<(bool, &Target)> {
@@ -414,7 +463,12 @@ impl World<'_> {
             Target::All => true,
             Target::Kind(shapes) => shapes.contains(&el.shape),
             Target::Stereotype(name) => el.stereotypes.iter().any(|s| s.value == *name),
-            Target::Name(name) => el.key == *name || el.label.value == *name,
+            Target::Name(name) => called(
+                el,
+                self.whole.get(path).map(String::as_str),
+                self.separator,
+                name,
+            ),
             Target::Tag(tag) => self
                 .tags
                 .iter()

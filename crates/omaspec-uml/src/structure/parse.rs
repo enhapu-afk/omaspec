@@ -259,6 +259,12 @@ fn inner_is_arrow(inner: &str) -> bool {
 /// Parses a structure diagram from the lines [`crate::source::body`] gives.
 pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
     let mut parser = Parser::default();
+    // A description diagram's (components, use cases, deployment) names
+    // stay whole, and its `title : x` is its title, as PlantUML reads it.
+    if described(&crate::common::deciding(lines)) {
+        parser.classes = false;
+        parser.frame.colons = crate::common::Colons::Both;
+    }
     let mut at = 0;
     while at < lines.len() {
         at = match parser.frame.line(lines, at)? {
@@ -270,6 +276,73 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
 }
 
 const MAX_DEPTH: usize = 100;
+
+/// Whether `lines` hold what only PlantUML's description diagrams have: a
+/// component (`component`, `[Name]`), a use case, an actor, a node and its
+/// kin. PlantUML reads such a diagram as no class diagram, but under
+/// `allowmixing`, which lets a class diagram hold them.
+fn described(lines: &[Line]) -> bool {
+    let mixing = lines.iter().any(|line| {
+        squeezed_eq(line.text, "allowmixing") || squeezed_eq(line.text, "allow_mixing")
+    });
+    if mixing {
+        return false;
+    }
+    const WORDS: [&str; 24] = [
+        "component",
+        "usecase",
+        "actor",
+        "node",
+        "cloud",
+        "frame",
+        "folder",
+        "storage",
+        "artifact",
+        "card",
+        "file",
+        "stack",
+        "hexagon",
+        "agent",
+        "queue",
+        "database",
+        "boundary",
+        "control",
+        "person",
+        "collections",
+        "port",
+        "portin",
+        "portout",
+        "rectangle",
+    ];
+    lines.iter().any(|line| {
+        let text = line.text.trim_start();
+        let word: String = text
+            .chars()
+            .take_while(|c| c.is_ascii_alphabetic())
+            .collect::<String>()
+            .to_ascii_lowercase();
+        let after = &text[word.len()..];
+        let keyword = WORDS.contains(&word.as_str())
+            && (after.is_empty()
+                || after.starts_with(char::is_whitespace)
+                || after.starts_with('/'));
+        let token = text.split_whitespace().any(|token| {
+            let component = token.len() > 2
+                && token.starts_with('[')
+                && !token.starts_with("[[")
+                && token.ends_with(']')
+                && token != "[*]";
+            let use_case = token.len() > 2
+                && token.starts_with('(')
+                && token.ends_with(')')
+                && !token.starts_with("(*")
+                && !token.contains(',');
+            let actor = token.len() > 2 && token.starts_with(':') && token.ends_with(':');
+            component || use_case || actor
+        });
+        keyword || token
+    })
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Open {
@@ -344,6 +417,11 @@ struct Pending {
     label: Option<String>,
     line: usize,
     home: Vec<usize>,
+    /// Whether each end names its box by its key alone: one a line names
+    /// before any box of that name stood (PlantUML makes it then), or a
+    /// declaration's parent (`extends Socket`), is not a class made from
+    /// `net.Socket`.
+    strict: [bool; 2],
 }
 
 struct RawNote {
@@ -355,12 +433,88 @@ struct RawNote {
     line_color: Option<String>,
 }
 
+/// Under `!pragma useIntermediatePackages false`: each package made for a
+/// name's parts that holds nothing but one package is that package, their
+/// names joined (`a.b`), as PlantUML makes them; the lines that run
+/// through it keep their ends.
+fn flatten(root: &mut Group, sep: &str) {
+    // The first such package, by its path.
+    fn chain(group: &Group, path: &mut Vec<usize>) -> Option<Vec<usize>> {
+        for (index, node) in group.nodes.iter().enumerate() {
+            path.push(index);
+            let inner = &node.children;
+            let only = inner.nodes.len() == 1
+                && inner.nodes[0].composite
+                && inner.nodes[0].shape == Shape::Package
+                && inner.edges.is_empty()
+                && inner.crossings.is_empty()
+                && inner.notes.is_empty();
+            if !node.explicit && node.composite && node.shape == Shape::Package && only {
+                return Some(path.clone());
+            }
+            if let Some(found) = chain(&node.children, path) {
+                return Some(found);
+            }
+            path.pop();
+        }
+        None
+    }
+    // The ends of the lines kept above `at` that run through it.
+    fn mend(group: &mut Group, above: usize, at: &[usize]) {
+        for crossing in &mut group.crossings {
+            for end in [&mut crossing.from, &mut crossing.to] {
+                let through = at.len() - above;
+                if end.len() > through && end[..through] == at[above..] {
+                    end.remove(through);
+                }
+            }
+        }
+    }
+    while let Some(at) = chain(root, &mut Vec::new()) {
+        // Every group from the top down to the one holding the package.
+        let mut group = &mut *root;
+        for depth in 0..at.len() - 1 {
+            mend(group, depth, &at);
+            group = &mut group.nodes[at[depth]].children;
+        }
+        mend(group, at.len() - 1, &at);
+        let index = at[at.len() - 1];
+        let outer = &mut group.nodes[index];
+        let mut inner = outer.children.nodes.pop().expect("one package");
+        inner.label.value = format!("{}{sep}{}", outer.label.value, inner.label.value);
+        group.nodes[index] = inner;
+    }
+}
+
+/// How a name finds its box ([`Parser::find_by`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Lookup {
+    /// By its key alone.
+    Key,
+    /// As a declaration finds it.
+    Declared,
+    /// As a line finds it.
+    Line,
+}
+
+/// The label of a box made in packages from a whole name: its last part,
+/// with what was written after the name (`<T>`), or the label written of
+/// its own.
+fn short_label(label: &str, key: &str, last: &str) -> String {
+    match label.strip_prefix(key) {
+        Some(rest) => format!("{last}{rest}"),
+        None => label.to_owned(),
+    }
+}
+
 /// What a parser made last ([`Parser::recent`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Recent {
     Nothing,
     Element(String),
     Note,
+    /// An association's point (`(A, B) .. C`).
+    Point,
 }
 
 struct Parser {
@@ -378,12 +532,16 @@ struct Parser {
     named: HashSet<String>,
     pending: Vec<Pending>,
     raw_notes: Vec<RawNote>,
-    /// The notes on members, resolved once `hide` has taken members out:
-    /// where each note is, and its member's name or quoted words.
-    on_members: Vec<(Vec<usize>, usize, bool, String)>,
+    /// The notes on members, resolved once `hide` has taken members and
+    /// boxes out: by the line of each note, its member's name or quoted
+    /// words.
+    on_members: Vec<(usize, bool, String)>,
     /// What parts a class's name into the packages it stands in (`a.b.C`):
     /// `.`, or `set separator ::`; none after `set separator none`.
     separator: Option<String>,
+    /// A class (or object) diagram, whose names part so; a description
+    /// diagram's do not ([`described`]).
+    classes: bool,
     notes_made: usize,
     /// The last `left to right direction` or `top to bottom direction`,
     /// which holds for the whole diagram, inside packages too, as in
@@ -419,6 +577,7 @@ impl Default for Parser {
             raw_notes: Vec::new(),
             on_members: Vec::new(),
             separator: Some(".".to_owned()),
+            classes: true,
             notes_made: 0,
             direction: None,
             together: Vec::new(),
@@ -461,8 +620,8 @@ impl Parser {
         for (item, pair) in pending.into_iter().zip(pairs) {
             match pair {
                 [false, false] => {
-                    let from = self.ensure(&item.from, &item.home, item.line)?;
-                    let to = self.ensure(&item.to, &item.home, item.line)?;
+                    let from = self.ensure(&item.from, &item.home, item.line, item.strict[0])?;
+                    let to = self.ensure(&item.to, &item.home, item.line, item.strict[1])?;
                     resolved.push((from, to, item));
                 }
                 [true, true] => {
@@ -477,7 +636,7 @@ impl Parser {
                     } else {
                         (&item.to, &item.from)
                     };
-                    let class = self.ensure(class, &item.home, item.line)?;
+                    let class = self.ensure(class, &item.home, item.line, false)?;
                     let (a, b) = pair.pair().expect("a pair");
                     associations.push(Association {
                         pair: (a.to_owned(), b.to_owned()),
@@ -496,8 +655,19 @@ impl Parser {
         }
         self.place_notes()?;
         lollipops(&mut self.root);
-        super::hide::apply(&mut self.root, &self.hides, &self.tags)?;
+        let separator = self.separator.clone().filter(|_| self.classes);
+        super::hide::apply(
+            &mut self.root,
+            &self.hides,
+            &self.tags,
+            separator.as_deref(),
+        )?;
         self.resolve_members();
+        if self.frame.flat_packages
+            && let Some(sep) = &separator
+        {
+            flatten(&mut self.root, sep);
+        }
         if let Some(direction) = self.direction {
             run_all(&mut self.root, direction);
         }
@@ -561,16 +731,11 @@ impl Parser {
         if squeezed_eq(text, "allowmixing") || squeezed_eq(text, "allow_mixing") {
             return Ok(at + 1);
         }
-        // `set separator ::`, `set namespaceSeparator none`.
-        if let Some(rest) = keyword(text, "set") {
-            let Some(value) =
-                keyword(rest, "separator").or_else(|| keyword(rest, "namespaceSeparator"))
-            else {
-                return Err(Declined::at(
-                    no,
-                    format!("`{}` is not supported yet", snippet(text)),
-                ));
-            };
+        // `set separator ::`, `set namespaceSeparator none`; a class named
+        // `Set` is no such line.
+        if let Some(value) = keyword(text, "set").and_then(|rest| {
+            keyword(rest, "separator").or_else(|| keyword(rest, "namespaceSeparator"))
+        }) {
             self.separator = match value.trim() {
                 "" => return Err(Declined::at(no, "a separator is missing")),
                 none if none.eq_ignore_ascii_case("none") => None,
@@ -612,6 +777,7 @@ impl Parser {
                         label: None,
                         line,
                         home: home.clone(),
+                        strict: [false, false],
                     });
                 }
                 return Ok(at + 1);
@@ -709,26 +875,24 @@ impl Parser {
         Ok(at + 1)
     }
 
-    fn declare(&mut self, decl: Decl) -> Result<(), Declined> {
+    fn declare(&mut self, mut decl: Decl) -> Result<(), Declined> {
         let here = self.here();
         let path =
-            if let Some((home, label)) = self.qualified(&decl.key, decl.shape, &here, decl.line)? {
-                // `class a.b.C`: in the packages its name gives.
-                match self.child(&home, &decl.key, &label) {
+            if let Some((home, last)) = self.qualified(&decl.key, decl.shape, &here, decl.line)? {
+                // `class a.b.C`: in the packages its name gives, called by
+                // its last part.
+                decl.label = short_label(&decl.label, &decl.key, &last);
+                match self.child(&home, &decl.key, &last) {
                     Some(path) => {
                         self.merge(&path, &decl)?;
                         path
                     }
                     None => {
-                        let label = if decl.label == decl.key {
-                            label
-                        } else {
-                            decl.label.clone()
-                        };
+                        let label = decl.label.clone();
                         self.insert_at(&decl, &home, &label)?
                     }
                 }
-            } else if let Some(path) = self.find(&decl.key) {
+            } else if let Some(path) = self.find_by(&decl.key, Lookup::Declared) {
                 self.merge(&path, &decl)?;
                 path
             } else {
@@ -784,6 +948,7 @@ impl Parser {
                 label: None,
                 line: decl.line,
                 home: home.clone(),
+                strict: [true, false],
             });
         }
         let key = self.node(&path).key.clone();
@@ -794,15 +959,29 @@ impl Parser {
     }
 
     /// A name first named by a line or a member line is made then, as
-    /// PlantUML makes it: a note without `of` after it is on it.
-    fn named_by_line(&mut self, key: &str) {
-        if self.named.insert(key.to_owned()) {
-            self.recent = Recent::Element(key.to_owned());
+    /// PlantUML makes it: a note without `of` after it is on it, and on an
+    /// association's point after its pair.
+    fn named_by_line(&mut self, raw: &RawName) {
+        if raw.pair().is_some() {
+            self.recent = Recent::Point;
+        } else if self.named.insert(raw.key.clone()) {
+            self.recent = Recent::Element(raw.key.clone());
         }
     }
 
     fn merge(&mut self, path: &[usize], decl: &Decl) -> Result<(), Declined> {
         let node = self.node_mut(path);
+        // `class a` beside the package `a.B` made: PlantUML refuses it too.
+        if !node.explicit
+            && node.composite
+            && node.shape == Shape::Package
+            && decl.shape != Shape::Package
+        {
+            return Err(Declined::at(
+                decl.line,
+                format!("`{}` is a package already", decl.key),
+            ));
+        }
         if node.explicit && node.shape != decl.shape && !compatible(node.shape, decl.shape) {
             return Err(Declined::at(
                 decl.line,
@@ -854,7 +1033,7 @@ impl Parser {
         home: &[usize],
         line: usize,
     ) -> Result<Option<(Vec<usize>, String)>, Declined> {
-        let Some(sep) = self.separator.clone() else {
+        let Some(sep) = self.separator.clone().filter(|_| self.classes) else {
             return Ok(None);
         };
         let parted = matches!(
@@ -868,17 +1047,27 @@ impl Parser {
                 | Shape::Object
                 | Shape::Package
         );
+        // `.Base` names a box at the top, `.a.B` one in the top's `a`.
+        let (key, from_top) = match key.strip_prefix(sep.as_str()) {
+            Some(rest) => (rest, true),
+            None => (key, false),
+        };
         let parts: Vec<&str> = key.split(sep.as_str()).collect();
-        if !parted || parts.len() < 2 || parts.iter().any(|part| part.trim().is_empty()) {
+        if !parted || parts.iter().any(|part| part.trim().is_empty()) {
             return Ok(None);
         }
+        if parts.len() < 2 {
+            return Ok(from_top.then(|| (Vec::new(), parts[0].to_owned())));
+        }
         let (packages, last) = parts.split_at(parts.len() - 1);
-        let packages: Vec<String> = if self.frame.flat_packages {
-            vec![packages.join(&sep)]
-        } else {
-            packages.iter().map(|p| (*p).to_owned()).collect()
-        };
-        let mut path = home.to_vec();
+        let packages: Vec<String> = packages.iter().map(|p| (*p).to_owned()).collect();
+        // From the top where its first package stands there (`net.dummy.P`
+        // inside `namespace net.foo`), else from where it is written.
+        let at_top = from_top
+            || self.root.nodes.iter().any(|node| {
+                node.composite && (node.key == packages[0] || node.label.value == packages[0])
+            });
+        let mut path = if at_top { Vec::new() } else { home.to_vec() };
         let mut prefix = String::new();
         for part in packages {
             prefix = if prefix.is_empty() {
@@ -920,6 +1109,25 @@ impl Parser {
             path.push(index);
         }
         Ok(Some((path, last[0].to_owned())))
+    }
+
+    /// The box a whole name (`a.b.C`) names through the packages it
+    /// stands in, by their labels from the top; none is made.
+    fn through_packages(&self, name: &str) -> Option<Vec<usize>> {
+        let sep = self.separator.as_deref().filter(|_| self.classes)?;
+        let parts: Vec<&str> = name.split(sep).collect();
+        if parts.len() < 2 {
+            return None;
+        }
+        let mut path = Vec::new();
+        for (at, part) in parts.iter().enumerate() {
+            let last = at + 1 == parts.len();
+            let index = self.container(&path).nodes.iter().position(|node| {
+                (last || node.composite) && (node.label.value == *part || node.key == *part)
+            })?;
+            path.push(index);
+        }
+        Some(path)
     }
 
     /// The element of the package at `home` a qualified name names: by
@@ -977,8 +1185,24 @@ impl Parser {
     }
 
     fn add_relation(&mut self, rel: RawRel, line: usize) -> Result<(), Declined> {
-        self.named_by_line(&rel.from.key);
-        self.named_by_line(&rel.to.key);
+        // `Foo::field1`: a line to a member of `Foo`, which no line reaches
+        // yet, unless `::` parts names into packages.
+        if self.separator.as_deref() != Some("::") {
+            for raw in [&rel.from, &rel.to] {
+                if raw.key.contains("::") {
+                    return Err(Declined::at(
+                        line,
+                        format!(
+                            "a line to a member (`{}`) is not supported yet",
+                            snippet(&raw.key)
+                        ),
+                    ));
+                }
+            }
+        }
+        let strict = [&rel.from, &rel.to].map(|raw| self.find(&raw.key).is_none());
+        self.named_by_line(&rel.from);
+        self.named_by_line(&rel.to);
         self.pending.push(Pending {
             from: rel.from,
             to: rel.to,
@@ -994,14 +1218,15 @@ impl Parser {
             label: rel.label,
             line,
             home: self.here(),
+            strict,
         });
         Ok(())
     }
 
     fn add_field(&mut self, name: RawName, member: Member, line: usize) -> Result<(), Declined> {
-        self.named_by_line(&name.key);
+        self.named_by_line(&name);
         let home = self.here();
-        let path = self.ensure(&name, &home, line)?;
+        let path = self.ensure(&name, &home, line, false)?;
         let node = self.node_mut(&path);
         if node.composite {
             return Err(Declined::at(
@@ -1014,16 +1239,15 @@ impl Parser {
         Ok(())
     }
 
+    /// The box `raw` names from a line at `home`, made where there is
+    /// none; `strict`, by its key alone ([`Pending::strict`]).
     fn ensure(
         &mut self,
         raw: &RawName,
         home: &[usize],
         line: usize,
+        strict: bool,
     ) -> Result<Vec<usize>, Declined> {
-        if let Some(path) = self.find(&raw.key) {
-            self.upgrade(&path, raw, line)?;
-            return Ok(path);
-        }
         let shape = raw.shape.unwrap_or(Shape::Class);
         // `a.b.C` named by a line: in the packages its name gives.
         let (home, label) = match self.qualified(&raw.key, shape, home, line)? {
@@ -1032,14 +1256,16 @@ impl Parser {
                     self.upgrade(&path, raw, line)?;
                     return Ok(path);
                 }
-                let label = if raw.label == raw.key {
-                    last
-                } else {
-                    raw.label.clone()
-                };
-                (packages, label)
+                (packages, short_label(&raw.label, &raw.key, &last))
             }
-            None => (home.to_vec(), raw.label.clone()),
+            None => {
+                let lookup = if strict { Lookup::Key } else { Lookup::Line };
+                if let Some(path) = self.find_by(&raw.key, lookup) {
+                    self.upgrade(&path, raw, line)?;
+                    return Ok(path);
+                }
+                (home.to_vec(), raw.label.clone())
+            }
         };
         let home = home.as_slice();
         let mut stereotypes = Vec::new();
@@ -1100,8 +1326,49 @@ impl Parser {
     }
 
     fn find(&self, name: &str) -> Option<Vec<usize>> {
-        self.find_in(&self.root, &[], name, true)
-            .or_else(|| self.find_in(&self.root, &[], name, false))
+        self.find_by(name, Lookup::Line)
+    }
+
+    /// The box `name` names: by its key; else, unless `lookup` takes keys
+    /// alone, by its label where one box alone has it, a class made from
+    /// a whole name (`net.Socket`) not for a declaration
+    /// ([`Lookup::Declared`]), as PlantUML finds them.
+    fn find_by(&self, name: &str, lookup: Lookup) -> Option<Vec<usize>> {
+        if let Some(path) = self.find_in(&self.root, &[], name, true) {
+            return Some(path);
+        }
+        if lookup == Lookup::Key {
+            return None;
+        }
+        let mut found = Vec::new();
+        self.labeled(&self.root, &mut Vec::new(), name, lookup, &mut found);
+        match found.len() {
+            1 => found.pop(),
+            _ => None,
+        }
+    }
+
+    fn labeled(
+        &self,
+        group: &Group,
+        path: &mut Vec<usize>,
+        name: &str,
+        lookup: Lookup,
+        found: &mut Vec<Vec<usize>>,
+    ) {
+        for (index, node) in group.nodes.iter().enumerate() {
+            path.push(index);
+            let made = self.separator.as_ref().is_some_and(|sep| {
+                node.key != node.label.value
+                    && node.key.ends_with(&format!("{sep}{}", node.label.value))
+            });
+            if node.label.value == name && node.key != name && !(made && lookup == Lookup::Declared)
+            {
+                found.push(path.clone());
+            }
+            self.labeled(&node.children, path, name, lookup, found);
+            path.pop();
+        }
     }
 
     fn find_in(
@@ -1205,6 +1472,11 @@ impl Parser {
             return Ok(());
         }
         if !along {
+            // `together` holds the boxes of one package alone; across
+            // packages they stand where the layout puts them.
+            if item.hidden && item.toward == Some(ACROSS) {
+                return Ok(());
+            }
             return Err(Declined::at(
                 item.line,
                 "a line with a direction across the flow between boxes of different packages is not supported yet",
@@ -1237,13 +1509,15 @@ impl Parser {
         for note in std::mem::take(&mut self.raw_notes) {
             let (path, member) = match self.find(&note.target) {
                 Some(path) => (path, None),
-                None => self.member_of(&note.target, note.line)?,
+                None => match self.through_packages(&note.target) {
+                    Some(path) => (path, None),
+                    None => self.member_of(&note.target, note.line)?,
+                },
             };
             let index = *path.last().expect("a path");
             let home = path[..path.len() - 1].to_vec();
             if let Some((quoted, wanted)) = member {
-                let at = self.container(&home).notes.len();
-                self.on_members.push((home.clone(), at, quoted, wanted));
+                self.on_members.push((note.line, quoted, wanted));
             }
             self.container_mut(&home).notes.push(Note {
                 target: index,
@@ -1261,11 +1535,25 @@ impl Parser {
     /// Each note on a member, on the member's place among those `hide`
     /// left; one whose member is hidden is on its element.
     fn resolve_members(&mut self) {
-        for (home, at, quoted, wanted) in std::mem::take(&mut self.on_members) {
-            let target = self.container(&home).notes[at].target;
-            let members = &self.container(&home).nodes[target].members;
-            let index = members.iter().position(|m| member_is(m, quoted, &wanted));
-            self.container_mut(&home).notes[at].member = index;
+        fn walk(group: &mut Group, wanted: &[(usize, bool, String)]) {
+            for note in &mut group.notes {
+                let Some((_, quoted, name)) = wanted.iter().find(|(line, ..)| *line == note.line)
+                else {
+                    continue;
+                };
+                note.member = group.nodes.get(note.target).and_then(|node| {
+                    node.members
+                        .iter()
+                        .position(|m| member_is(m, *quoted, name))
+                });
+            }
+            for node in &mut group.nodes {
+                walk(&mut node.children, wanted);
+            }
+        }
+        let wanted = std::mem::take(&mut self.on_members);
+        if !wanted.is_empty() {
+            walk(&mut self.root, &wanted);
         }
     }
 
@@ -1389,6 +1677,12 @@ impl Parser {
                     Recent::Element(key) => key.clone(),
                     Recent::Note => {
                         return Err(Declined::at(no, "a note on a note is not supported yet"));
+                    }
+                    Recent::Point => {
+                        return Err(Declined::at(
+                            no,
+                            "a note on an association's point is not supported yet",
+                        ));
                     }
                     Recent::Nothing => {
                         return Err(Declined::at(no, "a note needs an element before it"));
@@ -2486,19 +2780,6 @@ fn side(text: &str, card_last: bool, line: usize) -> Result<(RawName, Option<Str
             ),
         ));
     }
-    // `Foo::field1`: a line to a member of `Foo`, which no line reaches yet.
-    if let Some(member) = tokens
-        .iter()
-        .find(|token| !token.starts_with('"') && token.contains("::"))
-    {
-        return Err(Declined::at(
-            line,
-            format!(
-                "a line to a member (`{}`) is not supported yet",
-                snippet(member)
-            ),
-        ));
-    }
     let (mut name, card) = match tokens.as_slice() {
         [name] => (raw_name(name, line)?, None),
         [name, card] if card_last => (raw_name(name, line)?, Some(cardinality(card, line)?)),
@@ -3177,12 +3458,12 @@ mod tests {
         let d = diagram(
             "@startuml\nA . B\nnet.Socket --> A\nA : x . y\nA : x : y . z\n:User: . B\n@enduml\n",
         );
-        // `net.Socket` stands in a package `net`, as PlantUML parts it.
+        // An actor makes it a description diagram: `net.Socket` stays one
+        // box, as PlantUML reads it.
         let keys: Vec<&str> = d.root.nodes.iter().map(|n| n.key.as_str()).collect();
-        assert_eq!(keys, ["A", "B", "net", "User"]);
-        assert_eq!(d.root.nodes[2].children.nodes[0].key, "net.Socket");
+        assert_eq!(keys, ["A", "B", "net.Socket", "User"]);
         assert_eq!(d.root.edges[0].dash, Dash::Dashed);
-        assert_eq!(d.root.edges.len() + d.root.crossings.len(), 3);
+        assert_eq!(d.root.edges.len(), 3);
         // After a member's colon the dot is the member's.
         assert_eq!(d.root.nodes[0].members.len(), 2);
     }
@@ -3638,9 +3919,13 @@ mod tests {
             (out, lines(&d.root))
         };
         let (tree_a, _) = read(
-            "@startuml\nclass a.b.C\npackage a.b {\n  class D\n}\nclass \"x.y\" as XY\ncomponent c.d\n@enduml\n",
+            "@startuml\nclass a.b.C\npackage a.b {\n  class D\n}\nclass \"x.y\" as XY\n@enduml\n",
         );
-        assert_eq!(tree_a, ["a", "  b", "    C", "    D", "x.y", "c.d"]);
+        assert_eq!(tree_a, ["a", "  b", "    C", "    D", "x.y"]);
+        // A component diagram's names stay whole, its packages' too.
+        let (whole, _) =
+            read("@startuml\npackage com.acme {\n  [Billing]\n}\nnode n\nn --> a.b\n@enduml\n");
+        assert_eq!(whole, ["com.acme", "  Billing", "n", "a.b"]);
         let (tree_b, lines) =
             read("@startuml\npackage a.b {\n  class c\n}\nclass a.b.d\na.b.c --> a.b.d\n@enduml\n");
         assert_eq!(tree_b, ["a", "  b", "    c", "    d"]);
@@ -3653,6 +3938,106 @@ mod tests {
         let (tree_e, _) =
             read("@startuml\n!pragma useIntermediatePackages false\nclass A.B.C.D.Z\n@enduml\n");
         assert_eq!(tree_e, ["A.B.C.D", "  Z"]);
+    }
+
+    /// Names as PlantUML finds them once whole names part into packages:
+    /// a declaration of `C` is no class made from `a.b.C`, nor is a line's
+    /// end written before it or a parent; a line's short name is the one
+    /// class of that name; `.C` is at the top; a class keeps its short
+    /// name declared again by its whole one, and a generic its `<T>`.
+    #[test]
+    fn whole_names_and_short_ones() {
+        let keys = |source: &str| {
+            fn walk(group: &Group, out: &mut Vec<String>) {
+                for node in &group.nodes {
+                    out.push(format!("{}={}", node.key, node.label.value));
+                    walk(&node.children, out);
+                }
+            }
+            let mut out = Vec::new();
+            walk(&diagram(source).root, &mut out);
+            out
+        };
+        assert_eq!(
+            keys("@startuml\nclass a.b.C\nclass C\nC --> a.b.C\n@enduml\n"),
+            ["a=a", "a.b=b", "a.b.C=C", "C=C"]
+        );
+        assert_eq!(
+            keys("@startuml\nC --> X\nclass a.b.C\n@enduml\n"),
+            ["a=a", "a.b=b", "a.b.C=C", "C=C", "X=X"]
+        );
+        assert!(
+            keys("@startuml\nclass net.Socket\nclass B extends Socket\n@enduml\n")
+                .contains(&"Socket=Socket".to_owned())
+        );
+        assert_eq!(
+            keys("@startuml\nclass net.Socket\nSocket --> A\n@enduml\n"),
+            ["net=net", "net.Socket=Socket", "A=A"]
+        );
+        assert!(
+            keys("@startuml\nclass a.C\nclass b.C\nC --> X\n@enduml\n").contains(&"C=C".to_owned())
+        );
+        assert_eq!(
+            keys("@startuml\nclass Base\npackage p {\n  .Base <|-- K\n}\n@enduml\n"),
+            ["Base=Base", "p=p", "K=K"]
+        );
+        assert_eq!(
+            keys(
+                "@startuml\npackage a.b {\n  class C\n}\nclass a.b.C #pink\nclass a.d<T>\n@enduml\n"
+            ),
+            ["a=a", "a.b=b", "C=C", "a.d=d<T>"]
+        );
+        // A class named `Set` is no `set` line.
+        assert_eq!(
+            keys("@startuml\nSet <|-- HashSet\n@enduml\n"),
+            ["Set=Set", "HashSet=HashSet"]
+        );
+        // Under `::`, `X::Y` is a whole name, not a member.
+        assert_eq!(
+            keys("@startuml\nset separator ::\nX::Y --> Z::W\n@enduml\n"),
+            ["X=X", "X::Y=Y", "Z=Z", "Z::W=W"]
+        );
+        // One package of the whole prefix only where it holds nothing else.
+        assert_eq!(
+            keys(
+                "@startuml\n!pragma useIntermediatePackages false\nclass a.b.C\nclass a.E\n@enduml\n"
+            ),
+            ["a=a", "a.b=b", "a.b.C=C", "a.E=E"]
+        );
+        // A note and `hide` by a whole name through declared packages;
+        // `together` across packages holds nothing, and draws.
+        let d = diagram(
+            "@startuml\npackage a.b {\n  class C\n}\nnote right of a.b.C : hi\nhide a.b.C\ntogether {\n  class a.D\n  class E\n}\n@enduml\n",
+        );
+        assert_eq!(d.root.nodes[0].children.nodes[0].children.notes.len(), 1);
+        assert!(d.root.nodes[0].children.nodes[0].children.nodes[0].hidden);
+        // `hide` of a whole name's last part passes by, as in PlantUML.
+        let d = diagram("@startuml\nclass net.Socket\nhide Socket\n@enduml\n");
+        assert!(!d.root.nodes[0].children.nodes[0].hidden);
+        // What PlantUML refuses, or Omaspec does not draw yet.
+        let err = declined("@startuml\nclass a.B\nclass a\n@enduml\n");
+        assert!(err.reason.contains("is a package already"), "{err:?}");
+        let err =
+            declined("@startuml\nclass A\nclass B\nclass C\n(A, B) .. C\nnote left: x\n@enduml\n");
+        assert!(err.reason.contains("association's point"), "{err:?}");
+        // A note on a member outlasts `remove` of other boxes.
+        let d = diagram(
+            "@startuml\nclass A {\n  int x\n}\nclass B\nnote right of B : on B\nnote right of A::x\n  on x\nend note\nremove B\n@enduml\n",
+        );
+        let note = d
+            .root
+            .notes
+            .iter()
+            .find(|n| n.text.value == "on x")
+            .unwrap();
+        assert_eq!(
+            (d.root.nodes[note.target].key.as_str(), note.member),
+            ("A", Some(0))
+        );
+        let d = diagram(
+            "@startuml\nclass A {\n  int x\n}\nnote right of A::x\n  on x\nend note\nremove A\n@enduml\n",
+        );
+        assert!(d.root.notes.is_empty());
     }
 
     /// A note without `of` is on what was made last, as PlantUML counts
