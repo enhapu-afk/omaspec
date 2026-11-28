@@ -1038,16 +1038,15 @@ impl Parser {
 
     fn place_notes(&mut self) -> Result<(), Declined> {
         for note in std::mem::take(&mut self.raw_notes) {
-            let Some(path) = self.find(&note.target) else {
-                return Err(Declined::at(
-                    note.line,
-                    format!("`{}` is not an element", note.target),
-                ));
+            let (path, member) = match self.find(&note.target) {
+                Some(path) => (path, None),
+                None => self.member_of(&note.target, note.line)?,
             };
             let index = *path.last().expect("a path");
             let home = path[..path.len() - 1].to_vec();
             self.container_mut(&home).notes.push(Note {
                 target: index,
+                member,
                 side: note.side,
                 text: note.text,
                 line: note.line,
@@ -1056,6 +1055,38 @@ impl Parser {
             });
         }
         Ok(())
+    }
+
+    /// The element and the member a note's `A::count` or
+    /// `A::"start(int ms)"` names, as PlantUML finds it: a member by its
+    /// name, or by its words where they are quoted.
+    fn member_of(
+        &self,
+        target: &str,
+        line: usize,
+    ) -> Result<(Vec<usize>, Option<usize>), Declined> {
+        let missing = || Declined::at(line, format!("`{target}` is not an element"));
+        let (element, member) = match target.find("::\"") {
+            Some(at) => (&target[..at], &target[at + 2..]),
+            None => target.rsplit_once("::").ok_or_else(missing)?,
+        };
+        let path = self.find(element.trim()).ok_or_else(missing)?;
+        let (quoted, wanted) = match member.trim().strip_prefix('"') {
+            Some(inner) => (true, inner.strip_suffix('"').unwrap_or(inner)),
+            None => (false, member.trim()),
+        };
+        let index = self.node(&path).members.iter().position(|m| match m {
+            Member::Text { text, .. } if quoted => text.value.contains(wanted),
+            Member::Text { text, .. } => member_name(&text.value) == wanted,
+            _ => false,
+        });
+        match index {
+            Some(index) => Ok((path, Some(index))),
+            None => Err(Declined::at(
+                line,
+                format!("`{}` has no member `{wanted}`", element.trim()),
+            )),
+        }
     }
 
     fn open_last(&mut self, line: usize) -> Result<(), Declined> {
@@ -1136,6 +1167,32 @@ impl Parser {
             return Ok(next);
         }
         if let Some((side, after)) = side_of(rest) {
+            // Without `of`, on the element declared last (`note left: …`,
+            // or a block), as PlantUML reads it.
+            let last = || {
+                let path = self.last.as_ref()?;
+                let node = self.node(path);
+                (node.shape != Shape::Note).then(|| node.key.clone())
+            };
+            let words = after.trim_start();
+            if keyword(after, "of").is_none() && (words.is_empty() || words.starts_with(':')) {
+                let Some(target) = last() else {
+                    return Err(Declined::at(no, "a note needs an element before it"));
+                };
+                let (body, next) = match words.strip_prefix(':') {
+                    Some(text) => (text_at(text.trim(), no), at + 1),
+                    None => block_text(lines, at, "note", end_note)?,
+                };
+                self.raw_notes.push(RawNote {
+                    target,
+                    side,
+                    text: body,
+                    line: no,
+                    fill: None,
+                    line_color: None,
+                });
+                return Ok(next);
+            }
             let Some(after) = keyword(after, "of") else {
                 return Err(Declined::at(no, "a note needs `of` and an element"));
             };
@@ -1210,6 +1267,21 @@ impl RawName {
     }
 }
 
+/// The name of a member as a note names it: a method's before its `(`,
+/// an attribute's before its `:` type or after its own type
+/// (`int counter`), its visibility left out.
+fn member_name(text: &str) -> &str {
+    let head = text.split('(').next().unwrap_or(text);
+    let head = match head.split_once(':') {
+        Some((name, _)) if !text.contains('(') => name,
+        _ => head,
+    };
+    head.split_whitespace()
+        .last()
+        .unwrap_or("")
+        .trim_start_matches(['+', '-', '#', '~'])
+}
+
 fn end_note(text: &str) -> bool {
     squeezed_eq(text, "endnote") || squeezed_eq(text, "endrnote")
 }
@@ -1241,6 +1313,14 @@ fn side_of(text: &str) -> Option<(Side, &str)> {
     ] {
         if let Some(rest) = keyword(text, word) {
             return Some((side, rest));
+        }
+        // `note left: words`, the colon right after the side.
+        if text
+            .get(..word.len())
+            .is_some_and(|w| w.eq_ignore_ascii_case(word))
+            && text[word.len()..].starts_with(':')
+        {
+            return Some((side, &text[word.len()..]));
         }
     }
     None
@@ -2163,6 +2243,19 @@ fn side(text: &str, card_last: bool, line: usize) -> Result<(RawName, Option<Str
             ),
         ));
     }
+    // `Foo::field1`: a line to a member of `Foo`, which no line reaches yet.
+    if let Some(member) = tokens
+        .iter()
+        .find(|token| !token.starts_with('"') && token.contains("::"))
+    {
+        return Err(Declined::at(
+            line,
+            format!(
+                "a line to a member (`{}`) is not supported yet",
+                snippet(member)
+            ),
+        ));
+    }
     let (mut name, card) = match tokens.as_slice() {
         [name] => (raw_name(name, line)?, None),
         [name, card] if card_last => (raw_name(name, line)?, Some(cardinality(card, line)?)),
@@ -2305,6 +2398,11 @@ fn split_label(text: &str) -> (&str, Option<&str>) {
             && end > 0
         {
             i += end + 2;
+            continue;
+        }
+        // `A::count` names a member, not a label: both colons go by.
+        if !quote && c == ':' && chars.get(i + 1).is_some_and(|(_, n)| *n == ':') {
+            i += 2;
             continue;
         }
         if !quote && c == ':' && chars.get(i + 1).is_none_or(|(_, n)| *n != ':') {
@@ -2675,13 +2773,19 @@ fn member_from(text: &str, line: usize, slot: &mut Slot) -> Result<Option<Member
         }
         _ => (None, trimmed),
     };
-    let (italic, underline, forced, rest) = classifiers(marked, line)?;
+    let (mut italic, mut underline, forced, rest) = classifiers(marked, line)?;
     if let Some(forced) = forced {
         *slot = forced;
     }
+    // `{static}` and `{abstract}` may stand anywhere in the member, as
+    // PlantUML reads them (`+void {abstract} start()`): taken out, the
+    // words around them close up.
+    let (rest, (inner_italic, inner_underline)) = marks_within(rest);
+    italic |= inner_italic;
+    underline |= inner_underline;
     let rest = match visibility {
         Some(v) => format!("{v}{}", rest.trim_start()),
-        None => rest.to_owned(),
+        None => rest,
     };
     let rest = rest.trim();
     if rest.is_empty() {
@@ -2712,6 +2816,39 @@ fn member_from(text: &str, line: usize, slot: &mut Slot) -> Result<Option<Member
     }))
 }
 
+/// `text` without the `{static}`, `{classifier}` and `{abstract}` marks
+/// it holds, in any case, the words around each closed up with one space;
+/// whether any made it abstract (italic) and static (underlined).
+fn marks_within(text: &str) -> (String, (bool, bool)) {
+    let (mut italic, mut underline) = (false, false);
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(open) = rest.find('{') {
+        let Some(close) = rest[open..].find('}').map(|at| open + at) else {
+            break;
+        };
+        let word = rest[open + 1..close].trim().to_ascii_lowercase();
+        let mark = match word.as_str() {
+            "static" | "classifier" => &mut underline,
+            "abstract" => &mut italic,
+            _ => {
+                out.push_str(&rest[..=close]);
+                rest = &rest[close + 1..];
+                continue;
+            }
+        };
+        *mark = true;
+        let before = rest[..open].trim_end();
+        out.push_str(before);
+        rest = rest[close + 1..].trim_start();
+        if !out.is_empty() && !rest.is_empty() && !out.ends_with(char::is_whitespace) {
+            out.push(' ');
+        }
+    }
+    out.push_str(rest);
+    (out, (italic, underline))
+}
+
 fn classifiers(text: &str, line: usize) -> Result<(bool, bool, Option<Slot>, &str), Declined> {
     let mut italic = false;
     let mut underline = false;
@@ -2728,7 +2865,7 @@ fn classifiers(text: &str, line: usize) -> Result<(bool, bool, Option<Slot>, &st
         let word = body[..end].trim().to_ascii_lowercase();
         rest = body[end + 1..].trim_start();
         match word.as_str() {
-            "static" => underline = true,
+            "static" | "classifier" => underline = true,
             "abstract" => italic = true,
             "field" => forced = Some(Slot::Attribute),
             "method" => forced = Some(Slot::Method),
@@ -3146,6 +3283,69 @@ mod tests {
                 ("-odd()".to_owned(), true, true),
             ]
         );
+    }
+
+    /// `{static}` and `{abstract}` anywhere in a member, in any case, as
+    /// PlantUML reads them: taken out, the words around them closed up.
+    #[test]
+    fn marks_stand_anywhere_in_a_member() {
+        let d = diagram(
+            "@startuml\nclass A {\n  +void {abstract} start(int timeout)\n  int {static} count\n  foo {ABSTRACT} bar\n  + {classifier} x\n}\n@enduml\n",
+        );
+        let read: Vec<(String, bool, bool)> = element(&d.root, "A")
+            .members
+            .iter()
+            .map(|m| match m {
+                Member::Text {
+                    text,
+                    italic,
+                    underline,
+                    ..
+                } => (text.value.clone(), *italic, *underline),
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        assert_eq!(
+            read,
+            [
+                ("+void start(int timeout)".to_owned(), true, false),
+                ("int count".to_owned(), false, true),
+                ("foo bar".to_owned(), true, false),
+                ("+x".to_owned(), false, true),
+            ]
+        );
+    }
+
+    /// A note on a member (`A::counter`, `A::"start(int ms)"`) is on its
+    /// element and that member; one without `of` on the element declared
+    /// last.
+    #[test]
+    fn notes_on_members_and_on_the_last_element() {
+        let d = diagram(
+            "@startuml\nclass A {\n  {static} int counter\n  +void start(int ms)\n  +void start(Duration d)\n}\nnote right of A::counter : one\nnote left of A::\"start(Duration d)\"\n  two\nend note\nclass Foo\nnote left: on Foo\n@enduml\n",
+        );
+        let notes: Vec<(&str, Option<usize>, &str)> = d
+            .root
+            .notes
+            .iter()
+            .map(|n| {
+                (
+                    d.root.nodes[n.target].key.as_str(),
+                    n.member,
+                    n.text.value.as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            notes,
+            [
+                ("A", Some(0), "one"),
+                ("A", Some(2), "two"),
+                ("Foo", None, "on Foo")
+            ]
+        );
+        let err = declined("@startuml\nclass A\nnote right of A::nothing : x\n@enduml\n");
+        assert!(err.reason.contains("no member `nothing`"), "{err:?}");
     }
 
     #[test]

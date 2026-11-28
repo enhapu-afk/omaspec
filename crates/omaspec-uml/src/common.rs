@@ -378,7 +378,7 @@ impl Frame {
             ("header", "endheader"),
             ("footer", "endfooter"),
         ] {
-            if let Some(rest) = keyword(text, word) {
+            if let Some(rest) = keyword(text, word).or_else(|| colon_after(text, word)) {
                 let (value, next) = if rest.is_empty() && crate::source::shows_nothing(text) {
                     (crate::source::NO_BREAK_SPACE.to_string(), at + 1)
                 } else if rest.is_empty() {
@@ -858,6 +858,17 @@ pub(crate) fn one_line_frame(text: &str) -> bool {
     ["title", "header", "footer", "caption", "mainframe"]
         .iter()
         .any(|word| keyword(text, word).is_some_and(|rest| !rest.is_empty()))
+        || ["title", "header", "footer"]
+            .iter()
+            .any(|word| colon_after(text, word).is_some())
+}
+
+/// The words after `title:`, `header:` or `footer:`, which PlantUML reads
+/// as after the word and a space.
+fn colon_after<'a>(text: &'a str, word: &str) -> Option<&'a str> {
+    let head = text.get(..word.len())?;
+    let rest = text[word.len()..].strip_prefix(':')?;
+    head.eq_ignore_ascii_case(word).then(|| rest.trim())
 }
 
 /// The end of the block of text `text` opens, if it opens one.
@@ -1184,6 +1195,20 @@ pub fn normalize_key(key: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `title:`, `header:` and `footer:` with a colon are the frame's, as
+    /// PlantUML reads them, not a member of a class named so.
+    #[test]
+    fn a_title_may_take_a_colon() {
+        let svg =
+            crate::render("@startuml\ntitle: Hello\nheader: Head\nclass Wifi\n@enduml\n").unwrap();
+        assert!(
+            svg.contains(">Hello</tspan>") && svg.contains(">Head</tspan>"),
+            "{svg}"
+        );
+        assert!(!svg.contains(">title</tspan>"), "{svg}");
+        assert!(crate::render("@startuml\ntitle: Hello\nA -> B\n@enduml\n").is_ok());
+    }
 
     /// What nobody sees is written as its code point; a tab, a no-break
     /// space and the joiner of an emoji are left as they are.

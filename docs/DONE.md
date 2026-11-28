@@ -878,6 +878,23 @@ is open and the reasoning around it.
       folder's tab would leave the lines that come in from above ending
       in the air beside it, as they do at a folded package's.
 
+### Step 4: the other UML diagrams
+
+- [x] Notes on members, on the class declared last, and marks inside a
+      member (2026-11-28): `{static}`, `{classifier}` and `{abstract}`
+      stand anywhere in a member, in any case (`+void {abstract}
+      start()`), and are taken out with the words around them closed up,
+      as PlantUML reads them. `note right of A::counter` and `note left
+      of A::"start(int ms)"` are on that member, found by its name or by
+      its quoted words, and lead to its row with a dashed line, to the end
+      of its words from the right and to their start from the left.
+      `note left: …` and a `note left` block without `of` are on the
+      element declared last. `title:`, `header:` and `footer:` with a
+      colon are the frame's, not a member of a class named so. `A::b`
+      names a member, not a label after `A:`; a line to a member
+      (`Foo::field1 --> Bar::field3`) declines, saying so, as before. The
+      guide: the class diagram 54 of 84, 564 of 897 in all.
+
 ### Step 5: what every diagram shares
 
 - [x] A face for one kind of element (2026-11-24): `ParticipantFontName

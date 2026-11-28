@@ -393,6 +393,10 @@ pub use crate::graph::open::NoteSide as Side;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Note {
     pub target: usize,
+    /// The member of its element it is about (`note right of A::count`),
+    /// by its index among the element's members; a dashed line leads to
+    /// it.
+    pub member: Option<usize>,
     pub side: Side,
     pub text: Text,
     pub line: usize,

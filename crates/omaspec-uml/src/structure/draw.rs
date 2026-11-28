@@ -942,6 +942,9 @@ fn arrow_stroke(skin: &Skin, edge: &Link) -> Result<Stroke, Declined> {
 
 struct Draft {
     target: usize,
+    /// The row of its element's member it is about, where it is about one,
+    /// among the members' rows.
+    row: Option<usize>,
     side: Side,
     w: f32,
     h: f32,
@@ -957,7 +960,60 @@ fn note_size(text: &Block) -> (f32, f32) {
     )
 }
 
-fn place_notes(drafts: &mut [Draft], rects: &[Rect], edges: &[PlacedEdge]) -> Vec<PlacedNote> {
+/// Where a note's dashed line to its member leaves it: the middle of the
+/// side that faces its element.
+fn note_side(x: f32, y: f32, w: f32, h: f32, side: Side) -> (f32, f32) {
+    match side {
+        Side::Right => (x, y + h / 2.0),
+        Side::Left => (x + w, y + h / 2.0),
+        Side::Top => (x + w / 2.0, y + h),
+        Side::Bottom => (x + w / 2.0, y),
+    }
+}
+
+/// Where the dashed line of a note on `side` ends at the member in `row`
+/// of `node`: beside the end of its words, or of their start for a note
+/// on the left; at their middle from above or below.
+fn member_end(node: &Placed, member: usize, side: Side) -> Option<(f32, f32)> {
+    let (area, place) = text_area(node);
+    let rows = &node.item.rows;
+    let row = node.item.body + member;
+    let words = rows.get(row)?;
+    let pad_y = if node.item.shape == Shape::Note {
+        NOTE_PAD
+    } else {
+        PAD_Y
+    };
+    let extra = if node.item.body < rows.len() {
+        RULE
+    } else {
+        0.0
+    };
+    let content = rows.iter().map(Row::height).sum::<f32>() + extra;
+    let mut y = match place {
+        Place::Top => area.y + pad_y,
+        Place::Center => area.y + (area.h - content) / 2.0,
+    };
+    y += rows[..row].iter().map(Row::height).sum::<f32>();
+    if row >= node.item.body {
+        y += extra;
+    }
+    let y = y + words.height() / 2.0;
+    let (start, end) = (area.x + PAD_X, area.x + PAD_X + words.width());
+    Some(match side {
+        Side::Right => (end + 2.0, y),
+        Side::Left => (start - 2.0, y),
+        Side::Top | Side::Bottom => ((start + end) / 2.0, y),
+    })
+}
+
+/// `rows` are the placed elements, for a note on a member to find its row.
+fn place_notes(
+    drafts: &mut [Draft],
+    rects: &[Rect],
+    rows: &[&Placed],
+    edges: &[PlacedEdge],
+) -> Vec<PlacedNote> {
     let mut groups: Vec<(usize, Side, Vec<usize>)> = Vec::new();
     for (index, note) in drafts.iter().enumerate() {
         if let Some(group) = groups
@@ -995,6 +1051,11 @@ fn place_notes(drafts: &mut [Draft], rects: &[Rect], edges: &[PlacedEdge]) -> Ve
             } else {
                 cursor += note.h + 6.0;
             }
+            // A note on a member leads to its row with a dashed line.
+            let tether = note
+                .row
+                .and_then(|row| member_end(rows.get(target)?, row, side))
+                .map(|end| (note_side(x, y, note.w, note.h, side), end));
             placed.push(PlacedNote {
                 x,
                 y,
@@ -1004,7 +1065,7 @@ fn place_notes(drafts: &mut [Draft], rects: &[Rect], edges: &[PlacedEdge]) -> Ve
                 side,
                 nth,
                 text: std::mem::replace(&mut note.text, Block::empty()),
-                tether: None,
+                tether,
                 on: None,
                 line: note.line,
                 colors: note.colors,
@@ -2111,6 +2172,10 @@ fn paint_notes(
             None => (skin.note.fill, skin.note.gradient, skin.note.border),
         };
         canvas.part(&part, |canvas| {
+            if let Some((from, to)) = note.tether {
+                let line = Stroke::new(border, skin.note.thickness).dashed(4.0, 3.0);
+                canvas.line(Layer::Front, from, to, line);
+            }
             let span = (note.x, note.y, note.w, note.h);
             canvas.gradient_over(gradient, span, |canvas| {
                 dog_ear(
@@ -2532,6 +2597,52 @@ fn on_border(frame: Rect, rect: Rect) -> bool {
 mod tests {
     use super::super::parse::parse;
     use super::*;
+
+    /// A note on a member leads to that member's row with a dashed line:
+    /// to the end of its words from the right, to their start from the
+    /// left.
+    #[test]
+    fn a_note_on_a_member_leads_to_its_row() {
+        let svg = crate::render(
+            "@startuml\nclass A {\n  int counter\n  +void start()\n}\nnote right of A::start : x\nnote left of A::counter : y\n@enduml\n",
+        )
+        .unwrap();
+        let number = |text: &str, name: &str| -> f32 {
+            let at = text.find(&format!(" {name}=\"")).unwrap() + name.len() + 3;
+            text[at..].split('"').next().unwrap().parse().unwrap()
+        };
+        let words = |word: &str| {
+            let at = svg.find(&format!(">{word}</tspan>")).unwrap();
+            let tspan = &svg[svg[..at].rfind("<tspan").unwrap()..at];
+            (
+                number(tspan, "x"),
+                number(tspan, "y"),
+                number(tspan, "textLength"),
+            )
+        };
+        let tethers: Vec<(f32, f32)> = svg
+            .split("<line ")
+            .skip(1)
+            .filter(|line| line.contains("stroke-dasharray"))
+            .map(|line| (number(line, "x2"), number(line, "y2")))
+            .collect();
+        assert_eq!(tethers.len(), 2, "{svg}");
+        let (x, baseline, length) = words("+void start()");
+        assert!(
+            (tethers[0].0 - (x + length + 2.0)).abs() < 0.5,
+            "{tethers:?}"
+        );
+        assert!(
+            (tethers[0].1 - baseline).abs() < 8.0 && tethers[0].1 < baseline,
+            "{tethers:?}"
+        );
+        let (x, baseline, _) = words("int counter");
+        assert!((tethers[1].0 - (x - 2.0)).abs() < 0.5, "{tethers:?}");
+        assert!(
+            (tethers[1].1 - baseline).abs() < 8.0 && tethers[1].1 < baseline,
+            "{tethers:?}"
+        );
+    }
 
     /// A lollipop's box is its circle, so its lines end on it, whichever
     /// way the flow runs; its name stands beside it or under it.

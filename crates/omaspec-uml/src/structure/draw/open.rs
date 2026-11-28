@@ -43,8 +43,22 @@ impl Elements<'_> {
         // A note's words are its line's, from the line it begins on.
         let text = note.text.measure_written(font, self.family)?;
         let (w, h) = note_size(&text);
+        // A member's row among the members' rows: one for each member
+        // before it that draws one.
+        let row = note.member.map(|member| {
+            use crate::structure::Member;
+            let members = &group.nodes[note.target].members;
+            members[..member.min(members.len())]
+                .iter()
+                .filter(|m| match m {
+                    Member::Text { text, .. } | Member::Heading(text) => !text.value.is_empty(),
+                    Member::Rule(_) => true,
+                })
+                .count()
+        });
         Ok(Draft {
             target: note.target,
+            row,
             side: note.side,
             w,
             h,
@@ -259,7 +273,8 @@ impl<'a> Nested for Elements<'a> {
             .map(|index| self.draft(group, index))
             .collect::<Result<Vec<_>, _>>()?;
         let rects: Vec<Rect> = scene.nodes.iter().map(|node| node.rect).collect();
-        scene.notes = place_notes(&mut drafts, &rects, &scene.edges);
+        let rows: Vec<&Placed> = scene.nodes.iter().collect();
+        scene.notes = place_notes(&mut drafts, &rects, &rows, &scene.edges);
         Ok(())
     }
 }

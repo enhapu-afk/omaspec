@@ -282,6 +282,7 @@ impl Parser {
             let home = path[..path.len() - 1].to_vec();
             self.group_mut(&home).notes.push(Note {
                 target: index,
+                member: None,
                 side: Side::Right,
                 text: text_at(&note.body, note.line),
                 line: note.line,
