@@ -625,6 +625,11 @@ struct Parser {
     /// diagram's do not ([`described`]).
     classes: bool,
     notes_made: usize,
+    /// The boxes lines made, in the order of their lines, as their ends
+    /// are found once every box is declared: where names belong to their
+    /// packages, a line that found nothing finds the one a line before it
+    /// made, as PlantUML makes it when it reads that line.
+    made: Vec<Vec<usize>>,
     /// The last `left to right direction` or `top to bottom direction`,
     /// which holds for the whole diagram, inside packages too, as in
     /// PlantUML.
@@ -661,6 +666,7 @@ impl Default for Parser {
             separator: Some(".".to_owned()),
             classes: true,
             notes_made: 0,
+            made: Vec::new(),
             direction: None,
             together: Vec::new(),
             hides: Vec::new(),
@@ -986,7 +992,7 @@ impl Parser {
                         self.insert_at(&decl, &home, &label)?
                     }
                 }
-            } else if let Some(path) = self.find_by(&decl.key, Lookup::Declared) {
+            } else if let Some(path) = self.find_from(&decl.key, Lookup::Declared, &here) {
                 self.merge(&path, &decl)?;
                 path
             } else {
@@ -1312,13 +1318,24 @@ impl Parser {
         }
         // A short name finds its class where the line stands, as PlantUML
         // reads it: a `C` declared later is not the line's.
-        let found = [&rel.from, &rel.to].map(|raw| {
-            self.find_by(&raw.key, Lookup::Key)
-                .is_none()
-                .then(|| self.find(&raw.key))
-                .flatten()
-        });
-        let strict = [&rel.from, &rel.to].map(|raw| self.find(&raw.key).is_none());
+        let here = self.here();
+        let (found, strict) = if self.namespaced() {
+            let found =
+                [&rel.from, &rel.to].map(|raw| self.find_near(&raw.key, Lookup::Line, &here));
+            let strict = [found[0].is_none(), found[1].is_none()];
+            (found, strict)
+        } else {
+            let found = [&rel.from, &rel.to].map(|raw| {
+                self.find_by(&raw.key, Lookup::Key)
+                    .is_none()
+                    .then(|| self.find(&raw.key))
+                    .flatten()
+            });
+            (
+                found,
+                [&rel.from, &rel.to].map(|raw| self.find(&raw.key).is_none()),
+            )
+        };
         self.named_by_line(&rel.from);
         self.named_by_line(&rel.to);
         self.pending.push(Pending {
@@ -1379,9 +1396,21 @@ impl Parser {
             }
             None => {
                 let lookup = if strict { Lookup::Key } else { Lookup::Line };
-                if let Some(path) = self.find_by(&raw.key, lookup) {
+                if let Some(path) = self.find_from(&raw.key, lookup, home) {
                     self.upgrade(&path, raw, line)?;
                     return Ok(path);
+                }
+                if strict && self.namespaced() {
+                    let named = |path: &&Vec<usize>| {
+                        let node = self.node(path);
+                        node.key == raw.key || node.label.value == raw.key
+                    };
+                    let made: Vec<Vec<usize>> = self.made.iter().filter(named).cloned().collect();
+                    if let [path] = made.as_slice() {
+                        let path = path.clone();
+                        self.upgrade(&path, raw, line)?;
+                        return Ok(path);
+                    }
                 }
                 (home.to_vec(), raw.label.clone())
             }
@@ -1409,6 +1438,7 @@ impl Parser {
         });
         let mut path = home.to_vec();
         path.push(index);
+        self.made.push(path.clone());
         Ok(path)
     }
 
@@ -1439,6 +1469,60 @@ impl Parser {
 
     fn find(&self, name: &str) -> Option<Vec<usize>> {
         self.find_by(name, Lookup::Line)
+    }
+
+    /// Whether names belong to the packages they stand in, as in a class
+    /// diagram whose names part (`a.C` and `b.C` are two classes); in a
+    /// description diagram, or under `set separator none`, a name is the
+    /// whole diagram's.
+    fn namespaced(&self) -> bool {
+        self.classes && self.separator.is_some()
+    }
+
+    /// The box `name` names, written in the package at `home`
+    /// ([`Self::find_near`] where names belong to their packages).
+    fn find_from(&self, name: &str, lookup: Lookup, home: &[usize]) -> Option<Vec<usize>> {
+        if self.namespaced() {
+            self.find_near(name, lookup, home)
+        } else {
+            self.find_by(name, lookup)
+        }
+    }
+
+    /// The box `name` names in the package at `home`, as PlantUML finds
+    /// it where names belong to their packages: there, by its key or as
+    /// the whole name made there (`a.b.C` in `a.b`); else, for a line that
+    /// finds what stands already ([`Lookup::Line`]), the one box of that
+    /// name anywhere. A declaration and a line that came first make one
+    /// in their own package.
+    fn find_near(&self, name: &str, lookup: Lookup, home: &[usize]) -> Option<Vec<usize>> {
+        fn every(group: &Group, path: &mut Vec<usize>, name: &str, found: &mut Vec<Vec<usize>>) {
+            for (index, node) in group.nodes.iter().enumerate() {
+                path.push(index);
+                if node.key == name || node.label.value == name {
+                    found.push(path.clone());
+                }
+                every(&node.children, path, name, found);
+                path.pop();
+            }
+        }
+        let sep = self.separator.as_deref().unwrap_or(".");
+        let whole = format!("{sep}{name}");
+        let here = |node: &Element| {
+            node.key == name || (node.label.value == name && node.key.ends_with(&whole))
+        };
+        if let Some(at) = self.container(home).nodes.iter().position(here) {
+            return Some([home, &[at]].concat());
+        }
+        if lookup != Lookup::Line {
+            return None;
+        }
+        let mut found = Vec::new();
+        every(&self.root, &mut Vec::new(), name, &mut found);
+        match found.len() {
+            1 => found.pop(),
+            _ => None,
+        }
     }
 
     /// The box `name` names: by its key; else, unless `lookup` takes keys
@@ -4262,6 +4346,107 @@ mod tests {
             "@startuml\nclass A {\n  int x\n}\nnote right of A::x\n  on x\nend note\nremove A\n@enduml\n",
         );
         assert!(d.root.notes.is_empty());
+    }
+
+    /// Names belong to the packages they stand in, as PlantUML reads a
+    /// class diagram: `class C` in two packages is two classes, a line
+    /// finds its package's first, else the one of that name, and a line
+    /// or a declaration that came first makes its own. Under `set
+    /// separator none` and in a description diagram a name is the whole
+    /// diagram's.
+    #[test]
+    fn names_belong_to_their_packages() {
+        fn walk(group: &Group, at: &str, boxes: &mut Vec<String>, lines: &mut Vec<String>) {
+            let name = |group: &Group, path: &[usize]| {
+                let mut group = group;
+                let mut parts = Vec::new();
+                for &index in path {
+                    parts.push(group.nodes[index].label.value.clone());
+                    group = &group.nodes[index].children;
+                }
+                let inner = parts.join("/");
+                if at.is_empty() {
+                    inner
+                } else {
+                    format!("{at}/{inner}")
+                }
+            };
+            for edge in &group.edges {
+                lines.push(format!(
+                    "{}>{}",
+                    name(group, &[edge.from]),
+                    name(group, &[edge.to])
+                ));
+            }
+            for crossing in &group.crossings {
+                lines.push(format!(
+                    "{}>{}",
+                    name(group, &crossing.from),
+                    name(group, &crossing.to)
+                ));
+            }
+            for node in &group.nodes {
+                let here = if at.is_empty() {
+                    node.label.value.clone()
+                } else {
+                    format!("{at}/{}", node.label.value)
+                };
+                boxes.push(here.clone());
+                walk(&node.children, &here, boxes, lines);
+            }
+        }
+        let read = |body: &str| {
+            let d = diagram(&format!("@startuml\n{body}\n@enduml\n"));
+            let (mut boxes, mut lines) = (Vec::new(), Vec::new());
+            walk(&d.root, "", &mut boxes, &mut lines);
+            boxes.sort();
+            lines.sort();
+            (boxes.join(" "), lines.join(" "))
+        };
+        let (a, b) = ("package a {\n  class C\n}\n", "package b {\n  class C\n}\n");
+        assert_eq!(read(&format!("{a}{b}")).0, "a a/C b b/C");
+        assert_eq!(read(&format!("set separator none\n{a}{b}")).0, "a a/C b");
+        assert_eq!(
+            read(&format!(
+                "{a}package b {{\n  class C\n  C --> D\n}}\nC --> E"
+            )),
+            ("C E a a/C b b/C b/D".into(), "C>E b/C>b/D".into())
+        );
+        assert_eq!(
+            read(&format!("{a}package b {{\n  C --> D\n}}")),
+            ("a a/C b b/D".into(), "a/C>b/D".into())
+        );
+        assert_eq!(read(&format!("class C\n{b}")).0, "C b b/C");
+        assert_eq!(read(&format!("{a}{b}a.C --> b.C")).1, "a/C>b/C");
+        assert_eq!(
+            read(&format!("C --> D\n{b}")),
+            ("C D b b/C".into(), "C>D".into())
+        );
+        assert_eq!(
+            read("package b {\n  C --> D\n}\nclass C"),
+            ("C b b/C b/D".into(), "b/C>b/D".into())
+        );
+        assert_eq!(read(&format!("{a}{a}")).0, "a a/C");
+        assert_eq!(
+            read("package a {\n  class C {\n    x\n  }\n}\nclass a.C {\n  y\n}").0,
+            "a a/C"
+        );
+        let (boxes, lines) = read(&format!("{b}note right of C : n\nC --> X"));
+        assert_eq!((boxes.as_str(), lines.as_str()), ("X b b/C", "b/C>X"));
+        // A line finds what a line before it made, as PlantUML makes it
+        // when it reads that line (the guide's `Object` in two packages).
+        assert_eq!(
+            read("package P {\n  Object <|-- ArrayList\n}\npackage q {\n  Object <|-- Demo1\n}"),
+            (
+                "P P/ArrayList P/Object q q/Demo1".into(),
+                "P/Object>P/ArrayList P/Object>q/Demo1".into()
+            )
+        );
+        // Components are the whole diagram's.
+        assert_eq!(
+            read("package a {\n  [C]\n}\npackage b {\n  [C]\n}").0,
+            "a a/C b"
+        );
     }
 
     /// A class diagram as PlantUML tells it from a description diagram: a

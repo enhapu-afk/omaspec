@@ -1029,6 +1029,18 @@ is open and the reasoning around it.
       before them or not); else the stereotype is words, shown as written
       (`<<x, y>>`, `<<(S,#F70)>>`), in sequence diagrams too. The caret
       lights a line's shape without words only on the line's first word.
+- [x] Names belong to their packages in a class diagram (2026-11-28), as
+      PlantUML reads it: `class C` in two packages is two classes (`a.C`,
+      `b.C`), where Omaspec had made one and left the second package
+      empty. A declaration finds a box of its own package alone, by its
+      name or as the whole name made there (`class a.C` after `package a
+      { class C }` is that one); a line finds its package's box first,
+      else the one box of that name anywhere, else the one a line before
+      it made, and else makes its own in its package. A line written
+      before a class of its name was declared in another package keeps a
+      box of its own, and a tag goes with its own box alone. Under `set
+      separator none` and in a description diagram a name is the whole
+      diagram's, as before.
 
 ### Step 5: what every diagram shares
 

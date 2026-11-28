@@ -1072,10 +1072,16 @@ mod tests {
 
     #[test]
     fn a_tag_belongs_to_the_box_it_is_written_on() {
-        // Names belong to the whole diagram: a second `class A` is the
-        // same box, and its tag goes with it.
+        // Names belong to their packages: the `A` of `Q` is another box,
+        // and keeps no tag of `P`'s, as in PlantUML.
         let d = diagram(
             "package P {\n  class A $t\n  class B\n}\npackage Q {\n  class A\n  class C\n}\nremove $t",
+        );
+        assert_eq!(keys(&d.root.nodes[0].children), ["B"]);
+        assert_eq!(keys(&d.root.nodes[1].children), ["A", "C"]);
+        // Where names are the whole diagram's, the second is the same box.
+        let d = diagram(
+            "set separator none\npackage P {\n  class A $t\n  class B\n}\npackage Q {\n  class A\n  class C\n}\nremove $t",
         );
         assert_eq!(keys(&d.root.nodes[0].children), ["B"]);
         assert_eq!(keys(&d.root.nodes[1].children), ["C"]);
