@@ -1078,6 +1078,22 @@ is open and the reasoning around it.
       has none. Its words are tied to their line, and read on a fill of
       the writer's. A hidden line takes none, and a note needs a line
       before it. The guide: the class diagram 65 of 84, 578 of 897.
+- [x] What the review of the whole names in `hide` found (2026-11-28).
+      Packages of one name in two packages are two again (`a.util`,
+      `b.util`), as any box that holds others belongs to the package it
+      is declared in. A part of a class at the top (`hide C members`,
+      `show C members`, `hide C circle`) is the one class of that name
+      anywhere, as PlantUML finds it; of two it is declined, as PlantUML
+      finds none. A parent (`extends`, `implements`) is made as its
+      declaration is read, so a later line finds it. A whole name is
+      found through its packages from where it is written, then from the
+      top, by an association class's pair and by a note too; a box of no
+      class's kind by its name (`note "x" as a.N`). `hide a.C` names the
+      `a.C` declared in the package it is written in, and a whole name
+      made there is that package's (`y.a.C`). An object and a package are
+      named by their whole names; the end of a whole name (`hide b.C`)
+      passes by. A note without `of` is on the box the line before it
+      made. A note named as a box a line made is refused, as in PlantUML.
 
 ### Step 5: what every diagram shares
 

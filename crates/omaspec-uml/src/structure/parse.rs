@@ -998,9 +998,17 @@ impl Parser {
                         self.insert_at(&decl, &home, &label)?
                     }
                 }
-            } else if let Some(path) =
-                self.find_from(&decl.key, Lookup::Declared, &here, Some(decl.shape))
+            } else if let Some(path) = if self.namespaced()
+                && (SpotKind::of_shape(decl.shape).is_some()
+                    || decl.open == Open::Group
+                    || decl.shape == Shape::Package)
             {
+                // A class and its kin, and a package or any box that holds
+                // others, belong to the package they are declared in.
+                self.find_near(&decl.key, Lookup::Declared, &here)
+            } else {
+                self.find_by(&decl.key, Lookup::Declared)
+            } {
                 self.merge(&path, &decl)?;
                 path
             } else {
@@ -1038,6 +1046,18 @@ impl Parser {
         }
         let home = self.here();
         for parent in &decl.parents {
+            // Where names belong to their packages, a parent is made in
+            // the declaration's package as it is read, as PlantUML makes
+            // it; a later line finds it.
+            let found = if self.near(parent.raw.shape) && parent.raw.pair().is_none() {
+                let made = match self.find_near(&parent.raw.key, Lookup::Key, &home) {
+                    Some(at) => at,
+                    None => self.ensure(&parent.raw, &home, decl.line, true)?,
+                };
+                [Some(made), Some(path.clone())]
+            } else {
+                [None, None]
+            };
             self.pending.push(Pending {
                 from: parent.raw.clone_name(),
                 to: RawName {
@@ -1059,7 +1079,7 @@ impl Parser {
                 line: decl.line,
                 home: home.clone(),
                 strict: [true, false],
-                found: [None, None],
+                found,
                 note: None,
             });
         }
@@ -1237,12 +1257,19 @@ impl Parser {
     /// The box a whole name (`a.b.C`) names through the packages it
     /// stands in, by their labels from the top; none is made.
     fn through_packages(&self, name: &str) -> Option<Vec<usize>> {
+        self.through_from(&[], name)
+    }
+
+    /// The box a whole name (`a.b.C`) names through the packages from the
+    /// one at `home`: each part a package there by its name, the last the
+    /// box.
+    fn through_from(&self, home: &[usize], name: &str) -> Option<Vec<usize>> {
         let sep = self.separator.as_deref().filter(|_| self.classes)?;
         let parts: Vec<&str> = name.split(sep).collect();
         if parts.len() < 2 {
             return None;
         }
-        let mut path = Vec::new();
+        let mut path = home.to_vec();
         for (at, part) in parts.iter().enumerate() {
             let last = at + 1 == parts.len();
             let index = self.container(&path).nodes.iter().position(|node| {
@@ -1338,7 +1365,13 @@ impl Parser {
                 }
                 found[at] = match self.find_near(&raw.key, Lookup::Line, &here) {
                     Some(path) => Some(path),
-                    None => Some(self.ensure(raw, &here, line, true)?),
+                    None => {
+                        let path = self.ensure(raw, &here, line, true)?;
+                        // Made by this line: a note without `of` after it
+                        // is on it.
+                        self.named.remove(&raw.key);
+                        Some(path)
+                    }
                 };
             }
             let strict = [found[0].is_none(), found[1].is_none()];
@@ -1534,9 +1567,36 @@ impl Parser {
             }
         }
         let sep = self.separator.as_deref().unwrap_or(".");
-        // A whole name (`a.C`) is found through its packages alone.
+        // A whole name (`a.C`): a box of no class's kind by it, as the
+        // whole diagram's (`note "x" as a.N`); a class through its
+        // packages, from where the line stands, else from the top.
         if name.contains(sep) {
-            return None;
+            let mut found = Vec::new();
+            fn keyed(
+                group: &Group,
+                path: &mut Vec<usize>,
+                name: &str,
+                found: &mut Vec<Vec<usize>>,
+            ) {
+                for (index, node) in group.nodes.iter().enumerate() {
+                    path.push(index);
+                    if node.key == name
+                        && SpotKind::of_shape(node.shape).is_none()
+                        && !node.composite
+                    {
+                        found.push(path.clone());
+                    }
+                    keyed(&node.children, path, name, found);
+                    path.pop();
+                }
+            }
+            keyed(&self.root, &mut Vec::new(), name, &mut found);
+            if let [path] = found.as_slice() {
+                return Some(path.clone());
+            }
+            return self
+                .through_from(home, name)
+                .or_else(|| self.through_from(&[], name));
         }
         let whole = format!("{sep}{name}");
         // By its name, or as the whole name made (`a.C` of `C`); an
@@ -2069,6 +2129,13 @@ impl Parser {
     }
 
     fn insert_note(&mut self, key: &str, label: Text, line: usize) -> Result<(), Declined> {
+        // A line made a box of that name already: PlantUML refuses it.
+        if self.find_by(key, Lookup::Key).is_some() {
+            return Err(Declined::refused(
+                line,
+                format!("`{key}` is an element already, and no note"),
+            ));
+        }
         self.recent = Recent::Note;
         let here = self.here();
         let index = self.container(&here).nodes.len();
@@ -4628,6 +4695,40 @@ mod tests {
             "@startuml\npackage a {\n  class C\n}\npackage b {\n  class C {\n    int y\n  }\n  note right of C::y\n    n\n  end note\n}\n@enduml\n",
         );
         assert_eq!(d.root.nodes[1].children.notes[0].member, Some(0));
+        // Packages of one name in two packages are two.
+        assert_eq!(
+            read("package a {\n  package util {\n    class X\n  }\n}\npackage b {\n  package util {\n    class Y\n  }\n}").0,
+            "a a/util a/util/X b b/util b/util/Y"
+        );
+        // A parent is made as its declaration is read: a later line finds it.
+        assert_eq!(
+            read("class Dog extends Animal\npackage zoo {\n  Animal --> Keeper\n}"),
+            (
+                "Animal Dog zoo zoo/Keeper".into(),
+                "Animal>Dog Animal>zoo/Keeper".into()
+            )
+        );
+        // A whole name is found through its packages, from where it is
+        // written too; a box of no class's kind by its name.
+        assert!(
+            read("class a.C\nclass a.D\n(a.C, a.D) .. K")
+                .0
+                .contains("a/C")
+        );
+        let d =
+            diagram("@startuml\npackage x {\n  class a.C\n  note right of a.C : n\n}\n@enduml\n");
+        assert_eq!(d.root.nodes[0].children.nodes[0].children.notes.len(), 1);
+        assert_eq!(read("class C\nnote \"x\" as a.N\na.N .. C").0, "C x");
+        // A note without `of` is on the box the line before it made.
+        let d = diagram(
+            "@startuml\npackage P {\n  class X\n}\npackage Q {\n  class X\n}\npackage R {\n  B --> X\n  note right : n\n}\n@enduml\n",
+        );
+        let r = &d.root.nodes[2].children;
+        assert_eq!(r.nodes[r.notes[0].target].key, "X");
+        // A note named as a box a line made: PlantUML refuses it.
+        let source = "@startuml\nclass A\nA --> N\nnote \"x\" as N\n@enduml\n";
+        let (_, lines) = crate::source::body(source).unwrap();
+        assert!(parse(&lines).unwrap_err().refused);
         // An association class's pair is found from where it is written.
         let d = diagram(
             "@startuml\npackage a {\n  class A\n  class B\n}\npackage b {\n  class A\n  class B\n  (A, B) .. K\n}\n@enduml\n",

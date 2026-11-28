@@ -421,22 +421,30 @@ pub(super) fn apply(
 }
 
 /// The whole name of the box at `path` through the packages it stands
-/// in, by their names; a box made from a whole name has it already.
+/// in, by their names. A box made from a whole name has it from the
+/// package it was written in: `a.C` in the `a` made in `y` is `y.a.C`.
 fn whole_of(root: &Group, path: &[usize], sep: &str) -> String {
-    (1..=path.len()).fold(String::new(), |whole, depth| {
+    let mut whole = String::new();
+    let mut above = String::new();
+    for depth in 1..=path.len() {
         let key = &node(root, &path[..depth]).key;
-        if whole.is_empty() || key.starts_with(&format!("{whole}{sep}")) {
+        whole = if whole.is_empty() {
             key.clone()
+        } else if let Some(rest) = key.strip_prefix(&format!("{above}{sep}")) {
+            format!("{whole}{sep}{rest}")
         } else {
             format!("{whole}{sep}{key}")
-        }
-    })
+        };
+        above.clone_from(key);
+    }
+    whole
 }
 
-/// Whether a box of `el`'s kind belongs to its package where names do:
-/// a class and its kin, not an actor or a component under `allowmixing`.
+/// Whether a box of `el`'s kind is named by its whole name where names
+/// belong to their packages: a class and its kin, an object, a package;
+/// not an actor or a component under `allowmixing`.
 fn classed(el: &Element) -> bool {
-    super::SpotKind::of_shape(el.shape).is_some()
+    super::SpotKind::of_shape(el.shape).is_some() || el.shape == Shape::Object || el.composite
 }
 
 /// The directives with each name that is no box read as a kind's word.
@@ -458,6 +466,7 @@ fn resolved(
         .map(|directive| {
             let mut directive = directive.clone();
             let whole_box = matches!(directive.what, What::Seen { .. } | What::Kept { .. });
+            let part = matches!(directive.what, What::Part { .. });
             let target = match &mut directive.what {
                 What::Part { target, .. }
                 | What::Seen { target, .. }
@@ -476,23 +485,50 @@ fn resolved(
             // its whole name from where the line stands (`hide C` in `a`
             // is `a.C`); one only a short name meets PlantUML passes by.
             if let (Some(sep), Target::Name(name)) = (separator, &*target) {
-                let wanted = if directive.home.is_empty() {
+                let mut wanted = if directive.home.is_empty() {
                     name.clone()
                 } else {
                     format!("{}{sep}{name}", whole_of(root, &directive.home, sep))
                 };
                 let short = name.clone();
-                let meets = |path: &Vec<usize>, whole: &Option<String>| {
-                    let el = node(root, path);
-                    whole_names(el, whole.as_deref(), sep, &short, &wanted)
-                };
-                let met = boxes
-                    .iter()
-                    .zip(whole)
-                    .any(|(path, whole)| meets(path, whole));
+                let mut met = boxes.iter().zip(whole).any(|(path, whole)| {
+                    whole_names(node(root, path), whole.as_deref(), sep, &short, &wanted)
+                });
+                // A part of a box (`hide C members`) at the top is the one
+                // class of that name anywhere, as PlantUML finds it; of
+                // two, PlantUML finds none.
+                if !met && part && directive.home.is_empty() && !short.contains(sep) {
+                    let found: Vec<&Vec<usize>> = boxes
+                        .iter()
+                        .filter(|path| {
+                            let el = node(root, path);
+                            classed(el)
+                                && !el.composite
+                                && (el.key == short || el.label.value == short)
+                        })
+                        .collect();
+                    match found.as_slice() {
+                        [path] => {
+                            wanted = whole_of(root, path, sep);
+                            met = true;
+                        }
+                        [] => {}
+                        _ => {
+                            return Err(Declined::at(
+                                directive.line,
+                                format!("more than one class is called `{short}`"),
+                            ));
+                        }
+                    }
+                }
+                // A short name, or the end of a whole one, of a class in a
+                // package that names none PlantUML passes by.
                 let shortly = boxes.iter().any(|path| {
                     let el = node(root, path);
-                    classed(el) && (el.key == short || el.label.value == short)
+                    classed(el)
+                        && (el.key == short
+                            || el.label.value == short
+                            || whole_of(root, path, sep).ends_with(&format!("{sep}{short}")))
                 });
                 if met || shortly {
                     *target = Target::Whole { short, wanted };
@@ -1155,6 +1191,37 @@ mod tests {
         assert_eq!(read("package a {\n  [C]\n}\nhide C"), "a/C");
         let d = diagram(&format!("{a}remove C"));
         assert_eq!(keys(&d.root.nodes[0].children), ["C"]);
+        // A whole name made in a package is that package's.
+        assert_eq!(read("package y {\n  class a.C\n  hide a.C\n}"), "y/a/a.C");
+        assert_eq!(read("package y {\n  class a.C\n}\nhide y.a.C"), "y/a/a.C");
+        // An object and a package are named by their whole names too; the
+        // end of a whole name passes by.
+        assert_eq!(read("package p {\n  object o\n}\nhide o"), "");
+        assert_eq!(
+            read("package a {\n  package b {\n    class C\n  }\n}\nhide b"),
+            ""
+        );
+        assert_eq!(
+            read("package a {\n  package b {\n    class C\n  }\n}\nhide b.C"),
+            ""
+        );
+    }
+
+    /// A part of a class at the top (`hide C members`) is the one class of
+    /// that name anywhere, as PlantUML finds it; of two, it finds none.
+    #[test]
+    fn a_part_is_the_one_class_of_its_name() {
+        let d = diagram("package a {\n  class C {\n    int x\n  }\n}\nhide C members");
+        assert!(d.root.nodes[0].children.nodes[0].members.is_empty());
+        let d = diagram(
+            "package a {\n  class C {\n    int x\n  }\n}\nclass D\nhide members\nshow C members",
+        );
+        assert_eq!(d.root.nodes[0].children.nodes[0].members.len(), 1);
+        let d = diagram("package a {\n  class C\n}\nhide C circle");
+        assert!(d.root.nodes[0].children.nodes[0].spot.is_none());
+        let source = "@startuml\npackage a {\n  class C\n}\npackage b {\n  class C\n}\nhide C members\n@enduml\n";
+        let (_, lines) = crate::source::body(source).unwrap();
+        assert!(super::super::parse(&lines).is_err());
     }
 
     #[test]
