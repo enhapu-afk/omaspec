@@ -177,6 +177,46 @@ mod tests {
         }
     }
 
+    /// The line a note is on, as PlantUML takes it: not one to a note,
+    /// nor one `together` holds its boxes by; on the half with the words
+    /// of a line an association class splits; a note without `of` after
+    /// it is on the box made last still.
+    #[test]
+    fn the_line_it_is_on() {
+        let d = diagram("class A\nA --> B : ab\nnote \"free\" as N\nN .. A\nnote on link : which");
+        let noted = d.root.edges.iter().filter(|e| e.note.is_some()).count();
+        let first = d.root.edges.iter().position(|e| e.note.is_some()).unwrap();
+        assert_eq!(noted, 1);
+        assert_eq!(d.root.edges[first].label.as_ref().unwrap().value, "ab");
+        let d =
+            diagram("class A\nA --> B : ab\ntogether {\n  class C\n  class D\n}\nnote on link : n");
+        assert!(d.root.edges.iter().any(|e| e.note.is_some()));
+        let d = diagram("class A\nA --> B : ab\nnote on link : on ab\n(A, B) .. C");
+        assert_eq!(d.root.edges.iter().filter(|e| e.note.is_some()).count(), 1);
+        let d = diagram("class A\nA --> B\nnote on link : ln\nnote right : after");
+        assert_eq!(d.root.nodes[d.root.notes[0].target].key, "B");
+    }
+
+    /// The room of a note on a line has no words of its own, and is room
+    /// all the same: other words keep off it.
+    #[test]
+    fn the_room_is_room() {
+        let note = crate::structure::LinkNote {
+            side: None,
+            text: crate::common::text_at("n", 0),
+            fill: None,
+        };
+        let skin = crate::structure::skin::Skin::default();
+        let (room, _) = super::measure(
+            &note,
+            crate::text::Block::empty(),
+            &skin,
+            crate::text::Family::Inter,
+        )
+        .unwrap();
+        assert!(room.is_empty() && super::super::has_room(&room));
+    }
+
     /// The note stands under the line's words, or on the side written;
     /// its words are tied to their line.
     #[test]

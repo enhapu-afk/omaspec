@@ -1622,9 +1622,20 @@ impl Parser {
             if let [path] = found.as_slice() {
                 return Some(path.clone());
             }
-            return self
-                .through_from(home, name)
-                .or_else(|| self.through_from(&[], name));
+            // From the top where its first package stands there, as
+            // PlantUML finds it, else from where it is written.
+            let first = name.split(sep).next().unwrap_or(name);
+            let at_top = self
+                .root
+                .nodes
+                .iter()
+                .any(|node| node.composite && (node.key == first || node.label.value == first));
+            return if at_top {
+                self.through_from(&[], name)
+            } else {
+                self.through_from(home, name)
+                    .or_else(|| self.through_from(&[], name))
+            };
         }
         let whole = format!("{sep}{name}");
         // By its name, or as the whole name made (`a.C` of `C`); an
@@ -2016,7 +2027,26 @@ impl Parser {
         if note.value.trim().is_empty() {
             return Err(Declined::at(no, "a note needs text"));
         }
-        let Some(line) = self.pending.last_mut() else {
+        // The line written last, as PlantUML takes it: not one to a note,
+        // nor one `together` holds its boxes by.
+        let notes: Vec<bool> = self
+            .pending
+            .iter()
+            .map(|item| {
+                [&item.from, &item.to].iter().any(|end| {
+                    self.find_by(&end.key, Lookup::Key)
+                        .is_some_and(|path| self.node(&path).shape == Shape::Note)
+                })
+            })
+            .collect();
+        let Some(line) = self
+            .pending
+            .iter_mut()
+            .zip(notes)
+            .rev()
+            .find(|(item, to_note)| !to_note && !(item.hidden && item.toward == Some(ACROSS)))
+            .map(|(item, _)| item)
+        else {
             return Err(Declined::at(no, "`note on link` needs a line before it"));
         };
         if line.hidden {
@@ -2028,7 +2058,7 @@ impl Parser {
             text: note,
             fill,
         });
-        self.recent = Recent::Note;
+        // A note without `of` after it is on the box made last still.
         Ok(Some(next))
     }
 
@@ -2162,8 +2192,22 @@ impl Parser {
     }
 
     fn insert_note(&mut self, key: &str, label: Text, line: usize) -> Result<(), Declined> {
-        // A line made a box of that name already: PlantUML refuses it.
-        if self.find_by(key, Lookup::Key).is_some() {
+        // A box of that name stands already where the note is written, or
+        // is the whole diagram's: PlantUML refuses it. A class of that name
+        // in another package is another.
+        let here = self.here();
+        let taken = if self.namespaced() {
+            self.container(&here)
+                .nodes
+                .iter()
+                .any(|node| node.key == key)
+                || self
+                    .find_by(key, Lookup::Key)
+                    .is_some_and(|path| !self.near(Some(self.node(&path).shape)))
+        } else {
+            self.find_by(key, Lookup::Key).is_some()
+        };
+        if taken {
             return Err(Declined::refused(
                 line,
                 format!("`{key}` is an element already, and no note"),
@@ -4822,6 +4866,21 @@ mod tests {
         );
         let r = &d.root.nodes[2].children;
         assert_eq!(r.nodes[r.notes[0].target].key, "X");
+        // A note named as a class of another package is another box; of
+        // its own package, PlantUML refuses it.
+        assert!(
+            read("package p {\n  class N\n}\nclass A\nnote \"x\" as N\nN .. A")
+                .0
+                .contains("p/N")
+        );
+        let source = "@startuml\nclass N\nnote \"x\" as N\n@enduml\n";
+        let (_, lines) = crate::source::body(source).unwrap();
+        assert!(parse(&lines).unwrap_err().refused);
+        // A whole name from the top where its first package stands there.
+        assert_eq!(
+            read("class a.C\npackage x {\n  package a {\n    class C\n  }\n  a.C --> D\n}").1,
+            "a/C>x/D"
+        );
         // A note named as a box a line made: PlantUML refuses it.
         let source = "@startuml\nclass A\nA --> N\nnote \"x\" as N\n@enduml\n";
         let (_, lines) = crate::source::body(source).unwrap();

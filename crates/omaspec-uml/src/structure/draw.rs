@@ -1127,7 +1127,7 @@ fn nudge(note: &mut PlacedNote, side: Side, edges: &[PlacedEdge]) {
         );
         let hit = edges
             .iter()
-            .any(|edge| !edge.label.is_empty() && overlap(text, label_box(edge)));
+            .any(|edge| has_room(&edge.label) && overlap(text, label_box(edge)));
         if !hit {
             break;
         }
@@ -1307,13 +1307,19 @@ fn is_flat(shape: Shape) -> bool {
     )
 }
 
+/// Whether a line's words take room: words, or the room of a note on it
+/// with them ([`link_note`]), which has no words of its own.
+fn has_room(label: &Block) -> bool {
+    label.width > 0.0 && label.height > 0.0
+}
+
 fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
     for edge in &scene.edges {
         if edge.points.len() < 2 {
             continue;
         }
         drawn.lines.push(edge.points.clone());
-        if !edge.label.is_empty() {
+        if has_room(&edge.label) {
             drawn.labels.push(Rect {
                 x: edge.label_at.0,
                 y: edge.label_at.1,

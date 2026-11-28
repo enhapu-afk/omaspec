@@ -1106,6 +1106,18 @@ is open and the reasoning around it.
       different: boxes one over the other stand closer than in PlantUML,
       whose lines curve wide around them. The guide: the class diagram 67
       of 84, 580 of 897.
+- [x] What the review of the notes on lines and of the whole names found
+      (2026-11-28). A note's name beside a class of that name in another
+      package, or a box a line made there, is another box, as PlantUML
+      draws it; it was refused, with no Java to fall back on. A whole
+      name is found from the top where its first package stands there,
+      as PlantUML finds it, else from where it is written. An alias's
+      words are no class's name for `hide C members`. A note on a line is
+      drawn once on a line an association class splits, on the half with
+      the words; it is on the line written last that is not one to a note
+      nor one `together` made; a note without `of` after it is on the box
+      made last. The room of a note on a line, which has no words of its
+      own, is kept clear by other words and lines all the same.
 
 ### Step 5: what every diagram shares
 

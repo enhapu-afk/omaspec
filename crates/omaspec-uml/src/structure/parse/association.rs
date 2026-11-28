@@ -179,11 +179,13 @@ impl Parser {
                     to_card: None,
                     ..edge.clone()
                 };
+                // The words and a note on the line stay on its first half.
                 let second = Link {
                     from: point,
                     from_head: Head::None,
                     from_card: None,
                     label: None,
+                    note: None,
                     ..edge.clone()
                 };
                 let at = at.unwrap_or(group.edges.len());

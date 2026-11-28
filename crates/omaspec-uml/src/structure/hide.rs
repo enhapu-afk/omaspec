@@ -502,9 +502,12 @@ fn resolved(
                         .iter()
                         .filter(|path| {
                             let el = node(root, path);
+                            // By its name, or the last part of a whole one,
+                            // not an alias's words.
+                            let made = el.key.ends_with(&format!("{sep}{short}"));
                             classed(el)
                                 && !el.composite
-                                && (el.key == short || el.label.value == short)
+                                && (el.key == short || (el.label.value == short && made))
                         })
                         .collect();
                     match found.as_slice() {
@@ -1219,6 +1222,12 @@ mod tests {
         assert_eq!(d.root.nodes[0].children.nodes[0].members.len(), 1);
         let d = diagram("package a {\n  class C\n}\nhide C circle");
         assert!(d.root.nodes[0].children.nodes[0].spot.is_none());
+        // An alias's words are no class's name.
+        let d = diagram(
+            "package a {\n  class C {\n    int x\n  }\n}\npackage b {\n  class \"C\" as X {\n    int y\n  }\n}\nhide C members",
+        );
+        assert!(d.root.nodes[0].children.nodes[0].members.is_empty());
+        assert_eq!(d.root.nodes[1].children.nodes[0].members.len(), 1);
         let source = "@startuml\npackage a {\n  class C\n}\npackage b {\n  class C\n}\nhide C members\n@enduml\n";
         let (_, lines) = crate::source::body(source).unwrap();
         assert!(super::super::parse(&lines).is_err());
