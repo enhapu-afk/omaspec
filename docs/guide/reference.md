@@ -1116,9 +1116,14 @@ deciding: a part of the boxes (`hide members`, `hide private fields`, `show Foo 
 boxes without a line (`@unlinked`) and those declared with a tag (`class C $draft`,
 `remove $draft`, `remove *`, `restore $keep`). A hidden box keeps its place and is not
 drawn, nor are its lines; a removed one is gone with its lines and notes. Omaspec draws no
-empty compartment and no circle before a class name, so `hide empty members` changes
-nothing, and `hide circle` takes away the word that stands for the circle
-(«interface»). A file of lines alone (`Usuario <|-- Cliente`) is a class diagram, as in
+empty compartment, so `hide empty members` changes nothing. A class's name has the circle
+PlantUML draws before it, its letter and color by its kind (`C`, `I`, `A`, `E`, `@`, and
+`P`, `S`, `X`, `M`, `R`, `D` for `protocol`, `struct`, `exception`, `metaclass`, `record`,
+`dataclass`), or by its stereotype (`<< (S,#FF7700) Singleton >>`); `skinparam
+stereotypeCBackgroundColor` and its kin, a style (`spot { spotEntity { BackgroundColor … }
+}`) and `circledCharacterRadius` set it, `hide circle` and `skinparam style strictuml` take
+it away. In the Omarchy look the circles take the theme's green, magenta, cyan, yellow and
+red, and its background or text for the letter, whichever reads. A file of lines alone (`Usuario <|-- Cliente`) is a class diagram, as in
 PlantUML. `skinparam groupInheritance 2` joins the lines from two or more subclasses into
 one stem under a single triangle ([ADR 0033](../adr/0033-subclasses-as-a-tree.md)). A
 line from a class to itself with multiplicities is a wider loop, the multiplicities

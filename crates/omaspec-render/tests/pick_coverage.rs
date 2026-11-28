@@ -8,9 +8,12 @@ use omaspec_render::export::{self, usvg};
 use omaspec_render::{Config, Renderer, pick};
 
 /// Every label with its middle, in drawing order.
+/// The labels of `group`; the circle before a class's name and its letter
+/// are a mark, no label ([`omaspec_uml::SPOT`]).
 fn labels(group: &usvg::Group, out: &mut Vec<(String, f32, f32)>) {
     for node in group.children() {
         match node {
+            usvg::Node::Group(g) if g.id().starts_with(omaspec_uml::SPOT) => {}
             usvg::Node::Group(g) => labels(g, out),
             usvg::Node::Text(t) => {
                 let parts: Vec<&str> = t.chunks().iter().map(|c| c.text()).collect();

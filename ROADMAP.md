@@ -76,15 +76,14 @@ Done; what was drawn but different too (docs/DONE.md).
       and `hollow`, business use cases and actors (`(Use)/`, `:Actor:/`), a
       description over several lines in quotes, a name declared as a
       rectangle and then used as a use case, `note right of (Use)`.
-- [ ] Class (62 of 84): a note on a link (`note on link`), as the state
+- [ ] Class (64 of 84): a note on a link (`note on link`), as the state
       diagrams place it (`graph::open::Note::on`, the room of the words),
       lines between members (`Foo::field1 --> Bar::field3`), qualified ends
       (`Shop [customerId: long] ---> …`), `circle` and `diamond` (`<>`),
-      names with `$`, `-class`, `#--`, `page 2x2`, a spot with its letter
-      and color (`<< (S,#FF7700) Singleton >>`). Drawn but different: the
-      circled letters (C, I, A, E, @) as PlantUML draws them, and an
-      association class outside the package of its pair bends the pair's
-      line at the point it meets.
+      names with `$`, `-class`, `#--`, `page 2x2`. Drawn but different: an
+      association class outside the package of its pair stands a rank
+      below its point, not beside it (a line within a rank across
+      packages), and an interface's name is italic.
 - [ ] Object (4 of 13): `map`, `diamond`.
 - [ ] Component and deployment (22 of 35, 9 of 50): ports (`port`,
       `portin`, `portout`), long descriptions in brackets (`comp1 [ … ]`), a

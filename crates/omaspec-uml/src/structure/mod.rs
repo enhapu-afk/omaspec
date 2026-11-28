@@ -15,6 +15,7 @@ mod mermaid;
 mod parse;
 pub mod requirement;
 mod skin;
+mod spot;
 
 pub use crate::common::{Frame, Skinparam, Text};
 pub(crate) use draw::{ACTOR_FIGURE, paint_outline, words_area};
@@ -267,7 +268,96 @@ pub struct Element {
     pub link: Option<crate::text::Link>,
     /// `hide Name`: laid out and not drawn, nor its lines.
     pub hidden: bool,
+    /// The circle before a class's name, in a class diagram; `hide
+    /// circle` takes it away.
+    pub spot: Option<Spot>,
     pub line: usize,
+}
+
+/// The circle PlantUML draws before a class's name: its kind's letter in
+/// its kind's color (`C`, `I`, `A`, `E`, `@`), or a letter and a color of
+/// its own (`<< (S,#FF7700) Singleton >>`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Spot {
+    pub kind: SpotKind,
+    pub letter: char,
+    /// As written; the kind's color when there is none.
+    pub color: Option<String>,
+}
+
+impl Spot {
+    /// The kind's own letter, in the kind's color.
+    pub fn of(kind: SpotKind) -> Spot {
+        Spot {
+            kind,
+            letter: kind.letter(),
+            color: None,
+        }
+    }
+}
+
+/// What a class is, as its keyword says (`protocol`, `record`): each
+/// kind's circle has a letter and a color of its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SpotKind {
+    Class,
+    Abstract,
+    Interface,
+    Enum,
+    Annotation,
+    Entity,
+    Protocol,
+    Struct,
+    Exception,
+    MetaClass,
+    Record,
+    DataClass,
+}
+
+impl SpotKind {
+    pub const ALL: [SpotKind; 12] = [
+        SpotKind::Class,
+        SpotKind::Abstract,
+        SpotKind::Interface,
+        SpotKind::Enum,
+        SpotKind::Annotation,
+        SpotKind::Entity,
+        SpotKind::Protocol,
+        SpotKind::Struct,
+        SpotKind::Exception,
+        SpotKind::MetaClass,
+        SpotKind::Record,
+        SpotKind::DataClass,
+    ];
+
+    pub fn letter(self) -> char {
+        match self {
+            SpotKind::Class => 'C',
+            SpotKind::Abstract => 'A',
+            SpotKind::Interface => 'I',
+            SpotKind::Enum | SpotKind::Entity => 'E',
+            SpotKind::Annotation => '@',
+            SpotKind::Protocol => 'P',
+            SpotKind::Struct => 'S',
+            SpotKind::Exception => 'X',
+            SpotKind::MetaClass => 'M',
+            SpotKind::Record => 'R',
+            SpotKind::DataClass => 'D',
+        }
+    }
+
+    /// The kind of a box of `shape` no keyword said more of.
+    pub fn of_shape(shape: Shape) -> Option<SpotKind> {
+        Some(match shape {
+            Shape::Class => SpotKind::Class,
+            Shape::Abstract => SpotKind::Abstract,
+            Shape::Interface => SpotKind::Interface,
+            Shape::Enum => SpotKind::Enum,
+            Shape::Annotation => SpotKind::Annotation,
+            Shape::Entity => SpotKind::Entity,
+            _ => return None,
+        })
+    }
 }
 
 /// A field, a method, or a line between the two compartments.

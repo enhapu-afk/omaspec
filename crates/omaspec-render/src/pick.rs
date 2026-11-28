@@ -498,9 +498,14 @@ pub fn spot(tree: &Tree, text: &str, nth: usize) -> Option<(f32, f32, f32, f32)>
     })
 }
 
+/// The labels and the shapes of `group`. The circle before a class's name
+/// and its letter (`C`, `I`), in a group [`omaspec_uml::SPOT`] names, are
+/// a mark of its kind, no words of the source: a click on them is a click
+/// on its box, and the labels are counted without them.
 fn collect(group: &usvg::Group, texts: &mut Vec<Text>, shapes: &mut Vec<Shape>) {
     for node in group.children() {
         match node {
+            Node::Group(g) if g.id().starts_with(omaspec_uml::SPOT) => {}
             Node::Group(g) => collect(g, texts, shapes),
             Node::Text(t) => {
                 let text = t
@@ -572,6 +577,26 @@ fn paint_rgb(paint: &usvg::Paint) -> Option<[f32; 3]> {
 mod tests {
     use super::*;
     use crate::export;
+
+    /// A click on the circle before a class's name, or on its letter, is
+    /// a click on the class: its name, counted as if no letter stood.
+    #[test]
+    fn a_click_on_a_class_s_circle_finds_the_class() {
+        let svg = omaspec_uml::render("@startuml\nclass C\nclass Book\n@enduml\n").unwrap();
+        let tree = export::parse(&svg).unwrap();
+        let at = |attr: &str, from: &str| -> f32 {
+            let start = from.find(&format!(" {attr}=\"")).unwrap() + attr.len() + 3;
+            from[start..].split('"').next().unwrap().parse().unwrap()
+        };
+        let second = &svg[svg.find("id=\"spot-Book\"").unwrap()..];
+        let label = label_at(&tree, at("cx", second), at("cy", second)).unwrap();
+        assert_eq!((label.text.as_str(), label.nth), ("Book", 0));
+        // The class named C is the first `C` there is.
+        let first = &svg[svg.find("id=\"spot-C\"").unwrap()..];
+        let label = label_at(&tree, at("cx", first) + 20.0, at("cy", first)).unwrap();
+        assert_eq!((label.text.as_str(), label.nth), ("C", 0));
+        assert_eq!(texts(&tree), ["C", "Book"]);
+    }
 
     #[test]
     fn a_box_has_corners_and_other_shapes_have_none() {

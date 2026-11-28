@@ -7,7 +7,7 @@
 
 use super::{
     Crossing, Dash, Diagram, Direction, Element, Group, Head, Link, Member, Note, Shape, Side,
-    Slot, Text,
+    Slot, Spot, SpotKind, Text,
 };
 use crate::Declined;
 use crate::color::{Inline, InlineDash};
@@ -413,6 +413,9 @@ struct Decl {
     label: String,
     shape: Shape,
     stereotypes: Vec<String>,
+    /// The circle its keyword gives it (`protocol`: `P`), or the one its
+    /// stereotype writes (`<< (S,#FF7700) >>`); else its shape's.
+    spot: Option<Spot>,
     fill: Option<String>,
     line_color: Option<String>,
     /// The rest of an inline style (`#fill;line.dashed;text:navy`).
@@ -482,6 +485,18 @@ struct RawNote {
 /// name's parts that holds nothing but one package is that package, their
 /// names joined (`a.b`), as PlantUML makes them; the lines that run
 /// through it keep their ends.
+/// Only the classes of a class diagram (or of one under `allowmixing`)
+/// have a circle before their name, as PlantUML draws them: not an
+/// interface drawn as a lollipop, nor anything of a description diagram.
+fn keep_spots(group: &mut Group, classes: bool) {
+    for node in &mut group.nodes {
+        if !classes || SpotKind::of_shape(node.shape).is_none() {
+            node.spot = None;
+        }
+        keep_spots(&mut node.children, classes);
+    }
+}
+
 fn flatten(root: &mut Group, sep: &str) {
     // The first such package, by its path.
     fn chain(group: &Group, path: &mut Vec<usize>) -> Option<Vec<usize>> {
@@ -710,6 +725,7 @@ impl Parser {
         }
         self.place_notes()?;
         lollipops(&mut self.root);
+        keep_spots(&mut self.root, self.classes);
         let separator = self.separator.clone().filter(|_| self.classes);
         super::hide::apply(
             &mut self.root,
@@ -1058,10 +1074,9 @@ impl Parser {
         for stereotype in &decl.stereotypes {
             node.stereotypes.push(text_at(stereotype, decl.line));
         }
-        if node.stereotypes.is_empty()
-            && let Some(word) = default_stereo(node.shape)
-        {
-            node.stereotypes.push(text_at(word, decl.line));
+        match &decl.spot {
+            Some(spot) => node.spot = Some(spot.clone()),
+            None => node.spot = SpotKind::of_shape(node.shape).map(Spot::of),
         }
         if let Some(fill) = &decl.fill {
             node.fill = Some(fill.clone());
@@ -1160,6 +1175,7 @@ impl Parser {
                         children: Group::default(),
                         link: None,
                         hidden: false,
+                        spot: None,
                         line,
                     });
                     index
@@ -1209,16 +1225,15 @@ impl Parser {
         label: &str,
     ) -> Result<Vec<usize>, Declined> {
         let here = here.to_vec();
-        let mut stereotypes: Vec<Text> = decl
+        let stereotypes: Vec<Text> = decl
             .stereotypes
             .iter()
             .map(|s| text_at(s, decl.line))
             .collect();
-        if stereotypes.is_empty()
-            && let Some(word) = default_stereo(decl.shape)
-        {
-            stereotypes.push(text_at(word, decl.line));
-        }
+        let spot = decl
+            .spot
+            .clone()
+            .or_else(|| SpotKind::of_shape(decl.shape).map(Spot::of));
         let index = self.container(&here).nodes.len();
         self.container_mut(&here).nodes.push(Element {
             key: decl.key.clone(),
@@ -1236,6 +1251,7 @@ impl Parser {
             children: Group::default(),
             link: decl.link.clone(),
             hidden: false,
+            spot,
             line: decl.line,
         });
         let mut path = here;
@@ -1336,15 +1352,11 @@ impl Parser {
             }
         };
         let home = home.as_slice();
-        let mut stereotypes = Vec::new();
-        if let Some(word) = default_stereo(shape) {
-            stereotypes.push(text_at(word, line));
-        }
         let index = self.container(home).nodes.len();
         self.container_mut(home).nodes.push(Element {
             key: raw.key.clone(),
             label: text_at(&label, line),
-            stereotypes,
+            stereotypes: Vec::new(),
             members: Vec::new(),
             shape,
             fill: None,
@@ -1357,6 +1369,7 @@ impl Parser {
             children: Group::default(),
             link: None,
             hidden: false,
+            spot: SpotKind::of_shape(shape).map(Spot::of),
             line,
         });
         let mut path = home.to_vec();
@@ -1385,11 +1398,7 @@ impl Parser {
         }
         node.shape = shape;
         node.label = text_at(&raw.label, line);
-        if node.stereotypes.is_empty()
-            && let Some(word) = default_stereo(shape)
-        {
-            node.stereotypes.push(text_at(word, line));
-        }
+        node.spot = SpotKind::of_shape(shape).map(Spot::of);
         Ok(())
     }
 
@@ -1837,6 +1846,7 @@ impl Parser {
             children: Group::default(),
             link: None,
             hidden: false,
+            spot: None,
             line,
         });
         let mut path = here;
@@ -2112,16 +2122,6 @@ fn open_of(shape: Shape) -> Open {
     }
 }
 
-pub(super) fn default_stereo(shape: Shape) -> Option<&'static str> {
-    match shape {
-        Shape::Interface => Some("interface"),
-        Shape::Enum => Some("enum"),
-        Shape::Entity => Some("entity"),
-        Shape::Annotation => Some("annotation"),
-        _ => None,
-    }
-}
-
 fn shape_word(shape: Shape) -> &'static str {
     match shape {
         Shape::Class | Shape::Abstract => "class",
@@ -2175,7 +2175,53 @@ fn declaration(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
     if shape == Shape::Lollipop && find_arrow(text).is_some() {
         return Ok(None);
     }
-    Ok(Some(parse_decl(shape, open, rest, line)?))
+    let mut decl = parse_decl(shape, open, rest, line)?;
+    if let Some(kind) = spot_kind(text, shape) {
+        let spot = decl.spot.get_or_insert_with(|| Spot::of(kind));
+        spot.kind = kind;
+    }
+    Ok(Some(decl))
+}
+
+/// What a class's keyword makes it: `struct`, `record` and their kin are
+/// classes with a circle of their own.
+fn spot_kind(text: &str, shape: Shape) -> Option<SpotKind> {
+    const WORDS: [(&str, SpotKind); 6] = [
+        ("dataclass", SpotKind::DataClass),
+        ("exception", SpotKind::Exception),
+        ("metaclass", SpotKind::MetaClass),
+        ("protocol", SpotKind::Protocol),
+        ("struct", SpotKind::Struct),
+        ("record", SpotKind::Record),
+    ];
+    WORDS
+        .iter()
+        .find(|(word, _)| phrase(text, word).is_some())
+        .map(|&(_, kind)| kind)
+        .or_else(|| SpotKind::of_shape(shape))
+}
+
+/// The spot `<< (S,#FF7700) >>` writes on a box of `shape`, of its
+/// shape's kind until a keyword says more.
+fn own_spot(
+    own: Option<(char, Option<String>)>,
+    shape: Shape,
+    line: usize,
+) -> Result<Option<Spot>, Declined> {
+    let Some((letter, color)) = own else {
+        return Ok(None);
+    };
+    let Some(kind) = SpotKind::of_shape(shape) else {
+        return Err(Declined::at(
+            line,
+            format!("a {} has no circle before its name", shape_word(shape)),
+        ));
+    };
+    Ok(Some(Spot {
+        kind,
+        letter,
+        color,
+    }))
 }
 
 /// `archimate #Business "Customer" as c <<business-actor>>`: a box in the
@@ -2226,7 +2272,8 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
     if rest.is_empty() {
         return Err(Declined::at(line, "a declaration needs a name"));
     }
-    let (rest, stereotypes) = take_stereotypes(&rest, line)?;
+    let (rest, stereotypes, own) = take_stereotypes(&rest, line)?;
+    let spot = own_spot(own, shape, line)?;
     let (rest, fill, line_color, more) = take_colors(&rest, line)?;
     let (name, parents) = take_inherits(rest.trim(), line)?;
     if name.is_empty() {
@@ -2252,6 +2299,7 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
         label,
         shape,
         stereotypes,
+        spot,
         fill,
         line_color,
         more,
@@ -2273,18 +2321,24 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
         rest = body.trim();
     }
     let (rest, link) = take_link(rest, line)?;
-    let (rest, stereotypes) = take_stereotypes(&rest, line)?;
+    let (rest, stereotypes, own) = take_stereotypes(&rest, line)?;
     let (rest, fill, line_color, more) = take_colors(&rest, line)?;
     let rest = rest.trim();
     if rest.is_empty() {
         return Ok(None);
     }
     let shaped = rest.starts_with(['(', '[', ':', '"']);
-    if !shaped && split_as(rest).is_none() && stereotypes.is_empty() && fill.is_none() {
+    if !shaped
+        && split_as(rest).is_none()
+        && stereotypes.is_empty()
+        && own.is_none()
+        && fill.is_none()
+    {
         return Ok(None);
     }
     let (key, label, shape) = split_alias(rest, line)?;
     let shape = shape.unwrap_or(Shape::Class);
+    let spot = own_spot(own, shape, line)?;
     let open = open_of(shape);
     if opened && matches!(open, Open::None) {
         return Err(Declined::at(
@@ -2297,6 +2351,7 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
         label,
         shape,
         stereotypes,
+        spot,
         fill,
         line_color,
         more,
@@ -2307,10 +2362,15 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
     }))
 }
 
-fn take_stereotypes(input: &str, line: usize) -> Result<(String, Vec<String>), Declined> {
+/// What is left of `input`, its stereotypes, and the spot one of them
+/// writes (`<< (S,#FF7700) Singleton >>`).
+type Stereotyped = (String, Vec<String>, Option<(char, Option<String>)>);
+
+fn take_stereotypes(input: &str, line: usize) -> Result<Stereotyped, Declined> {
     let chars: Vec<char> = input.chars().collect();
     let mut out = String::new();
     let mut stereos = Vec::new();
+    let mut spot = None;
     let mut i = 0;
     while i < chars.len() {
         if chars[i] == '<' && chars.get(i + 1) == Some(&'<') {
@@ -2328,18 +2388,28 @@ fn take_stereotypes(input: &str, line: usize) -> Result<(String, Vec<String>), D
                 return Err(Declined::at(line, "a stereotype has no `>>`"));
             };
             let text: String = chars[start..end].iter().collect();
-            let text = text.trim();
-            if text.is_empty() || text.contains(['(', '#', ',']) {
+            let (own, rest) = crate::common::spotted(&text);
+            let spotted = own.is_some();
+            if spotted {
+                if spot.is_some() {
+                    return Err(Declined::at(line, "a box has one circle before its name"));
+                }
+                spot = own;
+            }
+            let text = rest.unwrap_or_default();
+            if (text.is_empty() && !spotted) || text.contains(['(', '#', ',']) {
                 return Err(Declined::at(line, "this stereotype is not supported yet"));
             }
-            stereos.push(text.to_owned());
+            if !text.is_empty() {
+                stereos.push(text);
+            }
             i = end + 2;
             continue;
         }
         out.push(chars[i]);
         i += 1;
     }
-    Ok((out, stereos))
+    Ok((out, stereos, spot))
 }
 
 /// What an inline style says beyond the fill and the line's color: the
@@ -3850,7 +3920,7 @@ mod tests {
         let diagram = diagram(source);
         let person = element(&diagram.root, "Person");
         assert_eq!(person.shape, Shape::Entity);
-        assert_eq!(person.stereotypes[0].value, "entity");
+        assert_eq!(person.spot.as_ref().map(|s| s.kind), Some(SpotKind::Entity));
         assert_eq!(person.members.len(), 1);
         assert_eq!(diagram.root.edges.len(), 2);
         // Without a body an entity is a participant, as in PlantUML.

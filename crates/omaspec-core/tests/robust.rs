@@ -198,6 +198,7 @@ const COLORS: Colors = Colors {
     muted: "#555555",
     note: "#2a2a2a",
     destroy: "#ff5f5f",
+    spots: skin::PLANTUML_SPOTS,
 };
 
 #[test]

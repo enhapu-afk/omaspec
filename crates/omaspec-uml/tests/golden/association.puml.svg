@@ -1,62 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="360" height="174" viewBox="0 0 360 174" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="412" height="194" viewBox="0 0 412 194" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <g class="class-Student" id="class-Student">
-<rect x="0" y="0" width="75.42" height="53.43" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
-<line x1="0" y1="27.3" x2="75.42" y2="27.3" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="0" width="101.42" height="63.13" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<line x1="0" y1="37" x2="101.42" y2="37" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="class-Enrollment" id="class-Enrollment">
-<rect x="124.22" y="85.43" width="94.41" height="68.56" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
-<line x1="124.22" y1="112.72" x2="218.62" y2="112.72" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="137.22" y="95.13" width="120.41" height="78.26" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<line x1="137.22" y1="132.13" x2="257.62" y2="132.13" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="class-Course" id="class-Course">
-<rect x="267.42" y="12.57" width="71.71" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="293.42" y="12.57" width="97.71" height="38" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 </g>
 </g>
 <g id="lines">
 <g class="link-Student-_28_Student_2c__20_Course_29_" id="link-Student-_28_Student_2c__20_Course_29_">
-<path d="M75.42,26.71 L123.42,26.71 L123.42,26.71 L171.42,26.71" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M101.42,31.57 L149.42,31.57 L149.42,31.57 L197.42,31.57" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-_28_Student_2c__20_Course_29_-Course" id="link-_28_Student_2c__20_Course_29_-Course">
-<path d="M171.42,26.71 L219.42,26.71 L219.42,26.71 L267.42,26.71" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M197.42,31.57 L245.42,31.57 L245.42,31.57 L293.42,31.57" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-_28_Student_2c__20_Course_29_-Enrollment" id="link-_28_Student_2c__20_Course_29_-Enrollment">
-<polyline points="171.42,26.71 171.42,85.43" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
+<polyline points="197.42,31.57 197.42,95.13" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
 </g>
 </g>
 <g>
 <g class="class-Student">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="12" y="18.99" font-size="14" fill="#000000" textLength="51.42" lengthAdjust="spacing">Student</tspan>
+<tspan x="38" y="23.84" font-size="14" fill="#000000" textLength="51.42" lengthAdjust="spacing">Student</tspan>
 </text>
+<g id="spot-Student">
+<ellipse cx="23" cy="19" rx="11" ry="11" fill="#ADD1B2" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="12" y="44.36" font-size="13" fill="#000000" textLength="36.06" lengthAdjust="spacing">Name</tspan>
+<tspan x="16.71" y="24.88" font-size="17" fill="#000000" font-weight="bold" textLength="12.58" lengthAdjust="spacing">C</tspan>
+</text>
+</g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="12" y="54.06" font-size="13" fill="#000000" textLength="36.06" lengthAdjust="spacing">Name</tspan>
 </text>
 </g>
 <g class="class-Enrollment">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="136.22" y="104.42" font-size="14" fill="#000000" textLength="70.41" lengthAdjust="spacing">Enrollment</tspan>
+<tspan x="175.22" y="118.98" font-size="14" fill="#000000" textLength="70.41" lengthAdjust="spacing">Enrollment</tspan>
+</text>
+<g id="spot-Enrollment">
+<ellipse cx="160.22" cy="114.13" rx="11" ry="11" fill="#ADD1B2" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="153.93" y="120.01" font-size="17" fill="#000000" font-weight="bold" textLength="12.58" lengthAdjust="spacing">C</tspan>
+</text>
+</g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="149.22" y="149.2" font-size="13" fill="#000000" textLength="38.09" lengthAdjust="spacing">drop()</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="136.22" y="129.79" font-size="13" fill="#000000" textLength="38.09" lengthAdjust="spacing">drop()</tspan>
-</text>
-<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="136.22" y="144.92" font-size="13" fill="#000000" textLength="50.05" lengthAdjust="spacing">cancel()</tspan>
+<tspan x="149.22" y="164.33" font-size="13" fill="#000000" textLength="50.05" lengthAdjust="spacing">cancel()</tspan>
 </text>
 </g>
 <g class="class-Course">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="279.42" y="31.56" font-size="14" fill="#000000" textLength="47.71" lengthAdjust="spacing">Course</tspan>
+<tspan x="331.42" y="36.41" font-size="14" fill="#000000" textLength="47.71" lengthAdjust="spacing">Course</tspan>
 </text>
+<g id="spot-Course">
+<ellipse cx="316.42" cy="31.57" rx="11" ry="11" fill="#ADD1B2" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="310.13" y="37.45" font-size="17" fill="#000000" font-weight="bold" textLength="12.58" lengthAdjust="spacing">C</tspan>
+</text>
+</g>
 </g>
 <g class="link-Student-_28_Student_2c__20_Course_29_.from" id="link-Student-_28_Student_2c__20_Course_29_.from">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="83.42" y="35.96" font-size="12" fill="#000000" textLength="20.5" lengthAdjust="spacing">0..*</tspan>
+<tspan x="109.42" y="40.81" font-size="12" fill="#000000" textLength="20.5" lengthAdjust="spacing">0..*</tspan>
 </text>
 </g>
 <g class="link-_28_Student_2c__20_Course_29_-Course.to" id="link-_28_Student_2c__20_Course_29_-Course.to">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="241.61" y="25.77" font-size="12" fill="#000000" textLength="17.81" lengthAdjust="spacing">1..*</tspan>
+<tspan x="267.61" y="30.62" font-size="12" fill="#000000" textLength="17.81" lengthAdjust="spacing">1..*</tspan>
 </text>
 </g>
 </g>

@@ -1,68 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="844" height="438" viewBox="0 0 844 438" data-omaspec="parts">
+<svg xmlns="http://www.w3.org/2000/svg" width="851" height="467" viewBox="0 0 851 467" data-omaspec="parts">
 <g transform="translate(10,10)">
 <g>
 <g class="package-catalog" id="package-catalog">
-<polygon points="72.68,50.59 72.68,26.3 0,26.3 0,278.84 823.59,278.84 823.59,50.59" fill="#EEEEEE" stroke="#181818" stroke-width="1"/>
+<polygon points="72.68,50.59 72.68,26.3 0,26.3 0,298.25 830.73,298.25 830.73,50.59" fill="#EEEEEE" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="abstract-Product" id="abstract-Product">
-<rect x="136" y="58.59" width="127.04" height="123.96" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
-<line x1="136" y1="85.89" x2="263.04" y2="85.89" fill="none" stroke="#008000" stroke-width="1"/>
-<line x1="136" y1="126.15" x2="263.04" y2="126.15" fill="none" stroke="#008000" stroke-width="1"/>
+<rect x="147.68" y="58.59" width="127.04" height="133.66" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
+<line x1="147.68" y1="95.59" x2="274.72" y2="95.59" fill="none" stroke="#008000" stroke-width="1"/>
+<line x1="147.68" y1="135.86" x2="274.72" y2="135.86" fill="none" stroke="#008000" stroke-width="1"/>
 </g>
 <g class="interface-Sellable" id="interface-Sellable">
-<rect x="523.96" y="99.44" width="88.45" height="42.26" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="517.73" y="106.42" width="101.91" height="38" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="enum-Status" id="enum-Status">
-<rect x="12" y="79.31" width="80" height="82.53" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
-<line x1="12" y1="120.57" x2="92" y2="120.57" fill="none" stroke="#008000" stroke-width="1"/>
+<rect x="12" y="86.29" width="91.68" height="78.26" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
+<line x1="12" y1="123.29" x2="103.68" y2="123.29" fill="none" stroke="#008000" stroke-width="1"/>
 </g>
 <g class="annotation-Tag" id="annotation-Tag">
-<rect x="382.05" y="99.44" width="97.91" height="42.26" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
+<rect x="393.73" y="106.42" width="80" height="38" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
 </g>
 <g class="class-Point" id="class-Point">
-<rect x="731.59" y="106.42" width="80" height="28.3" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
+<rect x="735.14" y="106.42" width="83.59" height="38" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
 </g>
 <g class="class-Book" id="class-Book">
-<rect x="361.97" y="238.55" width="80" height="28.3" fill="#FFC0CB" stroke="#008000" stroke-width="1"/>
+<rect x="366.76" y="248.25" width="83.64" height="38" fill="#FFC0CB" stroke="#008000" stroke-width="1"/>
 </g>
 <g class="class-Shelf" id="class-Shelf">
-<rect x="324.64" y="364.81" width="80" height="28.3" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
+<rect x="329.37" y="384.22" width="83.99" height="38" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
 </g>
 <g class="note-abstract-Product-right-1" id="note-abstract-Product-right-1">
-<path d="M273.04,58.59 L273.04,85.72 L338.05,85.72 L338.05,67.64 L329,58.59 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<path d="M329,58.59 L329,67.64 L338.05,67.64" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M284.72,58.59 L284.72,85.72 L349.73,85.72 L349.73,67.64 L340.68,58.59 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M340.68,58.59 L340.68,67.64 L349.73,67.64" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 </g>
 </g>
 <g id="lines">
 <g class="link-Shelf-Product-holds" id="link-Shelf-Product-holds">
-<path d="M336.64,350.81 L336.64,266.55 C336.64,240.04 315.15,218.55 288.64,218.55 L271.04,218.55 C251.16,218.55 235.04,202.43 235.04,182.55 L235.04,182.55" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M341.37,370.22 L341.37,275.58 C341.37,249.44 320.18,228.25 294.04,228.25 L282.72,228.25 C262.83,228.25 246.72,212.13 246.72,192.25 L246.72,192.25" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Shelf-Book" id="link-Shelf-Book">
-<polyline points="373.97,350.81 373.97,266.84" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="378.76,370.22 378.76,286.25" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Book-Shelf-sits" id="link-Book-Shelf-sits">
-<path d="M389.97,266.84 L389.97,310.01 C389.97,312.68 387.81,314.84 385.14,314.84 L385.14,314.84 C382.47,314.84 380.31,317.01 380.31,319.68 L380.31,354.81" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M394.76,286.25 L394.76,329.9 C394.76,332.3 392.82,334.25 390.41,334.25 L390.41,334.25 C388.01,334.25 386.06,336.2 386.06,338.6 L386.06,374.22" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Product-Book" id="link-Product-Book">
-<path d="M251.04,196.55 L251.04,196.55 C251.04,203.18 256.41,208.55 263.04,208.55 L343.97,208.55 C360.54,208.55 373.97,221.98 373.97,238.55 L373.97,238.55" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M262.72,206.25 L262.72,206.25 C262.72,212.88 268.09,218.25 274.72,218.25 L348.76,218.25 C365.33,218.25 378.76,231.68 378.76,248.25 L378.76,248.25" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Sellable-Book" id="link-Sellable-Book">
-<path d="M535.96,155.7 L535.96,160.55 C535.96,187.06 514.47,208.55 487.96,208.55 L459.97,208.55 C443.4,208.55 429.97,221.98 429.97,238.55 L429.97,238.55" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
+<path d="M529.73,158.42 L529.73,172.59 C529.73,197.81 509.28,218.25 484.07,218.25 L468.4,218.25 C451.84,218.25 438.4,231.68 438.4,248.25 L438.4,248.25" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
 </g>
 <g class="link-Shelf-Product-holds">
-<polygon points="336.64,364.81 330.64,357.81 336.64,350.81 342.64,357.81" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="341.37,384.22 335.37,377.22 341.37,370.22 347.37,377.22" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Shelf-Book">
-<polygon points="373.97,364.81 367.97,357.81 373.97,350.81 379.97,357.81" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+<polygon points="378.76,384.22 372.76,377.22 378.76,370.22 384.76,377.22" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Book-Shelf-sits">
-<polygon points="376.31,354.81 380.31,364.81 384.31,354.81 380.31,359.31" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="382.06,374.22 386.06,384.22 390.06,374.22 386.06,378.72" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Product-Book">
-<polygon points="258.04,196.55 251.04,182.55 244.04,196.55" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="269.72,206.25 262.72,192.25 255.72,206.25" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Sellable-Book">
-<polygon points="542.96,155.7 535.96,141.7 528.96,155.7" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="536.73,158.42 529.73,144.42 522.73,158.42" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 </g>
 <g>
@@ -73,102 +73,135 @@
 </g>
 <g class="abstract-Product">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="173.51" y="77.58" font-size="14" fill="#000000" font-style="italic" textLength="52.02" lengthAdjust="spacing">Product</tspan>
+<tspan x="198.18" y="82.44" font-size="14" fill="#000000" font-style="italic" textLength="52.02" lengthAdjust="spacing">Product</tspan>
+</text>
+<g id="spot-Product">
+<ellipse cx="183.19" cy="77.59" rx="11" ry="11" fill="#A9DCDF" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="176.84" y="83.47" font-size="17" fill="#000000" font-weight="bold" textLength="12.7" lengthAdjust="spacing">A</tspan>
+</text>
+</g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="159.68" y="112.66" font-size="13" fill="#000000" textLength="46.87" lengthAdjust="spacing">- id : int</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="148" y="102.95" font-size="13" fill="#000000" textLength="46.87" lengthAdjust="spacing">- id : int</tspan>
+<tspan x="159.68" y="127.79" font-size="13" fill="#000000" text-decoration="underline" textLength="73.23" lengthAdjust="spacing">+ count : int</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="148" y="118.08" font-size="13" fill="#000000" text-decoration="underline" textLength="73.23" lengthAdjust="spacing">+ count : int</tspan>
+<tspan x="159.68" y="152.92" font-size="13" fill="#000000" font-style="italic" textLength="103.04" lengthAdjust="spacing">+ name() : String</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="148" y="143.22" font-size="13" fill="#000000" font-style="italic" textLength="103.04" lengthAdjust="spacing">+ name() : String</tspan>
+<tspan x="188.35" y="168.05" font-size="13" fill="#000000" textLength="45.69" lengthAdjust="spacing">queries</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="176.67" y="158.35" font-size="13" fill="#000000" textLength="45.69" lengthAdjust="spacing">queries</tspan>
-</text>
-<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="148" y="173.48" font-size="13" fill="#000000" textLength="45.34" lengthAdjust="spacing">+ find()</tspan>
+<tspan x="159.68" y="183.18" font-size="13" fill="#000000" textLength="45.34" lengthAdjust="spacing">+ find()</tspan>
 </text>
 </g>
 <g class="interface-Sellable">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="535.96" y="116.57" font-size="12" fill="#000000" font-style="italic" textLength="64.45" lengthAdjust="spacing">«interface»</tspan>
+<tspan x="555.73" y="130.27" font-size="14" fill="#000000" textLength="51.91" lengthAdjust="spacing">Sellable</tspan>
 </text>
+<g id="spot-Sellable">
+<ellipse cx="540.73" cy="125.42" rx="11" ry="11" fill="#B4A7E5" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="542.23" y="132.4" font-size="14" fill="#000000" textLength="51.91" lengthAdjust="spacing">Sellable</tspan>
+<tspan x="538.34" y="131.3" font-size="17" fill="#000000" font-weight="bold" textLength="4.78" lengthAdjust="spacing">I</tspan>
 </text>
+</g>
 </g>
 <g class="enum-Status">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="29.16" y="96.44" font-size="12" fill="#000000" font-style="italic" textLength="45.68" lengthAdjust="spacing">«enum»</tspan>
+<tspan x="50" y="110.13" font-size="14" fill="#000000" textLength="41.68" lengthAdjust="spacing">Status</tspan>
+</text>
+<g id="spot-Status">
+<ellipse cx="35" cy="105.29" rx="11" ry="11" fill="#EB937F" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="29.84" y="111.17" font-size="17" fill="#000000" font-weight="bold" textLength="10.32" lengthAdjust="spacing">E</tspan>
+</text>
+</g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="24" y="140.35" font-size="13" fill="#000000" textLength="33.16" lengthAdjust="spacing">Open</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="31.16" y="112.27" font-size="14" fill="#000000" textLength="41.68" lengthAdjust="spacing">Status</tspan>
-</text>
-<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="24" y="137.63" font-size="13" fill="#000000" textLength="33.16" lengthAdjust="spacing">Open</tspan>
-</text>
-<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="24" y="152.77" font-size="13" fill="#000000" textLength="42.83" lengthAdjust="spacing">Closed</tspan>
+<tspan x="24" y="155.49" font-size="13" fill="#000000" textLength="42.83" lengthAdjust="spacing">Closed</tspan>
 </text>
 </g>
 <g class="annotation-Tag">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="394.05" y="116.57" font-size="12" fill="#000000" font-style="italic" textLength="73.91" lengthAdjust="spacing">«annotation»</tspan>
+<tspan x="433.98" y="130.27" font-size="14" fill="#000000" textLength="25.49" lengthAdjust="spacing">Tag</tspan>
 </text>
+<g id="spot-Tag">
+<ellipse cx="418.98" cy="125.42" rx="11" ry="11" fill="#E3664A" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="418.26" y="132.4" font-size="14" fill="#000000" textLength="25.49" lengthAdjust="spacing">Tag</tspan>
+<tspan x="410.34" y="131.3" font-size="17" fill="#000000" font-weight="bold" textLength="17.27" lengthAdjust="spacing">@</tspan>
 </text>
+</g>
 </g>
 <g class="class-Point">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="754.79" y="125.41" font-size="14" fill="#000000" textLength="33.59" lengthAdjust="spacing">Point</tspan>
+<tspan x="773.14" y="130.27" font-size="14" fill="#000000" textLength="33.59" lengthAdjust="spacing">Point</tspan>
 </text>
+<g id="spot-Point">
+<ellipse cx="758.14" cy="125.42" rx="11" ry="11" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="752.58" y="131.3" font-size="17" fill="#000000" font-weight="bold" textLength="11.13" lengthAdjust="spacing">S</tspan>
+</text>
+</g>
 </g>
 <g class="class-Book">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="385.15" y="257.54" font-size="14" fill="#000000" textLength="33.64" lengthAdjust="spacing">Book</tspan>
+<tspan x="404.76" y="272.1" font-size="14" fill="#000000" textLength="33.64" lengthAdjust="spacing">Book</tspan>
 </text>
+<g id="spot-Book">
+<ellipse cx="389.76" cy="267.25" rx="11" ry="11" fill="#ADD1B2" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="383.47" y="273.13" font-size="17" fill="#000000" font-weight="bold" textLength="12.58" lengthAdjust="spacing">C</tspan>
+</text>
+</g>
 </g>
 <g class="class-Shelf">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="347.64" y="383.8" font-size="14" fill="#000000" textLength="33.99" lengthAdjust="spacing">Shelf</tspan>
+<tspan x="367.37" y="408.06" font-size="14" fill="#000000" textLength="33.99" lengthAdjust="spacing">Shelf</tspan>
 </text>
+<g id="spot-Shelf">
+<ellipse cx="352.37" cy="403.22" rx="11" ry="11" fill="#ADD1B2" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="346.08" y="409.1" font-size="17" fill="#000000" font-weight="bold" textLength="12.58" lengthAdjust="spacing">C</tspan>
+</text>
+</g>
 </g>
 <g class="link-Shelf-Product-holds">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="299.76" y="329.98" font-size="12" fill="#000000" textLength="30.88" lengthAdjust="spacing">holds</tspan>
+<tspan x="304.5" y="349.39" font-size="12" fill="#000000" textLength="30.88" lengthAdjust="spacing">holds</tspan>
 </text>
 </g>
 <g class="link-Shelf-Product-holds.to" id="link-Shelf-Product-holds.to">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="227.15" y="194.7" font-size="12" fill="#000000" textLength="4.88" lengthAdjust="spacing">1</tspan>
+<tspan x="238.83" y="204.4" font-size="12" fill="#000000" textLength="4.88" lengthAdjust="spacing">1</tspan>
 </text>
 </g>
 <g class="link-Shelf-Book.to" id="link-Shelf-Book.to">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="339.88" y="291" font-size="12" fill="#000000" textLength="31.09" lengthAdjust="spacing">many</tspan>
+<tspan x="344.67" y="310.4" font-size="12" fill="#000000" textLength="31.09" lengthAdjust="spacing">many</tspan>
 </text>
 </g>
 <g class="link-Book-Shelf-sits">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="386.31" y="329.98" font-size="12" fill="#000000" textLength="19.5" lengthAdjust="spacing">sits</tspan>
+<tspan x="392.06" y="349.39" font-size="12" fill="#000000" textLength="19.5" lengthAdjust="spacing">sits</tspan>
 </text>
 </g>
 <g class="note-abstract-Product-right-1">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="279.04" y="76.66" font-size="13" fill="#000000" textLength="49.01" lengthAdjust="spacing">stocked</tspan>
+<tspan x="290.72" y="76.66" font-size="13" fill="#000000" textLength="49.01" lengthAdjust="spacing">stocked</tspan>
 </text>
 </g>
 <g class="title" id="title">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="394.15" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="35.29" lengthAdjust="spacing">Shop</tspan>
+<tspan x="397.72" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="35.29" lengthAdjust="spacing">Shop</tspan>
 </text>
 </g>
 <g class="caption" id="caption">
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="374.98" y="414.1" font-size="14" fill="#000000" textLength="73.63" lengthAdjust="spacing">the catalog</tspan>
+<tspan x="378.55" y="443.21" font-size="14" fill="#000000" textLength="73.63" lengthAdjust="spacing">the catalog</tspan>
 </text>
 </g>
 </g>

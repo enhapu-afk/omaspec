@@ -161,6 +161,7 @@ impl Parser {
                     children: Group::default(),
                     link: None,
                     hidden: false,
+                    spot: None,
                     line,
                 });
                 // The line's label and its first end on the first half,
@@ -392,13 +393,43 @@ mod tests {
         assert_eq!(said.value, "3 elements · 2 lines");
     }
 
+    /// A class outside the package of its pair leaves the pair's line
+    /// straight: its point follows the pair alone, as in PlantUML.
+    #[test]
+    fn a_class_outside_its_pair_s_package_leaves_the_pair_straight() {
+        let svg = crate::render(
+            "@startuml\npackage P {\n  class Student\n  class Course\n  Student -- Course\n}\n\
+             (Student, Course) .. Enrollment\n@enduml\n",
+        )
+        .unwrap();
+        let half = |id: &str| -> Vec<f32> {
+            let at = svg
+                .find(&format!("id=\"{id}\""))
+                .unwrap_or_else(|| panic!("{svg}"));
+            let points = &svg[at..];
+            let points = &points[points.find("points=\"").unwrap() + 8..];
+            let points = &points[..points.find('"').unwrap()];
+            points
+                .split_whitespace()
+                .map(|pair| pair.split(',').next().unwrap().parse().unwrap())
+                .collect()
+        };
+        let xs: Vec<f32> = [
+            half("link-Student-_28_Student_2c__20_Course_29_"),
+            half("link-_28_Student_2c__20_Course_29_-Course"),
+        ]
+        .concat();
+        assert!(xs.iter().all(|x| (x - xs[0]).abs() < 0.5), "{xs:?}: {svg}");
+    }
+
     #[test]
     fn the_point_is_drawn_as_nothing() {
         let svg = crate::render(
             "@startuml\nStudent -- Course\n(Student, Course) .. Enrollment\n@enduml\n",
         )
         .unwrap();
-        assert!(!svg.contains("<ellipse"), "{svg}");
+        // The three classes' circles, none for the point.
+        assert_eq!(svg.matches("<ellipse").count(), 3, "{svg}");
         assert!(!svg.contains("Student, Course"), "{svg}");
         assert_eq!(svg.matches("stroke-dasharray").count(), 1, "{svg}");
     }

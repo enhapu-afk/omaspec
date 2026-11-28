@@ -47,6 +47,11 @@ pub const GRID: &str = "grid";
 /// order drawn, so no icon's id repeats ([`is_icon`]).
 pub const ICON: &str = "icon";
 
+/// The start of the id of the group around the circle before a class's
+/// name and its letter (`spot-Book`): a mark of its kind, which no line
+/// writes, so a click on it is a click on its box.
+pub const SPOT: &str = "spot-";
+
 /// Whether `id` is that of an icon's group: [`ICON`], or it with a number.
 pub fn is_icon(id: &str) -> bool {
     match id.strip_prefix(ICON) {

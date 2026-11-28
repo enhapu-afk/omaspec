@@ -4,17 +4,15 @@
 //! written: of the lines that name a box, the last one decides.
 //!
 //! A box hidden keeps its place and is not drawn, nor are its lines; a
-//! box removed is gone, with its lines and its notes. The look here draws
-//! no empty compartment and no circle before a name. What stands for the
-//! circle is the kind's word over the name («interface»), so `hide
-//! circle` takes that word away, and `hide empty members` changes
-//! nothing.
+//! box removed is gone, with its lines and its notes. `hide circle`
+//! takes away the circle before a class's name; the look here draws no
+//! empty compartment, so `hide empty members` changes nothing.
 
 use std::collections::{HashMap, HashSet};
 
 use super::{Element, Group, Member, Shape, Slot};
 use crate::Declined;
-use crate::common::{keyword, snippet, text_at};
+use crate::common::{keyword, snippet};
 
 /// One of these lines, as read.
 #[derive(Debug, Clone, PartialEq)]
@@ -580,16 +578,11 @@ impl Plan {
             el.members.retain(|_| shown.next().unwrap_or(true));
             tidy(&mut el.members);
         }
-        let word = super::parse::default_stereo(el.shape);
-        let kind = |stereotypes: &[crate::common::Text]| matches!(stereotypes, [only] if Some(only.value.as_str()) == word);
-        if !self.stereotype && !kind(&el.stereotypes) {
+        if !self.stereotype {
             el.stereotypes.clear();
-            if let Some(word) = word {
-                el.stereotypes.push(text_at(word, el.line));
-            }
         }
-        if !self.circle && kind(&el.stereotypes) {
-            el.stereotypes.clear();
+        if !self.circle {
+            el.spot = None;
         }
     }
 }
@@ -820,6 +813,7 @@ fn prune(group: &mut Group, path: &mut Vec<usize>, gone: &HashSet<Vec<usize>>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::text_at;
 
     #[test]
     fn a_line_reads_its_target_and_part() {
@@ -1006,14 +1000,15 @@ mod tests {
             }]
         ));
         assert!(b.members.is_empty());
-        // A stereotype hidden gives back the word of the kind.
+        // A stereotype hidden leaves the circle; `hide circle` takes it
+        // away, the stereotype staying.
         let d = diagram("interface I <<Remote>>\nhide stereotype");
-        let words: Vec<&str> = d.root.nodes[0]
-            .stereotypes
-            .iter()
-            .map(|s| s.value.as_str())
-            .collect();
-        assert_eq!(words, ["interface"]);
+        let el = &d.root.nodes[0];
+        assert!(el.stereotypes.is_empty());
+        assert_eq!(el.spot.as_ref().map(|s| s.letter), Some('I'));
+        let d = diagram("interface I <<Remote>>\nclass C\nhide I circle");
+        assert!(d.root.nodes[0].spot.is_none() && d.root.nodes[0].stereotypes.len() == 1);
+        assert!(d.root.nodes[1].spot.is_some());
     }
 
     #[test]

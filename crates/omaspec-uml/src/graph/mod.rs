@@ -1741,6 +1741,25 @@ fn place_framed(
         .iter()
         .map(|slot| slot.real.is_some_and(|real| nodes[real].flat))
         .collect();
+    // A box of no size is a point on a line (where an association class
+    // meets its pair's line): it follows the lines of its own frame, so a
+    // line out of the frame does not bend the one it lies on.
+    let follows: Vec<Option<Vec<usize>>> = slots
+        .iter()
+        .enumerate()
+        .map(|(at, slot)| {
+            let point = slot
+                .real
+                .is_some_and(|real| nodes[real].width == 0.0 && nodes[real].height == 0.0);
+            let neighbors: Vec<usize> = slot.preds.iter().chain(&slot.succs).copied().collect();
+            let own: Vec<usize> = neighbors
+                .iter()
+                .copied()
+                .filter(|&n| frames[n] == frames[at])
+                .collect();
+            (point && !own.is_empty() && own.len() < neighbors.len()).then_some(own)
+        })
+        .collect();
     let sep = |slots: &[Slot], a: usize, b: usize| nest::sep(slots, frames, tree, a, b);
     let widths: Vec<f32> = rows
         .iter()
@@ -1770,7 +1789,7 @@ fn place_framed(
             (0..rows.len().saturating_sub(1)).rev().collect()
         };
         for rank in ranks {
-            let wants = row_wants(slots, &rows[rank], down, &flat);
+            let wants = row_wants(slots, &rows[rank], down, &flat, &follows);
             placer.fit(slots, &mut borders, &wants);
         }
     }
@@ -1783,7 +1802,15 @@ fn place_framed(
 /// A line passing through heads for where it can still meet the flat box
 /// it comes from or goes to, not for the box's middle, so it stays
 /// straight where it already reaches the box.
-fn row_wants(slots: &[Slot], row: &[usize], down: bool, flat: &[bool]) -> Vec<(usize, f32, f32)> {
+///
+/// A slot that `follows` some of its neighbors alone heads for those.
+fn row_wants(
+    slots: &[Slot],
+    row: &[usize],
+    down: bool,
+    flat: &[bool],
+    follows: &[Option<Vec<usize>>],
+) -> Vec<(usize, f32, f32)> {
     row.iter()
         .map(|&slot| {
             let s = &slots[slot];
@@ -1792,7 +1819,14 @@ fn row_wants(slots: &[Slot], row: &[usize], down: bool, flat: &[bool]) -> Vec<(u
             } else {
                 (&s.succs, &s.preds)
             };
-            let neighbors = if near.is_empty() { far } else { near };
+            let only = |list: &[usize]| -> Vec<usize> {
+                match &follows[slot] {
+                    Some(own) => list.iter().copied().filter(|n| own.contains(n)).collect(),
+                    None => list.to_vec(),
+                }
+            };
+            let (near, far) = (only(near), only(far));
+            let neighbors = if near.is_empty() { &far } else { &near };
             let own = center(s);
             // The one point of a line from one rank of boxes to the next
             // heads for the boxes' middles, as the boxes did for each other

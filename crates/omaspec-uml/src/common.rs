@@ -763,6 +763,26 @@ impl Mention {
 /// number: what is read may not begin where the file does (a look's skin
 /// before it, a Markdown document around it), and a count between two
 /// lines holds either way.
+/// `(C,#ADD1B2) Testable`, inside `<< >>`: the spot PlantUML draws before
+/// a name (one letter, and its color as written) and what is left of the
+/// stereotype, each if there is one. `(long) words` has no spot.
+pub(crate) fn spotted(stereotype: &str) -> (Option<(char, Option<String>)>, Option<String>) {
+    let text = stereotype.trim();
+    let some = |s: &str| (!s.is_empty()).then(|| s.to_owned());
+    let Some((inner, rest)) = text.strip_prefix('(').and_then(|t| t.split_once(')')) else {
+        return (None, some(text));
+    };
+    let (letter, color) = match inner.split_once(',') {
+        Some((letter, color)) => (letter.trim(), some(color.trim())),
+        None => (inner.trim(), None),
+    };
+    let mut chars = letter.chars();
+    match (chars.next(), chars.next()) {
+        (Some(letter), None) => (Some((letter, color)), some(rest.trim())),
+        _ => (None, some(text)),
+    }
+}
+
 pub fn lines_away(here: usize, there: usize) -> String {
     match (there < here, here.abs_diff(there)) {
         (_, 0) => "on the same line".to_owned(),

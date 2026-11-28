@@ -50,7 +50,8 @@ pub struct Skin {
     /// `skinparam defaultTextAlignment left`: what a box says starts at
     /// its left edge, a card's title over its list.
     pub left: bool,
-    /// `skinparam style strictuml`: an open arrow head on `>`.
+    /// `skinparam style strictuml`: an open arrow head on `>`, and no
+    /// circle before a class's name.
     pub strict: bool,
     pub background: Paint,
     /// The gradient the page runs as (`AntiqueWhite/Gold`), where it is
@@ -85,6 +86,8 @@ pub struct Skin {
     pub frame: Look,
     pub rectangle: Look,
     pub note: Look,
+    /// The circles before the names of classes.
+    pub spots: super::spot::Spots,
     /// What the styles set for the boxes of a stereotype.
     pub rules: Vec<Rule>,
     pub arrow: Stroke,
@@ -300,6 +303,7 @@ impl Default for Skin {
                 member: Font::new(13.0, black),
                 stereo: Font::new(12.0, black).italic(),
             },
+            spots: super::spot::Spots::default(),
             rules: Vec::new(),
             arrow: Stroke::new(dark, 1.0),
             arrow_head: None,
@@ -314,7 +318,7 @@ impl Default for Skin {
 }
 
 /// Skinparams of other diagram types, by the start of their key.
-const OTHER_TYPES: [&str; 22] = [
+const OTHER_TYPES: [&str; 21] = [
     "activity",
     "boundary",
     "box",
@@ -335,7 +339,6 @@ const OTHER_TYPES: [&str; 22] = [
     "timing",
     "wbs",
     "yaml",
-    "circledcharacter",
     "legend",
 ];
 
@@ -368,6 +371,17 @@ macro_rules! boxed {
     };
 }
 
+/// A kind of class's circle, as styles reach it: under `element` and
+/// `spot`, not under `classDiagram`, as PlantUML looks it up.
+macro_rules! spotted {
+    ($name:literal, $fill:literal, $line:literal) => {
+        Element::keys(
+            &["element", "spot", $name],
+            &[(Prop::BackGroundColor, $fill), (Prop::LineColor, $line)],
+        )
+    };
+}
+
 /// What a `<style>` reaches in a structure diagram: each kind of box
 /// with its fill, its border and its font, and the lines; a box by its
 /// stereotype too (`.important`, `<<important>>` on the box).
@@ -393,6 +407,63 @@ pub const STYLE: &[Element] = &[
     boxed!("stack", "Stack"),
     boxed!("hexagon", "Hexagon"),
     boxed!("agent", "Agent"),
+    spotted!(
+        "spotClass",
+        "SpotClassBackgroundColor",
+        "SpotClassBorderColor"
+    ),
+    spotted!(
+        "spotAbstractClass",
+        "SpotAbstractClassBackgroundColor",
+        "SpotAbstractClassBorderColor"
+    ),
+    spotted!(
+        "spotInterface",
+        "SpotInterfaceBackgroundColor",
+        "SpotInterfaceBorderColor"
+    ),
+    spotted!("spotEnum", "SpotEnumBackgroundColor", "SpotEnumBorderColor"),
+    spotted!(
+        "spotAnnotation",
+        "SpotAnnotationBackgroundColor",
+        "SpotAnnotationBorderColor"
+    ),
+    spotted!(
+        "spotEntity",
+        "SpotEntityBackgroundColor",
+        "SpotEntityBorderColor"
+    ),
+    spotted!(
+        "spotProtocol",
+        "SpotProtocolBackgroundColor",
+        "SpotProtocolBorderColor"
+    ),
+    spotted!(
+        "spotStruct",
+        "SpotStructBackgroundColor",
+        "SpotStructBorderColor"
+    ),
+    spotted!(
+        "spotException",
+        "SpotExceptionBackgroundColor",
+        "SpotExceptionBorderColor"
+    ),
+    spotted!(
+        "spotMetaClass",
+        "SpotMetaClassBackgroundColor",
+        "SpotMetaClassBorderColor"
+    ),
+    spotted!(
+        "spotRecord",
+        "SpotRecordBackgroundColor",
+        "SpotRecordBorderColor"
+    ),
+    spotted!(
+        "spotDataClass",
+        "SpotDataClassBackgroundColor",
+        "SpotDataClassBorderColor"
+    ),
+    Element::keys(&["element", "spot"], &[(Prop::FontColor, "SpotFontColor")]),
     Element::keys(
         &[
             "element",
@@ -503,6 +574,10 @@ impl Skin {
             if p.declared.is_some() && key.starts_with("mainframe") {
                 continue;
             }
+            if let Some(read) = super::spot::read(&mut skin.spots, &key, p) {
+                read?;
+                continue;
+            }
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
                 "handwritten" => skin.sketch = p.flag()?,
@@ -593,6 +668,11 @@ impl Skin {
             }
         }
         apply_default(&mut skin, font_size, font_color, &owned);
+        if let Some(color) = font_color
+            && !skin.spots.letter_owned
+        {
+            skin.spots.letter = color;
+        }
         Ok(skin)
     }
 }

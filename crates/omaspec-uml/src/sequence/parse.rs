@@ -1918,23 +1918,10 @@ fn lifecycle(rest: &str) -> Result<(Lifecycle, Option<&str>), String> {
     }
 }
 
-/// `(C,#ADD1B2) Testable`: the spot (one letter, and its color) and what
-/// is left of the stereotype, each if there is one.
+/// `(C,#ADD1B2) Testable`: the spot and what is left of the stereotype.
 fn spotted(stereotype: &str) -> (Option<Spot>, Option<String>) {
-    let text = stereotype.trim();
-    let some = |s: &str| (!s.is_empty()).then(|| s.to_owned());
-    let Some((inner, rest)) = text.strip_prefix('(').and_then(|t| t.split_once(')')) else {
-        return (None, some(text));
-    };
-    let (letter, color) = match inner.split_once(',') {
-        Some((letter, color)) => (letter.trim(), some(color.trim())),
-        None => (inner.trim(), None),
-    };
-    let mut chars = letter.chars();
-    match (chars.next(), chars.next()) {
-        (Some(letter), None) => (Some(Spot { letter, color }), some(rest.trim())),
-        _ => (None, some(text)),
-    }
+    let (spot, rest) = crate::common::spotted(stereotype);
+    (spot.map(|(letter, color)| Spot { letter, color }), rest)
 }
 
 #[cfg(test)]

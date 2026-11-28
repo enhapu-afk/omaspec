@@ -1328,6 +1328,7 @@ mod tests {
             muted: "#565f89",
             note: "#2f334d",
             destroy: "#f7768e",
+            spots: skin::PLANTUML_SPOTS,
         };
         for example in EXAMPLES {
             let language = example.language();

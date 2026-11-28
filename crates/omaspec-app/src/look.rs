@@ -276,6 +276,10 @@ pub struct Hex {
     pub muted: String,
     pub note: String,
     pub destroy: String,
+    /// The circles before the names of classes: a class's, an
+    /// interface's, an abstract class's, an enum's, an annotation's, and
+    /// the letter in them.
+    pub spots: Box<[String; 6]>,
 }
 
 impl Hex {
@@ -294,6 +298,7 @@ impl Hex {
                 p.foreground,
                 omaspec_theme::tokens::MIN_CONTRAST,
             )),
+            spots: Box::new(spots_of(p)),
         }
     }
 
@@ -326,8 +331,43 @@ impl Hex {
             muted: &self.muted,
             note: &self.note,
             destroy: &self.destroy,
+            spots: skin::Spots {
+                class: &self.spots[0],
+                interface: &self.spots[1],
+                abstract_class: &self.spots[2],
+                enumeration: &self.spots[3],
+                annotation: &self.spots[4],
+                letter: &self.spots[5],
+            },
         }
     }
+}
+
+/// How far a circle's letter stands from its fill: as far as any words
+/// from what they lie on, as WCAG asks of text.
+const SPOT_CONTRAST: f32 = 4.5;
+
+/// The circles of a class diagram in the theme's own colors, as PlantUML
+/// colors them by kind (a class green, an interface violet, an abstract
+/// class cyan, an enum orange, an annotation red), and in each the
+/// theme's background or its text, whichever reads better on all five; a
+/// fill it does not read on is moved away from it until it does.
+fn spots_of(p: &Palette) -> [String; 6] {
+    let fills = [p.green, p.magenta, p.cyan, p.yellow, p.red];
+    let worst = |letter: omaspec_theme::Rgb| {
+        fills
+            .iter()
+            .map(|fill| letter.contrast(*fill))
+            .fold(f32::INFINITY, f32::min)
+    };
+    let (letter, away) = if worst(p.background) >= worst(p.foreground) {
+        (p.background, p.foreground)
+    } else {
+        (p.foreground, p.background)
+    };
+    let [a, b, c, d, e] =
+        fills.map(|fill| fill.legible_on(&[letter], away, SPOT_CONTRAST).to_string());
+    [a, b, c, d, e, letter.to_string()]
 }
 
 impl From<&Colors<'_>> for Hex {
@@ -340,6 +380,17 @@ impl From<&Colors<'_>> for Hex {
             muted: c.muted.to_owned(),
             note: c.note.to_owned(),
             destroy: c.destroy.to_owned(),
+            spots: Box::new(
+                [
+                    c.spots.class,
+                    c.spots.interface,
+                    c.spots.abstract_class,
+                    c.spots.enumeration,
+                    c.spots.annotation,
+                    c.spots.letter,
+                ]
+                .map(str::to_owned),
+            ),
         }
     }
 }
@@ -602,6 +653,38 @@ mod tests {
                 .all(|paper| p.red.contrast(*paper) >= MIN_CONTRAST)
             {
                 assert_eq!(hex.destroy, p.red.to_string());
+            }
+        }
+    }
+
+    /// The letter in a class's circle reads on every kind's fill (4.5:1), in
+    /// every theme Omarchy ships (where it is installed); a fill that
+    /// reads already is the theme's own.
+    #[test]
+    fn the_circles_of_classes_read_in_every_theme() {
+        use omaspec_theme::Rgb;
+        let Ok(dirs) = std::fs::read_dir("/usr/share/omarchy/themes") else {
+            return;
+        };
+        for dir in dirs.flatten() {
+            let Ok(p) = Palette::load(&dir.path().join("colors.toml")) else {
+                continue;
+            };
+            let p = p.legible();
+            let hex = Hex::of(&p);
+            let name = dir.file_name().to_string_lossy().into_owned();
+            let rgb = |c: &str| Rgb::parse_hex(c).unwrap_or_else(|| panic!("{name}: {c}"));
+            let letter = rgb(&hex.spots[5]);
+            let own = [p.green, p.magenta, p.cyan, p.yellow, p.red];
+            for (fill, own) in hex.spots[..5].iter().zip(own) {
+                let ratio = letter.contrast(rgb(fill));
+                assert!(
+                    ratio >= SPOT_CONTRAST - 0.05,
+                    "{name}: {ratio:.2} on {fill}"
+                );
+                if letter.contrast(own) >= SPOT_CONTRAST {
+                    assert_eq!(*fill, own.to_string(), "{name}");
+                }
             }
         }
     }

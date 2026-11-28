@@ -254,6 +254,7 @@ pub const LIGHT: Colors<'static> = Colors {
     muted: "#6b7280",
     note: "#fdf6d8",
     destroy: "#cf222e",
+    spots: PLANTUML_SPOTS,
 };
 
 /// Omaspec's dark palette: light text on near black, a lighter blue.
@@ -265,6 +266,30 @@ pub const DARK: Colors<'static> = Colors {
     muted: "#8b93a1",
     note: "#3a3526",
     destroy: "#f47067",
+    // Light circles, a dark letter in each, read on the dark boxes too.
+    spots: PLANTUML_SPOTS,
+};
+
+/// The circles before the names of a class diagram's classes, by kind,
+/// and their letter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Spots<'a> {
+    pub class: &'a str,
+    pub interface: &'a str,
+    pub abstract_class: &'a str,
+    pub enumeration: &'a str,
+    pub annotation: &'a str,
+    pub letter: &'a str,
+}
+
+/// PlantUML's own colors of the circles, a black letter in each.
+pub const PLANTUML_SPOTS: Spots<'static> = Spots {
+    class: "#add1b2",
+    interface: "#b4a7e5",
+    abstract_class: "#a9dcdf",
+    enumeration: "#eb937f",
+    annotation: "#e3664a",
+    letter: "#000000",
 };
 
 /// The colors the Omarchy pack writes in, as `#rrggbb`.
@@ -282,6 +307,9 @@ pub struct Colors<'a> {
     pub note: &'a str,
     /// The cross of a destroyed participant, red as PlantUML draws it.
     pub destroy: &'a str,
+    /// The circles before the names of classes: an entity's is a
+    /// class's.
+    pub spots: Spots<'a>,
 }
 
 const PLANTUML_MARK: &str = "' skin: ";
@@ -329,11 +357,11 @@ pub fn edit_in(
                         Some(range) => format!("{}{}", &code[..range.start], &code[range.end..]),
                         None => code.to_owned(),
                     };
-                    plantuml(p, colors, font, sequence(&bare))
+                    plantuml(p, colors, font, styled(&bare))
                 }
             }
         }
-        Language::PlantUml => plantuml(p, colors, font, false),
+        Language::PlantUml => plantuml(p, colors, font, Styled::Nothing),
         Language::Mermaid => mermaid(p, colors, font),
     });
     match (block, text) {
@@ -419,23 +447,46 @@ fn mermaid_spot(code: &str, lines: &[Range<usize>]) -> usize {
     lines.get(at).map_or(code.len(), |r| r.start)
 }
 
-/// Whether `code` is a sequence diagram that destroys a participant,
-/// whose cross takes a color of its own. A diagram it includes is not
+/// What of a diagram the Omarchy pack colors with a style, as no
+/// skinparam reaches it; only a diagram whose engine reads the style is
+/// given one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Styled {
+    Nothing,
+    /// A sequence diagram that destroys a participant: its cross.
+    Destroy,
+    /// A class diagram: the circles before the names.
+    Spots,
+}
+
+/// What of `code` the Omarchy pack styles. A diagram it includes is not
 /// read: one made of `!include` lines alone is no sequence diagram here,
 /// whatever it holds (a timing diagram's engine would decline the style).
-fn sequence(code: &str) -> bool {
+fn styled(code: &str) -> Styled {
     let destroys = code.lines().any(|line| {
         let line = line.trim_start();
         line.get(..7)
             .is_some_and(|word| word.eq_ignore_ascii_case("destroy"))
             || line.contains("!!")
     });
-    destroys && crate::classify(code, Language::PlantUml).kind == crate::Kind::Sequence
+    let kind = crate::classify(code, Language::PlantUml);
+    match kind.kind {
+        crate::Kind::Sequence if destroys => Styled::Destroy,
+        crate::Kind::Structure
+            if matches!(
+                kind.name.as_ref(),
+                "Class diagram" | "Object diagram" | "Structure diagram"
+            ) =>
+        {
+            Styled::Spots
+        }
+        _ => Styled::Nothing,
+    }
 }
 
-/// The pack's block for a PlantUML diagram; `sequence` for a sequence
-/// diagram's, whose Omarchy colors color a destroyed participant's cross.
-fn plantuml(pack: Pack, c: &Colors, font: Option<&str>, sequence: bool) -> String {
+/// The pack's block for a PlantUML diagram; with what of it the Omarchy
+/// colors color through a style.
+fn plantuml(pack: Pack, c: &Colors, font: Option<&str>, styled: Styled) -> String {
     let mut body: Vec<String> = match pack {
         Pack::Plain => {
             let mut lines = vec![
@@ -544,12 +595,16 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>, sequence: bool) -> Strin
             // engines that read no `<style>` decline one, so only a
             // sequence diagram is given it. It comes after the lifelines'
             // color, which sets the cross too.
-            if sequence {
+            if styled == Styled::Destroy {
                 lines.push(format!(
                     "<style>\nsequenceDiagram {{\n  lifeLine {{\n    destroy {{\n      \
                      LineColor {}\n    }}\n  }}\n}}\n</style>",
                     c.destroy
                 ));
+            }
+            // An entity's circle has no skinparam; a style reaches all.
+            if styled == Styled::Spots {
+                lines.push(spots_style(c));
             }
             lines
         }
@@ -571,6 +626,29 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>, sequence: bool) -> Strin
 /// The Omarchy pack for a JSON or a YAML diagram, by the name its styles
 /// go by (`jsonDiagram`, `yamlDiagram`). PlantUML draws one from its
 /// styles alone, so the colors go into a `<style>` block.
+/// The style that colors the circles of a class diagram's classes in
+/// `c`, their border in its accent.
+fn spots_style(c: &Colors) -> String {
+    let s = &c.spots;
+    let kinds = [
+        ("spotClass", s.class),
+        ("spotEntity", s.class),
+        ("spotAbstractClass", s.abstract_class),
+        ("spotInterface", s.interface),
+        ("spotEnum", s.enumeration),
+        ("spotAnnotation", s.annotation),
+    ];
+    let mut style = format!(
+        "<style>\nspot {{\n  FontColor {}\n  LineColor {}\n",
+        s.letter, c.accent
+    );
+    for (name, fill) in kinds {
+        style.push_str(&format!("  {name} {{\n    BackgroundColor {fill}\n  }}\n"));
+    }
+    style.push_str("}\n</style>");
+    style
+}
+
 fn tables_omarchy(diagram: &str, c: &Colors, font: Option<&str>) -> String {
     // A font name is read in `root` only.
     let font = font.map_or_else(String::new, |f| {
@@ -743,6 +821,7 @@ mod tests {
         muted: "#555555",
         note: "#2a2a2a",
         destroy: "#ff5f5f",
+        spots: PLANTUML_SPOTS,
     };
 
     fn apply(code: &str, language: Language, pack: Option<Pack>) -> String {
@@ -882,7 +961,7 @@ mod tests {
             "@startuml\nA -> B\n@enduml\n",
             "@startuml\n!include t.iuml\n@enduml\n",
             "@startuml\n[*] --> A\n@enduml\n",
-            "@startuml\nclass A\n@enduml\n",
+            "@startuml\ncomponent A\n@enduml\n",
             "@startuml\nrobust \"Web\" as W\n@enduml\n",
             "@startgantt\n[Build] lasts 2 days\n@endgantt\n",
         ] {
@@ -901,5 +980,49 @@ mod tests {
             );
             assert!(!text.contains("<style>"), "{other:?}");
         }
+    }
+
+    /// A class diagram's circles take the pack's colors by a style, an
+    /// entity's a class's, the letter and the border too; the native
+    /// engine draws them so.
+    #[test]
+    fn the_omarchy_pack_colors_the_circles_of_classes() {
+        let colors = Colors {
+            spots: Spots {
+                class: "#00aa00",
+                interface: "#aa00aa",
+                abstract_class: "#00aaaa",
+                enumeration: "#aaaa00",
+                annotation: "#aa0000",
+                letter: "#111111",
+            },
+            ..COLORS
+        };
+        let code = "@startuml\nclass C\ninterface I\nentity E {\n  id\n}\n@enduml\n";
+        let (range, block) = edit(code, Language::PlantUml, Some(Pack::Omarchy), &colors).unwrap();
+        let text = format!("{}{block}{}", &code[..range.start], &code[range.end..]);
+        assert!(
+            text.contains("  spotEntity {\n    BackgroundColor #00aa00\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains("  FontColor #111111\n  LineColor #e68e0d\n"),
+            "{text}"
+        );
+        let svg = omaspec_uml::render(&text).unwrap();
+        for paint in [
+            "fill=\"#00AA00\" stroke=\"#E68E0D\"",
+            "fill=\"#AA00AA\"",
+            "fill=\"#111111\"",
+        ] {
+            assert!(svg.contains(paint), "{paint}: {svg}");
+        }
+        // Lines alone make classes too.
+        let lines = apply(
+            "@startuml\nA <|-- B\n@enduml\n",
+            Language::PlantUml,
+            Some(Pack::Omarchy),
+        );
+        assert!(lines.contains("spotClass"), "{lines}");
     }
 }

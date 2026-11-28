@@ -377,6 +377,7 @@ impl Paper {
     pub(super) fn place_of(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
         self.written_place_of(source, row, col)
             .or_else(|| self.unwritten(source, row, col))
+            .or_else(|| self.shape_of_row(row))
     }
 
     #[cfg(test)]
@@ -421,7 +422,10 @@ impl Paper {
     /// words themselves when they sit on a line.
     pub(super) fn aim_at(&self, source: &str, row: usize, col: usize) -> Option<Aim> {
         let Some((_, seat)) = self.seat_at(source, row, col) else {
-            return self.unwritten(source, row, col).map(Aim::shape);
+            return self
+                .unwritten(source, row, col)
+                .or_else(|| self.shape_of_row(row))
+                .map(Aim::shape);
         };
         let (x, y, w, h) = seat.bounds();
         let rect = Rectangle::new(Point::new(x, y), Size::new(w, h));
@@ -429,6 +433,26 @@ impl Paper {
             pick::Seat::Shape { .. } => Aim::shape(rect),
             pick::Seat::Words { ink, ground, .. } => Aim::words(rect, ink, ground),
         })
+    }
+
+    /// The shape without words the zero-based line `row` draws, where no
+    /// words under the caret are found ([`omaspec_uml::map::Map::shapes`]):
+    /// the circle before a class's name for its `interface`. Only on the
+    /// picture the map was laid for.
+    fn shape_of_row(&self, row: usize) -> Option<Rectangle> {
+        let diagram = self.diagram.as_ref()?;
+        let tree = self.shown_tree()?;
+        if !std::sync::Arc::ptr_eq(tree, &diagram.drawn.tree) {
+            return None;
+        }
+        let shape = diagram
+            .drawn
+            .map
+            .shapes
+            .iter()
+            .find(|shape| shape.line == row)?;
+        let r = shape.rect;
+        Some(Rectangle::new(Point::new(r.x, r.y), Size::new(r.w, r.h)))
     }
 
     /// A shape of the map whose name the picture does not write (a

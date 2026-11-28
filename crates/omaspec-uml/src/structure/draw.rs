@@ -23,6 +23,7 @@ use crate::text::{self, Block, Family, Font, Style};
 mod names;
 mod open;
 mod shapes;
+mod spot;
 
 use names::Names;
 use open::layout_group;
@@ -335,6 +336,8 @@ struct Item {
     beside: bool,
     /// `hide Name`: the box keeps its place and is not drawn.
     hidden: bool,
+    /// The circle before a class's name.
+    spot: Option<spot::Spot>,
 }
 
 /// What a line keeps for painting, besides its label.
@@ -371,27 +374,38 @@ enum Row {
     Center(Block),
     Left(Block),
     Rule(Dash),
+    /// A header row beside the circle before a class's name, which takes
+    /// `room` before its words ([`spot`]).
+    Spotted {
+        block: Block,
+        left: bool,
+        room: f32,
+    },
+    /// Room above and below a header that holds a circle.
+    Space(f32),
 }
 
 impl Row {
     fn width(&self) -> f32 {
         match self {
             Row::Center(block) | Row::Left(block) => block.width,
-            Row::Rule(_) => 0.0,
+            Row::Spotted { block, room, .. } => block.width + room,
+            Row::Rule(_) | Row::Space(_) => 0.0,
         }
     }
 
     fn height(&self) -> f32 {
         match self {
-            Row::Center(block) | Row::Left(block) => block.height,
+            Row::Center(block) | Row::Left(block) | Row::Spotted { block, .. } => block.height,
             Row::Rule(_) => RULE,
+            Row::Space(height) => *height,
         }
     }
 
     fn block(&self) -> Option<&Block> {
         match self {
-            Row::Center(block) | Row::Left(block) => Some(block),
-            Row::Rule(_) => None,
+            Row::Center(block) | Row::Left(block) | Row::Spotted { block, .. } => Some(block),
+            Row::Rule(_) | Row::Space(_) => None,
         }
     }
 }
@@ -472,6 +486,10 @@ fn measure_element(
     if tabbed && body > el.stereotypes.len() {
         rows[..body].rotate_left(el.stereotypes.len());
         body -= el.stereotypes.len();
+    }
+    let spot = spot::measure(el, skin, family)?;
+    if let Some(spot) = &spot {
+        body = spot::beside(&mut rows, body, spot);
     }
     let children = if el.composite && !open {
         layout_group(&el.children, skin, family)?
@@ -634,6 +652,7 @@ fn measure_element(
             link: el.link.clone(),
             beside: direction == Direction::Down,
             hidden: el.hidden,
+            spot,
         },
     })
 }
@@ -1956,9 +1975,20 @@ fn paint_rows(canvas: &mut Canvas, node: &Placed) {
         Place::Center => area.y + (area.h - content) / 2.0,
     };
     let header = node.item.body.min(node.item.rows.len());
+    let top = y;
     for row in &node.item.rows[..header] {
         paint_row(canvas, area, pad_x, y, row, node.item.shape);
         y += row.height();
+    }
+    if let Some(spot) = &node.item.spot {
+        spot::paint(
+            canvas,
+            (spot, &node.item.name),
+            &node.item.rows[..header],
+            area,
+            pad_x,
+            (top, y),
+        );
     }
     if extra > 0.0 {
         let line_y = y + extra / 2.0;
@@ -2040,7 +2070,11 @@ fn paint_row(canvas: &mut Canvas, area: Rect, pad_x: f32, y: f32, row: &Row, sha
                 Align::Center,
             );
         }
-        Row::Rule(_) => {}
+        Row::Spotted { left, room, .. } => {
+            let (x, align) = spot::words_at(area, pad_x, *left, *room);
+            canvas.text(Layer::Front, block, (x, y), align);
+        }
+        Row::Rule(_) | Row::Space(_) => {}
     }
 }
 

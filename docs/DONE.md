@@ -977,6 +977,38 @@ is open and the reasoning around it.
       `C -> A` stand as `C A B`). The outline keeps a use case diagram's
       `title : x`. The guide: the class diagram 62 of 84, 574 of 897 in
       all.
+- [x] The circle before a class's name, as PlantUML draws it
+      (2026-11-28). Each kind its letter and color: `C` green, `I`
+      violet, `A` cyan, `E` orange (an entity's green), `@` red, and
+      `P`, `S`, `X`, `M`, `R`, `D` for `protocol`, `struct`,
+      `exception`, `metaclass`, `record`, `dataclass`; a stereotype
+      writes one of its own (`<< (S,#FF7700) Singleton >>`, `<<(Q)>>`),
+      the rest of it the stereotype. It stands left of the header's
+      words, the two centered together, in the middle of the header; the
+      kind's word over the name («interface») is gone. Only a class
+      diagram's classes have one (or under `allowmixing`): a
+      description diagram's boxes and a lollipop none; on a component
+      PlantUML refuses it, and so does Omaspec. `skinparam
+      stereotypeCBackgroundColor` (`I`, `A`, `E`, `N`) and their border
+      colors, a style for any kind (`spot { spotEntity { … } }`, `element`
+      too, as in PlantUML), the diagram's text color for the letter,
+      `circledCharacterRadius` and `circledCharacterFontSize` set it;
+      `hide circle` and `skinparam style strictuml` take it away. In the
+      Omarchy look the circles take the theme's green, magenta, cyan,
+      yellow and red, its background or text for the letter, whichever
+      reads better, and a fill the letter does not read on (4.5:1, as
+      words) is moved away from it; Omaspec's light and dark looks keep
+      PlantUML's colors. The letter is a mark, no words of the source:
+      the circle lies in a group of its own (`spot-Book`), a click on it
+      is a click on its box, and the caret on the keyword (`interface`)
+      lights it. The sequence diagram's spot reader is shared. The
+      guide: the class diagram 64 of 84, 577 of 897 in all.
+- [x] An association class outside the package of its pair leaves the
+      pair's line straight (2026-11-28): the point where the class's line
+      starts follows the lines of its own package alone, so the line out
+      of it no longer bends the pair's at the point. Still different: the
+      class stands in the rank after the point, not beside it, as no line
+      within a rank crosses a package yet.
 
 ### Step 5: what every diagram shares
 
