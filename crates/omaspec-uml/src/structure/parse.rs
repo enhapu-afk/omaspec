@@ -769,6 +769,9 @@ impl Parser {
             self.associate(association)?;
         }
         self.place_notes()?;
+        if !self.classes {
+            implied(&mut self.root);
+        }
         lollipops(&mut self.root);
         keep_spots(&mut self.root, self.classes);
         let separator = self.separator.clone().filter(|_| self.classes);
@@ -2453,6 +2456,23 @@ fn phrase<'a>(text: &'a str, word: &str) -> Option<&'a str> {
     }
 }
 
+/// What a description diagram's lines alone name (`[A] --> B`) is an
+/// interface, drawn as its circle, as PlantUML makes it there; one
+/// declared, given members or holding others is what it was made.
+fn implied(group: &mut Group) {
+    for node in &mut group.nodes {
+        if node.shape == Shape::Class
+            && !node.explicit
+            && !node.composite
+            && node.members.is_empty()
+        {
+            node.shape = Shape::Lollipop;
+            node.spot = None;
+        }
+        implied(&mut node.children);
+    }
+}
+
 /// The interfaces of a component diagram as PlantUML draws them there: a
 /// circle, its name under it. A diagram with a component, a node, an actor
 /// or another element only a component, deployment or use case diagram
@@ -4093,6 +4113,36 @@ mod tests {
 
     fn declined(source: &str) -> crate::Declined {
         parse(&lines_of(source)).unwrap_err()
+    }
+
+    /// What a description diagram's lines alone name is an interface,
+    /// drawn as its circle, as PlantUML makes it; under `allowmixing` a
+    /// class, and a block written later what it says.
+    #[test]
+    fn a_name_lines_alone_make_in_a_description_diagram_is_an_interface() {
+        fn find(group: &Group, key: &str) -> Option<Shape> {
+            group.nodes.iter().find_map(|node| match node.key == key {
+                true => Some(node.shape),
+                false => find(&node.children, key),
+            })
+        }
+        let shape = |body: &str, key: &str| {
+            let d = diagram(&format!("@startuml\n{body}\n@enduml\n"));
+            find(&d.root, key).unwrap_or_else(|| panic!("no {key}"))
+        };
+        assert_eq!(shape("[A] --> B", "B"), Shape::Lollipop);
+        assert_eq!(
+            shape("[A] --> B\nB --> [C]\nnote right of B : n", "B"),
+            Shape::Lollipop
+        );
+        assert_eq!(shape("actor U\n(X) --> B", "B"), Shape::Lollipop);
+        assert_eq!(shape("package p {\n  [A] --> B\n}", "B"), Shape::Lollipop);
+        assert_eq!(
+            shape("allowmixing\ncomponent A\nA --> B", "B"),
+            Shape::Class
+        );
+        assert_eq!(shape("[A] --> B\nnode B {\n}", "B"), Shape::Node);
+        assert_eq!(shape("class A\nA --> B", "B"), Shape::Class);
     }
 
     #[test]

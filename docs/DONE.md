@@ -1146,6 +1146,11 @@ is open and the reasoning around it.
       as a box of another package, of any kind, is another box, as
       PlantUML reads it; a package's label is no first package of a whole
       name; `note on link` knows the lines to notes as they are placed.
+- [x] A name only lines name in a component, deployment or use case
+      diagram is an interface (2026-11-28), a circle with its name, as
+      PlantUML makes it there (`[A] --> B`, `foo --> bar` beside a node);
+      under `allowmixing` it stays a class, and a block written later
+      (`node B {`) is what it says.
 
 ### Step 5: what every diagram shares
 
