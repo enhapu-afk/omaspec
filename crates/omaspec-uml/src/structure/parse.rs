@@ -497,6 +497,10 @@ struct Pending {
     found: [Option<Vec<usize>>; 2],
 }
 
+/// A line's ends at members: for each, its element's name, whether the
+/// member is named by its quoted words, and the name or the words.
+type MemberEnds = [Option<(String, bool, String)>; 2];
+
 struct RawNote {
     target: String,
     /// The package it is written in, where its target is looked for
@@ -627,6 +631,10 @@ struct Parser {
     /// boxes out: by the line of each note, its member's name or quoted
     /// words.
     on_members: Vec<(usize, bool, String)>,
+    /// The members a line's ends are at (`Foo::field1 --> Bar::field3`),
+    /// by the line: each end's element and member, found once `hide` has
+    /// left the members that stay.
+    member_links: Vec<(usize, MemberEnds)>,
     /// What parts a class's name into the packages it stands in (`a.b.C`):
     /// `.`, or `set separator ::`; none after `set separator none`.
     separator: Option<String>,
@@ -668,6 +676,7 @@ impl Default for Parser {
             pending: Vec::new(),
             raw_notes: Vec::new(),
             on_members: Vec::new(),
+            member_links: Vec::new(),
             separator: Some(".".to_owned()),
             classes: true,
             notes_made: 0,
@@ -1335,19 +1344,38 @@ impl Parser {
     }
 
     fn add_relation(&mut self, rel: RawRel, line: usize) -> Result<(), Declined> {
-        // `Foo::field1`: a line to a member of `Foo`, which no line reaches
-        // yet, unless `::` parts names into packages.
+        let mut rel = rel;
+        // `Foo::field1`: a line to a member of `Foo`, which meets `Foo` at
+        // that member's row, unless `::` parts names into packages.
         if self.separator.as_deref() != Some("::") {
-            for raw in [&rel.from, &rel.to] {
-                if !raw.quoted && raw.key.contains("::") {
+            let mut ends: MemberEnds = [None, None];
+            for (at, raw) in [&mut rel.from, &mut rel.to].into_iter().enumerate() {
+                if raw.quoted || raw.pair().is_some() {
+                    continue;
+                }
+                let split = match raw.key.find("::\"") {
+                    Some(at) => Some((raw.key[..at].to_owned(), &raw.key[at + 2..])),
+                    None => raw.key.split_once("::").map(|(a, b)| (a.to_owned(), b)),
+                };
+                let Some((element, member)) = split else {
+                    continue;
+                };
+                let (quoted, wanted) = match member.strip_prefix('"') {
+                    Some(inner) => (true, inner.strip_suffix('"').unwrap_or(inner).to_owned()),
+                    None => (false, member.to_owned()),
+                };
+                if element.trim().is_empty() || wanted.trim().is_empty() {
                     return Err(Declined::at(
                         line,
-                        format!(
-                            "a line to a member (`{}`) is not supported yet",
-                            snippet(&raw.key)
-                        ),
+                        format!("`{}` names no member", snippet(&raw.key)),
                     ));
                 }
+                ends[at] = Some((element.clone(), quoted, wanted));
+                raw.key.clone_from(&element);
+                raw.label = element;
+            }
+            if ends.iter().any(Option::is_some) {
+                self.member_links.push((line, ends));
             }
         }
         // A short name finds its class where the line stands, as PlantUML
@@ -1711,6 +1739,7 @@ impl Parser {
             line: item.line,
             label_before: None,
             note: item.note.clone(),
+            members: [None, None],
         };
         if from == to {
             let index = *from.last().expect("a path");
@@ -1849,6 +1878,10 @@ impl Parser {
         let wanted = std::mem::take(&mut self.on_members);
         if !wanted.is_empty() {
             walk(&mut self.root, &wanted);
+        }
+        let links = std::mem::take(&mut self.member_links);
+        if !links.is_empty() {
+            at_members(&mut self.root, &links);
         }
     }
 
@@ -2173,6 +2206,70 @@ impl RawName {
             shape: self.shape,
             quoted: self.quoted,
         }
+    }
+}
+
+/// Each line of `group` and of every group inside whose ends are at
+/// members (`links`, by their lines): those members, by their places
+/// among their elements' members; an end whose member `hide` took, or
+/// that names none, meets its box as any line does. A line drawn the
+/// other way round has its ends turned.
+fn at_members(group: &mut Group, links: &[(usize, MemberEnds)]) {
+    let place = |node: &Element, end: &Option<(String, bool, String)>| {
+        let (_, quoted, name) = end.as_ref()?;
+        node.members
+            .iter()
+            .position(|m| member_is(m, *quoted, name))
+    };
+    let is = |node: &Element, end: &Option<(String, bool, String)>| {
+        end.as_ref()
+            .is_some_and(|(element, ..)| node.key == *element || node.label.value == *element)
+    };
+    let ends_of = |group: &Group, from: &[usize], to: &[usize]| {
+        let at = |path: &[usize]| {
+            let mut group = group;
+            let mut node = None;
+            for &index in path {
+                let here = group.nodes.get(index)?;
+                group = &here.children;
+                node = Some(here);
+            }
+            node
+        };
+        Some((at(from)?.clone(), at(to)?.clone()))
+    };
+    let resolve = |from: &Element, to: &Element, ends: &MemberEnds| {
+        let [a, b] = ends;
+        if is(from, b) && is(to, a) && !(is(from, a) && is(to, b)) {
+            [place(from, b), place(to, a)]
+        } else {
+            [place(from, a), place(to, b)]
+        }
+    };
+    let mut found = Vec::new();
+    for (index, edge) in group.edges.iter().enumerate() {
+        if let Some((_, ends)) = links.iter().find(|(line, _)| *line == edge.line)
+            && let Some((from, to)) = ends_of(group, &[edge.from], &[edge.to])
+        {
+            found.push((index, resolve(&from, &to, ends)));
+        }
+    }
+    for (index, members) in found {
+        group.edges[index].members = members;
+    }
+    let mut found = Vec::new();
+    for (index, crossing) in group.crossings.iter().enumerate() {
+        if let Some((_, ends)) = links.iter().find(|(line, _)| *line == crossing.arrow.line)
+            && let Some((from, to)) = ends_of(group, &crossing.from, &crossing.to)
+        {
+            found.push((index, resolve(&from, &to, ends)));
+        }
+    }
+    for (index, members) in found {
+        group.crossings[index].arrow.members = members;
+    }
+    for node in &mut group.nodes {
+        at_members(&mut node.children, links);
     }
 }
 

@@ -480,6 +480,10 @@ pub struct Link {
     pub label_before: Option<bool>,
     /// `note on link`: a note by its words.
     pub note: Option<LinkNote>,
+    /// `Foo::field1 --> Bar::field3`: the member each end is at, by its
+    /// place among its element's members, as notes name them; the line
+    /// meets its box at that member's row.
+    pub members: [Option<usize>; 2],
 }
 
 /// A note on a line (`note on link`, `note right on link #pink`), as

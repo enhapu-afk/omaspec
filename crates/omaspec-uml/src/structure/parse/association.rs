@@ -147,6 +147,7 @@ impl Parser {
                         line,
                         label_before: None,
                         note: None,
+                        members: [None, None],
                     },
                 };
                 let point = group.nodes.len();

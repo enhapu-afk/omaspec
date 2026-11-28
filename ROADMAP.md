@@ -76,8 +76,7 @@ Done; what was drawn but different too (docs/DONE.md).
       and `hollow`, business use cases and actors (`(Use)/`, `:Actor:/`), a
       description over several lines in quotes, a name declared as a
       rectangle and then used as a use case, `note right of (Use)`.
-- [ ] Class (65 of 84): lines between members (`Foo::field1 -->
-      Bar::field3`), qualified ends
+- [ ] Class (67 of 84): qualified ends
       (`Shop [customerId: long] ---> …`), `circle` and `diamond` (`<>`),
       names with `$`, `-class`, `#--`, `page 2x2`. Drawn but different: an
       association class outside the package of its pair stands a rank

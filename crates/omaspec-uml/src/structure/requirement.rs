@@ -370,6 +370,7 @@ impl Reader {
             line,
             label_before: None,
             note: None,
+            members: [None, None],
         });
         Ok(())
     }

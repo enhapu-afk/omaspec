@@ -1094,6 +1094,18 @@ is open and the reasoning around it.
       named by their whole names; the end of a whole name (`hide b.C`)
       passes by. A note without `of` is on the box the line before it
       made. A note named as a box a line made is refused, as in PlantUML.
+- [x] A line to a member (2026-11-28): `Foo::field1 --> Bar::field3`,
+      `User::id *-- Email::user_id`, a member by its quoted words too
+      (`A::"start(int)"`), where it had been declined. Laid out as a line
+      between the boxes, it is routed anew once they stand, to meet its
+      box at the side, at that member's row, with a short stem straight
+      out of it: the side that faces the other end, and of two boxes one
+      over the other the left for the first member, the right for the
+      second, as PlantUML draws them. A member `hide` took, or a name no
+      member has, leaves the line on its box as any line. Still
+      different: boxes one over the other stand closer than in PlantUML,
+      whose lines curve wide around them. The guide: the class diagram 67
+      of 84, 580 of 897.
 
 ### Step 5: what every diagram shares
 

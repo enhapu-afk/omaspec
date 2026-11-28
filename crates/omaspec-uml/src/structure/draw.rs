@@ -21,6 +21,7 @@ use crate::svg::{Align, Canvas, Layer, Stroke, n};
 use crate::text::{self, Block, Family, Font, Style};
 
 mod link_note;
+mod member_line;
 mod names;
 mod open;
 mod shapes;
@@ -97,6 +98,7 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     )?;
     let mut scene = layout_group(&diagram.root, &skin, family)?;
     link_crossings(&diagram.root, &mut scene, &skin, family)?;
+    member_line::link(&diagram.root, &mut scene);
     let hands = &diagram.frame.by_hand;
     let arrows = if mapped || !hands.is_empty() {
         arrows(&diagram.root)
