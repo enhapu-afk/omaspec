@@ -894,6 +894,24 @@ is open and the reasoning around it.
       names a member, not a label after `A:`; a line to a member
       (`Foo::field1 --> Bar::field3`) declines, saying so, as before. The
       guide: the class diagram 54 of 84, 564 of 897 in all.
+- [x] What the review of the notes on members and of the head colors
+      found (2026-11-28). A note on a member opens its block for every
+      reader of the lines, so its words no longer decide the diagram's
+      type (a body line `start` had made it an activity). It stays on its
+      member when `hide` takes others away, and is on its element when the
+      member is hidden itself; a member is found by its name before its
+      value (`counter = 0`) and after a type of `::` (`std::string name`).
+      PlantUML takes a note on a member as a block only: the one-line
+      form is refused. A note without `of` is on what was made last, as
+      PlantUML counts it: an element a line names first, not one a member
+      line adds to; after a note it would be on that note, which is not
+      drawn yet. `title:`, `header:`, `footer:` and `caption:` read as each
+      type reads them: both forms are the frame's in a sequence or an
+      activity diagram, the colon left out; in a class diagram `title : x`
+      is a member of a class `title`; in a state diagram both are states.
+      Lines into one box share a head only where the heads look alike,
+      their own colors too. The dashed line to a member stays where
+      PlantUML points with the note's wedge.
 
 ### Step 5: what every diagram shares
 

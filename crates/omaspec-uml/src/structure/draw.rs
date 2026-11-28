@@ -2607,7 +2607,7 @@ mod tests {
     #[test]
     fn a_note_on_a_member_leads_to_its_row() {
         let svg = crate::render(
-            "@startuml\nclass A {\n  int counter\n  +void start()\n}\nnote right of A::start : x\nnote left of A::counter : y\n@enduml\n",
+            "@startuml\nclass A {\n  int counter\n  +void start()\n}\nnote right of A::start\n  x\nend note\nnote left of A::counter\n  y\nend note\n@enduml\n",
         )
         .unwrap();
         let number = |text: &str, name: &str| -> f32 {

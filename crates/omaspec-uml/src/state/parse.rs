@@ -58,7 +58,11 @@ fn marks_state(text: &str) -> bool {
 /// Parses a state diagram from the lines [`crate::source::body`] gives.
 pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
     let mut parser = Parser {
-        frame: Frame::styled(super::skin::STYLE),
+        // A state diagram reads `title: x` as a state named so.
+        frame: Frame {
+            colons: crate::common::Colons::Neither,
+            ..Frame::styled(super::skin::STYLE)
+        },
         ..Parser::default()
     };
     let mut at = 0;

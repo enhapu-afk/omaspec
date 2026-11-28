@@ -355,6 +355,14 @@ struct RawNote {
     line_color: Option<String>,
 }
 
+/// What a parser made last ([`Parser::recent`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Recent {
+    Nothing,
+    Element(String),
+    Note,
+}
+
 struct Parser {
     frame: Frame,
     root: Group,
@@ -362,8 +370,17 @@ struct Parser {
     members: Option<(Vec<usize>, usize)>,
     slot: Slot,
     last: Option<Vec<usize>>,
+    /// What was made last, as PlantUML counts it for a note without `of`:
+    /// an element declared or first named (by a line, by a member line),
+    /// or a note.
+    recent: Recent,
+    /// The names declared or named so far, for [`Parser::recent`].
+    named: HashSet<String>,
     pending: Vec<Pending>,
     raw_notes: Vec<RawNote>,
+    /// The notes on members, resolved once `hide` has taken members out:
+    /// where each note is, and its member's name or quoted words.
+    on_members: Vec<(Vec<usize>, usize, bool, String)>,
     notes_made: usize,
     /// The last `left to right direction` or `top to bottom direction`,
     /// which holds for the whole diagram, inside packages too, as in
@@ -383,14 +400,21 @@ struct Parser {
 impl Default for Parser {
     fn default() -> Self {
         Self {
-            frame: Frame::styled(super::skin::STYLE),
+            // `title : x` is a member of a class named `title`.
+            frame: Frame {
+                colons: crate::common::Colons::Tight,
+                ..Frame::styled(super::skin::STYLE)
+            },
             root: Group::default(),
             open: Vec::new(),
             members: None,
             slot: Slot::Attribute,
             last: None,
+            recent: Recent::Nothing,
+            named: HashSet::new(),
             pending: Vec::new(),
             raw_notes: Vec::new(),
+            on_members: Vec::new(),
             notes_made: 0,
             direction: None,
             together: Vec::new(),
@@ -469,6 +493,7 @@ impl Parser {
         self.place_notes()?;
         lollipops(&mut self.root);
         super::hide::apply(&mut self.root, &self.hides, &self.tags)?;
+        self.resolve_members();
         if let Some(direction) = self.direction {
             run_all(&mut self.root, direction);
         }
@@ -722,8 +747,19 @@ impl Parser {
                 home: home.clone(),
             });
         }
+        let key = self.node(&path).key.clone();
+        self.named.insert(key.clone());
+        self.recent = Recent::Element(key);
         self.last = Some(path);
         Ok(())
+    }
+
+    /// A name first named by a line or a member line is made then, as
+    /// PlantUML makes it: a note without `of` after it is on it.
+    fn named_by_line(&mut self, key: &str) {
+        if self.named.insert(key.to_owned()) {
+            self.recent = Recent::Element(key.to_owned());
+        }
     }
 
     fn merge(&mut self, path: &[usize], decl: &Decl) -> Result<(), Declined> {
@@ -800,6 +836,8 @@ impl Parser {
     }
 
     fn add_relation(&mut self, rel: RawRel, line: usize) -> Result<(), Declined> {
+        self.named_by_line(&rel.from.key);
+        self.named_by_line(&rel.to.key);
         self.pending.push(Pending {
             from: rel.from,
             to: rel.to,
@@ -820,6 +858,7 @@ impl Parser {
     }
 
     fn add_field(&mut self, name: RawName, member: Member, line: usize) -> Result<(), Declined> {
+        self.named_by_line(&name.key);
         let home = self.here();
         let path = self.ensure(&name, &home, line)?;
         let node = self.node_mut(&path);
@@ -1044,9 +1083,13 @@ impl Parser {
             };
             let index = *path.last().expect("a path");
             let home = path[..path.len() - 1].to_vec();
+            if let Some((quoted, wanted)) = member {
+                let at = self.container(&home).notes.len();
+                self.on_members.push((home.clone(), at, quoted, wanted));
+            }
             self.container_mut(&home).notes.push(Note {
                 target: index,
-                member,
+                member: None,
                 side: note.side,
                 text: note.text,
                 line: note.line,
@@ -1057,14 +1100,27 @@ impl Parser {
         Ok(())
     }
 
+    /// Each note on a member, on the member's place among those `hide`
+    /// left; one whose member is hidden is on its element.
+    fn resolve_members(&mut self) {
+        for (home, at, quoted, wanted) in std::mem::take(&mut self.on_members) {
+            let target = self.container(&home).notes[at].target;
+            let members = &self.container(&home).nodes[target].members;
+            let index = members.iter().position(|m| member_is(m, quoted, &wanted));
+            self.container_mut(&home).notes[at].member = index;
+        }
+    }
+
     /// The element and the member a note's `A::count` or
     /// `A::"start(int ms)"` names, as PlantUML finds it: a member by its
-    /// name, or by its words where they are quoted.
+    /// name, or by its words where they are quoted; whether they are, and
+    /// the name or the words.
+    #[allow(clippy::type_complexity)]
     fn member_of(
         &self,
         target: &str,
         line: usize,
-    ) -> Result<(Vec<usize>, Option<usize>), Declined> {
+    ) -> Result<(Vec<usize>, Option<(bool, String)>), Declined> {
         let missing = || Declined::at(line, format!("`{target}` is not an element"));
         let (element, member) = match target.find("::\"") {
             Some(at) => (&target[..at], &target[at + 2..]),
@@ -1075,13 +1131,13 @@ impl Parser {
             Some(inner) => (true, inner.strip_suffix('"').unwrap_or(inner)),
             None => (false, member.trim()),
         };
-        let index = self.node(&path).members.iter().position(|m| match m {
-            Member::Text { text, .. } if quoted => text.value.contains(wanted),
-            Member::Text { text, .. } => member_name(&text.value) == wanted,
-            _ => false,
-        });
+        let index = self
+            .node(&path)
+            .members
+            .iter()
+            .position(|m| member_is(m, quoted, wanted));
         match index {
-            Some(index) => Ok((path, Some(index))),
+            Some(_) => Ok((path, Some((quoted, wanted.to_owned())))),
             None => Err(Declined::at(
                 line,
                 format!("`{}` has no member `{wanted}`", element.trim()),
@@ -1167,22 +1223,24 @@ impl Parser {
             return Ok(next);
         }
         if let Some((side, after)) = side_of(rest) {
-            // Without `of`, on the element declared last (`note left: …`,
-            // or a block), as PlantUML reads it.
-            let last = || {
-                let path = self.last.as_ref()?;
-                let node = self.node(path);
-                (node.shape != Shape::Note).then(|| node.key.clone())
-            };
+            // Without `of`, on what was made last (`note left: …`, or a
+            // block), as PlantUML reads it: an element, or a note.
             let words = after.trim_start();
             if keyword(after, "of").is_none() && (words.is_empty() || words.starts_with(':')) {
-                let Some(target) = last() else {
-                    return Err(Declined::at(no, "a note needs an element before it"));
+                let target = match &self.recent {
+                    Recent::Element(key) => key.clone(),
+                    Recent::Note => {
+                        return Err(Declined::at(no, "a note on a note is not supported yet"));
+                    }
+                    Recent::Nothing => {
+                        return Err(Declined::at(no, "a note needs an element before it"));
+                    }
                 };
                 let (body, next) = match words.strip_prefix(':') {
                     Some(text) => (text_at(text.trim(), no), at + 1),
                     None => block_text(lines, at, "note", end_note)?,
                 };
+                self.recent = Recent::Note;
                 self.raw_notes.push(RawNote {
                     target,
                     side,
@@ -1208,11 +1266,21 @@ impl Parser {
             if name.is_empty() {
                 return Err(Declined::at(no, "a note needs an element"));
             }
+            // PlantUML takes a note on a member as a block only.
+            if inline.is_some() && name.contains("::") && self.find(name).is_none() {
+                return Err(Declined::refused(
+                    no,
+                    format!(
+                        "PlantUML takes a note on a member (`{name}`) as a block only, with `end note`"
+                    ),
+                ));
+            }
             let (body, next) = if let Some(text) = inline {
                 (text_at(text, no), at + 1)
             } else {
                 block_text(lines, at, "note", end_note)?
             };
+            self.recent = Recent::Note;
             self.raw_notes.push(RawNote {
                 target: name.to_owned(),
                 side,
@@ -1230,6 +1298,7 @@ impl Parser {
     }
 
     fn insert_note(&mut self, key: &str, label: Text, line: usize) -> Result<(), Declined> {
+        self.recent = Recent::Note;
         let here = self.here();
         let index = self.container(&here).nodes.len();
         self.container_mut(&here).nodes.push(Element {
@@ -1267,13 +1336,29 @@ impl RawName {
     }
 }
 
+/// Whether `member` is the one a note names: by its quoted words, or by
+/// its [`member_name`].
+fn member_is(member: &Member, quoted: bool, wanted: &str) -> bool {
+    match member {
+        Member::Text { text, .. } if quoted => text.value.contains(wanted),
+        Member::Text { text, .. } => member_name(&text.value) == wanted,
+        _ => false,
+    }
+}
+
 /// The name of a member as a note names it: a method's before its `(`,
-/// an attribute's before its `:` type or after its own type
-/// (`int counter`), its visibility left out.
+/// an attribute's before its `:` type (one colon, not a `::` of its type)
+/// or after its own type (`int counter`, `std::string name`), its value
+/// (`= 0`) and its visibility left out.
 fn member_name(text: &str) -> &str {
     let head = text.split('(').next().unwrap_or(text);
-    let head = match head.split_once(':') {
-        Some((name, _)) if !text.contains('(') => name,
+    let head = head.split('=').next().unwrap_or(head);
+    let single = head
+        .match_indices(':')
+        .map(|(at, _)| at)
+        .find(|&at| !head[at + 1..].starts_with(':') && !head[..at].ends_with(':'));
+    let head = match single {
+        Some(at) if !text.contains('(') => &head[..at],
         _ => head,
     };
     head.split_whitespace()
@@ -3322,7 +3407,7 @@ mod tests {
     #[test]
     fn notes_on_members_and_on_the_last_element() {
         let d = diagram(
-            "@startuml\nclass A {\n  {static} int counter\n  +void start(int ms)\n  +void start(Duration d)\n}\nnote right of A::counter : one\nnote left of A::\"start(Duration d)\"\n  two\nend note\nclass Foo\nnote left: on Foo\n@enduml\n",
+            "@startuml\nclass A {\n  {static} int counter\n  +void start(int ms)\n  +void start(Duration d)\n}\nnote right of A::counter\n  one\nend note\nnote left of A::\"start(Duration d)\"\n  two\nend note\nclass Foo\nnote left: on Foo\n@enduml\n",
         );
         let notes: Vec<(&str, Option<usize>, &str)> = d
             .root
@@ -3344,8 +3429,67 @@ mod tests {
                 ("Foo", None, "on Foo")
             ]
         );
-        let err = declined("@startuml\nclass A\nnote right of A::nothing : x\n@enduml\n");
+        let err =
+            declined("@startuml\nclass A\nnote right of A::nothing\n  x\nend note\n@enduml\n");
         assert!(err.reason.contains("no member `nothing`"), "{err:?}");
+        // PlantUML takes a note on a member as a block only.
+        let err = declined("@startuml\nclass A {\n  int x\n}\nnote right of A::x : y\n@enduml\n");
+        assert!(
+            err.refused && err.reason.contains("as a block only"),
+            "{err:?}"
+        );
+        // A member by its name before its value, or after a type of `::`.
+        let d = diagram(
+            "@startuml\nclass A {\n  counter = 0\n  std::string name\n}\nnote right of A::counter\n  c\nend note\nnote right of A::name\n  n\nend note\n@enduml\n",
+        );
+        let members: Vec<Option<usize>> = d.root.notes.iter().map(|n| n.member).collect();
+        assert_eq!(members, [Some(0), Some(1)]);
+    }
+
+    /// A note without `of` is on what was made last, as PlantUML counts
+    /// it: an element a line names first, not one a member line adds to;
+    /// after a note, on that note, which is not drawn yet.
+    #[test]
+    fn a_note_without_of_is_on_what_was_made_last() {
+        let on = |source: &str| {
+            let d = diagram(source);
+            let note = d.root.notes.last().expect("a note");
+            d.root.nodes[note.target].key.clone()
+        };
+        assert_eq!(
+            on("@startuml\nclass A\nclass B\nA --> C\nnote left: x\n@enduml\n"),
+            "C"
+        );
+        assert_eq!(
+            on("@startuml\nclass A {\n  int x\n}\nclass B\nA : int y\nnote left: x\n@enduml\n"),
+            "B"
+        );
+        let err = declined(
+            "@startuml\nclass A\nnote right of A\n  one\nend note\nnote left: two\n@enduml\n",
+        );
+        assert!(err.reason.contains("a note on a note"), "{err:?}");
+    }
+
+    /// A note on a member stays on it when `hide` takes others away, and
+    /// is on its element when its member is hidden itself.
+    #[test]
+    fn a_note_on_a_member_outlasts_hide() {
+        let d = diagram(
+            "@startuml\nclass A {\n  int a\n  void start()\n  void stop()\n}\nnote right of A::start\n  on start\nend note\nnote left of A::a\n  on a\nend note\nhide fields\n@enduml\n",
+        );
+        let a = element(&d.root, "A");
+        let members: Vec<Option<&str>> = d
+            .root
+            .notes
+            .iter()
+            .map(|n| {
+                n.member.map(|m| match &a.members[m] {
+                    Member::Text { text, .. } => text.value.as_str(),
+                    _ => "",
+                })
+            })
+            .collect();
+        assert_eq!(members, [Some("void start()"), None]);
     }
 
     #[test]

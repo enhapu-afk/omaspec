@@ -194,6 +194,24 @@ pub struct Frame {
     /// The font names `<style>` gives the whole diagram, from one block to
     /// the next.
     pub fonts: style::Fonts,
+    /// How `title`, `header`, `footer` and `caption` read with a colon
+    /// after them, as the diagram type reads them.
+    pub colons: Colons,
+}
+
+/// How a frame's word reads with a colon after it (`title: x`, `title :
+/// x`), as each diagram type of PlantUML reads it.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Colons {
+    /// Both are the frame's, the colon left out: a sequence, an activity,
+    /// a timing diagram.
+    #[default]
+    Both,
+    /// `title: x` is the frame's, `title : x` a member of a class named
+    /// `title`: a class diagram.
+    Tight,
+    /// Neither: a state named so, with a description.
+    Neither,
 }
 
 /// The places a style gives the frame's texts in its width.
@@ -279,6 +297,21 @@ impl Frame {
             number(self.header.as_ref(), 1),
             number(self.footer.as_ref(), pages),
         )
+    }
+
+    /// The words after `word` where `text` writes the frame's (`title
+    /// Login`), with a colon after it as the diagram type takes one
+    /// ([`Colons`]).
+    fn frame_word<'a>(&self, text: &'a str, word: &str) -> Option<&'a str> {
+        match keyword(text, word) {
+            Some(rest) if rest.starts_with(':') => match self.colons {
+                Colons::Both => Some(rest[1..].trim_start()),
+                Colons::Tight | Colons::Neither => None,
+            },
+            Some(rest) => Some(rest),
+            None if self.colons == Colons::Neither => None,
+            None => colon_after(text, word),
+        }
     }
 
     /// A frame for a diagram type whose elements `<style>` reaches.
@@ -378,7 +411,7 @@ impl Frame {
             ("header", "endheader"),
             ("footer", "endfooter"),
         ] {
-            if let Some(rest) = keyword(text, word).or_else(|| colon_after(text, word)) {
+            if let Some(rest) = self.frame_word(text, word) {
                 let (value, next) = if rest.is_empty() && crate::source::shows_nothing(text) {
                     (crate::source::NO_BREAK_SPACE.to_string(), at + 1)
                 } else if rest.is_empty() {
@@ -401,7 +434,7 @@ impl Frame {
                 return Ok(Some(next));
             }
         }
-        if let Some(rest) = keyword(text, "caption") {
+        if let Some(rest) = self.frame_word(text, "caption") {
             if rest.is_empty() {
                 return Err(Declined::at(no, "`caption` needs a text"));
             }
@@ -858,13 +891,13 @@ pub(crate) fn one_line_frame(text: &str) -> bool {
     ["title", "header", "footer", "caption", "mainframe"]
         .iter()
         .any(|word| keyword(text, word).is_some_and(|rest| !rest.is_empty()))
-        || ["title", "header", "footer"]
+        || ["title", "header", "footer", "caption"]
             .iter()
             .any(|word| colon_after(text, word).is_some())
 }
 
-/// The words after `title:`, `header:` or `footer:`, which PlantUML reads
-/// as after the word and a space.
+/// The words after `title:`, `header:`, `footer:` or `caption:`, which
+/// PlantUML reads as after the word and a space, but in a state diagram.
 fn colon_after<'a>(text: &'a str, word: &str) -> Option<&'a str> {
     let head = text.get(..word.len())?;
     let rest = text[word.len()..].strip_prefix(':')?;
@@ -877,11 +910,12 @@ fn block_end(text: &str) -> Option<fn(&str) -> bool> {
         return (!text.to_ascii_lowercase().contains("</style>"))
             .then_some(|l: &str| l.to_ascii_lowercase().contains("</style>"));
     }
+    let own = without_members(text);
     if ["note", "rnote", "hnote"]
         .iter()
         .any(|word| keyword(text, word).is_some())
-        && !text.contains('"')
-        && !unquoted_colon(text)
+        && !own.contains('"')
+        && !unquoted_colon(&own)
     {
         return Some(|l| {
             ["endnote", "endrnote", "endhnote"]
@@ -956,6 +990,23 @@ pub fn brace_delta(text: &str) -> isize {
 }
 
 /// Whether `text` has a `:` outside quotes.
+/// `text` without the members it names after `::` (`A::count`,
+/// `A::"start(int ms)"`): their colons and quotes are no words of a note.
+fn without_members(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find("::") {
+        out.push_str(&rest[..at]);
+        let member = &rest[at + 2..];
+        rest = match member.strip_prefix('"') {
+            Some(quoted) => quoted.find('"').map_or("", |end| &quoted[end + 1..]),
+            None => member.trim_start_matches(|c: char| !c.is_whitespace() && c != ':' && c != '#'),
+        };
+    }
+    out.push_str(rest);
+    out
+}
+
 pub fn unquoted_colon(text: &str) -> bool {
     let mut quote = false;
     for c in text.chars() {
@@ -1208,6 +1259,47 @@ mod tests {
         );
         assert!(!svg.contains(">title</tspan>"), "{svg}");
         assert!(crate::render("@startuml\ntitle: Hello\nA -> B\n@enduml\n").is_ok());
+        // As each type of PlantUML reads it: a sequence's `title : x` is
+        // its title too, a class diagram's a class named `title`, and a
+        // state diagram's `title:` and `header:` are states.
+        let svg = crate::render("@startuml\ntitle : Hello\nA -> B\n@enduml\n").unwrap();
+        assert!(
+            svg.contains(">Hello</tspan>") && !svg.contains(">: Hello"),
+            "{svg}"
+        );
+        let svg = crate::render("@startuml\ntitle : Hello\nclass A\n@enduml\n").unwrap();
+        assert!(svg.contains(">title</tspan>"), "{svg}");
+        let svg = crate::render(
+            "@startuml\n[*] --> A\nheader: page head\ntitle: page title\nA --> [*]\n@enduml\n",
+        )
+        .unwrap();
+        assert!(
+            svg.contains(">header</tspan>") && svg.contains(">title</tspan>"),
+            "{svg}"
+        );
+        let svg = crate::render("@startuml\ncaption: Cap\nclass A\n@enduml\n").unwrap();
+        assert!(
+            svg.contains(">Cap</tspan>") && !svg.contains(">caption</tspan>"),
+            "{svg}"
+        );
+    }
+
+    /// A note on a member opens a block as any note does: its words are no
+    /// lines that decide the diagram's type.
+    #[test]
+    fn a_note_on_a_member_holds_its_words() {
+        for body in ["state of the counter", "start", "[*] --> x"] {
+            for target in ["A::counter", "A::\"counter\""] {
+                let source = format!(
+                    "@startuml\nclass A {{\n  int counter\n}}\nnote right of {target}\n  {body}\nend note\n@enduml\n"
+                );
+                assert!(
+                    matches!(crate::parse(&source), Ok(crate::Diagram::Structure(_))),
+                    "{target} {body}: {:?}",
+                    crate::parse(&source).err()
+                );
+            }
+        }
     }
 
     /// What nobody sees is written as its code point; a tab, a no-break

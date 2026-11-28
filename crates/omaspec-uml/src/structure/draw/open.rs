@@ -110,9 +110,10 @@ impl<'a> Nested for Elements<'a> {
         written(&arrow.from_card) || written(&arrow.to_card)
     }
 
-    /// The head at the end the line arrives at, and its stroke.
+    /// The head at the end the line arrives at, its stroke, and whether
+    /// it keeps its line's color ([`Look::own_color`]).
     fn arrival(&self, look: &Look) -> u32 {
-        graph::arrival(look.to_head, &look.stroke)
+        graph::arrival((look.to_head, look.own_color), &look.stroke)
     }
 
     /// A line with a head where it starts, as `Base <|-- Kind`, arrives

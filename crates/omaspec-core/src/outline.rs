@@ -280,7 +280,7 @@ fn plantuml(
             body = brace_balance(l);
             continue;
         }
-        if let Some(c) = re!(r"(?i)^title\s+(.+)$").captures(l) {
+        if let Some(c) = re!(r"(?i)^title(?::\s*|\s+)(.+)$").captures(l) {
             b.add_at(row, "title", label(&c[1]), 0);
             continue;
         }

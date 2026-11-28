@@ -202,6 +202,31 @@ fn the_heads_of_arrows_take_a_color_of_their_own() {
         render("<style>\nroot {\n  HeadColor none\n}\n</style>", body),
         render("", body)
     );
+    // Lines into one box share a head only where their heads look alike:
+    // one of its own color gets its own.
+    let svg = render(
+        own,
+        "class A\nclass B\nclass C\nclass D\nA --> D\nB -[#0000FF]-> D\nC --> D",
+    );
+    let heads: Vec<(&str, &str)> = svg
+        .split("<polygon points=\"")
+        .skip(1)
+        .filter_map(|p| {
+            let points = p.split('"').next()?;
+            let fill = p.split(r#"fill=""#).nth(1)?.split('"').next()?;
+            Some((points, fill))
+        })
+        .collect();
+    let blue: Vec<&str> = heads
+        .iter()
+        .filter(|h| h.1 == "#0000FF")
+        .map(|h| h.0)
+        .collect();
+    assert_eq!(blue.len(), 1, "{heads:?}");
+    assert!(
+        !heads.iter().any(|h| h.1 == "#FF0000" && h.0 == blue[0]),
+        "{heads:?}"
+    );
     // In monochrome the map's heads are as gray as the picture's.
     let source = "@startuml\nskinparam monochrome true\nskinparam ArrowHeadColor #FF0000\nclass A\nclass B\nA --> B\n@enduml\n";
     let (svg, map) = omaspec_uml::render_mapped(source, None).unwrap();

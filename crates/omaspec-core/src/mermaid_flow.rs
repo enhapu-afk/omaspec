@@ -497,23 +497,31 @@ pub fn wrong(body: &str) -> Option<(usize, String)> {
     None
 }
 
+/// Where `mark` stands in `text` outside quotes, double or single.
+fn outside_quotes<'a>(text: &'a str, mark: &'a str) -> impl Iterator<Item = usize> + 'a {
+    let mut quote: Option<char> = None;
+    text.char_indices().filter_map(move |(at, c)| {
+        match quote {
+            Some(open) if c == open => {
+                quote = None;
+                return None;
+            }
+            Some(_) => return None,
+            None if c == '"' || c == '\'' => {
+                quote = Some(c);
+                return None;
+            }
+            None => {}
+        }
+        text[at..].starts_with(mark).then_some(at)
+    })
+}
+
 /// The subgraphs written with a shape (`subgraph core@{ shape: hex }`),
 /// which neither mermaid.js nor Omaspec draws yet (mermaid-js PR 8912):
 /// each stays a frame, the shape kept for when one does (REQ-144). The
 /// zero-based line of each, and its shape as written; a rectangle, which
 /// a frame is, is none.
-/// Where `mark` stands in `text` outside double quotes.
-fn outside_quotes<'a>(text: &'a str, mark: &'a str) -> impl Iterator<Item = usize> + 'a {
-    let mut quote = false;
-    text.char_indices().filter_map(move |(at, c)| {
-        if c == '"' {
-            quote = !quote;
-            return None;
-        }
-        (!quote && text[at..].starts_with(mark)).then_some(at)
-    })
-}
-
 pub fn frame_shapes(body: &str) -> Vec<(usize, String)> {
     body.lines()
         .enumerate()
@@ -552,7 +560,7 @@ mod tests {
     /// shape are not.
     #[test]
     fn a_subgraph_s_shape_is_told() {
-        let code = "---\ntitle: Onion\n---\nflowchart TD\n  subgraph core@{ shape: hex, label: \"Core\" }\n    A\n  end\n  subgraph box@{ shape: rect }\n    B\n  end\n  subgraph plain\n    C@{ shape: hex }\n  end\n  subgraph p@{ shape: process }\n  end\n  subgraph q[\"Title @{ shape: hex }\"]\n  end\n  subgraph r@{ label: \"a, shape: hex\" }\n  end\n";
+        let code = "---\ntitle: Onion\n---\nflowchart TD\n  subgraph core@{ shape: hex, label: \"Core\" }\n    A\n  end\n  subgraph box@{ shape: rect }\n    B\n  end\n  subgraph plain\n    C@{ shape: hex }\n  end\n  subgraph p@{ shape: process }\n  end\n  subgraph q[\"Title @{ shape: hex }\"]\n  end\n  subgraph r@{ label: \"a, shape: hex\" }\n  end\n  subgraph s@{ label: 'b, shape: hex' }\n  end\n";
         let found: Vec<(usize, String)> = crate::lint::lint(code, crate::Language::Mermaid)
             .into_iter()
             .filter(|f| f.code == "frame-shape")
