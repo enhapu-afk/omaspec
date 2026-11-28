@@ -59,8 +59,10 @@ struct Way {
     label: Option<Block>,
     line: usize,
     /// As the diagram draws it: its color, its weight and its dash, the
-    /// marks of what recorded traces cover among them.
+    /// marks of what recorded traces cover among them, and whether its
+    /// color is its own, which its head keeps.
     stroke: Stroke,
+    own_color: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -345,7 +347,11 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
         }
         let drawn = way.stroke;
         canvas.polyline(Layer::Lines, &points, drawn);
-        super::draw::arrow_head(&mut canvas, &skin, &points, drawn);
+        let look = super::draw::Look {
+            stroke: drawn,
+            own_color: way.own_color,
+        };
+        super::draw::arrow_head(&mut canvas, &skin, &points, look);
         transitions.push(map::Route {
             line: way.line,
             points: points.clone(),
@@ -712,6 +718,7 @@ fn ways(
                 .map(|l| words(&l.value, skin.arrow_font)),
             line: t.line,
             stroke: super::draw::arrow_stroke(skin, t)?,
+            own_color: t.color.is_some(),
         });
     }
     Ok(out)

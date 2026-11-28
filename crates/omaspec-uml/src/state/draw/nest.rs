@@ -2,8 +2,8 @@
 
 use super::super::{Container, Crossing, Dash, Direction, Kind, Split};
 use super::{
-    Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat, has_room,
-    layout_container,
+    Item, Look, Placed, PlacedEdge, Scene, Skin, arrow_look, drawn_route, edge_label, flat,
+    has_room, layout_container,
 };
 use crate::Declined;
 use crate::color::Color;
@@ -112,7 +112,7 @@ pub(super) fn layout_regions(
             points: Vec::new(),
             label: Block::empty(),
             label_at: (0.0, 0.0),
-            look: arrow_stroke(skin, arrow)?,
+            look: arrow_look(skin, arrow)?,
         });
     }
     Ok(Scene {
@@ -297,7 +297,7 @@ pub(super) fn link_crossings(
                 (label.width, label.height),
             );
         }
-        let stroke = arrow_stroke(skin, &crossing.arrow)?;
+        let stroke = arrow_look(skin, &crossing.arrow)?;
         if let Some(here) = scene.scene_at(path)
             && let Some(edge) = here.edges.get_mut(*slot)
         {
@@ -495,16 +495,21 @@ pub(super) fn wires(
         hands,
         |points| drawn_route(points, curve),
         |path, slot, drawn| {
-            let stroke =
-                edge_at(scene, path, slot).map_or(Stroke::new(Color::BLACK, 1.0), |e| e.look);
+            let look = edge_at(scene, path, slot).map_or(
+                Look {
+                    stroke: Stroke::new(Color::BLACK, 1.0),
+                    own_color: false,
+                },
+                |e| e.look,
+            );
             Dress {
-                stroke,
+                stroke: look.stroke,
                 heads: super::head_shape(drawn, strict)
                     .map(|points| Head {
                         points,
                         closed: true,
                         fill: HeadFill::Ink,
-                        color: super::head_color(skin, stroke),
+                        color: super::head_color(skin, look),
                     })
                     .into_iter()
                     .collect(),

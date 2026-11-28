@@ -4,13 +4,12 @@
 
 use super::super::{Container, Dash, Direction, Kind, Point, Side, Transition};
 use super::{
-    COMP_GAP, COMP_PAD, Measured, NOTE_GAP, Placed, Scene, Skin, arrow_stroke, edge_label,
+    COMP_GAP, COMP_PAD, Look, Measured, NOTE_GAP, Placed, Scene, Skin, arrow_look, edge_label,
     fill_regions, graph_direction, measure_node, note_size, place_notes,
 };
 use crate::Declined;
 use crate::graph::open::{self, Line, Nested, Room};
 use crate::graph::{self, Rect};
-use crate::svg::Stroke;
 use crate::text::{Block, Family};
 
 /// Lays `container` out, and every nested state it opens with it.
@@ -31,7 +30,7 @@ struct States<'a> {
 impl<'a> Nested for States<'a> {
     type Container = &'a Container;
     type Item = super::Item;
-    type Look = Stroke;
+    type Look = Look;
     type Error = Declined;
 
     fn members(&self, container: &'a Container) -> usize {
@@ -252,9 +251,10 @@ impl<'a> Nested for States<'a> {
         }
     }
 
-    /// Every transition ends in the same head; its stroke may differ.
-    fn arrival(&self, stroke: &Stroke) -> u32 {
-        graph::arrival((), stroke)
+    /// Every transition ends in the same head; its stroke may differ, and
+    /// whether its head keeps its color.
+    fn arrival(&self, look: &Look) -> u32 {
+        graph::arrival(look.own_color, &look.stroke)
     }
 
     fn label_before(&self, container: &'a Container, index: usize) -> Option<bool> {
@@ -270,14 +270,14 @@ impl<'a> Nested for States<'a> {
         }
     }
 
-    fn line(&self, container: &'a Container, index: usize) -> Result<(Block, Stroke), Declined> {
+    fn line(&self, container: &'a Container, index: usize) -> Result<(Block, Look), Declined> {
         let arrow = match container.edges.get(index) {
             Some(edge) => edge,
             None => &container.crossings[index - container.edges.len()].arrow,
         };
         Ok((
             edge_label(arrow, self.skin, self.family)?,
-            arrow_stroke(self.skin, arrow)?,
+            arrow_look(self.skin, arrow)?,
         ))
     }
 

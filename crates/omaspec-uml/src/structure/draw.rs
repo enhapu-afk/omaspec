@@ -344,6 +344,8 @@ struct Look {
     from_head: Head,
     to_head: Head,
     stroke: Stroke,
+    /// `-[#red]->`: a color of its own, which its heads keep.
+    own_color: bool,
     /// `-[hidden]-`: laid out, not painted.
     hidden: bool,
 }
@@ -359,6 +361,7 @@ impl Look {
             from_head: head(arrow.from_head),
             to_head: head(arrow.to_head),
             stroke,
+            own_color: arrow.color.is_some(),
             hidden: arrow.hidden,
         }
     }
@@ -2263,21 +2266,20 @@ fn paint_heads(
         }
         let last = edge.points.len() - 1;
         canvas.part(&names.edge(path, slot), |canvas| {
+            let look = (edge.look.stroke, edge.look.own_color);
             draw_head(
                 canvas,
                 skin,
-                edge.points[0],
-                edge.points[1],
+                (edge.points[0], edge.points[1]),
                 edge.look.from_head,
-                edge.look.stroke,
+                look,
             );
             draw_head(
                 canvas,
                 skin,
-                edge.points[last],
-                edge.points[last - 1],
+                (edge.points[last], edge.points[last - 1]),
                 edge.look.to_head,
-                edge.look.stroke,
+                look,
             );
         });
     }
@@ -2326,17 +2328,16 @@ fn head_span(head: Head) -> f32 {
 fn draw_head(
     canvas: &mut Canvas,
     skin: &Skin,
-    tip: (f32, f32),
-    from: (f32, f32),
+    (tip, from): ((f32, f32), (f32, f32)),
     head: Head,
-    stroke: Stroke,
+    (stroke, own_color): (Stroke, bool),
 ) {
     let Some(shape) = head_shape(tip, from, head, skin.strict) else {
         return;
     };
     // A line in the diagram's arrow color takes the heads' own, where one
     // is set; one of its own color keeps that in its head.
-    let stroke = match head_color(skin, stroke) {
+    let stroke = match head_color(skin, own_color) {
         Some(color) => Stroke { color, ..stroke },
         None => stroke,
     };
@@ -2416,10 +2417,12 @@ fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Op
     })
 }
 
-/// The color of a head on a line drawn with `stroke`: the heads' own on a
-/// line in the diagram's arrow color, where one is set; else the line's.
-fn head_color(skin: &Skin, stroke: Stroke) -> Option<Color> {
-    skin.arrow_head.filter(|_| stroke.color == skin.arrow.color)
+/// The color of the heads of a line drawn so: the heads' own, where one
+/// is set and the line has no color of its own (as in PlantUML, the same
+/// as the arrows' or not); gray in `monochrome`, as the canvas paints it.
+fn head_color(skin: &Skin, own_color: bool) -> Option<Color> {
+    let color = skin.arrow_head.filter(|_| !own_color)?;
+    Some(if skin.monochrome { color.gray() } else { color })
 }
 
 /// How the line at `slot` of the container at `path` is drawn, with the
@@ -2446,7 +2449,7 @@ fn dress(
         };
     };
     let last = drawn.len() - 1;
-    let color = head_color(skin, edge.look.stroke);
+    let color = head_color(skin, edge.look.own_color);
     let heads = [
         head_shape(drawn[0], drawn[1], edge.look.from_head, skin.strict),
         head_shape(drawn[last], drawn[last - 1], edge.look.to_head, skin.strict),

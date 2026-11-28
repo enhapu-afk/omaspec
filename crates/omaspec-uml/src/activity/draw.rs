@@ -182,7 +182,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
             found.run(
                 laid.path.clone(),
                 laid.points.clone(),
-                (laid.head.clone(), painter.head_color(edge.stroke)),
+                (laid.head.clone(), painter.head_color(edge)),
                 edge.stroke,
             );
         }
@@ -318,14 +318,17 @@ impl Painter<'_> {
         edge.head && (self.skin.heads || edge.styled)
     }
 
-    /// The color of a head on a line drawn with `stroke`: the heads' own
-    /// on a line in the diagram's arrow color, where one is set
-    /// (`ArrowHeadColor`, `HeadColor`); else the line's, which one of its
-    /// own color keeps, as in PlantUML.
-    fn head_color(&self, stroke: Stroke) -> Option<crate::color::Color> {
-        self.skin
-            .arrow_head
-            .filter(|_| stroke.color == self.skin.arrow.color)
+    /// The color of `edge`'s head: the heads' own, where one is set
+    /// (`ArrowHeadColor`, `HeadColor`), but on an arrow written in a style
+    /// of its own (`-[#red]->`, `-[dashed]->`), which keeps its line's, as
+    /// in PlantUML; gray in `monochrome`, as the canvas paints it.
+    fn head_color(&self, edge: &Edge) -> Option<crate::color::Color> {
+        let color = self.skin.arrow_head.filter(|_| !edge.styled)?;
+        Some(if self.skin.monochrome {
+            color.gray()
+        } else {
+            color
+        })
     }
 
     /// Draws `edge` as [`Self::laid`] laid it.
@@ -339,7 +342,7 @@ impl Painter<'_> {
             edge.stroke,
         );
         if let Some(head) = &laid.head {
-            let color = self.head_color(edge.stroke).unwrap_or(edge.stroke.color);
+            let color = self.head_color(edge).unwrap_or(edge.stroke.color);
             let solid = Stroke {
                 dash: None,
                 width: edge.stroke.width.min(1.5),

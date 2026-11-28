@@ -1259,11 +1259,20 @@ fn level_route(
         }
         let (below, lane) = mine;
         // The lanes of a side nest: an outer one leaves its box further
-        // from the side that faces the other, a head and room apart, as
-        // far as the box reaches.
+        // from the side that faces the other, a head and room apart, off
+        // the middle, where the lines along the flow mostly leave, as far
+        // as the box reaches.
         let inset = |r: Rect| {
             let first = (r.w / 4.0).min(LEVEL_END);
-            (first + lane as f32 * LEVEL_NEST).min((r.w - LEVEL_CORNER).max(first))
+            let middle = r.w / 2.0;
+            let mut at = first;
+            for _ in 0..lane {
+                at += LEVEL_NEST;
+                if (at - middle).abs() < LEVEL_CORNER {
+                    at = middle + LEVEL_CORNER;
+                }
+            }
+            at.min((r.w - LEVEL_CORNER).max(first))
         };
         let (leave, arrive) = if a.x <= b.x {
             (a.right() - inset(a), b.x + inset(b))
@@ -2901,7 +2910,7 @@ mod tests {
             run(4)
         );
         // The lanes of a side end a head and room apart on their boxes,
-        // narrow ones too.
+        // narrow ones too, and off their middles.
         let end = |at: usize| laid.routes[at].points.last().unwrap().0;
         assert!(
             (end(4) - end(2)).abs() >= LEVEL_NEST - 0.5,
@@ -2909,6 +2918,16 @@ mod tests {
             end(2),
             end(4)
         );
+        for (at, (route, edge)) in laid.routes.iter().zip(&edges).enumerate().take(6).skip(2) {
+            let ends = [route.points[0].0, route.points.last().unwrap().0];
+            for (x, node) in ends.into_iter().zip([edge.from, edge.to]) {
+                let middle = laid.nodes[node].x + laid.nodes[node].w / 2.0;
+                assert!(
+                    (x - middle).abs() >= LEVEL_CORNER - 0.5,
+                    "{at}: {x} by {middle}"
+                );
+            }
+        }
         let label = |at: usize| {
             let route = &laid.routes[at];
             Rect {

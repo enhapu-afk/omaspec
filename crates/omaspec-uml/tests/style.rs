@@ -181,4 +181,36 @@ fn the_heads_of_arrows_take_a_color_of_their_own() {
         render("skinparam ArrowHeadColor #FF0000", body),
         render("", body)
     );
+    // An arrow of its own color keeps it in its head, also the arrows'
+    // color; in an activity so does one of a style of its own.
+    let red = |head: &str, body: &str| render(head, body).matches(r##"fill="#FF0000""##).count();
+    let own = "skinparam ArrowColor #0000FF\nskinparam ArrowHeadColor #FF0000";
+    assert_eq!(red(own, "class A\nclass B\nA -[#0000FF]-> B"), 0);
+    assert_eq!(red(own, "[*] --> A\nA -[#0000FF]-> B"), 1);
+    assert_eq!(
+        red(
+            "skinparam ArrowHeadColor #FF0000",
+            "start\n-[dashed]->\n:a;\nstop"
+        ),
+        1
+    );
+    // `none` is no head in an activity, from a style too, and nothing a
+    // sequence diagram takes.
+    let none = "<style>\narrow {\n  HeadColor none\n}\n</style>";
+    assert!(!render(none, "start\n:a;\nstop").contains("<polygon"));
+    assert_eq!(
+        render("<style>\nroot {\n  HeadColor none\n}\n</style>", body),
+        render("", body)
+    );
+    // In monochrome the map's heads are as gray as the picture's.
+    let source = "@startuml\nskinparam monochrome true\nskinparam ArrowHeadColor #FF0000\nclass A\nclass B\nA --> B\n@enduml\n";
+    let (svg, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let gray = omaspec_uml::Color::hex(0xFF0000).gray();
+    assert!(svg.contains(&format!(r#"fill="{gray}""#)), "{svg}");
+    assert!(
+        map.wires
+            .iter()
+            .flat_map(|w| &w.heads)
+            .all(|h| h.color == Some(gray))
+    );
 }

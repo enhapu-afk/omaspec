@@ -294,10 +294,8 @@ impl Skin {
                 "backgroundcolor" => skin.background = p.paint()?,
                 "arrowcolor" => skin.arrow = p.solid()?,
                 // PlantUML colors no sequence arrow's head apart from its
-                // line, whichever names it.
-                "arrowheadcolor" => {
-                    p.solid()?;
-                }
+                // line, whichever names it, and takes any value.
+                "arrowheadcolor" => {}
                 "arrowthickness" => skin.arrow_thickness = p.number(0.1, 20.0)?,
                 // PlantUML's own name colors the cross too; the short one,
                 // which it does not take, the lifelines alone.

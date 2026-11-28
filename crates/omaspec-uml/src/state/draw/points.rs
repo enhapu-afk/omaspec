@@ -239,7 +239,7 @@ impl Holder {
 /// and words into `solids`.
 fn gather(scene: &Scene, lines: &mut Vec<Vec<Point>>, solids: &mut Vec<Rect>) {
     for edge in &scene.edges {
-        if edge.points.len() >= 2 && edge.look.width > 0.0 {
+        if edge.points.len() >= 2 && edge.look.stroke.width > 0.0 {
             lines.push(edge.points.clone());
         }
         if super::has_room(edge) {

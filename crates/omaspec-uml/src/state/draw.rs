@@ -239,11 +239,19 @@ fn chart_node(
 
 /// One container after layout ([`graph::open::Scene`]); a transition keeps its
 /// stroke.
-type Scene = graph::open::Scene<Item, Stroke>;
-type Placed = graph::open::Placed<Item, Stroke>;
-type PlacedEdge = graph::open::Wire<Stroke>;
+type Scene = graph::open::Scene<Item, Look>;
+type Placed = graph::open::Placed<Item, Look>;
+type PlacedEdge = graph::open::Wire<Look>;
+
+/// How a transition is drawn: its stroke, and whether its color is its
+/// own (`-[#red]->`), which its head keeps.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct Look {
+    pub(super) stroke: Stroke,
+    pub(super) own_color: bool,
+}
 type PlacedNote = graph::open::Note;
-type Measured = graph::open::Measured<Item, Stroke>;
+type Measured = graph::open::Measured<Item, Look>;
 
 /// What a state keeps for painting.
 struct Item {
@@ -680,6 +688,15 @@ fn line_after(points: &[(f32, f32)], at: (f32, f32), room: (f32, f32)) -> bool {
         .is_some_and(|x| x >= at.0 + room.0 / 2.0)
 }
 
+/// How `edge` is drawn: [`arrow_stroke`], and whether it has a color of
+/// its own.
+pub(super) fn arrow_look(skin: &Skin, edge: &Transition) -> Result<Look, Declined> {
+    Ok(Look {
+        stroke: arrow_stroke(skin, edge)?,
+        own_color: edge.color.is_some(),
+    })
+}
+
 pub(super) fn arrow_stroke(skin: &Skin, edge: &Transition) -> Result<Stroke, Declined> {
     let color = match &edge.color {
         Some(value) => match color::parse(value).map_err(|err| Declined::at(edge.line, err))? {
@@ -716,7 +733,7 @@ pub(super) fn arrow_stroke(skin: &Skin, edge: &Transition) -> Result<Stroke, Dec
 
 /// Whether a placed transition is a hidden one (`-[hidden]->`).
 fn hidden(edge: &PlacedEdge) -> bool {
-    edge.look.width <= 0.0
+    edge.look.stroke.width <= 0.0
 }
 
 fn place_notes(
@@ -1446,7 +1463,12 @@ fn paint_edges(
             continue;
         }
         canvas.part(&names.edge(path, slot), |canvas| {
-            canvas.curve(Layer::Lines, &shortened(&edge.points), curve, edge.look);
+            canvas.curve(
+                Layer::Lines,
+                &shortened(&edge.points),
+                curve,
+                edge.look.stroke,
+            );
         });
     }
     for (index, node) in scene.nodes.iter().enumerate() {
@@ -1715,11 +1737,12 @@ fn shortened(points: &[(f32, f32)]) -> Vec<(f32, f32)> {
     line
 }
 
-pub(super) fn arrow_head(canvas: &mut Canvas, skin: &Skin, points: &[(f32, f32)], stroke: Stroke) {
+pub(super) fn arrow_head(canvas: &mut Canvas, skin: &Skin, points: &[(f32, f32)], look: Look) {
     let Some(head) = head_shape(points, skin.strict) else {
         return;
     };
-    let color = head_color(skin, stroke).unwrap_or(stroke.color);
+    let stroke = look.stroke;
+    let color = head_color(skin, look).unwrap_or(stroke.color);
     let solid = Stroke {
         dash: None,
         width: stroke.width.min(1.5),
@@ -1728,11 +1751,13 @@ pub(super) fn arrow_head(canvas: &mut Canvas, skin: &Skin, points: &[(f32, f32)]
     canvas.polygon(Layer::Lines, &head, Some(color), Some(solid));
 }
 
-/// The color of a head on a line drawn with `stroke`: the heads' own on a
-/// line in the diagram's arrow color, where one is set (`ArrowHeadColor`,
-/// `HeadColor`); else the line's, which one of its own color keeps.
-pub(super) fn head_color(skin: &Skin, stroke: Stroke) -> Option<Color> {
-    skin.arrow_head.filter(|_| stroke.color == skin.arrow.color)
+/// The color of the head of a transition drawn so: the heads' own, where
+/// one is set (`ArrowHeadColor`, `HeadColor`) and the transition has no
+/// color of its own, as in PlantUML; gray in `monochrome`, as the canvas
+/// paints it.
+pub(super) fn head_color(skin: &Skin, look: Look) -> Option<Color> {
+    let color = skin.arrow_head.filter(|_| !look.own_color)?;
+    Some(if skin.monochrome { color.gray() } else { color })
 }
 
 /// The arrowhead at the end of `points`: a filled triangle, with a notch

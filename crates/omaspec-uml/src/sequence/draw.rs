@@ -469,6 +469,8 @@ struct Drawer<'a> {
     /// The arrow height of the last message and its columns, while only
     /// activations follow it.
     last_arrow: Option<(f32, [Option<usize>; 2])>,
+    /// Notes stand between the last arrow and here.
+    noted: bool,
     /// Where the last message or note began, for the ones a `&` or a `/`
     /// puts beside it.
     level: Option<Level>,
@@ -948,6 +950,7 @@ impl<'a> Drawer<'a> {
             groups: Vec::new(),
             dividers: Vec::new(),
             last_arrow: None,
+            noted: false,
             level: None,
             beside,
             steps: Vec::new(),
@@ -1663,6 +1666,9 @@ impl<'a> Drawer<'a> {
             Item::Note(_) => d.through_notes,
             _ => false,
         };
+        if matches!(item, Item::Note(_)) {
+            self.noted = true;
+        }
         if !passes {
             self.last_arrow = None;
             if !matches!(item, Item::Message(_) | Item::Note(_)) {
@@ -1813,7 +1819,16 @@ impl<'a> Drawer<'a> {
             }
             Item::Deactivate { participant, .. } => {
                 let c = self.col(*participant);
-                let end = self.lifecycle_y(c);
+                let mut end = self.lifecycle_y(c);
+                // A bar opened at the message before the notes stays open
+                // across them, as PlantUML draws it: it ends below them.
+                if self.noted
+                    && self.open_bars[c]
+                        .last()
+                        .is_some_and(|&(start, ..)| start == end)
+                {
+                    end = self.y;
+                }
                 if let Some((start, fill, line)) = self.open_bars[c].pop() {
                     let depth = self.open_bars[c].len();
                     self.bars.push(Bar {
@@ -2437,6 +2452,7 @@ impl<'a> Drawer<'a> {
         }
         self.y = after;
         self.last_arrow = Some((lifecycle_y, [from, to]));
+        self.noted = false;
         self.steps.push(Step {
             line: m.line,
             points,
@@ -4117,6 +4133,14 @@ mod tests {
         assert_eq!(
             tip("A -> B : q\nnote over B : x\nactivate B\nB -> A : r"),
             tip("A -> B : q\nactivate B\nnote over B : x\nB -> A : r")
+        );
+        // A bar opened at the message and closed after a note on it spans
+        // the note, as PlantUML draws it.
+        laid_out(
+            "A -> B : q\nactivate B\nnote over B : x\ndeactivate B\nB -> A : r",
+            |d| {
+                assert!(d.bars[0].end > d.bars[0].start + 20.0, "{}", d.bars[0].end);
+            },
         );
         let (mut alone, mut noted) = (Vec::new(), Vec::new());
         laid_out("A -> A : self\nactivate A", |d| alone = d.bars.clone());

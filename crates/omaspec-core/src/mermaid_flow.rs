@@ -502,6 +502,18 @@ pub fn wrong(body: &str) -> Option<(usize, String)> {
 /// each stays a frame, the shape kept for when one does (REQ-144). The
 /// zero-based line of each, and its shape as written; a rectangle, which
 /// a frame is, is none.
+/// Where `mark` stands in `text` outside double quotes.
+fn outside_quotes<'a>(text: &'a str, mark: &'a str) -> impl Iterator<Item = usize> + 'a {
+    let mut quote = false;
+    text.char_indices().filter_map(move |(at, c)| {
+        if c == '"' {
+            quote = !quote;
+            return None;
+        }
+        (!quote && text[at..].starts_with(mark)).then_some(at)
+    })
+}
+
 pub fn frame_shapes(body: &str) -> Vec<(usize, String)> {
     body.lines()
         .enumerate()
@@ -510,14 +522,23 @@ pub fn frame_shapes(body: &str) -> Vec<(usize, String)> {
             if !rest.starts_with(char::is_whitespace) {
                 return None;
             }
-            let inside = &rest[rest.find("@{")? + 2..];
-            let inside = &inside[..inside.find('}')?];
-            let shape = inside.split(',').find_map(|pair| {
+            // The `@{ … }` outside quotes, its pairs split outside them.
+            let open = outside_quotes(rest, "@{").next()?;
+            let inside = &rest[open + 2..];
+            let inside = &inside[..outside_quotes(inside, "}").next()?];
+            let mut pairs = Vec::new();
+            let mut from = 0;
+            for comma in outside_quotes(inside, ",").chain([inside.len()]) {
+                pairs.push(&inside[from..comma]);
+                from = comma + 1;
+            }
+            let shape = pairs.into_iter().find_map(|pair| {
                 let (key, value) = pair.split_once(':')?;
                 (key.trim() == "shape").then(|| value.trim().trim_matches(['"', '\'']).to_owned())
             })?;
-            (!shape.is_empty() && !matches!(shape.as_str(), "rect" | "rectangle"))
-                .then_some((at, shape))
+            // Mermaid's names of the rectangle a frame is already.
+            let frame = ["rect", "rectangle", "proc", "process"];
+            (!shape.is_empty() && !frame.contains(&shape.as_str())).then_some((at, shape))
         })
         .collect()
 }
@@ -531,7 +552,7 @@ mod tests {
     /// shape are not.
     #[test]
     fn a_subgraph_s_shape_is_told() {
-        let code = "---\ntitle: Onion\n---\nflowchart TD\n  subgraph core@{ shape: hex, label: \"Core\" }\n    A\n  end\n  subgraph box@{ shape: rect }\n    B\n  end\n  subgraph plain\n    C@{ shape: hex }\n  end\n";
+        let code = "---\ntitle: Onion\n---\nflowchart TD\n  subgraph core@{ shape: hex, label: \"Core\" }\n    A\n  end\n  subgraph box@{ shape: rect }\n    B\n  end\n  subgraph plain\n    C@{ shape: hex }\n  end\n  subgraph p@{ shape: process }\n  end\n  subgraph q[\"Title @{ shape: hex }\"]\n  end\n  subgraph r@{ label: \"a, shape: hex\" }\n  end\n";
         let found: Vec<(usize, String)> = crate::lint::lint(code, crate::Language::Mermaid)
             .into_iter()
             .filter(|f| f.code == "frame-shape")

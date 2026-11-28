@@ -165,19 +165,29 @@ impl Writer {
                     if let End::Participant(to) = m.to {
                         last_to = Some(to);
                     }
-                    // A bar opened or closed after notes on the message is
-                    // the message's in PlantUML; written after the notes,
-                    // Mermaid's would start or end below them.
+                    // A bar of the message's own ends opened or closed after
+                    // notes on it is the message's in PlantUML (one opened
+                    // at the message stays open across them); written
+                    // after the notes, Mermaid's would start or end below
+                    // them.
+                    let own =
+                        |p: usize| m.from == End::Participant(p) || m.to == End::Participant(p);
+                    let mut opened: Vec<usize> = Vec::new();
                     for (j, next) in d.items.iter().enumerate().skip(i + 1) {
-                        match next {
-                            Item::Note(_) | Item::Destroy { .. } => {}
-                            Item::Activate { .. } | Item::Deactivate { .. } => {
-                                if !consumed[j] {
-                                    self.bar(d, next);
-                                    consumed[j] = true;
-                                }
+                        let pull = match next {
+                            Item::Note(_) | Item::Destroy { .. } => false,
+                            Item::Activate { participant, .. } => {
+                                opened.push(*participant);
+                                own(*participant)
+                            }
+                            Item::Deactivate { participant, .. } => {
+                                own(*participant) && !opened.contains(participant)
                             }
                             _ => break,
+                        };
+                        if pull && !consumed[j] {
+                            self.bar(d, next);
+                            consumed[j] = true;
                         }
                     }
                 }
@@ -292,25 +302,25 @@ impl Writer {
                 // One after no message of its own (after a group, say), or
                 // a second at one: Mermaid destroys one participant at a
                 // message.
-                Item::Destroy { line, .. } => {
-                    let after_message = d.items[..i]
-                        .iter()
-                        .rev()
-                        .find(|before| {
-                            !matches!(
-                                before,
-                                Item::Note(_)
-                                    | Item::Activate { .. }
-                                    | Item::Deactivate { .. }
-                                    | Item::Destroy { .. }
-                            )
-                        })
-                        .is_some_and(|before| matches!(before, Item::Message(_)));
-                    let why = match after_message {
-                        true => {
+                Item::Destroy { line, participant } => {
+                    let before = d.items[..i].iter().rev().find(|before| {
+                        !matches!(
+                            before,
+                            Item::Note(_)
+                                | Item::Activate { .. }
+                                | Item::Deactivate { .. }
+                                | Item::Destroy { .. }
+                        )
+                    });
+                    let end = End::Participant(*participant);
+                    let why = match before {
+                        Some(Item::Message(m)) if m.from == end || m.to == end => {
                             "Mermaid destroys one participant at a message, and this message destroys another already"
                         }
-                        false => {
+                        Some(Item::Message(_)) => {
+                            "Mermaid destroys a participant only at a message to or from it, and the message before this destroy is neither"
+                        }
+                        _ => {
                             "Mermaid destroys a participant only at a message of its own, and this destroy follows none"
                         }
                     };
@@ -359,21 +369,48 @@ impl Writer {
             self.out.push("autonumber".into());
         }
         self.participants(d, Language::PlantUml);
-        // Whether notes stand between the last message and here: a bar
-        // opened or closed after them starts or ends below them in Mermaid
-        // and at the message in PlantUML.
+        // The ends of the last message, the bars opened since, and whether
+        // notes stand between it and here: a bar of its ends opened or
+        // closed after them starts or ends below them in Mermaid and at
+        // the message in PlantUML, but one opened at the message, which
+        // stays open across them in both.
+        let mut last: Option<[End; 2]> = None;
+        let mut opened: Vec<usize> = Vec::new();
         let mut noted = false;
         for item in &d.items {
-            match item {
-                Item::Note(_) => noted = true,
-                Item::Activate { line, .. } | Item::Deactivate { line, .. } if noted => {
-                    self.notice(
-                        Some(*line),
-                        "PlantUML starts or ends a bar written after a note at the message before the note, where Mermaid does so below it",
-                    );
+            let ends = |p: &usize| last.is_some_and(|ends| ends.contains(&End::Participant(*p)));
+            let moved = match item {
+                Item::Message(m) => {
+                    last = Some([m.from, m.to]);
+                    opened.clear();
+                    noted = false;
+                    None
                 }
-                Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. } => {}
-                _ => noted = false,
+                Item::Note(_) => {
+                    noted = true;
+                    None
+                }
+                Item::Activate {
+                    participant, line, ..
+                } => {
+                    opened.push(*participant);
+                    (noted && ends(participant)).then_some(*line)
+                }
+                Item::Deactivate { participant, line } => {
+                    (noted && ends(participant) && !opened.contains(participant)).then_some(*line)
+                }
+                Item::Destroy { .. } => None,
+                _ => {
+                    last = None;
+                    noted = false;
+                    None
+                }
+            };
+            if let Some(line) = moved {
+                self.notice(
+                    Some(line),
+                    "PlantUML starts or ends a bar written after a note at the message before the note, where Mermaid does so below it",
+                );
             }
             match item {
                 Item::Message(m) => {
@@ -907,6 +944,38 @@ sequenceDiagram
         let code = "@startuml\nA -> B : q\ndestroy A\ndestroy B\n@enduml\n";
         let err = both(code, Language::PlantUml, Language::Mermaid).unwrap_err();
         assert!(err.reason.contains("destroys another already"), "{err:?}");
+        let code = "@startuml\nA -> B : q\ndestroy C\n@enduml\n";
+        let err = both(code, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert!(err.reason.contains("to or from it"), "{err:?}");
+        // A bar of another participant, or one opened at the message and
+        // closed after the notes, stays where it is written, as PlantUML
+        // draws it there.
+        let code = "@startuml\nA -> B : q\nnote over C : n\nactivate C\nC -> A : r\ndeactivate C\n@enduml\n";
+        let mermaid = both(code, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(
+            mermaid.code.contains("Note over C: n\n    activate C\n"),
+            "{}",
+            mermaid.code
+        );
+        let code = "@startuml\nA -> B : q\nactivate B\nnote over B : x\ndeactivate B\nB -> A : r\n@enduml\n";
+        let mermaid = both(code, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(
+            mermaid.code.contains("Note over B: x\n    deactivate B\n"),
+            "{}",
+            mermaid.code
+        );
+        // No word where PlantUML draws the bar where Mermaid does: no
+        // message before the note, or a participant it does not touch.
+        let code = "sequenceDiagram\n  Note over A: first\n  activate A\n  A->>B: q\n  Note over C: n\n  activate C\n  C->>A: r\n  deactivate C\n  deactivate A\n";
+        let plant = both(code, Language::Mermaid, Language::PlantUml).unwrap();
+        assert!(
+            !plant
+                .notices
+                .iter()
+                .any(|n| n.message.contains("before the note")),
+            "{:?}",
+            plant.notices
+        );
     }
 
     #[test]

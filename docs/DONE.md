@@ -2633,6 +2633,26 @@ is open and the reasoning around it.
       a glide, the focus, a build and a fold's page draw the heads as the
       picture does; that was why a color of the heads' own had declined
       until now.
+- [x] What the review of the head colors and of the lanes found
+      (2026-11-28). A head keeps its line's color where the line has one
+      of its own, the arrows' color too (`-[#0000FF]->` under `ArrowColor
+      #0000FF`), and in an activity where the arrow is written in a style
+      of its own (`-[dashed]->`), as PlantUML draws them, where the two
+      colors had been compared. In `monochrome` the map's heads are as
+      gray as the picture's. A style's `HeadColor none` is no head in an
+      activity, as the skinparam is, and a sequence diagram takes any
+      value of it and draws as before. A bar opened at a message and
+      closed after notes on it spans the notes, as in PlantUML; `omaspec
+      convert` moves only the bars of the message's own ends ahead of the
+      notes, and never one opened at that message, tells the other way
+      only where PlantUML draws the bar otherwise, and refuses a destroy
+      after a message that neither sends to it nor comes from it for
+      that. The lanes of a side keep off the box's middle, where the
+      lines along the flow mostly leave. `frame-shape` reads the `@{ … }`
+      outside quotes, its pairs split outside them, and takes `proc` and
+      `process` for the rectangle a frame is. A state, class or component
+      diagram's `ArrowHeadColor none` still declines: no heads at all are
+      not drawn there yet.
 
 ## Next
 
