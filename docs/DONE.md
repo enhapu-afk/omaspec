@@ -1059,6 +1059,14 @@ is open and the reasoning around it.
       style is read under, change nothing written as skinparams. `<< (S
       ) >>` is words; a spot's color named as PlantUML refuses one
       (`blue2`) is declined.
+- [x] `hide` and `remove` name a class by its whole name in a class
+      diagram (2026-11-28), from the package the line stands in, as
+      PlantUML reads them: `hide C` at the top is the `C` there, and a
+      class `C` in a package is `hide a.C`, or `hide C` written in `a`;
+      a short name of a class in a package alone passes by, where both
+      `a.C` and `b.C` had been hidden. An actor or a component under
+      `allowmixing`, a description diagram and `set separator none` keep
+      names that are the whole diagram's.
 
 ### Step 5: what every diagram shares
 

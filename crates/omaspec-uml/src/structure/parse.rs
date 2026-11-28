@@ -899,7 +899,7 @@ impl Parser {
             && !names_an_end(text, verb)
             && let Some(directive) = super::hide::directive(text, no)?
         {
-            self.hides.push(directive);
+            self.hides.push(directive.written_in(self.here()));
             return Ok(at + 1);
         }
         if crate::common::description_opens(text) {

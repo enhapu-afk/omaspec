@@ -1114,8 +1114,11 @@ written in it, with faces of its kind behind it for a viewer that lacks it. `hid
 deciding: a part of the boxes (`hide members`, `hide private fields`, `show Foo methods`,
 `hide <<Entity>> stereotype`, `hide class circle`), a box (`hide Foo`, `hide <<Entity>>`;
 a kind's word alone, `hide class`, hides no box, as in PlantUML), the boxes without a line (`@unlinked`) and those declared with a tag (`class C $draft`,
-`remove $draft`, `remove *`, `restore $keep`). A hidden box keeps its place and is not
-drawn, nor are its lines; a removed one is gone with its lines and notes. Omaspec draws no
+`remove $draft`, `remove *`, `restore $keep`). In a class diagram a class is named by its
+whole name from the package the line stands in, as names are read there: `hide C` at the
+top is the `C` there, not `a.C`, which `hide a.C` names, or `hide C` written in `a`. A
+hidden box keeps its place and is not drawn, nor are its lines; a removed one is gone with
+its lines and notes. Omaspec draws no
 empty compartment, so `hide empty members` changes nothing. A class's name has the circle
 PlantUML draws before it, its letter and color by its kind (`C`, `I`, `A`, `E`, `@`, and
 `P`, `S`, `X`, `M`, `R`, `D` for `protocol`, `struct`, `exception`, `metaclass`, `record`,

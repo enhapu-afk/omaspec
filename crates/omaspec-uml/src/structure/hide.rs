@@ -19,6 +19,16 @@ use crate::common::{keyword, snippet};
 pub(super) struct Directive {
     line: usize,
     what: What,
+    /// The package it is written in, whose whole name a class's name in
+    /// it starts with (`hide C` in `a` is `a.C`).
+    home: Vec<usize>,
+}
+
+impl Directive {
+    /// The directive written in the package at `home`.
+    pub(super) fn written_in(self, home: Vec<usize>) -> Directive {
+        Directive { home, ..self }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,6 +61,11 @@ enum Target {
     Stereotype(String),
     /// A box by its name; a kind's word when no box has that name.
     Name(String),
+    /// Where names belong to their packages: a class by its whole name
+    /// from the package the line stands in (`wanted`, `a.C` for `hide C`
+    /// in `a`), or by a whole name written (`hide a.C`); anything else by
+    /// its name as written (`short`).
+    Whole { short: String, wanted: String },
     /// `$tag`: every box declared with it.
     Tag(String),
     /// `@unlinked`: every box no line meets.
@@ -121,7 +136,11 @@ pub(super) fn directive(text: &str, line: usize) -> Result<Option<Directive>, De
             }
         }
     };
-    Ok(Some(Directive { line, what }))
+    Ok(Some(Directive {
+        line,
+        what,
+        home: Vec::new(),
+    }))
 }
 
 /// The words of a line, a stereotype (`<<a b>>`) and a quoted name each
@@ -341,16 +360,7 @@ pub(super) fn apply(
         .iter()
         .map(|path| {
             let sep = separator?;
-            (path.len() > 1).then(|| {
-                (1..=path.len()).fold(String::new(), |whole, depth| {
-                    let key = &node(root, &path[..depth]).key;
-                    if whole.is_empty() || key.starts_with(&format!("{whole}{sep}")) {
-                        key.clone()
-                    } else {
-                        format!("{whole}{sep}{key}")
-                    }
-                })
-            })
+            (path.len() > 1).then(|| whole_of(root, path, sep))
         })
         .collect();
     let directives = resolved(root, &boxes, &whole, separator, directives)?;
@@ -410,6 +420,25 @@ pub(super) fn apply(
     Ok(())
 }
 
+/// The whole name of the box at `path` through the packages it stands
+/// in, by their names; a box made from a whole name has it already.
+fn whole_of(root: &Group, path: &[usize], sep: &str) -> String {
+    (1..=path.len()).fold(String::new(), |whole, depth| {
+        let key = &node(root, &path[..depth]).key;
+        if whole.is_empty() || key.starts_with(&format!("{whole}{sep}")) {
+            key.clone()
+        } else {
+            format!("{whole}{sep}{key}")
+        }
+    })
+}
+
+/// Whether a box of `el`'s kind belongs to its package where names do:
+/// a class and its kin, not an actor or a component under `allowmixing`.
+fn classed(el: &Element) -> bool {
+    super::SpotKind::of_shape(el.shape).is_some()
+}
+
 /// The directives with each name that is no box read as a kind's word.
 fn resolved(
     root: &Group,
@@ -443,6 +472,33 @@ fn resolved(
                     el.label.value == name && el.key != name
                 })
             };
+            // Where names belong to their packages, a class is named by
+            // its whole name from where the line stands (`hide C` in `a`
+            // is `a.C`); one only a short name meets PlantUML passes by.
+            if let (Some(sep), Target::Name(name)) = (separator, &*target) {
+                let wanted = if directive.home.is_empty() {
+                    name.clone()
+                } else {
+                    format!("{}{sep}{name}", whole_of(root, &directive.home, sep))
+                };
+                let short = name.clone();
+                let meets = |path: &Vec<usize>, whole: &Option<String>| {
+                    let el = node(root, path);
+                    whole_names(el, whole.as_deref(), sep, &short, &wanted)
+                };
+                let met = boxes
+                    .iter()
+                    .zip(whole)
+                    .any(|(path, whole)| meets(path, whole));
+                let shortly = boxes.iter().any(|path| {
+                    let el = node(root, path);
+                    classed(el) && (el.key == short || el.label.value == short)
+                });
+                if met || shortly {
+                    *target = Target::Whole { short, wanted };
+                    return Ok(directive);
+                }
+            }
             if let Target::Name(name) = target
                 && !named(name)
                 && !last_part(name)
@@ -460,6 +516,17 @@ fn resolved(
             Ok(directive)
         })
         .collect()
+}
+
+/// Whether a box is named by `short`, written in a package whose whole
+/// name makes it `wanted`: a class by its whole name, the one from where
+/// the line stands or one written whole; anything else by [`called`].
+fn whole_names(el: &Element, whole: Option<&str>, sep: &str, short: &str, wanted: &str) -> bool {
+    if !classed(el) {
+        return called(el, whole, Some(sep), short);
+    }
+    let own = whole.unwrap_or(&el.key);
+    own == wanted || (short.contains(sep) && own == short)
 }
 
 /// Whether a box is called `name`: by its key, its whole name through
@@ -508,6 +575,13 @@ impl World<'_> {
                 self.whole.get(path).map(String::as_str),
                 self.separator,
                 name,
+            ),
+            Target::Whole { short, wanted } => whole_names(
+                el,
+                self.whole.get(path).map(String::as_str),
+                self.separator.unwrap_or("."),
+                short,
+                wanted,
             ),
             Target::Tag(tag) => self
                 .tags
@@ -1047,11 +1121,47 @@ mod tests {
         assert!(d.root.nodes[1].spot.is_some());
     }
 
+    /// Where names belong to their packages, `hide` and `remove` name a
+    /// class by its whole name from the package the line stands in, as
+    /// PlantUML does; a short name of a class in a package passes by.
+    #[test]
+    fn a_class_is_named_by_its_whole_name() {
+        fn hidden(group: &Group, at: &str, out: &mut Vec<String>) {
+            for node in &group.nodes {
+                let here = if at.is_empty() {
+                    node.key.clone()
+                } else {
+                    format!("{at}/{}", node.key)
+                };
+                if node.hidden {
+                    out.push(here.clone());
+                }
+                hidden(&node.children, &here, out);
+            }
+        }
+        let read = |body: &str| {
+            let d = diagram(body);
+            let mut out = Vec::new();
+            hidden(&d.root, "", &mut out);
+            out.join(" ")
+        };
+        let (a, b) = ("package a {\n  class C\n}\n", "package b {\n  class C\n}\n");
+        assert_eq!(read(&format!("{a}{b}hide C")), "");
+        assert_eq!(read(&format!("{a}hide C")), "");
+        assert_eq!(read(&format!("{a}hide a.C")), "a/C");
+        assert_eq!(read(&format!("class C\n{a}hide C")), "C");
+        assert_eq!(read("package a {\n  class C\n  hide C\n}"), "a/C");
+        assert_eq!(read(&format!("set separator none\n{a}hide C")), "a/C");
+        assert_eq!(read("package a {\n  [C]\n}\nhide C"), "a/C");
+        let d = diagram(&format!("{a}remove C"));
+        assert_eq!(keys(&d.root.nodes[0].children), ["C"]);
+    }
+
     #[test]
     fn a_box_removed_takes_its_lines_and_the_rest_keep_their_ends() {
         let d = diagram(
             "package P {\n  class X\n  class Y\n}\nclass Z\nclass W\nX --> Y\nZ --> Y\n\
-             note right of X : gone\nnote \"stays\" as N\nremove X\nremove @unlinked",
+             note right of X : gone\nnote \"stays\" as N\nremove P.X\nremove @unlinked",
         );
         assert_eq!(keys(&d.root), ["P", "Z", "N"]);
         let p = &d.root.nodes[0].children;
