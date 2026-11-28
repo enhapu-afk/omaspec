@@ -283,6 +283,9 @@ pub struct Spot {
     pub letter: char,
     /// As written; the kind's color when there is none.
     pub color: Option<String>,
+    /// A stereotype wrote it (`<< (S,#FF7700) >>`): the box keeps it,
+    /// declared again as another kind, until a stereotype is written again.
+    pub own: bool,
 }
 
 impl Spot {
@@ -292,6 +295,7 @@ impl Spot {
             kind,
             letter: kind.letter(),
             color: None,
+            own: false,
         }
     }
 }

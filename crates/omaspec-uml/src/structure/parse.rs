@@ -293,7 +293,7 @@ pub(super) fn described(lines: &[Line]) -> bool {
         return false;
     }
     /// What a class diagram never declares alone.
-    const LEAVES: [&str; 25] = [
+    const LEAVES: [&str; 26] = [
         "component",
         "usecase",
         "actor",
@@ -319,6 +319,7 @@ pub(super) fn described(lines: &[Line]) -> bool {
         "portout",
         "rectangle",
         "label",
+        "archimate",
     ];
     /// What a class diagram takes as a package neither: no container.
     const NO_BLOCK: [&str; 11] = [
@@ -496,6 +497,11 @@ struct Pending {
 
 struct RawNote {
     target: String,
+    /// The package it is written in, where its target is looked for
+    /// first.
+    home: Vec<usize>,
+    /// The box it is on, where the note named none and that box is known.
+    at: Option<Vec<usize>>,
     side: Side,
     text: Text,
     line: usize,
@@ -593,7 +599,8 @@ fn short_label(label: &str, key: &str, last: &str) -> String {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Recent {
     Nothing,
-    Element(String),
+    /// A box by its name, and where it stands when that is known.
+    Element(String, Option<Vec<usize>>),
     Note,
     /// An association's point (`(A, B) .. C`).
     Point,
@@ -625,11 +632,7 @@ struct Parser {
     /// diagram's do not ([`described`]).
     classes: bool,
     notes_made: usize,
-    /// The boxes lines made, in the order of their lines, as their ends
-    /// are found once every box is declared: where names belong to their
-    /// packages, a line that found nothing finds the one a line before it
-    /// made, as PlantUML makes it when it reads that line.
-    made: Vec<Vec<usize>>,
+
     /// The last `left to right direction` or `top to bottom direction`,
     /// which holds for the whole diagram, inside packages too, as in
     /// PlantUML.
@@ -666,7 +669,7 @@ impl Default for Parser {
             separator: Some(".".to_owned()),
             classes: true,
             notes_made: 0,
-            made: Vec::new(),
+
             direction: None,
             together: Vec::new(),
             hides: Vec::new(),
@@ -992,7 +995,9 @@ impl Parser {
                         self.insert_at(&decl, &home, &label)?
                     }
                 }
-            } else if let Some(path) = self.find_from(&decl.key, Lookup::Declared, &here) {
+            } else if let Some(path) =
+                self.find_from(&decl.key, Lookup::Declared, &here, Some(decl.shape))
+            {
                 self.merge(&path, &decl)?;
                 path
             } else {
@@ -1056,7 +1061,7 @@ impl Parser {
         }
         let key = self.node(&path).key.clone();
         self.named.insert(key.clone());
-        self.recent = Recent::Element(key);
+        self.recent = Recent::Element(key, Some(path.clone()));
         self.last = Some(path);
         Ok(())
     }
@@ -1064,11 +1069,11 @@ impl Parser {
     /// A name first named by a line or a member line is made then, as
     /// PlantUML makes it: a note without `of` after it is on it, and on an
     /// association's point after its pair.
-    fn named_by_line(&mut self, raw: &RawName) {
+    fn named_by_line(&mut self, raw: &RawName, at: Option<&Vec<usize>>) {
         if raw.pair().is_some() {
             self.recent = Recent::Point;
         } else if self.named.insert(raw.key.clone()) {
-            self.recent = Recent::Element(raw.key.clone());
+            self.recent = Recent::Element(raw.key.clone(), at.cloned());
         }
     }
 
@@ -1102,20 +1107,18 @@ impl Parser {
         for stereotype in &decl.stereotypes {
             node.stereotypes.push(text_at(stereotype, decl.line));
         }
-        // A box declared again keeps the circle it has, its own one
-        // too, unless a stereotype is written again or its kind changes,
-        // as in PlantUML.
+        // A box declared again keeps the circle a stereotype wrote it,
+        // as another kind too, until a stereotype is written again, and
+        // its kind's while its kind stays, as in PlantUML.
         let wanted = decl
             .spot
             .clone()
             .or_else(|| SpotKind::of_shape(node.shape).map(Spot::of));
         let keeps = !decl.spotted
             && decl.stereotypes.is_empty()
-            && node
-                .spot
-                .as_ref()
-                .zip(wanted.as_ref())
-                .is_some_and(|(have, want)| have.kind == want.kind);
+            && node.spot.as_ref().is_some_and(|have| {
+                have.own || wanted.as_ref().is_some_and(|want| have.kind == want.kind)
+            });
         if !keeps {
             node.spot = wanted;
         }
@@ -1320,8 +1323,20 @@ impl Parser {
         // reads it: a `C` declared later is not the line's.
         let here = self.here();
         let (found, strict) = if self.namespaced() {
-            let found =
-                [&rel.from, &rel.to].map(|raw| self.find_near(&raw.key, Lookup::Line, &here));
+            // Where names belong to their packages, an end is found, or
+            // made in the line's package, as the line is read, as PlantUML
+            // does: a later line finds it. A pair and a box written in
+            // brackets are found once all is read.
+            let mut found = [None, None];
+            for (at, raw) in [&rel.from, &rel.to].into_iter().enumerate() {
+                if raw.pair().is_some() || !self.near(raw.shape) {
+                    continue;
+                }
+                found[at] = match self.find_near(&raw.key, Lookup::Line, &here) {
+                    Some(path) => Some(path),
+                    None => Some(self.ensure(raw, &here, line, true)?),
+                };
+            }
             let strict = [found[0].is_none(), found[1].is_none()];
             (found, strict)
         } else {
@@ -1336,8 +1351,8 @@ impl Parser {
                 [&rel.from, &rel.to].map(|raw| self.find(&raw.key).is_none()),
             )
         };
-        self.named_by_line(&rel.from);
-        self.named_by_line(&rel.to);
+        self.named_by_line(&rel.from, found[0].as_ref());
+        self.named_by_line(&rel.to, found[1].as_ref());
         self.pending.push(Pending {
             from: rel.from,
             to: rel.to,
@@ -1360,9 +1375,9 @@ impl Parser {
     }
 
     fn add_field(&mut self, name: RawName, member: Member, line: usize) -> Result<(), Declined> {
-        self.named_by_line(&name);
         let home = self.here();
         let path = self.ensure(&name, &home, line, false)?;
+        self.named_by_line(&name, Some(&path));
         let node = self.node_mut(&path);
         if node.composite {
             return Err(Declined::at(
@@ -1396,21 +1411,9 @@ impl Parser {
             }
             None => {
                 let lookup = if strict { Lookup::Key } else { Lookup::Line };
-                if let Some(path) = self.find_from(&raw.key, lookup, home) {
+                if let Some(path) = self.find_from(&raw.key, lookup, home, raw.shape) {
                     self.upgrade(&path, raw, line)?;
                     return Ok(path);
-                }
-                if strict && self.namespaced() {
-                    let named = |path: &&Vec<usize>| {
-                        let node = self.node(path);
-                        node.key == raw.key || node.label.value == raw.key
-                    };
-                    let made: Vec<Vec<usize>> = self.made.iter().filter(named).cloned().collect();
-                    if let [path] = made.as_slice() {
-                        let path = path.clone();
-                        self.upgrade(&path, raw, line)?;
-                        return Ok(path);
-                    }
                 }
                 (home.to_vec(), raw.label.clone())
             }
@@ -1438,7 +1441,6 @@ impl Parser {
         });
         let mut path = home.to_vec();
         path.push(index);
-        self.made.push(path.clone());
         Ok(path)
     }
 
@@ -1479,10 +1481,25 @@ impl Parser {
         self.classes && self.separator.is_some()
     }
 
+    /// Whether a box of `shape` (one a line or a note names, a class
+    /// unless it says more) belongs to its package: a class, an interface
+    /// and their kin of a diagram whose names do; anything else, an actor
+    /// or a component under `allowmixing`, is the whole diagram's, as in
+    /// PlantUML.
+    fn near(&self, shape: Option<Shape>) -> bool {
+        self.namespaced() && shape.is_none_or(|shape| SpotKind::of_shape(shape).is_some())
+    }
+
     /// The box `name` names, written in the package at `home`
-    /// ([`Self::find_near`] where names belong to their packages).
-    fn find_from(&self, name: &str, lookup: Lookup, home: &[usize]) -> Option<Vec<usize>> {
-        if self.namespaced() {
+    /// ([`Self::find_near`] where it belongs to its package, [`Self::near`]).
+    fn find_from(
+        &self,
+        name: &str,
+        lookup: Lookup,
+        home: &[usize],
+        shape: Option<Shape>,
+    ) -> Option<Vec<usize>> {
+        if self.near(shape) {
             self.find_near(name, lookup, home)
         } else {
             self.find_by(name, lookup)
@@ -1496,21 +1513,33 @@ impl Parser {
     /// name anywhere. A declaration and a line that came first make one
     /// in their own package.
     fn find_near(&self, name: &str, lookup: Lookup, home: &[usize]) -> Option<Vec<usize>> {
-        fn every(group: &Group, path: &mut Vec<usize>, name: &str, found: &mut Vec<Vec<usize>>) {
+        fn every(
+            group: &Group,
+            path: &mut Vec<usize>,
+            named: &dyn Fn(&Element) -> bool,
+            found: &mut Vec<Vec<usize>>,
+        ) {
             for (index, node) in group.nodes.iter().enumerate() {
                 path.push(index);
-                if node.key == name || node.label.value == name {
+                if named(node) {
                     found.push(path.clone());
                 }
-                every(&node.children, path, name, found);
+                every(&node.children, path, named, found);
                 path.pop();
             }
         }
         let sep = self.separator.as_deref().unwrap_or(".");
+        // A whole name (`a.C`) is found through its packages alone.
+        if name.contains(sep) {
+            return None;
+        }
         let whole = format!("{sep}{name}");
-        let here = |node: &Element| {
+        // By its name, or as the whole name made (`a.C` of `C`); an
+        // alias's words (`"User" as U1`) name no box.
+        let named = |node: &Element| {
             node.key == name || (node.label.value == name && node.key.ends_with(&whole))
         };
+        let here = named;
         if let Some(at) = self.container(home).nodes.iter().position(here) {
             return Some([home, &[at]].concat());
         }
@@ -1518,7 +1547,7 @@ impl Parser {
             return None;
         }
         let mut found = Vec::new();
-        every(&self.root, &mut Vec::new(), name, &mut found);
+        every(&self.root, &mut Vec::new(), &named, &mut found);
         match found.len() {
             1 => found.pop(),
             _ => None,
@@ -1703,11 +1732,15 @@ impl Parser {
 
     fn place_notes(&mut self) -> Result<(), Declined> {
         for note in std::mem::take(&mut self.raw_notes) {
-            let (path, member) = match self.find(&note.target) {
+            let found = match &note.at {
+                Some(at) => Some(at.clone()),
+                None => self.find_from(&note.target, Lookup::Line, &note.home, None),
+            };
+            let (path, member) = match found {
                 Some(path) => (path, None),
                 None => match self.through_packages(&note.target) {
                     Some(path) => (path, None),
-                    None => self.member_of(&note.target, note.line)?,
+                    None => self.member_of(&note.target, &note.home, note.line)?,
                 },
             };
             let index = *path.last().expect("a path");
@@ -1761,6 +1794,7 @@ impl Parser {
     fn member_of(
         &self,
         target: &str,
+        home: &[usize],
         line: usize,
     ) -> Result<(Vec<usize>, Option<(bool, String)>), Declined> {
         let missing = || Declined::at(line, format!("`{target}` is not an element"));
@@ -1768,7 +1802,9 @@ impl Parser {
             Some(at) => (&target[..at], &target[at + 2..]),
             None => target.rsplit_once("::").ok_or_else(missing)?,
         };
-        let path = self.find(element.trim()).ok_or_else(missing)?;
+        let path = self
+            .find_from(element.trim(), Lookup::Line, home, None)
+            .ok_or_else(missing)?;
         let (quoted, wanted) = match member.trim().strip_prefix('"') {
             Some(inner) => (true, inner.strip_suffix('"').unwrap_or(inner)),
             None => (false, member.trim()),
@@ -1869,8 +1905,8 @@ impl Parser {
             // block), as PlantUML reads it: an element, or a note.
             let words = after.trim_start();
             if keyword(after, "of").is_none() && (words.is_empty() || words.starts_with(':')) {
-                let target = match &self.recent {
-                    Recent::Element(key) => key.clone(),
+                let (target, on) = match &self.recent {
+                    Recent::Element(key, on) => (key.clone(), on.clone()),
                     Recent::Note => {
                         return Err(Declined::at(no, "a note on a note is not supported yet"));
                     }
@@ -1891,6 +1927,8 @@ impl Parser {
                 self.recent = Recent::Note;
                 self.raw_notes.push(RawNote {
                     target,
+                    home: self.here(),
+                    at: on,
                     side,
                     text: body,
                     line: no,
@@ -1931,6 +1969,8 @@ impl Parser {
             self.recent = Recent::Note;
             self.raw_notes.push(RawNote {
                 target: name.to_owned(),
+                home: self.here(),
+                at: None,
                 side,
                 text: body,
                 line: no,
@@ -2340,6 +2380,7 @@ fn own_spot(
         kind,
         letter,
         color,
+        own: true,
     }))
 }
 
@@ -4270,9 +4311,10 @@ mod tests {
             keys("@startuml\nclass a.b.C\nclass C\nC --> a.b.C\n@enduml\n"),
             ["a=a", "a.b=b", "a.b.C=C", "C=C"]
         );
+        // A line's boxes are made as it is read, as PlantUML makes them.
         assert_eq!(
             keys("@startuml\nC --> X\nclass a.b.C\n@enduml\n"),
-            ["a=a", "a.b=b", "a.b.C=C", "C=C", "X=X"]
+            ["C=C", "X=X", "a=a", "a.b=b", "a.b.C=C"]
         );
         assert!(
             keys("@startuml\nclass net.Socket\nclass B extends Socket\n@enduml\n")
@@ -4446,6 +4488,74 @@ mod tests {
         assert_eq!(
             read("package a {\n  [C]\n}\npackage b {\n  [C]\n}").0,
             "a a/C b"
+        );
+        // An alias's words name no box: the one `User` is b's.
+        assert_eq!(
+            read(
+                "package a {\n  class \"User\" as U1\n}\npackage b {\n  class User\n}\nUser --> X"
+            )
+            .1,
+            "b/User>X"
+        );
+        // A whole name is found through its packages alone.
+        assert_eq!(
+            read("package x {\n  class a.C\n}\na.C --> E").0,
+            "E a a/C x x/a x/a/C"
+        );
+        // An actor under `allowmixing` is the whole diagram's.
+        assert_eq!(
+            read("allowmixing\nclass K\npackage a {\n  actor U\n}\npackage b {\n  actor U\n}").0,
+            "K a a/U b"
+        );
+        // A line's boxes are made as it is read: a later line finds two,
+        // and makes its own; a member line finds the one.
+        assert_eq!(
+            read("package P {\n  X --> A\n}\npackage Q {\n  class X\n}\npackage R {\n  X --> B\n}")
+                .1,
+            "P/X>P/A R/X>R/B"
+        );
+        assert_eq!(
+            read("package R {\n  X --> B\n}\npackage P {\n  X : field\n}").0,
+            "P R R/B R/X"
+        );
+        // A note finds its box from where it is written.
+        for (body, on) in [
+            (
+                "package a {\n  class C\n}\npackage b {\n  class C\n  note right of C : n\n}",
+                "b",
+            ),
+            (
+                "package a {\n  class C\n}\npackage b {\n  class C\n  note right : n\n}",
+                "b",
+            ),
+            (
+                "package a {\n  class C\n}\nclass C\nnote right of C : n",
+                "",
+            ),
+        ] {
+            let d = diagram(&format!("@startuml\n{body}\n@enduml\n"));
+            let group = match on {
+                "b" => &d.root.nodes[1].children,
+                _ => &d.root,
+            };
+            assert_eq!(group.notes.len(), 1, "{body}");
+            assert_eq!(group.nodes[group.notes[0].target].key, "C", "{body}");
+        }
+        let d = diagram(
+            "@startuml\npackage a {\n  class C\n}\npackage b {\n  class C {\n    int y\n  }\n  note right of C::y\n    n\n  end note\n}\n@enduml\n",
+        );
+        assert_eq!(d.root.nodes[1].children.notes[0].member, Some(0));
+        // An association class's pair is found from where it is written.
+        let d = diagram(
+            "@startuml\npackage a {\n  class A\n  class B\n}\npackage b {\n  class A\n  class B\n  (A, B) .. K\n}\n@enduml\n",
+        );
+        assert!(d.root.nodes[0].children.edges.is_empty());
+        assert!(
+            d.root.nodes[1]
+                .children
+                .nodes
+                .iter()
+                .any(|n| n.shape == Shape::Point)
         );
     }
 

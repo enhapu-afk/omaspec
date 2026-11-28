@@ -3,7 +3,7 @@
 //! class's line starts there.
 
 use super::super::{Dash, Element, Group, Head, Link, Shape};
-use super::{ACROSS, BESIDE, Parser, Pending, RawName};
+use super::{ACROSS, BESIDE, Lookup, Parser, Pending, RawName};
 use crate::Declined;
 use crate::common::text_at;
 
@@ -57,7 +57,10 @@ impl Parser {
             mut item,
         } = association;
         let line = item.line;
-        let (Some(a), Some(b)) = (self.find(&a), self.find(&b)) else {
+        // The pair as a line's ends are found, from where it is written.
+        let home = item.home.clone();
+        let found = |name: &str| self.find_from(name, Lookup::Line, &home, None);
+        let (Some(a), Some(b)) = (found(&a), found(&b)) else {
             return Err(Declined::at(
                 line,
                 "an association class needs two elements",

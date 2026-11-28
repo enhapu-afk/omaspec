@@ -130,7 +130,11 @@ pub(super) fn read(spots: &mut Spots, key: &str, p: &Skinparam) -> Option<Result
     };
     let ours =
         key.starts_with("circledcharacter") || key == "spotfontcolor" || kind_of(key).is_some();
-    ours.then(|| set(spots))
+    // `spotClassFontColor` and its kin are the names a style is read
+    // under; written as a skinparam, PlantUML takes them and changes
+    // nothing.
+    let styled = p.declared.is_some() || !key.starts_with("spot");
+    ours.then(|| if styled { set(spots) } else { Ok(()) })
 }
 
 /// `stereotypecbackgroundcolor`, `spotentitybordercolor`,
@@ -215,7 +219,8 @@ mod tests {
             Spot {
                 kind: SpotKind::Class,
                 letter: 'S',
-                color: Some("#FF7700".into())
+                color: Some("#FF7700".into()),
+                own: true,
             }
         );
         assert_eq!(
@@ -315,6 +320,21 @@ mod tests {
             .unwrap();
         assert!(
             svg.contains(">«(S,#F70)»<") && svg.contains(">«x, y»<"),
+            "{svg}"
+        );
+        // A stereotype's circle stays declared again as another kind.
+        assert_eq!(letters("abstract A << (S,red) >>\nclass A {\n  +x\n}"), "S");
+        assert_eq!(letters("class A << (S,#FF7700) >>\nabstract A"), "S");
+        // `<< (S ) >>` is words.
+        let found = spots("class A << (S ) >>");
+        assert_eq!(found[0].1.as_ref().map(|s| s.letter), Some('C'));
+        // The names a style is read under change nothing as skinparams.
+        let svg = crate::render(
+            "@startuml\nskinparam spotClassFontColor red\nskinparam spotClassBackgroundColor blue\nclass C\n@enduml\n",
+        )
+        .unwrap();
+        assert!(
+            svg.contains("fill=\"#ADD1B2\"") && !svg.contains("fill=\"#FF0000\""),
             "{svg}"
         );
         // The letter's face and style are the diagram's: taken, no change.

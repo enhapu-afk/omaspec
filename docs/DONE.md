@@ -1041,6 +1041,24 @@ is open and the reasoning around it.
       box of its own, and a tag goes with its own box alone. Under `set
       separator none` and in a description diagram a name is the whole
       diagram's, as before.
+- [x] What the review of the packages' names found (2026-11-28). A note
+      finds its box from the package it is written in (`note right of
+      C` in `b` is on `b.C`, a note without `of` on the box made last),
+      its member too (`C::y`). A box is found by its name or as the
+      whole name made, not by an alias's words (`"User" as U1`). An
+      association class's pair is found from where it is written. A
+      whole name (`a.C`) is found through its packages alone. Only the
+      classes and their kin belong to their packages: an actor or a
+      component under `allowmixing` is the whole diagram's, and an
+      `archimate` box makes a description diagram. A line's boxes are
+      made as it is read, as PlantUML makes them, so a later line and a
+      member line find them. A circle a stereotype wrote stays when the
+      box is declared again as another kind. A kind's word alone (`hide
+      class`, `hide struct`) hides no box, as in PlantUML, a part of
+      them only; `skinparam spotClassFontColor` and its kin, the names a
+      style is read under, change nothing written as skinparams. `<< (S
+      ) >>` is words; a spot's color named as PlantUML refuses one
+      (`blue2`) is declined.
 
 ### Step 5: what every diagram shares
 

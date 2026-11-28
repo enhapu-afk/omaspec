@@ -428,6 +428,7 @@ fn resolved(
         .iter()
         .map(|directive| {
             let mut directive = directive.clone();
+            let whole_box = matches!(directive.what, What::Seen { .. } | What::Kept { .. });
             let target = match &mut directive.what {
                 What::Part { target, .. }
                 | What::Seen { target, .. }
@@ -449,6 +450,12 @@ fn resolved(
                 *target = Target::Kind(kind_of(name).ok_or_else(|| {
                     Declined::at(directive.line, format!("no box is called `{name}`"))
                 })?);
+                // `hide class`, `remove interface`: a kind's boxes whole
+                // PlantUML passes by; it hides a part of them alone
+                // (`hide class circle`).
+                if whole_box {
+                    directive.what = What::Nothing;
+                }
             }
             Ok(directive)
         })
@@ -1128,9 +1135,13 @@ mod tests {
             assert_eq!(err.line, Some(2), "{err:?}");
             assert!(err.reason.contains(word), "{}", err.reason);
         }
-        // A kind's word is no box's name: every class.
-        let d = diagram("class A\ninterface I\nhide class");
-        assert!(d.root.nodes[0].hidden && !d.root.nodes[1].hidden);
+        // A kind's word is no box's name: PlantUML hides no box by it
+        // (`hide class`, `remove struct`), a part of them alone.
+        let d = diagram("class A\ninterface I\nstruct S\nhide class\nremove struct");
+        assert_eq!(keys(&d.root), ["A", "I", "S"]);
+        assert!(d.root.nodes.iter().all(|n| !n.hidden));
+        let d = diagram("class A\ninterface I\nhide class circle");
+        assert!(d.root.nodes[0].spot.is_none() && d.root.nodes[1].spot.is_some());
     }
 
     #[test]

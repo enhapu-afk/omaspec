@@ -776,15 +776,17 @@ pub(crate) fn spotted(stereotype: &str) -> (Option<(char, Option<String>)>, Opti
     let Some((inner, rest)) = text.strip_prefix('(').and_then(|t| t.split_once(')')) else {
         return (None, some(text));
     };
+    // `(S ,red)` is a spot, `(S )` words.
     let (letter, color) = match inner.split_once(',') {
         Some((letter, color)) => (letter.trim_end(), Some(color.trim())),
-        None => (inner.trim_end(), None),
+        None => (inner, None),
     };
     let hex = |digits: &str| digits.len() == 6 && digits.chars().all(|c| c.is_ascii_hexdigit());
     let read = |color: &str| match color.strip_prefix('#') {
         Some(digits) => hex(digits).then(|| color.to_owned()),
         None if hex(color) => Some(format!("#{color}")),
-        None => (!color.is_empty() && color.chars().all(|c| c.is_ascii_alphabetic()))
+        // A name PlantUML refuses (`blue2`) is refused when drawn.
+        None => (!color.is_empty() && color.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'))
             .then(|| color.to_owned()),
     };
     let color = match color {
