@@ -67,8 +67,11 @@ two, since one rank could not hold both ends of a line.
   `a` all the same. A state transition of one dash and no word
   (`a -> b`, `a <- b`) is held as `-right->` is, the states in the order
   written, as PlantUML ranks them (2026-11-27), and so is one in the old
-  activity syntax. Between boxes of different states a direction
-  across the flow is a line like any other. Mermaid's drawers pass
+  activity syntax and a line of one dash or dot in the structure
+  diagrams (`A <|- B`, `A . B`, 2026-11-28; a style in brackets leaves
+  it one, `-[#red]>`). Between boxes of different states a direction
+  across the flow is a line like any other, and so is one dash between
+  boxes of different packages. Mermaid's drawers pass
   `level: None`.
 - Two boxes held after one (`a -right-> b`, `a -right-> c`) stand as
   `a b c`. The line to `c` leaves `a` and arrives at `c` on the side

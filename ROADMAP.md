@@ -82,10 +82,9 @@ Done; what was drawn but different too (docs/DONE.md).
       (`Shop [customerId: long] ---> …`), `circle` and `diamond` (`<>`),
       names with `$`, `-class`, `#--`, `page 2x2`, a spot with its letter
       and color (`<< (S,#FF7700) Singleton >>`). Drawn but different: the
-      circled letters (C, I, A, E, @) as PlantUML draws them, a line with
-      one dash (`<|-`) keeps its ends side by side, and an association
-      class outside the package of its pair bends the pair's line at the
-      point it meets.
+      circled letters (C, I, A, E, @) as PlantUML draws them, and an
+      association class outside the package of its pair bends the pair's
+      line at the point it meets.
 - [ ] Object (4 of 13): `map`, `diamond`.
 - [ ] Component and deployment (22 of 35, 9 of 50): ports (`port`,
       `portin`, `portout`), long descriptions in brackets (`comp1 [ … ]`), a

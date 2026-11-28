@@ -355,6 +355,12 @@ enum Open {
 /// the flow runs, the second box after the first.
 const ACROSS: &str = "across";
 
+/// The word of a line of one dash or dot and no word (`A <|- B`): its
+/// second box beside its first, as `-right->` holds it, the two in the
+/// order written, as PlantUML ranks them; between boxes of different
+/// packages a line like any other.
+const BESIDE: &str = "beside";
+
 struct RawName {
     key: String,
     label: String,
@@ -1437,12 +1443,12 @@ impl Parser {
         // PlantUML lays it.
         let along = match item.toward {
             None => true,
-            Some(ACROSS) => false,
+            Some(ACROSS | BESIDE) => false,
             Some(word) => matches!(word, "down" | "up"),
         };
         let forward = item
             .toward
-            .is_none_or(|word| matches!(word, "down" | "right" | ACROSS));
+            .is_none_or(|word| matches!(word, "down" | "right" | ACROSS | BESIDE));
         let turned = |from: usize, to: usize| Link {
             from_head: item.to_head,
             to_head: item.from_head,
@@ -1471,7 +1477,7 @@ impl Parser {
             }
             return Ok(());
         }
-        if !along {
+        if !along && item.toward != Some(BESIDE) {
             // `together` holds the boxes of one package alone; across
             // packages they stand where the layout puts them.
             if item.hidden && item.toward == Some(ACROSS) {
@@ -3095,6 +3101,8 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
             format!("`{token}` is not a line this diagram draws"),
         ));
     }
+    // One dash or dot and no word: the two side by side ([`BESIDE`]).
+    let toward = toward.or((rest.chars().count() == 1).then_some(BESIDE));
     Ok(ArrowBits {
         from_head,
         to_head,
@@ -3466,6 +3474,38 @@ mod tests {
         assert_eq!(d.root.edges.len(), 3);
         // After a member's colon the dot is the member's.
         assert_eq!(d.root.nodes[0].members.len(), 2);
+    }
+
+    /// A line of one dash or dot and no word holds its second box beside
+    /// the first, the two in the order written, as PlantUML lays them;
+    /// a style in brackets leaves it one, two dashes run along the flow.
+    #[test]
+    fn one_dash_lays_its_ends_side_by_side() {
+        for arrow in [
+            "<|-", "-|>", "-", ".", "*-", "<-", "->", ".>", "-[#red]>", "o-",
+        ] {
+            let d = diagram(&format!(
+                "@startuml\nclass A\nclass B\nA {arrow} B\n@enduml\n"
+            ));
+            let edge = &d.root.edges[0];
+            assert_eq!(
+                (edge.from, edge.to, edge.level),
+                (0, 1, Some(true)),
+                "{arrow}"
+            );
+        }
+        for arrow in ["<|--", "--", "-[#red]-", "-down->", ".."] {
+            let d = diagram(&format!(
+                "@startuml\nclass A\nclass B\nA {arrow} B\n@enduml\n"
+            ));
+            assert_eq!(d.root.edges[0].level, None, "{arrow}");
+        }
+        // Hidden, it holds the two as `-right-` does.
+        let d = diagram("@startuml\nclass A\nclass B\nA -[hidden]> B\n@enduml\n");
+        assert!(d.root.edges.is_empty() && d.root.held.len() == 1);
+        // Between boxes of different packages, a line like any other.
+        let d = diagram("@startuml\npackage p {\n  class A\n}\nclass B\nA -> B\n@enduml\n");
+        assert_eq!(d.root.crossings.len(), 1);
     }
 
     #[test]

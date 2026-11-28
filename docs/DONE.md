@@ -949,6 +949,15 @@ is open and the reasoning around it.
       is not drawn yet. Still different: a namespace left empty by its
       lines is drawn, and two lines alike between the same two boxes are
       one.
+- [x] A line of one dash or dot in the structure diagrams lays its ends
+      side by side (2026-11-28): `Collection <|- List`, `Room o- Student`,
+      `user -> (Use case)`, `[c] .> HTTP` hold the second box beside the
+      first, the two in the order written, as PlantUML ranks them; a
+      style in brackets leaves it one (`-[#red]>`), hidden it is a hold.
+      Between boxes of different packages it is a line like any other.
+      An association class keeps the place its pair gives it, its line of
+      one dot too. The C4 macros write two dashes, as C4-PlantUML does,
+      and the gallery's agent platform keeps its picture with `-->`.
 
 ### Step 5: what every diagram shares
 

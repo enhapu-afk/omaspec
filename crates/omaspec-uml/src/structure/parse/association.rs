@@ -3,7 +3,7 @@
 //! class's line starts there.
 
 use super::super::{Dash, Element, Group, Head, Link, Shape};
-use super::{ACROSS, Parser, Pending, RawName};
+use super::{ACROSS, BESIDE, Parser, Pending, RawName};
 use crate::Declined;
 use crate::common::text_at;
 
@@ -168,7 +168,9 @@ impl Parser {
         };
         let point = [home.as_slice(), &[point]].concat();
         let other_side = classes % 2 == 1;
-        if item.toward.is_none() {
+        // Where the class stands is the pair's to say, one dot or dash
+        // (`(A, B) . C`) too.
+        if item.toward.is_none() || item.toward == Some(BESIDE) {
             let beside = class.len() == point.len() && class.starts_with(&home);
             item.toward = match (along, beside, other_side) {
                 (true, true, false) => Some(ACROSS),
@@ -226,7 +228,7 @@ mod tests {
     fn the_pairs_line_runs_through_a_point_the_class_starts_at() {
         // The guide's example: the multiplicities stay at their ends.
         let d = diagram(
-            "class Student {\n  Name\n}\nStudent \"0..*\" - \"1..*\" Course\n(Student, Course) .. Enrollment",
+            "class Student {\n  Name\n}\nStudent \"0..*\" -- \"1..*\" Course\n(Student, Course) .. Enrollment",
         );
         let root = &d.root;
         assert_eq!(root.nodes[index(root, PAIR)].shape, Shape::Point);
@@ -244,9 +246,15 @@ mod tests {
         assert_eq!(class.level, Some(true));
         assert_eq!(class.line, 5);
         // One dot alone is a dotted line too, as the guide's second
-        // example writes it.
+        // example writes it, and the class beside the point all the same.
         let d = diagram("Student \"0..*\" -- \"1..*\" Course\n(Student, Course) . Enrollment");
-        assert_eq!(edge(&d.root, PAIR, "Enrollment").dash, Dash::Dashed);
+        let class = edge(&d.root, PAIR, "Enrollment");
+        assert_eq!((class.dash, class.level), (Dash::Dashed, Some(true)));
+        // One dash lays the pair side by side, as PlantUML does: the class
+        // stands under the point.
+        let d = diagram("Student \"0..*\" - \"1..*\" Course\n(Student, Course) .. Enrollment");
+        assert_eq!(edge(&d.root, "Student", PAIR).level, Some(true));
+        assert_eq!(edge(&d.root, PAIR, "Enrollment").level, None);
     }
 
     #[test]

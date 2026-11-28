@@ -42,7 +42,7 @@ rectangle "⭐ <size:16>What it can do</size>\n* Multi-step planning\n* Tools an
 user -right-> gateway
 gateway --> orch
 auth -right-> orch
-registry -> orch
+registry --> orch
 orch <-right-> llm : reason,\ndecide
 orch --> perm
 perm --> approval : needs approval

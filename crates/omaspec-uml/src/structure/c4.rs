@@ -418,7 +418,9 @@ impl<'a> Writer<'a> {
             rows.extend(wrapped(&descr).map(|piece| format!("<size:12>{piece}</size>")));
         }
         let toward = self.toward(arrow.toward, from, to);
-        let middle = toward.map_or("-".to_owned(), |word| format!("-{word}-"));
+        // Two dashes, as C4-PlantUML writes `Rel` (`-->>`): one would lay
+        // the two side by side.
+        let middle = toward.map_or("--".to_owned(), |word| format!("-{word}-"));
         let line = match (arrow.back, arrow.both) {
             (false, false) => format!("{from} {middle}> {to}"),
             (false, true) => format!("{from} <{middle}> {to}"),
