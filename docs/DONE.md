@@ -1118,6 +1118,16 @@ is open and the reasoning around it.
       nor one `together` made; a note without `of` after it is on the box
       made last. The room of a note on a line, which has no words of its
       own, is kept clear by other words and lines all the same.
+- [x] Lines and borders with styles of their own (2026-11-28), as
+      PlantUML draws them: `[thickness=4]` in a line's bracket, beside its
+      color and dash (`-[#red,dashed,thickness=4]->`), the line that wide
+      and its heads grown with it; a style after a line's far end (`A -->
+      B #line:red;line.bold;text:red`, `#green;line.dashed`), its color,
+      dash, boldness and its words' color; a box's border `##[bold]red`,
+      `##[dashed]green`, `##[dotted]blue`, and `#line.dashed:blue`,
+      `#line.dotted:blue` in a box's style. A style's colon is no label's
+      (`#line:red : label`). Still declined: `header:` in a box's style.
+      The guide: the class diagram 71 of 84, 587 of 897 in all.
 
 ### Step 5: what every diagram shares
 

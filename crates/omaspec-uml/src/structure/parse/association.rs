@@ -148,6 +148,7 @@ impl Parser {
                         label_before: None,
                         note: None,
                         members: [None, None],
+                        style: Default::default(),
                     },
                 };
                 let point = group.nodes.len();

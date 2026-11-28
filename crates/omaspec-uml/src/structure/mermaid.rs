@@ -1000,6 +1000,7 @@ impl Parser {
             label_before: None,
             note: None,
             members: [None, None],
+            style: Default::default(),
         };
         let from = &rel.from;
         let to = &rel.to;

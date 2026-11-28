@@ -459,6 +459,9 @@ struct ArrowBits {
     /// (`-[hidden]right-`).
     toward: Option<&'static str>,
     color: Option<String>,
+    /// Its width and its words' color, written in its bracket or after
+    /// its far end.
+    style: super::LineStyle,
 }
 
 struct RawRel {
@@ -473,6 +476,8 @@ struct RawRel {
 struct Pending {
     from: RawName,
     to: RawName,
+    /// Its own width and words' color.
+    style: super::LineStyle,
     /// `note on link` after it.
     note: Option<super::LinkNote>,
     from_card: Option<Text>,
@@ -876,6 +881,7 @@ impl Parser {
                 let home = self.here();
                 for pair in members.windows(2) {
                     self.pending.push(Pending {
+                        style: Default::default(),
                         from: pair[0].clone_name(),
                         to: pair[1].clone_name(),
                         from_card: None,
@@ -1068,6 +1074,7 @@ impl Parser {
                 [None, None]
             };
             self.pending.push(Pending {
+                style: Default::default(),
                 from: parent.raw.clone_name(),
                 to: RawName {
                     key: decl.key.clone(),
@@ -1421,6 +1428,7 @@ impl Parser {
         self.pending.push(Pending {
             from: rel.from,
             to: rel.to,
+            style: rel.arrow.style.clone(),
             from_card: rel.from_card,
             to_card: rel.to_card,
             from_head: rel.arrow.from_head,
@@ -1751,6 +1759,7 @@ impl Parser {
             label_before: None,
             note: item.note.clone(),
             members: [None, None],
+            style: item.style.clone(),
         };
         if from == to {
             let index = *from.last().expect("a path");
@@ -2921,6 +2930,29 @@ fn take_colors(input: &str, line: usize) -> Result<Colors, Declined> {
                 i += 1;
             }
             let token: String = chars[start..i].iter().collect();
+            // `##[dashed]green`: a border so, in that color, as PlantUML
+            // draws it.
+            if let Some(styled) = token.strip_prefix("##[")
+                && let Some((word, rest)) = styled.split_once(']')
+            {
+                match word.trim().to_ascii_lowercase().as_str() {
+                    "dashed" => more.dash = Some((7.0, 5.0)),
+                    "dotted" => more.dash = Some((2.0, 4.0)),
+                    "bold" => more.thickness = Some(2.5),
+                    "plain" => more.dash = None,
+                    _ => {
+                        return Err(Declined::at(
+                            line,
+                            format!("`##[{word}]` is not supported yet"),
+                        ));
+                    }
+                }
+                if !rest.is_empty() {
+                    let (_, border) = read_color(&format!("##{rest}"), line)?;
+                    line_color = border;
+                }
+                continue;
+            }
             if Inline::written(&token) {
                 // `#fill;line:color;line.dashed;text:color`, PlantUML's
                 // inline style.
@@ -3332,8 +3364,22 @@ fn relation(text: &str, line: usize, at: usize) -> Result<RawRel, Declined> {
     if left.is_empty() || right.is_empty() {
         return Err(Declined::at(line, "a line needs two elements"));
     }
-    let (from, from_card) = side(left, true, line)?;
-    let (to, to_card) = side(right, false, line)?;
+    let (from, from_card, near_style) = side(left, true, line)?;
+    let (to, to_card, style) = side(right, false, line)?;
+    if let Some(style) = near_style {
+        return Err(Declined::at(
+            line,
+            format!(
+                "a line's own style before it (`{}`) is not supported yet",
+                snippet(&style)
+            ),
+        ));
+    }
+    let mut arrow = parse_arrow(arrow, line)?;
+    // `A --> B #line:red;line.bold;text:red`: the line's own style.
+    if let Some(style) = style {
+        own_style(&mut arrow, &style, line)?;
+    }
     // Where each multiplicity stands: the one before the arrow ends its
     // side, the one after it begins its side. A line turned keeps them
     // where they were written.
@@ -3355,12 +3401,38 @@ fn relation(text: &str, line: usize, at: usize) -> Result<RawRel, Declined> {
         to,
         from_card: from_card.map(|value| card(value, left, true)),
         to_card: to_card.map(|value| card(value, right, false)),
-        arrow: parse_arrow(arrow, line)?,
+        arrow,
         label: label.map(str::to_owned),
     })
 }
 
-fn side(text: &str, card_last: bool, line: usize) -> Result<(RawName, Option<String>), Declined> {
+/// A line's own style after its far end, as PlantUML reads it: its color
+/// (`#red`, `#line:red`, the first of `#green;line.dashed`), dashed,
+/// dotted or bold, and its words' color (`text:red`).
+fn own_style(arrow: &mut ArrowBits, style: &str, line: usize) -> Result<(), Declined> {
+    let read = Inline::read(style).map_err(|err| Declined::at(line, err))?;
+    if let Some(color) = read.line.or(read.fill) {
+        arrow.color = Some(color);
+    }
+    match read.dash {
+        Some(InlineDash::Dashed) => arrow.dash = Dash::Dashed,
+        Some(InlineDash::Dotted) => arrow.dash = Dash::Dotted,
+        None => {}
+    }
+    if read.bold {
+        arrow.bold = true;
+    }
+    if read.text.is_some() {
+        arrow.style.text = read.text;
+    }
+    Ok(())
+}
+
+/// One end of a line: its name, its multiplicity, and the line's own
+/// style written after it (`#line:red;line.bold`).
+type Side_ = (RawName, Option<String>, Option<String>);
+
+fn side(text: &str, card_last: bool, line: usize) -> Result<Side_, Declined> {
     let mut tokens = tokens_of(text, line)?;
     // `() "Clipboard"`: the interface a component diagram draws as a
     // circle, `()` before its name.
@@ -3373,19 +3445,11 @@ fn side(text: &str, card_last: bool, line: usize) -> Result<(RawName, Option<Str
     }
     // A style after the line's far end (`(bar) #line:red;line.bold`); a
     // `#` alone is an end the arrow did not take in.
-    if let Some(style) = tokens
+    let style = tokens
         .iter()
         .skip(1)
-        .find(|token| token.starts_with('#') && token.len() > 1)
-    {
-        return Err(Declined::at(
-            line,
-            format!(
-                "a line's own style (`{}`) is not supported yet",
-                snippet(style)
-            ),
-        ));
-    }
+        .position(|token| token.starts_with('#') && token.len() > 1)
+        .map(|at| tokens.remove(at + 1));
     let (mut name, card) = match tokens.as_slice() {
         [name] => (raw_name(name, line)?, None),
         [name, card] if card_last => (raw_name(name, line)?, Some(cardinality(card, line)?)),
@@ -3400,7 +3464,7 @@ fn side(text: &str, card_last: bool, line: usize) -> Result<(RawName, Option<Str
     if circle.is_some() {
         name.shape = Some(Shape::Lollipop);
     }
-    Ok((name, card))
+    Ok((name, card, style))
 }
 
 fn cardinality(token: &str, line: usize) -> Result<String, Declined> {
@@ -3528,6 +3592,12 @@ fn split_label(text: &str) -> (&str, Option<&str>) {
             && end > 0
         {
             i += end + 2;
+            continue;
+        }
+        // `#line:red` is a line's own style, not its label.
+        let word = text[..b].rfind(char::is_whitespace).map_or(0, |at| at + 1);
+        if !quote && c == ':' && text[word..b].starts_with('#') {
+            i += 1;
             continue;
         }
         // `A::count` names a member, not a label: both colons go by.
@@ -3681,6 +3751,7 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
     let mut bold = false;
     let mut hidden = false;
     let mut color = None;
+    let mut thickness = None;
     while let Some(start) = rest.find('[') {
         let Some(end) = rest.find(']') else {
             return Err(Declined::at(line, "an arrow bracket has no `]`"));
@@ -3689,7 +3760,12 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
         if inside.trim().eq_ignore_ascii_case("hidden") {
             hidden = true;
         } else {
-            apply_bracket(&inside, &mut dash, &mut bold, &mut color, line)?;
+            apply_bracket(
+                &inside,
+                (&mut dash, &mut bold, &mut thickness),
+                &mut color,
+                line,
+            )?;
         }
         rest.replace_range(start..end + 1, "");
     }
@@ -3711,6 +3787,10 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
         hidden,
         toward,
         color,
+        style: super::LineStyle {
+            thickness,
+            text: None,
+        },
     })
 }
 
@@ -3835,8 +3915,7 @@ fn take_suffix(rest: &mut String, line: usize) -> Result<Head, Declined> {
 
 fn apply_bracket(
     inside: &str,
-    dash: &mut Dash,
-    bold: &mut bool,
+    (dash, bold, thickness): (&mut Dash, &mut bool, &mut Option<f32>),
     color: &mut Option<String>,
     line: usize,
 ) -> Result<(), Declined> {
@@ -3851,7 +3930,19 @@ fn apply_bracket(
         if part.is_empty() {
             continue;
         }
-        match part.to_ascii_lowercase().as_str() {
+        let lower = part.to_ascii_lowercase();
+        // `thickness=4`: the line that wide, as PlantUML draws it.
+        if let Some(value) = lower.strip_prefix("thickness=") {
+            let width: f32 = value
+                .trim()
+                .parse()
+                .ok()
+                .filter(|width: &f32| (0.0..=100.0).contains(width))
+                .ok_or_else(|| Declined::at(line, format!("`[{part}]` names no width")))?;
+            *thickness = Some(width);
+            continue;
+        }
+        match lower.as_str() {
             "dashed" => *dash = Dash::Dashed,
             "dotted" => *dash = Dash::Dotted,
             "bold" => *bold = true,
@@ -5081,6 +5172,53 @@ mod tests {
         assert_eq!(diagram.root.notes[0].target, 0);
     }
 
+    /// A line's own style as PlantUML reads it: its width in its bracket
+    /// (`[#red,dashed,thickness=4]`), its color, dash, boldness and words'
+    /// color after its far end; a box's border `##[dashed]green` and
+    /// `#line.dashed:blue`, six digits without their `#` a color too.
+    #[test]
+    fn lines_and_borders_take_styles_of_their_own() {
+        let d = diagram(
+            "@startuml\nclass A\nA -[#red,dashed,thickness=4]-> B\nA --> C #green;line.dotted;text:green : c\n@enduml\n",
+        );
+        let (b, c) = (&d.root.edges[0], &d.root.edges[1]);
+        assert_eq!(
+            (b.color.as_deref(), b.dash, b.style.thickness),
+            (Some("#red"), Dash::Dashed, Some(4.0))
+        );
+        assert_eq!(
+            (c.color.as_deref(), c.dash, c.style.text.as_deref()),
+            (Some("green"), Dash::Dotted, Some("green"))
+        );
+        assert_eq!(c.label.as_ref().unwrap().value, "c");
+        let d = diagram(
+            "@startuml\nclass A #pink ##[dashed]green\nclass B #line.dotted:blue\nclass F #back:red;line:00FFFF\n@enduml\n",
+        );
+        let [a, b, f] = [&d.root.nodes[0], &d.root.nodes[1], &d.root.nodes[2]];
+        assert_eq!(
+            (a.line_color.as_deref(), a.border_dash.is_some()),
+            (Some("green"), true)
+        );
+        assert_eq!(
+            (b.line_color.as_deref(), b.border_dash.is_some()),
+            (Some("blue"), true)
+        );
+        assert_eq!(f.line_color.as_deref(), Some("00FFFF"));
+        // Drawn: the line that wide, its head grown with it, its words in
+        // their color.
+        let svg = crate::render("@startuml\nclass A\nA -[thickness=8]-> B : wide\nA --> C #line:red;text:red : red\n@enduml\n").unwrap();
+        assert!(svg.contains("stroke-width=\"8\""), "{svg}");
+        let red = &svg[..svg.find(">red<").unwrap()];
+        assert!(
+            red[red.rfind("<tspan").unwrap()..].contains("fill=\"#FF0000\""),
+            "{svg}"
+        );
+        assert!(
+            super::super::draw::head_spans_grow(),
+            "a wide line's head grows"
+        );
+    }
+
     #[test]
     fn unknown_lines_name_themselves() {
         let err = declined("@startuml\nclass Foo\ntogether {\nclass Bar\n@enduml\n");
@@ -5097,8 +5235,17 @@ mod tests {
         // What stands beside a name and is no cardinality says what it is.
         let err = declined("@startuml\nA }|..|| B\n@enduml\n");
         assert!(err.reason.contains("line end"), "{}", err.reason);
-        let err = declined("@startuml\nactor foo\nfoo --> (bar) #line:red;line.bold\n@enduml\n");
+        let err = declined("@startuml\nactor foo\nfoo #line:red --> (bar)\n@enduml\n");
         assert!(err.reason.contains("own style"), "{}", err.reason);
+        // After the far end it is the line's own style.
+        let d = diagram(
+            "@startuml\nactor foo\nfoo --> (bar) #line:red;line.bold;text:blue : l\n@enduml\n",
+        );
+        let edge = &d.root.edges[0];
+        assert_eq!(
+            (edge.color.as_deref(), edge.bold, edge.style.text.as_deref()),
+            (Some("red"), true, Some("blue"))
+        );
         let err = declined("@startuml\n-class \"Private\" {\n}\n@enduml\n");
         assert!(err.reason.contains("visibility"), "{}", err.reason);
     }

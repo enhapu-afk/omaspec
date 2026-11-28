@@ -371,6 +371,7 @@ impl Reader {
             label_before: None,
             note: None,
             members: [None, None],
+            style: Default::default(),
         });
         Ok(())
     }

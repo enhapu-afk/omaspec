@@ -484,6 +484,16 @@ pub struct Link {
     /// place among its element's members, as notes name them; the line
     /// meets its box at that member's row.
     pub members: [Option<usize>; 2],
+    /// What its own style sets beyond its color, dash and boldness.
+    pub style: LineStyle,
+}
+
+/// A line's width (`-[thickness=4]->`) and its words' color (`A --> B
+/// #line:red;text:red`), as written.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct LineStyle {
+    pub thickness: Option<f32>,
+    pub text: Option<String>,
 }
 
 /// A note on a line (`note on link`, `note right on link #pink`), as

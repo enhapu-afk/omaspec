@@ -932,9 +932,22 @@ fn legible_on(font: &mut Font, grounds: &[Color]) {
 /// A line's label and multiplicities, each the words its line alone
 /// writes: tied to it, so a `"1"` of one line is not taken for another's.
 fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Declined> {
-    // A hidden line says nothing: no label keeps room beside it.
+    // A hidden line says nothing: no label keeps room beside it. Its
+    // words take a color of its own (`text:red`).
+    let mut font = skin.arrow_font;
+    if let Some(value) = &link.style.text {
+        font.color = match color::parse(value).map_err(|err| Declined::at(link.line, err))? {
+            Some(color) => color,
+            None => {
+                return Err(Declined::at(
+                    link.line,
+                    "a line's words must not be transparent",
+                ));
+            }
+        };
+    }
     let block = |text: &Option<crate::common::Text>| match text {
-        Some(text) if !link.hidden => text.measure_written(skin.arrow_font, family),
+        Some(text) if !link.hidden => text.measure_written(font, family),
         _ => Ok(Block::empty()),
     };
     let words = block(&link.label)?;
@@ -966,10 +979,11 @@ fn arrow_stroke(skin: &Skin, edge: &Link) -> Result<Stroke, Declined> {
         },
         None => skin.arrow.color,
     };
-    let width = if edge.bold {
-        skin.arrow.width * 2.0
-    } else {
-        skin.arrow.width
+    // `[thickness=4]` that wide; bold twice the skin's.
+    let width = match edge.style.thickness {
+        Some(width) => width,
+        None if edge.bold => skin.arrow.width * 2.0,
+        None => skin.arrow.width,
     };
     let mut stroke = Stroke::new(color, width);
     stroke.dash = match edge.dash {
@@ -2192,7 +2206,11 @@ fn paint_edges(
         canvas.part(&names.edge(path, slot), |canvas| {
             canvas.curve(
                 Layer::Lines,
-                &shortened(&edge.points, edge.look.from_head, edge.look.to_head),
+                &shortened(
+                    &edge.points,
+                    (edge.look.from_head, edge.look.to_head),
+                    edge.look.stroke.width,
+                ),
                 curve,
                 edge.look.stroke,
             );
@@ -2352,10 +2370,10 @@ fn paint_heads(
     }
 }
 
-fn shortened(points: &[(f32, f32)], from: Head, to: Head) -> Vec<(f32, f32)> {
+fn shortened(points: &[(f32, f32)], (from, to): (Head, Head), width: f32) -> Vec<(f32, f32)> {
     let mut line = points.to_vec();
-    pull(&mut line, true, head_span(from));
-    pull(&mut line, false, head_span(to));
+    pull(&mut line, true, head_span(from, width));
+    pull(&mut line, false, head_span(to, width));
     line
 }
 
@@ -2379,12 +2397,29 @@ fn pull(points: &mut [(f32, f32)], at_start: bool, amount: f32) {
     points[tip_i] = (tip.0 - vx * scale, tip.1 - vy * scale);
 }
 
-fn head_span(head: Head) -> f32 {
-    match head {
+/// How far a head reaches along a line `width` wide: a wide line's head
+/// grows with it (`[thickness=8]`), as PlantUML draws it.
+fn head_span(head: Head, width: f32) -> f32 {
+    let base = match head {
         Head::None => 0.0,
         Head::Arrow => HEAD_LENGTH,
         Head::Triangle | Head::Diamond | Head::DiamondFilled => MARK_LENGTH,
-    }
+    };
+    base * head_scale(width)
+}
+
+/// How much bigger a head is on a line `width` wide than on a thin one.
+fn head_scale(width: f32) -> f32 {
+    1.0 + (width - 1.0).max(0.0) / 4.0
+}
+
+/// Whether a head grows with its line: about three times on a line 8
+/// wide, five times on one 16 wide, as PlantUML draws them.
+#[cfg(test)]
+pub(super) fn head_spans_grow() -> bool {
+    let thin = head_span(Head::Arrow, 1.0);
+    (head_span(Head::Arrow, 8.0) / thin - 2.75).abs() < 0.01
+        && (head_span(Head::Arrow, 16.0) / thin - 4.75).abs() < 0.01
 }
 
 fn draw_head(
@@ -2394,7 +2429,7 @@ fn draw_head(
     head: Head,
     (stroke, own_color): (Stroke, bool),
 ) {
-    let Some(shape) = head_shape(tip, from, head, skin.strict) else {
+    let Some(shape) = head_shape(tip, from, head, skin.strict, stroke.width) else {
         return;
     };
     // A line in the diagram's arrow color takes the heads' own, where one
@@ -2430,7 +2465,13 @@ fn draw_head(
 
 /// The mark `head` at `tip`, on a line coming from `from`; `strict` draws
 /// an arrowhead as two strokes.
-fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Option<map::Head> {
+fn head_shape(
+    tip: (f32, f32),
+    from: (f32, f32),
+    head: Head,
+    strict: bool,
+    width: f32,
+) -> Option<map::Head> {
     if head == Head::None {
         return None;
     }
@@ -2440,12 +2481,12 @@ fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Op
         return None;
     }
     let (ux, uy) = (vx / len, vy / len);
-    let length = head_span(head);
+    let length = head_span(head, width);
     let half = match head {
         Head::Triangle => 7.0,
         Head::Diamond | Head::DiamondFilled => 6.0,
         _ => HEAD_HALF,
-    };
+    } * head_scale(width);
     let side = (-uy * half, ux * half);
     let base = (tip.0 - ux * length, tip.1 - uy * length);
     let mid = (tip.0 - ux * length / 2.0, tip.1 - uy * length / 2.0);
@@ -2513,8 +2554,20 @@ fn dress(
     let last = drawn.len() - 1;
     let color = head_color(skin, edge.look.own_color);
     let heads = [
-        head_shape(drawn[0], drawn[1], edge.look.from_head, skin.strict),
-        head_shape(drawn[last], drawn[last - 1], edge.look.to_head, skin.strict),
+        head_shape(
+            drawn[0],
+            drawn[1],
+            edge.look.from_head,
+            skin.strict,
+            edge.look.stroke.width,
+        ),
+        head_shape(
+            drawn[last],
+            drawn[last - 1],
+            edge.look.to_head,
+            skin.strict,
+            edge.look.stroke.width,
+        ),
     ]
     .map(|head| head.map(|head| map::Head { color, ..head }));
     let words = names.edge(path, slot);
@@ -2559,7 +2612,7 @@ fn ends_cards<'a>(
     .into_iter()
     .filter(|(card, ..)| !card.is_empty() && edge.points.len() >= 2)
     .map(move |(card, at_start, head)| {
-        let along = head_span(head);
+        let along = head_span(head, edge.look.stroke.width);
         (
             card,
             card_at(&edge.points, at_start, card, along, containers),

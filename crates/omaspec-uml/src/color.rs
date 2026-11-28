@@ -134,6 +134,19 @@ impl Inline {
                 Some(("line", value)) => style.line = Some(color(value)?),
                 Some(("text", value)) => style.text = Some(color(value)?),
                 Some(("back", value)) => style.fill = Some(fill(value)?),
+                // `line.dashed:blue`: the border so and in that color.
+                Some(("line.dashed", value)) => {
+                    style.dash = Some(InlineDash::Dashed);
+                    style.line = Some(color(value)?);
+                }
+                Some(("line.dotted", value)) => {
+                    style.dash = Some(InlineDash::Dotted);
+                    style.line = Some(color(value)?);
+                }
+                Some(("line.bold", value)) => {
+                    style.bold = true;
+                    style.line = Some(color(value)?);
+                }
                 None if part == "line.dashed" => style.dash = Some(InlineDash::Dashed),
                 None if part == "line.dotted" => style.dash = Some(InlineDash::Dotted),
                 None if part == "line.bold" => style.bold = true,
