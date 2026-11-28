@@ -3740,7 +3740,13 @@ fn arrow_at(chars: &[(usize, char)], i: usize) -> bool {
         '-' => true,
         '.' => matches!(next, Some('.' | '-' | '>')) || dotted_direction(chars, i + 1),
         '<' => matches!(next, Some('-' | '|' | '.' | '>')),
-        '*' | 'o' | 'O' | 'x' | 'X' => matches!(next, Some('-' | '.')),
+        // A letter right after a name is the name's (`Dino-->`, `Box-->`),
+        // as PlantUML reads it; a mark of another sign is a head there.
+        'o' | 'O' | 'x' | 'X' => {
+            matches!(next, Some('-' | '.'))
+                && (i == 0 || chars[i - 1].1.is_whitespace() || chars[i - 1].1 == ']')
+        }
+        '*' | '#' | '}' | '+' | '^' => matches!(next, Some('-' | '.')),
         _ => false,
     }
 }
@@ -3755,7 +3761,10 @@ fn consume_arrow(text: &str, chars: &[(usize, char)], mut i: usize) -> usize {
             i += end + 2;
             continue;
         }
-        if matches!(c, '-' | '.' | '<' | '>' | '*' | 'o' | 'O' | 'x' | 'X' | '|') {
+        if matches!(
+            c,
+            '-' | '.' | '<' | '>' | '*' | 'o' | 'O' | 'x' | 'X' | '|' | '#' | '{' | '}' | '+' | '^'
+        ) {
             i += 1;
             continue;
         }
@@ -3773,9 +3782,6 @@ fn consume_arrow(text: &str, chars: &[(usize, char)], mut i: usize) -> usize {
 }
 
 fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
-    if token.contains('+') {
-        return Err(Declined::at(line, "nesting with `+` is not supported yet"));
-    }
     // A direction says where the second box goes (docs/adr/0027).
     let toward = direction_word(token);
     let mut rest = token.to_owned();
@@ -3884,7 +3890,20 @@ fn direction_chars(chars: &[(usize, char)], i: usize) -> Option<usize> {
         if after.is_none_or(|c| {
             matches!(
                 c,
-                '-' | '.' | '<' | '>' | '[' | '|' | '*' | 'o' | 'O' | 'x' | 'X'
+                '-' | '.'
+                    | '<'
+                    | '>'
+                    | '['
+                    | '|'
+                    | '*'
+                    | 'o'
+                    | 'O'
+                    | 'x'
+                    | 'X'
+                    | '#'
+                    | '{'
+                    | '+'
+                    | '^'
             )
         }) {
             return Some(letters.len());
@@ -3909,9 +3928,19 @@ fn direction_word(arrow: &str) -> Option<&'static str> {
 }
 
 fn take_prefix(rest: &mut String, line: usize) -> Result<Head, Declined> {
-    if rest.starts_with('x') || rest.starts_with('X') {
-        return Err(Declined::at(line, "an `x` arrow head is not supported yet"));
+    let marks = [
+        ('#', Head::Square),
+        ('x', Head::Cross),
+        ('X', Head::Cross),
+        ('}', Head::Crowfoot),
+        ('+', Head::CirclePlus),
+        ('^', Head::Caret),
+    ];
+    if let Some(&(mark, head)) = marks.iter().find(|(mark, _)| rest.starts_with(*mark)) {
+        rest.drain(..mark.len_utf8());
+        return Ok(head);
     }
+    let _ = line;
     let head = if let Some(tail) = rest.strip_prefix("<|") {
         *rest = tail.to_owned();
         Head::Triangle
@@ -3931,9 +3960,19 @@ fn take_prefix(rest: &mut String, line: usize) -> Result<Head, Declined> {
 }
 
 fn take_suffix(rest: &mut String, line: usize) -> Result<Head, Declined> {
-    if rest.ends_with('x') || rest.ends_with('X') {
-        return Err(Declined::at(line, "an `x` arrow head is not supported yet"));
+    let marks = [
+        ('#', Head::Square),
+        ('x', Head::Cross),
+        ('X', Head::Cross),
+        ('{', Head::Crowfoot),
+        ('+', Head::CirclePlus),
+        ('^', Head::Caret),
+    ];
+    if let Some(&(_, head)) = marks.iter().find(|(mark, _)| rest.ends_with(*mark)) {
+        rest.pop();
+        return Ok(head);
     }
+    let _ = line;
     let head = if let Some(tail) = rest.strip_suffix("|>") {
         *rest = tail.to_owned();
         Head::Triangle
@@ -5381,6 +5420,36 @@ mod tests {
             svg.matches("stroke-width=\"8\"").count() >= 2,
             "a wide line's head is drawn in its width: {svg}"
         );
+    }
+
+    /// PlantUML's other marks at a line's ends: a square, a cross, a
+    /// crow's foot, a circle with a cross, a caret; a letter right after
+    /// a name is the name's.
+    #[test]
+    fn a_line_ends_in_any_of_plantumls_marks() {
+        let d = diagram(
+            "@startuml\nA #-- B\nC x-- D\nE }-- F\nG +-- H\nI ^-- J\nK --# L\nM --{ N\nO --x P\nQ --+ R\nS --^ T\nDino--> U\n@enduml\n",
+        );
+        let heads = |from: &str| {
+            let at = d.root.nodes.iter().position(|n| n.key == from).unwrap();
+            let edge = d.root.edges.iter().find(|e| e.from == at).unwrap();
+            (edge.from_head, edge.to_head)
+        };
+        assert_eq!(heads("A"), (Head::Square, Head::None));
+        assert_eq!(heads("C"), (Head::Cross, Head::None));
+        assert_eq!(heads("E"), (Head::Crowfoot, Head::None));
+        assert_eq!(heads("G"), (Head::CirclePlus, Head::None));
+        assert_eq!(heads("I"), (Head::Caret, Head::None));
+        assert_eq!(heads("K"), (Head::None, Head::Square));
+        assert_eq!(heads("M"), (Head::None, Head::Crowfoot));
+        assert_eq!(heads("O"), (Head::None, Head::Cross));
+        assert_eq!(heads("Q"), (Head::None, Head::CirclePlus));
+        assert_eq!(heads("S"), (Head::None, Head::Caret));
+        assert_eq!(heads("Dino"), (Head::None, Head::Arrow));
+        // Drawn: the square on the border in the paper's color, the circle
+        // with its cross.
+        let svg = crate::render("@startuml\nclass A\nA #-- B\nA +-- C\n@enduml\n").unwrap();
+        assert!(svg.matches("fill=\"#FFFFFF\"").count() >= 2, "{svg}");
     }
 
     #[test]

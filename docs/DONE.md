@@ -1167,6 +1167,13 @@ is open and the reasoning around it.
       A floating note's colors after its alias are its own (`note "n" as N
       #pink`); a line to a member by its quoted words is refused, as
       PlantUML refuses it.
+- [x] A line's ends in all of PlantUML's marks (2026-11-28), as PlantUML
+      draws them: a square on the box's border (`#--`), a cross (`x--`), a
+      crow's foot (`}--`, `--{`), a circle with a cross in it (`+--`) and
+      a caret, a triangle narrower than `<|` (`^--`), at either end and
+      beside an arrowhead (`x-->`). A letter right after a name is the
+      name's (`Dino--> B`), as PlantUML reads it, where it had been taken
+      for a diamond. The guide: the class diagram 72 of 84, 588 of 897.
 
 ### Step 5: what every diagram shares
 

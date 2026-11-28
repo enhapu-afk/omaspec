@@ -452,6 +452,16 @@ pub enum Head {
     Diamond,
     /// `*`, a filled diamond.
     DiamondFilled,
+    /// `#`, an empty square on the box's border.
+    Square,
+    /// `x`, a cross.
+    Cross,
+    /// `}` or `{`, a crow's foot: many.
+    Crowfoot,
+    /// `+`, a circle with a cross in it: the box nested in the other.
+    CirclePlus,
+    /// `^`, an empty triangle, narrower than `<|`.
+    Caret,
 }
 
 /// `A "1" --> "*" B : label`.

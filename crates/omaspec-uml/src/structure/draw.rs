@@ -2422,6 +2422,12 @@ fn head_span(head: Head) -> f32 {
         Head::None => 0.0,
         Head::Arrow => HEAD_LENGTH,
         Head::Triangle | Head::Diamond | Head::DiamondFilled => MARK_LENGTH,
+        // Half a square that stands on the border; a cross and a crow's
+        // foot as far as their middle; a circle and a caret whole.
+        Head::Square => 5.0,
+        Head::Cross | Head::Crowfoot => 8.0,
+        Head::CirclePlus => 16.0,
+        Head::Caret => 18.0,
     }
 }
 
@@ -2432,9 +2438,6 @@ fn draw_head(
     head: Head,
     (stroke, own_color): (Stroke, bool),
 ) {
-    let Some(shape) = head_shape(tip, from, head, skin.strict) else {
-        return;
-    };
     // A line in the diagram's arrow color takes the heads' own, where one
     // is set; one of its own color keeps that in its head.
     let stroke = match head_color(skin, own_color) {
@@ -2445,38 +2448,43 @@ fn draw_head(
         dash: None,
         ..stroke
     };
-    if !shape.closed {
-        canvas.polyline(Layer::Lines, &shape.points, solid);
-        return;
-    }
-    let fill = match shape.fill {
-        HeadFill::Ink => Some(stroke.color),
-        // An empty diamond hides the line under it in the page's color,
-        // a gradient's as it runs there.
-        HeadFill::Paper => {
-            let paper = Some(skin.background.unwrap_or(Color::WHITE));
-            canvas.paper(|canvas| {
-                canvas.polygon(Layer::Lines, &shape.points, paper, Some(solid));
-            });
-            return;
+    for shape in head_shape(tip, from, head, skin.strict) {
+        if !shape.closed {
+            canvas.polyline(Layer::Lines, &shape.points, solid);
+            continue;
         }
-        HeadFill::None => None,
-    };
-    canvas.polygon(Layer::Lines, &shape.points, fill, Some(solid));
+        match shape.fill {
+            HeadFill::Ink => {
+                canvas.polygon(Layer::Lines, &shape.points, Some(stroke.color), Some(solid));
+            }
+            // An empty mark hides the line under it in the page's color,
+            // a gradient's as it runs there.
+            HeadFill::Paper => {
+                let paper = Some(skin.background.unwrap_or(Color::WHITE));
+                canvas.paper(|canvas| {
+                    canvas.polygon(Layer::Lines, &shape.points, paper, Some(solid));
+                });
+            }
+            HeadFill::None => canvas.polygon(Layer::Lines, &shape.points, None, Some(solid)),
+        }
+    }
 }
 
-/// The mark `head` at `tip`, on a line coming from `from`; `strict` draws
-/// an arrowhead as two strokes.
-fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Option<map::Head> {
+/// The mark `head` at `tip`, on a line coming from `from`, in the parts it
+/// is drawn in; `strict` draws an arrowhead as two strokes.
+fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Vec<map::Head> {
     if head == Head::None {
-        return None;
+        return Vec::new();
     }
     let (vx, vy) = (tip.0 - from.0, tip.1 - from.1);
     let len = (vx * vx + vy * vy).sqrt();
     if len < 0.01 {
-        return None;
+        return Vec::new();
     }
     let (ux, uy) = (vx / len, vy / len);
+    if let Some(parts) = mark_shape(tip, (ux, uy), head) {
+        return parts;
+    }
     let length = head_span(head);
     let half = match head {
         Head::Triangle => 7.0,
@@ -2498,7 +2506,6 @@ fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Op
         )
     };
     let (points, closed, fill) = match head {
-        Head::None => return None,
         Head::Arrow if strict => (vec![left, tip, right], false, HeadFill::None),
         Head::Arrow => {
             let inset = (tip.0 - ux * length * NOTCH, tip.1 - uy * length * NOTCH);
@@ -2507,12 +2514,66 @@ fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Op
         Head::Triangle => (vec![left, tip, right], true, HeadFill::None),
         Head::Diamond => (vec![tip, left, base, right], true, HeadFill::Paper),
         Head::DiamondFilled => (vec![tip, left, base, right], true, HeadFill::Ink),
+        _ => return Vec::new(),
     };
-    Some(map::Head {
+    vec![map::Head {
         points,
         closed,
         fill,
         color: None,
+    }]
+}
+
+/// PlantUML's other marks at a line's end `tip`, the line arriving along
+/// `(ux, uy)`, as it draws them: a square on the border, a cross, a
+/// crow's foot, a circle with a cross in it, a caret. None for an
+/// arrowhead, a triangle or a diamond.
+fn mark_shape(tip: (f32, f32), (ux, uy): (f32, f32), head: Head) -> Option<Vec<map::Head>> {
+    // Out of the box along the line (`t`), and across it (`s`).
+    let at = |t: f32, s: f32| (tip.0 - ux * t - uy * s, tip.1 - uy * t + ux * s);
+    let part = |points: Vec<(f32, f32)>, closed: bool, fill: HeadFill| map::Head {
+        points,
+        closed,
+        fill,
+        color: None,
+    };
+    let open = |points| part(points, false, HeadFill::None);
+    Some(match head {
+        Head::Square => vec![part(
+            vec![at(-5.0, -5.0), at(-5.0, 5.0), at(5.0, 5.0), at(5.0, -5.0)],
+            true,
+            HeadFill::Paper,
+        )],
+        Head::Cross => vec![
+            open(vec![at(5.0, -4.0), at(13.0, 4.0)]),
+            open(vec![at(5.0, 4.0), at(13.0, -4.0)]),
+        ],
+        Head::Crowfoot => {
+            let heel = at(8.0, 0.0);
+            vec![
+                open(vec![at(0.0, -8.0), heel, at(0.0, 8.0)]),
+                open(vec![heel, at(0.0, 0.0)]),
+            ]
+        }
+        Head::CirclePlus => {
+            let round = (0..32)
+                .map(|step| {
+                    let angle = step as f32 * std::f32::consts::TAU / 32.0;
+                    at(8.0 + 8.0 * angle.cos(), 8.0 * angle.sin())
+                })
+                .collect();
+            vec![
+                part(round, true, HeadFill::Paper),
+                open(vec![at(0.0, 0.0), at(16.0, 0.0)]),
+                open(vec![at(8.0, -8.0), at(8.0, 8.0)]),
+            ]
+        }
+        Head::Caret => vec![part(
+            vec![at(18.0, -6.0), at(0.0, 0.0), at(18.0, 6.0)],
+            true,
+            HeadFill::None,
+        )],
+        _ => return None,
     })
 }
 
@@ -2553,7 +2614,7 @@ fn dress(
         head_shape(drawn[0], drawn[1], edge.look.from_head, skin.strict),
         head_shape(drawn[last], drawn[last - 1], edge.look.to_head, skin.strict),
     ]
-    .map(|head| head.map(|head| map::Head { color, ..head }));
+    .map(|parts| parts.into_iter().map(|head| map::Head { color, ..head }));
     let words = names.edge(path, slot);
     let card =
         |card: &Block, at_start| (!card.is_empty()).then(|| names.card(path, slot, at_start));
