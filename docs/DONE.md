@@ -1146,7 +1146,8 @@ is open and the reasoning around it.
       name; `note on link` knows the lines to notes as they are placed.
 - [x] A name only lines name in a component, deployment or use case
       diagram is an interface (2026-11-28), a circle with its name, as
-      PlantUML makes it there (`[A] --> B`, `foo --> bar` beside a node);
+      PlantUML makes it there (`[A] --> B`, `foo --> bar` beside a node),
+      and beside a use case or an actor an actor;
       under `allowmixing` it stays a class, and a block written later
       (`node B {`) is what it says.
 - [x] What the review of the line styles and of the lines to members
@@ -1181,6 +1182,22 @@ is open and the reasoning around it.
       `diamond - "from 0..*" Station`). Still declined: `stereotype` as a
       kind of class. The guide: the class diagram 73 of 84, the object
       diagram 5 of 13, 591 of 897.
+- [x] What the review of the implied interfaces and of the line styles
+      found (2026-11-28). A name only lines name beside a use case or an
+      actor is an actor, as PlantUML makes it. Any whole width is a
+      line's (`[thickness=300]`); a dash goes before dots before
+      boldness in a line's own style, whatever their order, a color alone
+      before a `back:` is the line's, bold is two pixels wide and a
+      `line.dashed` one, under any `arrowThickness`. A line to a member by
+      its quoted words at its far end is left to PlantUML; a floating
+      note takes one color or a gradient after its alias, the rest is
+      refused. Lines at members of boxes one over the other but offset
+      take the side where the two come closer; two lines with heads at
+      one member meet it on both sides; a line shaped by hand has the
+      stems the layout lays; a line of no member that ends where one at a
+      member meets its box is laid anew beside it. A sketch keeps a wide
+      line's head thin, and a note stands beside a circle's name, not on
+      it.
 
 ### Step 5: what every diagram shares
 

@@ -1049,7 +1049,8 @@ as Mermaid has it. What a drawer leaves (a horizontal XY chart) is drawn by
 [mmdr](https://github.com/1jehuang/mermaid-rs-renderer), a Rust library, in the same
 process. An interface beside components is a circle with its name under it, as PlantUML
 draws it there: `[Renderer] ..> () "Clipboard"`, `() HTTP`, an `interface` without
-members, or a name only lines name (`[A] --> B`); in a class diagram, and under
+members, or a name only lines name (`[A] --> B`; beside a use case or an actor it is an
+actor); in a class diagram, and under
 `allowmixing`, an `interface` keeps its box, while `circle C` and `() C` are a circle
 there too. `diamond D` and `<> D` are the diamond the lines of an association of several
 classes meet at. A git graph shows the ids its writer gave its commits; an id Mermaid would make

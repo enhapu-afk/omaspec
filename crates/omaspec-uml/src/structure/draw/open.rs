@@ -276,7 +276,24 @@ impl<'a> Nested for Elements<'a> {
         let mut drafts = (0..group.notes.len())
             .map(|index| self.draft(group, index))
             .collect::<Result<Vec<_>, _>>()?;
-        let rects: Vec<Rect> = scene.nodes.iter().map(|node| node.rect).collect();
+        // A circle's name beside it is its own: a note stands past it.
+        let rects: Vec<Rect> = scene
+            .nodes
+            .iter()
+            .map(|node| match node.item.shape {
+                super::Shape::Lollipop => {
+                    let (a, b) = (node.rect, super::lollipop_name(node));
+                    let (x, y) = (a.x.min(b.x), a.y.min(b.y));
+                    Rect {
+                        x,
+                        y,
+                        w: (a.x + a.w).max(b.x + b.w) - x,
+                        h: (a.y + a.h).max(b.y + b.h) - y,
+                    }
+                }
+                _ => node.rect,
+            })
+            .collect();
         let rows: Vec<&Placed> = scene.nodes.iter().collect();
         scene.notes = place_notes(&mut drafts, &rects, &rows, &scene.edges);
         Ok(())

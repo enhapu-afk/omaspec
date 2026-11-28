@@ -17,13 +17,16 @@ use crate::graph::Rect;
 use crate::graph::across::{self, Drawn};
 use crate::graph::by_hand::{Arrow, Lead};
 use crate::hand::Key;
-use crate::structure::{Group, Link, Member, Side};
+use crate::structure::{Group, Head, Link, Member, Side};
 
 /// How far a line runs straight out of the side before it turns: past a
 /// head and a multiplicity.
 const STEM: f32 = 24.0;
 /// How much further a stem runs for each stem its line passes.
 const FAN: f32 = 10.0;
+
+/// A line by the group it is in and its place among that group's lines.
+type Slot = (Vec<usize>, usize);
 
 /// A line with an end at a member: the group it is in, its place among
 /// that group's lines, the paths to its ends and the members.
@@ -43,6 +46,8 @@ struct Port {
     /// The side's x, and whether it is the right one.
     side: f32,
     right: bool,
+    /// Its box's left and right sides.
+    edges: (f32, f32),
     y: f32,
     stem: f32,
     /// How far the line heads up (below zero) or down from the row.
@@ -91,6 +96,20 @@ pub(super) fn link(root: &Group, scene: &mut Scene) {
     if found.is_empty() {
         return;
     }
+    let mut ports = ports(scene, &found);
+    // A line of no member that ends where one at a member meets its box
+    // is routed anew with them, beside it.
+    let meets: Vec<(f32, f32)> = ports
+        .iter()
+        .flatten()
+        .flatten()
+        .map(|port| (port.side, port.y))
+        .collect();
+    let taken: Vec<Slot> = found.iter().map(|l| (l.host.clone(), l.slot)).collect();
+    let mut crowded = Vec::new();
+    crowding(root, scene, &mut Vec::new(), (&taken, &meets), &mut crowded);
+    ports.extend(crowded.iter().map(|_| [None, None]));
+    found.extend(crowded);
     // Their lines are routed anew: the others keep clear of them then,
     // not of where they lay.
     let mut before = Vec::with_capacity(found.len());
@@ -102,7 +121,6 @@ pub(super) fn link(root: &Group, scene: &mut Scene) {
             .unwrap_or_default();
         before.push(points);
     }
-    let ports = ports(scene, &found);
     let top = placements(&scene.nodes);
     let mut drawn = Drawn::default();
     drawn_in(scene, &mut drawn);
@@ -182,6 +200,62 @@ pub(super) fn link(root: &Group, scene: &mut Scene) {
     }
 }
 
+/// The lines of `group` and of the groups inside, as `scene` lays them
+/// out, that are not `taken` and end within a few pixels of one of
+/// `meets`, where lines at members meet their boxes.
+fn crowding(
+    group: &Group,
+    scene: &Scene,
+    path: &mut Vec<usize>,
+    (taken, meets): (&[Slot], &[(f32, f32)]),
+    out: &mut Vec<Found>,
+) {
+    let at = |path: &[usize], end: &[usize]| [path, end].concat();
+    let near = |slot: usize| {
+        let Some(edge) = group_at(scene, path)
+            .and_then(|host| host.edges.get(slot))
+            .filter(|edge| !edge.look.hidden)
+        else {
+            return false;
+        };
+        [edge.points.first(), edge.points.last()]
+            .into_iter()
+            .flatten()
+            .any(|&(x, y)| {
+                meets
+                    .iter()
+                    .any(|&(mx, my)| (x - mx).abs() + (y - my).abs() < 12.0)
+            })
+    };
+    let lines = group
+        .edges
+        .iter()
+        .map(|edge| (vec![edge.from], vec![edge.to]))
+        .chain(
+            group
+                .crossings
+                .iter()
+                .map(|c| (c.from.clone(), c.to.clone())),
+        );
+    for (slot, (from, to)) in lines.enumerate() {
+        let free = !taken.iter().any(|(host, s)| host == path && *s == slot);
+        if free && from != to && near(slot) {
+            out.push(Found {
+                host: path.clone(),
+                slot,
+                from: at(path, &from),
+                to: at(path, &to),
+                members: [None, None],
+            });
+        }
+    }
+    for (index, node) in group.nodes.iter().enumerate() {
+        path.push(index);
+        crowding(&node.children, scene, path, (taken, meets), out);
+        path.pop();
+    }
+}
+
 /// Where each line of `found` meets its boxes at their members.
 fn ports(scene: &Scene, found: &[Found]) -> Vec<[Option<Port>; 2]> {
     let mut out = Vec::with_capacity(found.len());
@@ -194,22 +268,29 @@ fn ports(scene: &Scene, found: &[Found]) -> Vec<[Option<Port>; 2]> {
             continue;
         };
         let (a, b) = (from.rect, to.rect);
-        let stacked = a.x < b.x + b.w && b.x < a.x + a.w;
+        let middle = |r: Rect| (r.x + r.w / 2.0, r.y + r.h / 2.0);
+        // One over the other, both ends meet their boxes on one side: the
+        // right where the two stand in line, as PlantUML draws them, and
+        // a second line at members of both the left; else the side where
+        // the two come closer.
+        let over = a.x < b.x + b.w && b.x < a.x + a.w;
+        let aligned = (middle(a).0 - middle(b).0).abs() <= a.w.min(b.w) / 2.0;
         let [m, n] = line.members;
-        let turn = if stacked && m.is_some() && n.is_some() {
+        let one = if aligned {
+            let both = m.is_some() && n.is_some();
             let mut pair = [line.from.clone(), line.to.clone()];
             pair.sort();
             let taken = turns.entry(pair).or_default();
-            *taken += 1;
-            *taken % 2 == 1
+            *taken += usize::from(both);
+            !both || *taken % 2 == 1
         } else {
-            true
+            ((a.x + a.w) - (b.x + b.w)).abs() <= (a.x - b.x).abs()
         };
-        let middle = |r: Rect| (r.x + r.w / 2.0, r.y + r.h / 2.0);
+        let stacked = over;
         let port = |node: &Placed, member: Option<usize>, other: Rect| {
             let (_, y) = member_end(node, member?, Side::Left)?;
             let right = if stacked {
-                turn
+                one
             } else {
                 middle(other).0 > middle(node.rect).0
             };
@@ -231,6 +312,7 @@ fn ports(scene: &Scene, found: &[Found]) -> Vec<[Option<Port>; 2]> {
             Some(Port {
                 side,
                 right,
+                edges: (rect.x, rect.x + rect.w),
                 y,
                 stem,
                 heading: middle(other).1 - y,
@@ -238,8 +320,48 @@ fn ports(scene: &Scene, found: &[Found]) -> Vec<[Option<Port>; 2]> {
         };
         out.push([port(from, m, b), port(to, n, a)]);
     }
+    apart(scene, found, &mut out);
     fan(found, &mut out);
     out
+}
+
+/// Two lines with heads at one member on one side meet it on both: the
+/// later one takes the other side, as PlantUML draws them, so their heads
+/// do not lie on each other. Lines without heads there leave it together.
+fn apart(scene: &Scene, found: &[Found], ports: &mut [[Option<Port>; 2]]) {
+    let mut taken: Vec<(&[usize], f32, bool)> = Vec::new();
+    for (line, ends) in found.iter().zip(ports.iter_mut()) {
+        let heads = group_at(scene, &line.host)
+            .and_then(|host| host.edges.get(line.slot))
+            .map_or([false; 2], |edge| {
+                [edge.look.from_head, edge.look.to_head].map(|head| head != Head::None)
+            });
+        let [first, second] = ends;
+        let ends = [
+            (line.from.as_slice(), first, heads[0]),
+            (line.to.as_slice(), second, heads[1]),
+        ];
+        for (path, port, head) in ends {
+            let Some(port) = port.as_mut().filter(|_| head) else {
+                continue;
+            };
+            let met = |right: bool| {
+                taken
+                    .iter()
+                    .any(|(at, y, side)| *at == path && (y - port.y).abs() < 0.5 && *side == right)
+            };
+            if met(port.right) && !met(!port.right) {
+                port.right = !port.right;
+                port.side = if port.right {
+                    port.edges.1
+                } else {
+                    port.edges.0
+                };
+                port.stem = STEM;
+            }
+            taken.push((path, port.y, port.right));
+        }
+    }
 }
 
 /// Fans out the full stems on each side of a box: one whose line heads
@@ -294,11 +416,31 @@ pub(super) fn lead(root: &Group, scene: &Scene, arrows: &mut [(Arrow, Key)]) {
             continue;
         };
         let members = kept(group, &local(&arrow.from), &local(&arrow.to), link);
-        let row = |end: &[usize], member: Option<usize>| {
-            let (_, y) = member_end(placed(scene, end)?, member?, Side::Left)?;
-            Some(Lead { y, stem: STEM })
+        let (Some(from), Some(to)) = (placed(scene, &arrow.from), placed(scene, &arrow.to)) else {
+            continue;
         };
-        arrow.lead = [row(&arrow.from, members[0]), row(&arrow.to, members[1])];
+        // Half the way to a box that stands close beside, as the stems
+        // the layout lays.
+        let row = |node: &Placed, member: Option<usize>, other: Rect| {
+            let (_, y) = member_end(node, member?, Side::Left)?;
+            let rect = node.rect;
+            let beside = rect.y < other.y + other.h && other.y < rect.y + rect.h;
+            let stem = |room: f32| match beside && room > 0.0 && room < 2.0 * STEM {
+                true => room / 2.0,
+                false => STEM,
+            };
+            Some(Lead {
+                y,
+                stems: (
+                    stem(rect.x - (other.x + other.w)),
+                    stem(other.x - (rect.x + rect.w)),
+                ),
+            })
+        };
+        arrow.lead = [
+            row(from, members[0], to.rect),
+            row(to, members[1], from.rect),
+        ];
     }
 }
 
@@ -543,7 +685,12 @@ mod tests {
     /// The points of the line from `from` to `to` in `svg`.
     fn path(svg: &str, id: &str) -> Vec<(f32, f32)> {
         let line = &svg[svg.find(&format!("id=\"{id}\"")).unwrap()..];
-        let d = &line[line.find(" d=\"M").unwrap() + 5..];
+        let line = &line[..line.find("</g>").unwrap()];
+        // A path, or a straight line's points.
+        let d = match line.find(" d=\"M") {
+            Some(at) => &line[at + 5..],
+            None => &line[line.find(" points=\"").unwrap() + 9..],
+        };
         let d = &d[..d.find('"').unwrap()];
         d.split(['L', 'C', ' '])
             .filter(|p| !p.is_empty())
@@ -669,6 +816,45 @@ mod tests {
         assert!(
             (points[0].0 - x).abs() < 1.0 && points[1].0 < points[0].0,
             "{points:?}"
+        );
+    }
+
+    /// Under a wide box each line leaves the side its box comes closer
+    /// on; two lines with heads at one member meet it on both sides; a
+    /// line of no member keeps off where one at a member meets its box.
+    #[test]
+    fn sides_follow_where_the_boxes_come_closer() {
+        let svg = crate::render(
+            "@startuml\nclass Foo {\n  + a_long_member_name\n  + b_long_member_name\n}\nclass Bar {\n  + x\n}\nclass Baz {\n  + y\n}\nFoo::a_long_member_name --> Bar\nFoo::b_long_member_name --> Baz\n@enduml\n",
+        )
+        .unwrap();
+        let foo = &svg[svg.find("id=\"class-Foo\"").unwrap()..];
+        let x: f32 = foo[foo.find(" x=\"").unwrap() + 4..]
+            .split('"')
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap();
+        assert!((path(&svg, "link-Foo-Bar")[0].0 - x).abs() < 1.0, "{svg}");
+        assert!(path(&svg, "link-Foo-Baz")[0].0 > x + 1.0, "{svg}");
+        let svg = crate::render(
+            "@startuml\nclass Foo {\n  + a\n  + b\n}\nclass Bar {\n  + x\n  + y\n}\nclass Baz {\n  + z\n}\nFoo::a --> Bar::x\nFoo::b --> Baz::z\nBar::y --> Baz::z\n@enduml\n",
+        )
+        .unwrap();
+        let end = |id: &str| *path(&svg, id).last().unwrap();
+        assert!(
+            (end("link-Foo-Baz").0 - end("link-Bar-Baz").0).abs() > 20.0,
+            "{svg}"
+        );
+        let svg = crate::render(
+            "@startuml\nleft to right direction\nclass Foo {\n  + a\n  + b\n}\nclass Bar {\n  + x\n  + y\n}\nFoo::a --> Bar::x\nFoo --> Bar\n@enduml\n",
+        )
+        .unwrap();
+        let end = |id: &str| *path(&svg, id).last().unwrap();
+        let (member, plain) = (end("link-Foo-Bar"), end("link-Foo-Bar-2"));
+        assert!(
+            (member.0 - plain.0).abs() + (member.1 - plain.1).abs() > 12.0,
+            "{svg}"
         );
     }
 }

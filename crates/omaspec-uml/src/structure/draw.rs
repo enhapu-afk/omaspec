@@ -993,10 +993,10 @@ fn arrow_stroke(skin: &Skin, edge: &Link) -> Result<Stroke, Declined> {
         },
         None => skin.arrow.color,
     };
-    // Bold twice the skin's, before a width of its own; `[thickness=4]`
-    // that wide, as PlantUML draws them.
+    // Bold two pixels wide, before a width of its own and the skin's;
+    // `[thickness=4]` that wide, as PlantUML draws them.
     let width = match edge.style.thickness {
-        _ if edge.bold => skin.arrow.width * 2.0,
+        _ if edge.bold => 2.0,
         Some(width) => width,
         None => skin.arrow.width,
     };
@@ -2463,8 +2463,15 @@ fn draw_head(
         Some(color) => Stroke { color, ..stroke },
         None => stroke,
     };
+    // Drawn in the line's width, as PlantUML draws it; a pen's strokes
+    // that wide would blot a head out, so a sketch keeps them thin.
     let solid = Stroke {
         dash: None,
+        width: if skin.sketch {
+            stroke.width.min(1.5)
+        } else {
+            stroke.width
+        },
         ..stroke
     };
     for shape in head_shape(tip, from, head, skin.strict) {

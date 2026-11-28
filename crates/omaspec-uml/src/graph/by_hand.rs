@@ -33,11 +33,12 @@ pub struct Arrow {
 }
 
 /// Where a line meets its box at a row of its own: level, out of the
-/// side that faces where it goes, a stem's length before it turns.
+/// side that faces where it goes, a stem's length before it turns, out
+/// of the left side or the right.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Lead {
     pub y: f32,
-    pub stem: f32,
+    pub stems: (f32, f32),
 }
 
 /// One laid line, to change.
@@ -149,9 +150,9 @@ pub fn lay(
             let right = corner.0 > rect.x + rect.w / 2.0;
             let side = if right { rect.x + rect.w } else { rect.x };
             let tip = if right {
-                side + lead.stem
+                side + lead.stems.1
             } else {
-                side - lead.stem
+                side - lead.stems.0
             };
             let dot = hand::End {
                 rect: Rect {

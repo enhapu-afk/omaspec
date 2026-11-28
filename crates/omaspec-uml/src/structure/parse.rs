@@ -774,7 +774,19 @@ impl Parser {
         }
         self.place_notes()?;
         if !self.classes {
-            implied(&mut self.root);
+            // Beside a use case or an actor an actor, as PlantUML makes
+            // one; else an interface.
+            fn acting(group: &Group) -> bool {
+                group.nodes.iter().any(|node| {
+                    matches!(node.shape, Shape::UseCase | Shape::Actor) || acting(&node.children)
+                })
+            }
+            let shape = if acting(&self.root) {
+                Shape::Actor
+            } else {
+                Shape::Lollipop
+            };
+            implied(&mut self.root, shape);
         }
         lollipops(&mut self.root);
         keep_spots(&mut self.root, self.classes);
@@ -1373,15 +1385,17 @@ impl Parser {
                     continue;
                 }
                 // A member by its quoted words is a note's, not a line's:
-                // PlantUML refuses the line.
+                // PlantUML refuses the line from one, and reads one at its
+                // far end otherwise.
                 if raw.key.contains("::\"") {
-                    return Err(Declined::refused(
-                        line,
-                        format!(
-                            "PlantUML draws no line to a member by its quoted words (`{}`)",
-                            snippet(&raw.key)
-                        ),
-                    ));
+                    let why = format!(
+                        "PlantUML draws no line to a member by its quoted words (`{}`)",
+                        snippet(&raw.key)
+                    );
+                    return Err(match at {
+                        0 => Declined::refused(line, why),
+                        _ => Declined::at(line, why),
+                    });
                 }
                 // At the last `::`, as PlantUML parts it (`Foo::a::b` is
                 // `b` of `Foo::a`).
@@ -2238,6 +2252,14 @@ impl Parser {
         if colors.is_empty() {
             return Ok(());
         }
+        // One color, or a gradient, and no more: PlantUML refuses the
+        // rest.
+        if colors.contains([';', ':', ' ']) || colors.starts_with("##") {
+            return Err(Declined::refused(
+                line,
+                format!("`{}` is no note's color", snippet(colors)),
+            ));
+        }
         let (left, fill, line_color, more) = take_colors(colors, line)?;
         if !left.trim().is_empty() || more != More::default() {
             return Err(Declined::at(
@@ -2510,20 +2532,21 @@ fn phrase<'a>(text: &'a str, word: &str) -> Option<&'a str> {
     }
 }
 
-/// What a description diagram's lines alone name (`[A] --> B`) is an
-/// interface, drawn as its circle, as PlantUML makes it there; one
-/// declared, given members or holding others is what it was made.
-fn implied(group: &mut Group) {
+/// What a description diagram's lines alone name (`[A] --> B`) is of
+/// `shape`, an interface drawn as its circle or an actor, as PlantUML
+/// makes it there; one declared, given members or holding others is what
+/// it was made.
+fn implied(group: &mut Group, shape: Shape) {
     for node in &mut group.nodes {
         if node.shape == Shape::Class
             && !node.explicit
             && !node.composite
             && node.members.is_empty()
         {
-            node.shape = Shape::Lollipop;
+            node.shape = shape;
             node.spot = None;
         }
-        implied(&mut node.children);
+        implied(&mut node.children, shape);
     }
 }
 
@@ -3437,29 +3460,42 @@ fn own_style(
     let Ok(read) = Inline::read(style) else {
         return;
     };
-    // The arrow's color first; a fill is the line's only where no `back`
-    // names it (`#red`).
-    let written = style.to_ascii_lowercase();
-    if color.is_none() {
-        *color = read
-            .line
-            .or(read.fill.filter(|_| !written.contains("back")));
-    }
-    // The first `line.…` alone, its dash and boldness at once, in place
-    // of the arrow's and of its width.
-    let first = written
+    // The arrow's color first, then `line:`, then a color alone before
+    // the rest (`#red;back:green`); `back:` is no line's.
+    let parts: Vec<&str> = style
         .trim_start_matches('#')
         .split([';', ','])
-        .find_map(|part| part.trim().strip_prefix("line."))
-        .map(|kind| kind.split(':').next().unwrap_or_default().trim().to_owned());
-    if let Some(kind) = first {
-        *dash = match kind.as_str() {
-            "dashed" => Dash::Dashed,
-            "dotted" => Dash::Dotted,
-            _ => Dash::Solid,
+        .map(str::trim)
+        .collect();
+    if color.is_none() {
+        let alone = parts
+            .first()
+            .filter(|part| !part.contains(':') && !part.to_ascii_lowercase().starts_with("line."))
+            .map(|part| (*part).to_owned());
+        *color = read.line.or(alone);
+    }
+    // Its `line.…` in place of the arrow's dash, boldness and width: a
+    // dash before dots before boldness, whatever their order, and one
+    // pixel wide but bold, as PlantUML takes them.
+    let kinds: Vec<String> = parts
+        .iter()
+        .filter_map(|part| {
+            part.to_ascii_lowercase()
+                .strip_prefix("line.")
+                .map(str::to_owned)
+        })
+        .map(|kind| kind.split(':').next().unwrap_or_default().trim().to_owned())
+        .collect();
+    let has = |word: &str| kinds.iter().any(|kind| kind == word);
+    if !kinds.is_empty() {
+        (*dash, *bold) = if has("dashed") {
+            (Dash::Dashed, false)
+        } else if has("dotted") {
+            (Dash::Dotted, false)
+        } else {
+            (Dash::Solid, has("bold"))
         };
-        *bold = kind == "bold";
-        look.thickness = None;
+        look.thickness = (!*bold).then_some(1.0);
     }
     if read.text.is_some() {
         look.text = read.text;
@@ -4012,12 +4048,13 @@ fn apply_bracket(
         // `thickness=4`: the line that wide, as PlantUML draws it.
         // A whole number only, as PlantUML reads it.
         if let Some(value) = lower.strip_prefix("thickness=") {
-            let width: u8 = value
-                .trim()
-                .parse()
-                .ok()
-                .filter(|width: &u8| *width <= 100)
-                .ok_or_else(|| Declined::refused(line, format!("`[{part}]` names no width")))?;
+            let width: u16 = value.trim().parse().map_err(|_| {
+                let whole = value.trim().chars().all(|c| c.is_ascii_digit());
+                match whole {
+                    true => Declined::at(line, format!("`[{part}]` names no width")),
+                    false => Declined::refused(line, format!("`[{part}]` names no width")),
+                }
+            })?;
             *thickness = Some(f32::from(width));
             continue;
         }
@@ -4251,7 +4288,9 @@ mod tests {
             shape("[A] --> B\nB --> [C]\nnote right of B : n", "B"),
             Shape::Lollipop
         );
-        assert_eq!(shape("actor U\n(X) --> B", "B"), Shape::Lollipop);
+        assert_eq!(shape("actor U\n(X) --> B", "B"), Shape::Actor);
+        assert_eq!(shape("(Login) --> B\nB --> C", "C"), Shape::Actor);
+        assert_eq!(shape("person P\n[A] --> B", "B"), Shape::Lollipop);
         assert_eq!(shape("package p {\n  [A] --> B\n}", "B"), Shape::Lollipop);
         assert_eq!(
             shape("allowmixing\ncomponent A\nA --> B", "B"),
@@ -5330,12 +5369,27 @@ mod tests {
         };
         assert_eq!(look("B1"), (Some("#blue".into()), Dash::Solid, false, None));
         assert_eq!(look("B2"), (None, Dash::Solid, true, Some(6.0)));
-        assert_eq!(look("B3"), (None, Dash::Dashed, false, None));
+        assert_eq!(look("B3"), (None, Dash::Dashed, false, Some(1.0)));
         assert_eq!(look("B4"), (None, Dash::Solid, true, None));
         assert_eq!(look("B5").1, Dash::Dashed);
         assert!(!look("B5").2);
         assert_eq!(look("B6").1, Dash::Dashed);
         assert_eq!(look("B7").0, None);
+        // A dash before dots before boldness, whatever their order; a color
+        // alone before a `back:`.
+        let d2 = diagram(
+            "@startuml\nclass A\nA --> B1 #line.bold;line.dashed\nA --> B2 #line.bold;line.dotted\nA --> B3 #red;back:green\n@enduml\n",
+        );
+        let edge = |key: &str| {
+            let at = d2.root.nodes.iter().position(|n| n.key == key).unwrap();
+            d2.root.edges.iter().find(|e| e.to == at).unwrap().clone()
+        };
+        assert_eq!((edge("B1").dash, edge("B1").bold), (Dash::Dashed, false));
+        assert_eq!((edge("B2").dash, edge("B2").bold), (Dash::Dotted, false));
+        assert_eq!(edge("B3").color.as_deref(), Some("red"));
+        // Any whole width, as PlantUML draws it.
+        let svg = crate::render("@startuml\nclass A\nA -[thickness=300]-> B\n@enduml\n").unwrap();
+        assert!(svg.contains("stroke-width=\"300\""), "{svg}");
         // Bold before a width, as drawn.
         let svg =
             crate::render("@startuml\nclass A\nA -[bold,thickness=6]-> B\n@enduml\n").unwrap();
@@ -5370,6 +5424,12 @@ mod tests {
         assert_eq!(note("M").fill.as_deref(), Some("lightblue"));
         assert_eq!(d.root.nodes.len(), 3);
         let err = declined("@startuml\nclass Foo {\n  ab\n}\nFoo::\"ab\" --> Bar\n@enduml\n");
+        assert!(err.refused, "{err:?}");
+        // At the far end PlantUML reads it as it does.
+        let err = declined("@startuml\nclass Foo {\n  ab\n}\nBar --> Foo::\"ab\"\n@enduml\n");
+        assert!(!err.refused, "{err:?}");
+        // A note's color is one, or a gradient.
+        let err = declined("@startuml\nnote \"x\" as X #pink;line:red\n@enduml\n");
         assert!(err.refused, "{err:?}");
     }
 
