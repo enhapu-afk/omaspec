@@ -76,7 +76,7 @@ Done; what was drawn but different too (docs/DONE.md).
       and `hollow`, business use cases and actors (`(Use)/`, `:Actor:/`), a
       description over several lines in quotes, a name declared as a
       rectangle and then used as a use case, `note right of (Use)`.
-- [ ] Class (61 of 84): a note on a link (`note on link`), as the state
+- [ ] Class (62 of 84): a note on a link (`note on link`), as the state
       diagrams place it (`graph::open::Note::on`, the room of the words),
       lines between members (`Foo::field1 --> Bar::field3`), qualified ends
       (`Shop [customerId: long] ---> …`), `circle` and `diamond` (`<>`),

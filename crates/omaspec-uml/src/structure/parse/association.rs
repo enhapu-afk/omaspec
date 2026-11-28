@@ -87,13 +87,13 @@ impl Parser {
             .position(|node| node.shape == Shape::Point && keys.contains(&node.key));
         // How many classes meet the point already: every second one
         // stands on the other side.
-        let (point, along, classes) = match found {
+        let (point, along, classes, turned) = match found {
             Some(point) => {
                 let half = |edge: &&Link| {
                     (edge.from == point && [a, b].contains(&edge.to))
                         || (edge.to == point && [a, b].contains(&edge.from))
                 };
-                let along = group
+                let mut along = group
                     .edges
                     .iter()
                     .find(half)
@@ -101,7 +101,24 @@ impl Parser {
                 let meets = |edge: &&Link| edge.from == point || edge.to == point;
                 let classes = group.edges.iter().filter(meets).count()
                     - group.edges.iter().filter(half).count();
-                (point, along, classes)
+                // A second class on a pair side by side: PlantUML turns the
+                // pair down the page, the first class left of its point, the
+                // second right of it.
+                let turned = !along && classes > 0;
+                if turned {
+                    for edge in &mut group.edges {
+                        let ends = (edge.from, edge.to);
+                        let halved = (ends.0 == point && [a, b].contains(&ends.1))
+                            || (ends.1 == point && [a, b].contains(&ends.0));
+                        if halved {
+                            edge.level = None;
+                        } else if (ends.0 == point || ends.1 == point) && edge.level.is_none() {
+                            edge.level = Some(ends.0 != point);
+                        }
+                    }
+                    along = true;
+                }
+                (point, along, classes, turned)
             }
             None => {
                 let at = group.edges.iter().position(|edge| {
@@ -163,7 +180,7 @@ impl Parser {
                 };
                 let at = at.unwrap_or(group.edges.len());
                 group.edges.splice(at..at, [first, second]);
-                (point, edge.level.is_none(), 0)
+                (point, edge.level.is_none(), 0, false)
             }
         };
         let point = [home.as_slice(), &[point]].concat();
@@ -173,6 +190,7 @@ impl Parser {
         if item.toward.is_none() || item.toward == Some(BESIDE) {
             let beside = class.len() == point.len() && class.starts_with(&home);
             item.toward = match (along, beside, other_side) {
+                (_, true, _) if turned => Some(ACROSS),
                 (true, true, false) => Some(ACROSS),
                 (true, true, true) => Some("left"),
                 (false, _, true) => Some("up"),
@@ -289,11 +307,17 @@ mod tests {
         let d = diagram(
             "Student -right- Course\n(Student, Course) .. Enrollment\n(Student, Course) .. Grade",
         );
-        assert_eq!(edge(&d.root, "Student", PAIR).level, Some(true));
-        assert_eq!(edge(&d.root, PAIR, "Course").level, Some(true));
-        assert_eq!(edge(&d.root, PAIR, "Enrollment").level, None);
-        // The second above it: the line is turned.
-        assert_eq!(edge(&d.root, "Grade", PAIR).level, None);
+        // A second class turns the pair down the page, as PlantUML lays
+        // it: the first class left of the point, the second right of it.
+        assert_eq!(edge(&d.root, "Student", PAIR).level, None);
+        assert_eq!(edge(&d.root, PAIR, "Course").level, None);
+        assert_eq!(edge(&d.root, PAIR, "Enrollment").level, Some(false));
+        assert_eq!(edge(&d.root, PAIR, "Grade").level, Some(true));
+        // So does one dash.
+        let d = diagram("A - B\n(A, B) . C\n(A, B) . D");
+        assert_eq!(edge(&d.root, "A", "(A, B)").level, None);
+        assert_eq!(edge(&d.root, "(A, B)", "C").level, Some(false));
+        assert_eq!(edge(&d.root, "(A, B)", "D").level, Some(true));
     }
 
     #[test]

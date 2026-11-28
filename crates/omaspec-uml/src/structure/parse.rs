@@ -277,18 +277,23 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
 
 const MAX_DEPTH: usize = 100;
 
-/// Whether `lines` hold what only PlantUML's description diagrams have: a
-/// component (`component`, `[Name]`), a use case, an actor, a node and its
-/// kin. PlantUML reads such a diagram as no class diagram, but under
-/// `allowmixing`, which lets a class diagram hold them.
-fn described(lines: &[Line]) -> bool {
+/// Whether `lines` hold what only PlantUML's description diagrams have,
+/// as PlantUML tells one from a class diagram: a component, a use case,
+/// an actor, a node or their kin declared alone (`node N`; a block,
+/// `node N {`, is a class diagram's package), or a box in brackets
+/// (`[Web Server]`, `(Use it)`, `:Main Admin:`) alone on its line or at a
+/// line's end, not in a label. A class called `Node` is no node
+/// (`Node --> Edge`, `Node : name`). Under `allowmixing` a class diagram
+/// holds them all.
+pub(super) fn described(lines: &[Line]) -> bool {
     let mixing = lines.iter().any(|line| {
         squeezed_eq(line.text, "allowmixing") || squeezed_eq(line.text, "allow_mixing")
     });
     if mixing {
         return false;
     }
-    const WORDS: [&str; 24] = [
+    /// What a class diagram never declares alone.
+    const LEAVES: [&str; 25] = [
         "component",
         "usecase",
         "actor",
@@ -313,35 +318,64 @@ fn described(lines: &[Line]) -> bool {
         "portin",
         "portout",
         "rectangle",
+        "label",
+    ];
+    /// What a class diagram takes as a package neither: no container.
+    const NO_BLOCK: [&str; 11] = [
+        "usecase",
+        "actor",
+        "agent",
+        "boundary",
+        "control",
+        "person",
+        "collections",
+        "port",
+        "portin",
+        "portout",
+        "label",
     ];
     lines.iter().any(|line| {
-        let text = line.text.trim_start();
+        let text = line.text.trim();
         let word: String = text
             .chars()
             .take_while(|c| c.is_ascii_alphabetic())
             .collect::<String>()
             .to_ascii_lowercase();
         let after = &text[word.len()..];
-        let keyword = WORDS.contains(&word.as_str())
+        let declares = LEAVES.contains(&word.as_str())
             && (after.is_empty()
                 || after.starts_with(char::is_whitespace)
-                || after.starts_with('/'));
-        let token = text.split_whitespace().any(|token| {
-            let component = token.len() > 2
-                && token.starts_with('[')
-                && !token.starts_with("[[")
-                && token.ends_with(']')
-                && token != "[*]";
-            let use_case = token.len() > 2
-                && token.starts_with('(')
-                && token.ends_with(')')
-                && !token.starts_with("(*")
-                && !token.contains(',');
-            let actor = token.len() > 2 && token.starts_with(':') && token.ends_with(':');
-            component || use_case || actor
+                || after.starts_with('/'))
+            && !after.trim_start().starts_with(':')
+            && !names_an_end(text, &word);
+        let keyword = declares && (!text.ends_with('{') || NO_BLOCK.contains(&word.as_str()));
+        let far_end = find_arrow(text).is_some_and(|(_, end)| {
+            let rest = text[end..].trim_start();
+            // Past the line's multiplicity at its second end.
+            let rest = match rest.strip_prefix('"').and_then(|r| r.split_once('"')) {
+                Some((_, rest)) => rest.trim_start(),
+                None => rest,
+            };
+            bracketed(rest)
         });
-        keyword || token
+        keyword || bracketed(text) || far_end
     })
+}
+
+/// Whether `text` starts with a box in brackets: `[Web Server]` (not
+/// `[*]` nor a link), `(Use it)` (not `(*)` nor a pair `(A, B)`), or
+/// `:Main Admin:`.
+fn bracketed(text: &str) -> bool {
+    let inside = |open: char, close: char| {
+        text.strip_prefix(open)
+            .and_then(|rest| rest.split_once(close))
+            .map(|(inside, _)| inside)
+            .filter(|inside| !inside.trim().is_empty())
+    };
+    let component = !text.starts_with("[[") && inside('[', ']').is_some_and(|i| i != "*");
+    let use_case = inside('(', ')').is_some_and(|i| !i.starts_with('*') && !i.contains(','));
+    let actor = inside(':', ':').is_some_and(|i| !i.starts_with(char::is_whitespace));
+    component || use_case || actor
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -365,6 +399,8 @@ struct RawName {
     key: String,
     label: String,
     shape: Option<Shape>,
+    /// Written in quotes: one name, whatever it holds (`"ns::Impl"`).
+    quoted: bool,
 }
 
 struct Inherit {
@@ -428,6 +464,9 @@ struct Pending {
     /// declaration's parent (`extends Socket`), is not a class made from
     /// `net.Socket`.
     strict: [bool; 2],
+    /// The box each end found where the line stands, by a short name
+    /// (`C` of `a.b.C`): a `C` declared later is not the line's.
+    found: [Option<Vec<usize>>; 2],
 }
 
 struct RawNote {
@@ -626,8 +665,18 @@ impl Parser {
         for (item, pair) in pending.into_iter().zip(pairs) {
             match pair {
                 [false, false] => {
-                    let from = self.ensure(&item.from, &item.home, item.line, item.strict[0])?;
-                    let to = self.ensure(&item.to, &item.home, item.line, item.strict[1])?;
+                    let mut ends = Vec::with_capacity(2);
+                    for (at, raw) in [&item.from, &item.to].into_iter().enumerate() {
+                        ends.push(match &item.found[at] {
+                            Some(path) => {
+                                self.upgrade(path, raw, item.line)?;
+                                path.clone()
+                            }
+                            None => self.ensure(raw, &item.home, item.line, item.strict[at])?,
+                        });
+                    }
+                    let to = ends.pop().expect("two ends");
+                    let from = ends.pop().expect("two ends");
                     resolved.push((from, to, item));
                 }
                 [true, true] => {
@@ -784,6 +833,7 @@ impl Parser {
                         line,
                         home: home.clone(),
                         strict: [false, false],
+                        found: [None, None],
                     });
                 }
                 return Ok(at + 1);
@@ -931,6 +981,7 @@ impl Parser {
                 key: decl.key.clone(),
                 label: decl.label.clone(),
                 shape: None,
+                quoted: false,
             });
         }
         let home = self.here();
@@ -941,6 +992,7 @@ impl Parser {
                     key: decl.key.clone(),
                     label: decl.label.clone(),
                     shape: None,
+                    quoted: false,
                 },
                 from_card: None,
                 to_card: None,
@@ -955,6 +1007,7 @@ impl Parser {
                 line: decl.line,
                 home: home.clone(),
                 strict: [true, false],
+                found: [None, None],
             });
         }
         let key = self.node(&path).key.clone();
@@ -1195,7 +1248,7 @@ impl Parser {
         // yet, unless `::` parts names into packages.
         if self.separator.as_deref() != Some("::") {
             for raw in [&rel.from, &rel.to] {
-                if raw.key.contains("::") {
+                if !raw.quoted && raw.key.contains("::") {
                     return Err(Declined::at(
                         line,
                         format!(
@@ -1206,6 +1259,14 @@ impl Parser {
                 }
             }
         }
+        // A short name finds its class where the line stands, as PlantUML
+        // reads it: a `C` declared later is not the line's.
+        let found = [&rel.from, &rel.to].map(|raw| {
+            self.find_by(&raw.key, Lookup::Key)
+                .is_none()
+                .then(|| self.find(&raw.key))
+                .flatten()
+        });
         let strict = [&rel.from, &rel.to].map(|raw| self.find(&raw.key).is_none());
         self.named_by_line(&rel.from);
         self.named_by_line(&rel.to);
@@ -1225,6 +1286,7 @@ impl Parser {
             line,
             home: self.here(),
             strict,
+            found,
         });
         Ok(())
     }
@@ -1790,6 +1852,7 @@ impl RawName {
             key: self.key.clone(),
             label: self.label.clone(),
             shape: self.shape,
+            quoted: self.quoted,
         }
     }
 }
@@ -1939,7 +2002,12 @@ fn leading_shape(text: &str) -> Option<(Shape, Open, &str)> {
     ];
     for &(word, shape, open) in PHRASES {
         if let Some(rest) = phrase(text, word) {
-            return (!names_an_end(text, word)).then_some((shape, open, rest));
+            // `File : name` is a member of a class called File; `actor
+            // :User:` an actor.
+            let member = rest
+                .strip_prefix(':')
+                .is_some_and(|after| after.is_empty() || after.starts_with(char::is_whitespace));
+            return (!names_an_end(text, word) && !member).then_some((shape, open, rest));
         }
     }
     None
@@ -2654,6 +2722,7 @@ fn raw_name(token: &str, line: usize) -> Result<RawName, Declined> {
             key: inner.to_owned(),
             label: inner.to_owned(),
             shape: Some(Shape::UseCase),
+            quoted: false,
         });
     }
     if let Some(inner) = strip_wrap(token, '[', ']') {
@@ -2664,6 +2733,7 @@ fn raw_name(token: &str, line: usize) -> Result<RawName, Declined> {
             key: inner.to_owned(),
             label: inner.to_owned(),
             shape: Some(Shape::Component),
+            quoted: false,
         });
     }
     if let Some(inner) = strip_wrap(token, ':', ':') {
@@ -2674,6 +2744,7 @@ fn raw_name(token: &str, line: usize) -> Result<RawName, Declined> {
             key: inner.to_owned(),
             label: inner.to_owned(),
             shape: Some(Shape::Actor),
+            quoted: false,
         });
     }
     if let Some(inner) = strip_wrap(token, '"', '"') {
@@ -2684,6 +2755,7 @@ fn raw_name(token: &str, line: usize) -> Result<RawName, Declined> {
             key: inner.to_owned(),
             label: inner.to_owned(),
             shape: None,
+            quoted: true,
         });
     }
     if token
@@ -2699,6 +2771,7 @@ fn raw_name(token: &str, line: usize) -> Result<RawName, Declined> {
         key: token.to_owned(),
         label: token.to_owned(),
         shape: None,
+        quoted: false,
     })
 }
 
@@ -4078,6 +4151,60 @@ mod tests {
             "@startuml\nclass A {\n  int x\n}\nnote right of A::x\n  on x\nend note\nremove A\n@enduml\n",
         );
         assert!(d.root.notes.is_empty());
+    }
+
+    /// A class diagram as PlantUML tells it from a description diagram: a
+    /// class named like a keyword, a container's block of classes, and a
+    /// label in brackets leave it one, its names parting; a box in
+    /// brackets with spaces in its name makes it none.
+    #[test]
+    fn a_class_diagram_is_told_from_a_description_diagram() {
+        let parted = |source: &str| {
+            let d = diagram(&format!("@startuml\n{source}\n@enduml\n"));
+            d.root.nodes.iter().any(|node| node.key == "a")
+        };
+        for source in [
+            "class a.b.Node\nclass a.b.Edge\nNode --> Edge",
+            "class a.b.C\nFile : name",
+            "folder F {\n  class a.b.C\n}",
+            "class a.b.C\nclass a.b.D\nC --> D : (optional)",
+            "class a.b.C\nclass a.b.D\nC --> D : [guard]",
+            "class a.b.C\nnote right of C : see (1)",
+        ] {
+            let d = diagram(&format!("@startuml\n{source}\n@enduml\n"));
+            let found = |group: &Group| group.nodes.iter().any(|n| n.key == "a");
+            let inside = d.root.nodes.iter().any(|n| found(&n.children));
+            assert!(parted(source) || inside, "{source}");
+        }
+        for source in [
+            "[Web Server] --> a.b.Api",
+            "class a.b.C\nnode N",
+            "a.b.C --> (Use the app)",
+            ":Main Admin: --> a.b.C",
+        ] {
+            assert!(!parted(source), "{source}");
+        }
+        // `title : x` is a class's member here.
+        let d = diagram("@startuml\ntitle : Hi\nA --> B : (optional)\n@enduml\n");
+        assert!(d.root.nodes.iter().any(|node| node.key == "title"));
+        // A quoted name with `::` is one name.
+        let d = diagram("@startuml\n\"ns::Impl\" ..|> Api\n@enduml\n");
+        assert!(d.root.nodes.iter().any(|node| node.key == "ns::Impl"));
+        // A short name is found where its line stands, not later.
+        let d = diagram("@startuml\nclass a.b.C\nD --> C\nclass C\n@enduml\n");
+        let edge = &d.root.crossings[0];
+        assert_eq!(edge.to.len(), 3, "{:?}", d.root.crossings);
+        // `hide` by a package's name, not its label.
+        let d = diagram(
+            "@startuml\npackage \"My Pkg\" as mp {\n  class C\n  class D\n}\nhide mp.C\n@enduml\n",
+        );
+        let hidden: Vec<bool> = d.root.nodes[0]
+            .children
+            .nodes
+            .iter()
+            .map(|n| n.hidden)
+            .collect();
+        assert_eq!(hidden, [true, false]);
     }
 
     /// A note without `of` is on what was made last, as PlantUML counts

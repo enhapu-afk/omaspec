@@ -216,7 +216,9 @@ pub(super) fn check(
         } else if frame(a) != frame(b) {
             Some(Unheld::Apart)
         } else if sets.find(a) == sets.find(b) {
-            Some(Unheld::Round)
+            // Already one rank: an order within it all the same (`A -> B`,
+            // `C -> B`, `C -> A` stand as `C A B`), unless it goes round.
+            (hold.after.is_none() || goes_round(&kept, hold)).then_some(Unheld::Round)
         } else {
             let (ga, gb) = (sets.find(a), sets.find(b));
             let joined = edges.iter().any(|edge| {
@@ -237,6 +239,35 @@ pub(super) fn check(
         }
     }
     (kept, unheld)
+}
+
+/// Whether `hold` orders two boxes the other way round from what `kept`
+/// orders already, left to right.
+fn goes_round(kept: &[Same], hold: &Same) -> bool {
+    let pair = |hold: &Same| match hold.after {
+        Some(true) => Some((hold.beside, hold.node)),
+        Some(false) => Some((hold.node, hold.beside)),
+        None => None,
+    };
+    let Some((left, right)) = pair(hold) else {
+        return false;
+    };
+    let pairs: Vec<(usize, usize)> = kept.iter().filter_map(pair).collect();
+    let mut seen = vec![right];
+    let mut at = 0;
+    while at < seen.len() {
+        let from = seen[at];
+        if from == left {
+            return true;
+        }
+        for &(a, b) in &pairs {
+            if a == from && !seen.contains(&b) {
+                seen.push(b);
+            }
+        }
+        at += 1;
+    }
+    false
 }
 
 /// Why a hold into another rank cannot be kept before the layout, if it
@@ -467,6 +498,24 @@ mod tests {
         let laid = held(4, &edges, &holds);
         let x = |i: usize| laid.nodes[i].x;
         assert!(x(1) < x(3) && x(3) < x(2), "{:?}", laid.nodes);
+    }
+
+    /// A hold between two boxes one rank holds already orders them in it
+    /// (`A -> B`, `C -> B`, `C -> A` stand as `C A B`), unless it goes
+    /// round.
+    #[test]
+    fn a_hold_within_one_rank_orders_it() {
+        let hold = |node: usize, beside: usize| Hold {
+            node,
+            beside,
+            word: Word::After,
+        };
+        let laid = held(3, &[], &[hold(1, 0), hold(1, 2), hold(0, 2)]);
+        let x = |i: usize| laid.nodes[i].x;
+        assert!(laid.unheld.is_empty(), "{:?}", laid.unheld);
+        assert!(x(2) < x(0) && x(0) < x(1), "{:?}", laid.nodes);
+        let laid = held(3, &[], &[hold(1, 0), hold(2, 1), hold(0, 2)]);
+        assert_eq!(laid.unheld, [(2, Unheld::Round)]);
     }
 
     #[test]

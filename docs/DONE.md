@@ -958,6 +958,25 @@ is open and the reasoning around it.
       An association class keeps the place its pair gives it, its line of
       one dot too. The C4 macros write two dashes, as C4-PlantUML does,
       and the gallery's agent platform keeps its picture with `-->`.
+- [x] What the review of the parted names and of one dash found
+      (2026-11-28). A class diagram is told from a description diagram
+      as PlantUML tells them: a component, a node or their kin declared
+      alone makes one (`node N`), a block of classes in a `folder`, a
+      `node` or a `rectangle` is a package's, and a box in brackets
+      counts alone on its line or at a line's end (`[Web Server]`,
+      `(Use the app)`, `:Main Admin:`, spaces and all), not in a label
+      (`: (optional)`) or a note. A class called `Node`, `File` or
+      `Person` keeps the class diagram, its member lines too (`Object :
+      equals()`). A quoted name with `::` is one name on a line
+      (`"ns::Impl" ..|> Api`). A short name finds its class where its
+      line stands, not a `C` declared later; `hide` names a box through
+      its packages' names (`hide mp.C` in `package "My Pkg" as mp`). A
+      second association class turns its pair down the page, the
+      classes at the point's sides, one dash too. Three boxes held side
+      by side keep the order all three lines give (`A -> B`, `C -> B`,
+      `C -> A` stand as `C A B`). The outline keeps a use case diagram's
+      `title : x`. The guide: the class diagram 62 of 84, 574 of 897 in
+      all.
 
 ### Step 5: what every diagram shares
 

@@ -56,7 +56,9 @@ two, since one rank could not hold both ends of a line.
 6. **Holds are placed anchor first.** A box is moved beside its
    neighbor before the boxes held beside it are, however the entries
    were written, so `b right of a` and `a right of c` stand as
-   `c a b`.
+   `c a b`. A hold between two boxes the others hold in one rank
+   already orders them there (`a -> b`, `c -> b`, `c -> a` stand as
+   `c a b`, 2026-11-28); only one that goes round is not kept.
 
 ## Consequences
 

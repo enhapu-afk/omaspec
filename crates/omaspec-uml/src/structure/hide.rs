@@ -307,16 +307,22 @@ pub(super) fn apply(
     }
     let mut boxes = Vec::new();
     walk(root, &mut Vec::new(), &mut boxes);
-    // Each box's whole name, through the packages it stands in.
+    // Each box's whole name, through the packages it stands in, by their
+    // names (`mp.C` in `package "My Pkg" as mp`); a box made from a whole
+    // name (`a.b.C`) has it already.
     let whole: Vec<Option<String>> = boxes
         .iter()
         .map(|path| {
             let sep = separator?;
             (path.len() > 1).then(|| {
-                (1..=path.len())
-                    .map(|depth| node(root, &path[..depth]).label.value.clone())
-                    .collect::<Vec<_>>()
-                    .join(sep)
+                (1..=path.len()).fold(String::new(), |whole, depth| {
+                    let key = &node(root, &path[..depth]).key;
+                    if whole.is_empty() || key.starts_with(&format!("{whole}{sep}")) {
+                        key.clone()
+                    } else {
+                        format!("{whole}{sep}{key}")
+                    }
+                })
             })
         })
         .collect();

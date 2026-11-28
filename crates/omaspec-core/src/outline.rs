@@ -281,7 +281,8 @@ fn plantuml(
             continue;
         }
         // A title as the type reads it: `title: x` is a state in a state
-        // diagram, and `title : x` a class in a class diagram.
+        // diagram, and `title : x` a class in a class diagram, the title
+        // of a component or a use case diagram.
         if let Some(c) = re!(r"(?i)^title(:)?\s*(.+)$").captures(l)
             && (c.get(1).is_some() || l.as_bytes().get(5).is_some_and(u8::is_ascii_whitespace))
         {
@@ -289,7 +290,7 @@ fn plantuml(
             let spaced = c.get(1).is_none() && words.starts_with(':');
             let shown = match kind {
                 Kind::State if c.get(1).is_some() || spaced => None,
-                Kind::Structure if spaced => None,
+                Kind::Structure if spaced && !omaspec_uml::structure::described(code) => None,
                 _ => Some(words.trim_start_matches(':').trim_start()),
             };
             if let Some(words) = shown.filter(|w| !w.is_empty()) {
@@ -796,6 +797,24 @@ mod tests {
 
     fn e(line: usize, depth: usize, tag: &str, label: &str) -> (usize, usize, String, String) {
         (line, depth, tag.into(), label.into())
+    }
+
+    /// `title : x` is the title of a use case diagram, and a class's
+    /// member in a class diagram, as PlantUML reads them.
+    #[test]
+    fn a_spaced_title_is_read_by_the_diagram_s_kind() {
+        let titles = |code: &str| {
+            tags(code, Language::PlantUml)
+                .into_iter()
+                .filter(|(_, _, tag, _)| tag == "title")
+                .count()
+        };
+        assert_eq!(
+            titles("@startuml\ntitle : Hi\nactor U\nU --> (x)\n@enduml"),
+            1
+        );
+        assert_eq!(titles("@startuml\ntitle : Hi\nclass A\n@enduml"), 0);
+        assert_eq!(titles("@startuml\ntitle: Hi\nclass A\n@enduml"), 1);
     }
 
     #[test]

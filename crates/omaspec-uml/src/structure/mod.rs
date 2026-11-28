@@ -22,6 +22,14 @@ pub use draw::{draw, draw_mapped, label_by_hand};
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use parse::{is_structure, parse};
 
+/// Whether the diagram of `source` is a description diagram (components,
+/// use cases, deployment) and no class diagram, as PlantUML tells the two
+/// apart: its `title : x` is its title, its dotted names are whole.
+pub fn described(source: &str) -> bool {
+    crate::source::body(source)
+        .is_ok_and(|(_, lines)| parse::described(&crate::common::deciding(&lines)))
+}
+
 /// A parsed structure diagram. The root is the page: it has no box.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Diagram {
