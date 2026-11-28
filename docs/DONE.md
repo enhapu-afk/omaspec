@@ -1009,6 +1009,26 @@ is open and the reasoning around it.
       of it no longer bends the pair's at the point. Still different: the
       class stands in the rank after the point, not beside it, as no line
       within a rank crosses a package yet.
+- [x] What the review of the circles and of the told diagrams found
+      (2026-11-28). A pair's second association class stands right of
+      its point and the first left, written before the pair or after,
+      on a pair down the page too, as PlantUML lays them; one alone
+      stands beside the point in the order written. A box declared again
+      without a stereotype keeps its own circle. In the Omarchy look each
+      kind's circle has its letter's color: the six kinds that keep
+      PlantUML's fills (`protocol`, `struct`, `exception`, `metaclass`,
+      `record`, `dataclass`) a black letter, white on the data class's
+      violet, so every letter reads at 4.5:1 in every theme (a test draws
+      all twelve kinds in each). `actor :User:` makes a description
+      diagram again; an arrow in a note's or a title's words does not.
+      `circledCharacterFontName` and `circledCharacterFontStyle` are
+      taken and change nothing, as before. `hide class circle` is the
+      classes', not a struct's or a record's; `hide struct circle` and
+      its kin are read. A spot is read as PlantUML reads one (the letter
+      right after the parenthesis, a color by its name or six digits, `#`
+      before them or not); else the stereotype is words, shown as written
+      (`<<x, y>>`, `<<(S,#F70)>>`), in sequence diagrams too. The caret
+      lights a line's shape without words only on the line's first word.
 
 ### Step 5: what every diagram shares
 

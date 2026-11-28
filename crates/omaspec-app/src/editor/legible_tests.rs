@@ -44,8 +44,14 @@ fn renderer() -> Renderer {
 }
 
 /// Diagrams that write colors of their own, for a white page: a box of a
-/// sequence, a swimlane, a note, a state, Mermaid's `rect` and `style`.
+/// sequence, a swimlane, a note, a state, Mermaid's `rect` and `style`;
+/// and the circle of every kind of class, whose colors the pack sets.
 const OWN_COLORS: &[(&str, omaspec_core::Language, &str)] = &[
+    (
+        "every circle",
+        omaspec_core::Language::PlantUml,
+        "@startuml\nclass C\ninterface I\nabstract A\nenum E\nannotation N\nentity T {\n  id\n}\nprotocol P\nstruct S\nexception X\nmetaclass M\nrecord R\ndataclass D\n@enduml\n",
+    ),
     (
         "own box",
         omaspec_core::Language::PlantUml,

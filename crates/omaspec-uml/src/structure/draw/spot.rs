@@ -49,7 +49,8 @@ pub(super) fn measure(el: &Element, skin: &Skin, family: Family) -> Result<Optio
         Some(value) => color::parse(value).map_err(|err| Declined::at(el.line, err))?,
         None => Some(spots.fill[spot.kind.index()]),
     };
-    let font = Font::new(spots.size, spots.letter).bold();
+    let ink = spots.letters[spot.kind.index()].unwrap_or(spots.letter);
+    let font = Font::new(spots.size, ink).bold();
     let letter = text::block(&spot.letter.to_string(), font, family)
         .map_err(|err| Declined::at(el.line, err))?;
     Ok(Some(Spot {

@@ -342,14 +342,34 @@ pub(super) fn described(lines: &[Line]) -> bool {
             .collect::<String>()
             .to_ascii_lowercase();
         let after = &text[word.len()..];
+        // `Node : name` is a member; `actor :User:` an actor.
+        let member = after
+            .trim_start()
+            .strip_prefix(':')
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with(char::is_whitespace));
         let declares = LEAVES.contains(&word.as_str())
             && (after.is_empty()
                 || after.starts_with(char::is_whitespace)
                 || after.starts_with('/'))
-            && !after.trim_start().starts_with(':')
+            && !member
             && !names_an_end(text, &word);
         let keyword = declares && (!text.ends_with('{') || NO_BLOCK.contains(&word.as_str()));
-        let far_end = find_arrow(text).is_some_and(|(_, end)| {
+        // A line's far end: past an arrow that a name stands before, not
+        // one in a note's or a title's words (`note left : x -> (y)`).
+        let far_end = find_arrow(text).is_some_and(|(start, end)| {
+            let near = text[..start].trim_end();
+            // Past the line's multiplicity at its first end.
+            let near = match near.strip_suffix('"').and_then(|n| n.rsplit_once('"')) {
+                Some((name, _)) => name.trim_end(),
+                None => near,
+            };
+            let named = !near.is_empty()
+                && (bracketed(near)
+                    || !near.contains(char::is_whitespace)
+                    || (near.starts_with('"') && near.ends_with('"')));
+            if !named {
+                return false;
+            }
             let rest = text[end..].trim_start();
             // Past the line's multiplicity at its second end.
             let rest = match rest.strip_prefix('"').and_then(|r| r.split_once('"')) {
@@ -416,6 +436,8 @@ struct Decl {
     /// The circle its keyword gives it (`protocol`: `P`), or the one its
     /// stereotype writes (`<< (S,#FF7700) >>`); else its shape's.
     spot: Option<Spot>,
+    /// A stereotype wrote its circle.
+    spotted: bool,
     fill: Option<String>,
     line_color: Option<String>,
     /// The rest of an inline style (`#fill;line.dashed;text:navy`).
@@ -1074,9 +1096,22 @@ impl Parser {
         for stereotype in &decl.stereotypes {
             node.stereotypes.push(text_at(stereotype, decl.line));
         }
-        match &decl.spot {
-            Some(spot) => node.spot = Some(spot.clone()),
-            None => node.spot = SpotKind::of_shape(node.shape).map(Spot::of),
+        // A box declared again keeps the circle it has, its own one
+        // too, unless a stereotype is written again or its kind changes,
+        // as in PlantUML.
+        let wanted = decl
+            .spot
+            .clone()
+            .or_else(|| SpotKind::of_shape(node.shape).map(Spot::of));
+        let keeps = !decl.spotted
+            && decl.stereotypes.is_empty()
+            && node
+                .spot
+                .as_ref()
+                .zip(wanted.as_ref())
+                .is_some_and(|(have, want)| have.kind == want.kind);
+        if !keeps {
+            node.spot = wanted;
         }
         if let Some(fill) = &decl.fill {
             node.fill = Some(fill.clone());
@@ -2273,6 +2308,7 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
         return Err(Declined::at(line, "a declaration needs a name"));
     }
     let (rest, stereotypes, own) = take_stereotypes(&rest, line)?;
+    let spotted = own.is_some();
     let spot = own_spot(own, shape, line)?;
     let (rest, fill, line_color, more) = take_colors(&rest, line)?;
     let (name, parents) = take_inherits(rest.trim(), line)?;
@@ -2300,6 +2336,7 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
         shape,
         stereotypes,
         spot,
+        spotted,
         fill,
         line_color,
         more,
@@ -2338,6 +2375,7 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
     }
     let (key, label, shape) = split_alias(rest, line)?;
     let shape = shape.unwrap_or(Shape::Class);
+    let spotted = own.is_some();
     let spot = own_spot(own, shape, line)?;
     let open = open_of(shape);
     if opened && matches!(open, Open::None) {
@@ -2352,6 +2390,7 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
         shape,
         stereotypes,
         spot,
+        spotted,
         fill,
         line_color,
         more,
@@ -2396,9 +2435,11 @@ fn take_stereotypes(input: &str, line: usize) -> Result<Stereotyped, Declined> {
                 }
                 spot = own;
             }
+            // What is no spot is words, as PlantUML shows them
+            // (`<<x, y>>`, `<<#red>>`).
             let text = rest.unwrap_or_default();
-            if (text.is_empty() && !spotted) || text.contains(['(', '#', ',']) {
-                return Err(Declined::at(line, "this stereotype is not supported yet"));
+            if text.is_empty() && !spotted {
+                return Err(Declined::at(line, "a stereotype needs a text"));
             }
             if !text.is_empty() {
                 stereos.push(text);

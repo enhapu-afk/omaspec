@@ -626,8 +626,20 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>, styled: Styled) -> Strin
 /// The Omarchy pack for a JSON or a YAML diagram, by the name its styles
 /// go by (`jsonDiagram`, `yamlDiagram`). PlantUML draws one from its
 /// styles alone, so the colors go into a `<style>` block.
+/// The kinds whose circles keep PlantUML's fills in a pack, with a letter
+/// that reads on each (4.5:1): black, white on a data class's violet.
+const OWN_SPOTS: [(&str, &str); 6] = [
+    ("spotProtocol", "#000000"),
+    ("spotStruct", "#000000"),
+    ("spotException", "#000000"),
+    ("spotMetaClass", "#000000"),
+    ("spotRecord", "#000000"),
+    ("spotDataClass", "#ffffff"),
+];
+
 /// The style that colors the circles of a class diagram's classes in
-/// `c`, their border in its accent.
+/// `c`, their border in its accent; each kind its letter's color, as the
+/// diagram's text color would reach the rest.
 fn spots_style(c: &Colors) -> String {
     let s = &c.spots;
     let kinds = [
@@ -638,12 +650,15 @@ fn spots_style(c: &Colors) -> String {
         ("spotEnum", s.enumeration),
         ("spotAnnotation", s.annotation),
     ];
-    let mut style = format!(
-        "<style>\nspot {{\n  FontColor {}\n  LineColor {}\n",
-        s.letter, c.accent
-    );
+    let mut style = format!("<style>\nspot {{\n  LineColor {}\n", c.accent);
     for (name, fill) in kinds {
-        style.push_str(&format!("  {name} {{\n    BackgroundColor {fill}\n  }}\n"));
+        style.push_str(&format!(
+            "  {name} {{\n    BackgroundColor {fill}\n    FontColor {}\n  }}\n",
+            s.letter
+        ));
+    }
+    for (name, letter) in OWN_SPOTS {
+        style.push_str(&format!("  {name} {{\n    FontColor {letter}\n  }}\n"));
     }
     style.push_str("}\n</style>");
     style
@@ -1002,12 +1017,27 @@ mod tests {
         let (range, block) = edit(code, Language::PlantUml, Some(Pack::Omarchy), &colors).unwrap();
         let text = format!("{}{block}{}", &code[..range.start], &code[range.end..]);
         assert!(
-            text.contains("  spotEntity {\n    BackgroundColor #00aa00\n"),
+            text.contains("  spotEntity {\n    BackgroundColor #00aa00\n    FontColor #111111\n"),
             "{text}"
         );
+        assert!(text.contains("spot {\n  LineColor #e68e0d\n"), "{text}");
+        // The kinds that keep PlantUML's fills keep a letter that reads on
+        // them, whatever the theme's text.
+        let code = "@startuml\nstruct S\ndataclass D\n@enduml\n";
+        let (range, block) = edit(code, Language::PlantUml, Some(Pack::Omarchy), &colors).unwrap();
+        let packed = format!("{}{block}{}", &code[..range.start], &code[range.end..]);
+        let drawn = omaspec_uml::render(&packed).unwrap();
+        let spot = |id: &str| {
+            let at = drawn.find(&format!("id=\"spot-{id}\"")).expect(id);
+            drawn[at..at + drawn[at..].find("</g>").unwrap()].to_owned()
+        };
         assert!(
-            text.contains("  FontColor #111111\n  LineColor #e68e0d\n"),
-            "{text}"
+            spot("S").contains("fill=\"#000000\" font-weight=\"bold\""),
+            "{drawn}"
+        );
+        assert!(
+            spot("D").contains("fill=\"#FFFFFF\" font-weight=\"bold\""),
+            "{drawn}"
         );
         let svg = omaspec_uml::render(&text).unwrap();
         for paint in [

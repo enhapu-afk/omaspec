@@ -377,7 +377,7 @@ impl Paper {
     pub(super) fn place_of(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
         self.written_place_of(source, row, col)
             .or_else(|| self.unwritten(source, row, col))
-            .or_else(|| self.shape_of_row(row))
+            .or_else(|| self.shape_of_row(source, row, col))
     }
 
     #[cfg(test)]
@@ -424,7 +424,7 @@ impl Paper {
         let Some((_, seat)) = self.seat_at(source, row, col) else {
             return self
                 .unwritten(source, row, col)
-                .or_else(|| self.shape_of_row(row))
+                .or_else(|| self.shape_of_row(source, row, col))
                 .map(Aim::shape);
         };
         let (x, y, w, h) = seat.bounds();
@@ -435,11 +435,19 @@ impl Paper {
         })
     }
 
-    /// The shape without words the zero-based line `row` draws, where no
-    /// words under the caret are found ([`omaspec_uml::map::Map::shapes`]):
-    /// the circle before a class's name for its `interface`. Only on the
-    /// picture the map was laid for.
-    fn shape_of_row(&self, row: usize) -> Option<Rectangle> {
+    /// The shape without words the zero-based line `row` draws, for the
+    /// caret on the line's first word where no words under it are found
+    /// ([`omaspec_uml::map::Map::shapes`]): the circle before a class's
+    /// name for its `interface`. Only on the picture the map was laid for.
+    fn shape_of_row(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
+        let line = source.split('\n').nth(row)?;
+        let start = line.len() - line.trim_start().len();
+        let end = line[start..]
+            .find(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .map_or(line.len(), |at| start + at);
+        if !(start..=end).contains(&col) || start == end {
+            return None;
+        }
         let diagram = self.diagram.as_ref()?;
         let tree = self.shown_tree()?;
         if !std::sync::Arc::ptr_eq(tree, &diagram.drawn.tree) {

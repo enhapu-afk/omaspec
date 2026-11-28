@@ -374,10 +374,14 @@ macro_rules! boxed {
 /// A kind of class's circle, as styles reach it: under `element` and
 /// `spot`, not under `classDiagram`, as PlantUML looks it up.
 macro_rules! spotted {
-    ($name:literal, $fill:literal, $line:literal) => {
+    ($name:literal, $fill:literal, $line:literal, $font:literal) => {
         Element::keys(
             &["element", "spot", $name],
-            &[(Prop::BackGroundColor, $fill), (Prop::LineColor, $line)],
+            &[
+                (Prop::BackGroundColor, $fill),
+                (Prop::LineColor, $line),
+                (Prop::FontColor, $font),
+            ],
         )
     };
 }
@@ -410,58 +414,74 @@ pub const STYLE: &[Element] = &[
     spotted!(
         "spotClass",
         "SpotClassBackgroundColor",
-        "SpotClassBorderColor"
+        "SpotClassBorderColor",
+        "SpotClassFontColor"
     ),
     spotted!(
         "spotAbstractClass",
         "SpotAbstractClassBackgroundColor",
-        "SpotAbstractClassBorderColor"
+        "SpotAbstractClassBorderColor",
+        "SpotAbstractClassFontColor"
     ),
     spotted!(
         "spotInterface",
         "SpotInterfaceBackgroundColor",
-        "SpotInterfaceBorderColor"
+        "SpotInterfaceBorderColor",
+        "SpotInterfaceFontColor"
     ),
-    spotted!("spotEnum", "SpotEnumBackgroundColor", "SpotEnumBorderColor"),
+    spotted!(
+        "spotEnum",
+        "SpotEnumBackgroundColor",
+        "SpotEnumBorderColor",
+        "SpotEnumFontColor"
+    ),
     spotted!(
         "spotAnnotation",
         "SpotAnnotationBackgroundColor",
-        "SpotAnnotationBorderColor"
+        "SpotAnnotationBorderColor",
+        "SpotAnnotationFontColor"
     ),
     spotted!(
         "spotEntity",
         "SpotEntityBackgroundColor",
-        "SpotEntityBorderColor"
+        "SpotEntityBorderColor",
+        "SpotEntityFontColor"
     ),
     spotted!(
         "spotProtocol",
         "SpotProtocolBackgroundColor",
-        "SpotProtocolBorderColor"
+        "SpotProtocolBorderColor",
+        "SpotProtocolFontColor"
     ),
     spotted!(
         "spotStruct",
         "SpotStructBackgroundColor",
-        "SpotStructBorderColor"
+        "SpotStructBorderColor",
+        "SpotStructFontColor"
     ),
     spotted!(
         "spotException",
         "SpotExceptionBackgroundColor",
-        "SpotExceptionBorderColor"
+        "SpotExceptionBorderColor",
+        "SpotExceptionFontColor"
     ),
     spotted!(
         "spotMetaClass",
         "SpotMetaClassBackgroundColor",
-        "SpotMetaClassBorderColor"
+        "SpotMetaClassBorderColor",
+        "SpotMetaClassFontColor"
     ),
     spotted!(
         "spotRecord",
         "SpotRecordBackgroundColor",
-        "SpotRecordBorderColor"
+        "SpotRecordBorderColor",
+        "SpotRecordFontColor"
     ),
     spotted!(
         "spotDataClass",
         "SpotDataClassBackgroundColor",
-        "SpotDataClassBorderColor"
+        "SpotDataClassBorderColor",
+        "SpotDataClassFontColor"
     ),
     Element::keys(&["element", "spot"], &[(Prop::FontColor, "SpotFontColor")]),
     Element::keys(

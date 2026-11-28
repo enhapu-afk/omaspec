@@ -87,7 +87,7 @@ impl Parser {
             .position(|node| node.shape == Shape::Point && keys.contains(&node.key));
         // How many classes meet the point already: every second one
         // stands on the other side.
-        let (point, along, classes, turned) = match found {
+        let (point, along, classes) = match found {
             Some(point) => {
                 let half = |edge: &&Link| {
                     (edge.from == point && [a, b].contains(&edge.to))
@@ -101,24 +101,26 @@ impl Parser {
                 let meets = |edge: &&Link| edge.from == point || edge.to == point;
                 let classes = group.edges.iter().filter(meets).count()
                     - group.edges.iter().filter(half).count();
-                // A second class on a pair side by side: PlantUML turns the
-                // pair down the page, the first class left of its point, the
-                // second right of it.
+                // A second class: PlantUML runs the pair down the page, a
+                // pair side by side turned, the first class left of its
+                // point and the second right of it.
                 let turned = !along && classes > 0;
-                if turned {
+                if classes == 1 {
                     for edge in &mut group.edges {
                         let ends = (edge.from, edge.to);
                         let halved = (ends.0 == point && [a, b].contains(&ends.1))
                             || (ends.1 == point && [a, b].contains(&ends.0));
                         if halved {
                             edge.level = None;
-                        } else if (ends.0 == point || ends.1 == point) && edge.level.is_none() {
+                        } else if (ends.0 == point || ends.1 == point)
+                            && (turned || edge.level.is_some())
+                        {
                             edge.level = Some(ends.0 != point);
                         }
                     }
                     along = true;
                 }
-                (point, along, classes, turned)
+                (point, along, classes)
             }
             None => {
                 let at = group.edges.iter().position(|edge| {
@@ -181,20 +183,22 @@ impl Parser {
                 };
                 let at = at.unwrap_or(group.edges.len());
                 group.edges.splice(at..at, [first, second]);
-                (point, edge.level.is_none(), 0, false)
+                (point, edge.level.is_none(), 0)
             }
         };
         let point = [home.as_slice(), &[point]].concat();
-        let other_side = classes % 2 == 1;
         // Where the class stands is the pair's to say, one dot or dash
-        // (`(A, B) . C`) too.
+        // (`(A, B) . C`) too: the first beside the point in the order
+        // written; the second right of it, the first then left; and so on,
+        // side by side.
         if item.toward.is_none() || item.toward == Some(BESIDE) {
             let beside = class.len() == point.len() && class.starts_with(&home);
-            item.toward = match (along, beside, other_side) {
-                (_, true, _) if turned => Some(ACROSS),
-                (true, true, false) => Some(ACROSS),
-                (true, true, true) => Some("left"),
-                (false, _, true) => Some("up"),
+            let right = if pair_first { ACROSS } else { "left" };
+            let left = if pair_first { "left" } else { ACROSS };
+            item.toward = match (along, beside) {
+                (true, true) if classes == 0 => Some(ACROSS),
+                (true, true) if classes % 2 == 1 => Some(right),
+                (true, true) => Some(left),
                 _ => None,
             };
         }
@@ -299,8 +303,15 @@ mod tests {
         );
         let points = d.root.nodes.iter().filter(|n| n.shape == Shape::Point);
         assert_eq!(points.count(), 1);
-        assert_eq!(edge(&d.root, PAIR, "Enrollment").level, Some(true));
-        assert_eq!(edge(&d.root, PAIR, "Grade").level, Some(false));
+        // The first left of the point, the second right of it, as PlantUML
+        // lays them, the classes written first or last.
+        assert_eq!(edge(&d.root, PAIR, "Enrollment").level, Some(false));
+        assert_eq!(edge(&d.root, PAIR, "Grade").level, Some(true));
+        let d = diagram(
+            "Student -right- Course\nEnrollment .. (Student, Course)\nGrade .. (Student, Course)",
+        );
+        assert_eq!(edge(&d.root, "Enrollment", PAIR).level, Some(true));
+        assert_eq!(edge(&d.root, "Grade", PAIR).level, Some(false));
     }
 
     #[test]

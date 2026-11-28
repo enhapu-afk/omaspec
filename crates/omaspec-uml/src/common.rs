@@ -765,7 +765,11 @@ impl Mention {
 /// lines holds either way.
 /// `(C,#ADD1B2) Testable`, inside `<< >>`: the spot PlantUML draws before
 /// a name (one letter, and its color as written) and what is left of the
-/// stereotype, each if there is one. `(long) words` has no spot.
+/// stereotype, each if there is one. As PlantUML reads it, the letter
+/// follows the parenthesis at once, and the color is a name or six
+/// hexadecimal digits, `#` before them or not (given back with it):
+/// `(long) words`, `( x , orchid )`, `(S,#F70)` and `(S,#red)` are words,
+/// no spot.
 pub(crate) fn spotted(stereotype: &str) -> (Option<(char, Option<String>)>, Option<String>) {
     let text = stereotype.trim();
     let some = |s: &str| (!s.is_empty()).then(|| s.to_owned());
@@ -773,12 +777,28 @@ pub(crate) fn spotted(stereotype: &str) -> (Option<(char, Option<String>)>, Opti
         return (None, some(text));
     };
     let (letter, color) = match inner.split_once(',') {
-        Some((letter, color)) => (letter.trim(), some(color.trim())),
-        None => (inner.trim(), None),
+        Some((letter, color)) => (letter.trim_end(), Some(color.trim())),
+        None => (inner.trim_end(), None),
+    };
+    let hex = |digits: &str| digits.len() == 6 && digits.chars().all(|c| c.is_ascii_hexdigit());
+    let read = |color: &str| match color.strip_prefix('#') {
+        Some(digits) => hex(digits).then(|| color.to_owned()),
+        None if hex(color) => Some(format!("#{color}")),
+        None => (!color.is_empty() && color.chars().all(|c| c.is_ascii_alphabetic()))
+            .then(|| color.to_owned()),
+    };
+    let color = match color {
+        Some(written) => match read(written) {
+            Some(color) => Some(color),
+            None => return (None, some(text)),
+        },
+        None => None,
     };
     let mut chars = letter.chars();
     match (chars.next(), chars.next()) {
-        (Some(letter), None) => (Some((letter, color)), some(rest.trim())),
+        (Some(letter), None) if !letter.is_whitespace() => {
+            (Some((letter, color)), some(rest.trim()))
+        }
         _ => (None, some(text)),
     }
 }

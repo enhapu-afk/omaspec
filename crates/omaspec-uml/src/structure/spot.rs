@@ -5,7 +5,9 @@
 //! (`spot { spotEntity { BackgroundColor … } }`), and gone under
 //! `skinparam style strictuml`. The letter takes the diagram's text
 //! color, as in PlantUML; `circledCharacterRadius` and
-//! `circledCharacterFontSize` size the circle and its letter.
+//! `circledCharacterFontSize` size the circle and its letter. The
+//! letter is set in the diagram's face, bold, so `circledCharacterFontName`
+//! and `circledCharacterFontStyle` are taken and change nothing.
 
 use super::{Skinparam, SpotKind};
 use crate::Declined;
@@ -19,6 +21,9 @@ pub struct Spots {
     /// Each kind's border.
     pub border: [Color; 12],
     pub letter: Color,
+    /// A kind's own letter color, set by its style (`spotStruct {
+    /// FontColor … }`); else [`Self::letter`].
+    pub letters: [Option<Color>; 12],
     /// A style set the letter's color: the diagram's text color does not.
     pub letter_owned: bool,
     pub radius: f32,
@@ -46,6 +51,7 @@ impl Default for Spots {
             fill,
             border: [Color::hex(0x181818); 12],
             letter: Color::BLACK,
+            letters: [None; 12],
             letter_owned: false,
             radius: 11.0,
             size: 17.0,
@@ -105,6 +111,7 @@ pub(super) fn read(spots: &mut Spots, key: &str, p: &Skinparam) -> Option<Result
             "circledcharacterfontcolor" => {
                 p.solid()?;
             }
+            _ if key.starts_with("circledcharacter") => {}
             "spotfontcolor" => {
                 spots.letter = p.solid()?;
                 spots.letter_owned = true;
@@ -114,26 +121,23 @@ pub(super) fn read(spots: &mut Spots, key: &str, p: &Skinparam) -> Option<Result
                 let color = p.solid()?;
                 match property {
                     "backgroundcolor" => spots.fill[kind.index()] = color,
+                    "fontcolor" => spots.letters[kind.index()] = Some(color),
                     _ => spots.border[kind.index()] = color,
                 }
             }
         }
         Ok(())
     };
-    let ours = matches!(
-        key,
-        "circledcharacterradius"
-            | "circledcharacterfontsize"
-            | "circledcharacterfontcolor"
-            | "spotfontcolor"
-    ) || kind_of(key).is_some();
+    let ours =
+        key.starts_with("circledcharacter") || key == "spotfontcolor" || kind_of(key).is_some();
     ours.then(|| set(spots))
 }
 
-/// `stereotypecbackgroundcolor`, `spotentitybordercolor`: the kind and
-/// what of it.
+/// `stereotypecbackgroundcolor`, `spotentitybordercolor`,
+/// `spotstructfontcolor`: the kind and what of it. A kind's letter color
+/// is a style's alone.
 fn kind_of(key: &str) -> Option<(SpotKind, &str)> {
-    let (subject, property) = ["backgroundcolor", "bordercolor"]
+    let (subject, property) = ["backgroundcolor", "bordercolor", "fontcolor"]
         .iter()
         .find_map(|property| Some((key.strip_suffix(property)?, *property)))?;
     SpotKind::ALL
@@ -142,10 +146,11 @@ fn kind_of(key: &str) -> Option<(SpotKind, &str)> {
             subject
                 .strip_prefix("spot")
                 .is_some_and(|name| name.eq_ignore_ascii_case(kind.style_name()))
-                || subject.strip_prefix("stereotype").is_some_and(|letter| {
-                    kind.skinparam_letter()
-                        .is_some_and(|own| letter.len() == 1 && letter.starts_with(own))
-                })
+                || (property != "fontcolor"
+                    && subject.strip_prefix("stereotype").is_some_and(|letter| {
+                        kind.skinparam_letter()
+                            .is_some_and(|own| letter.len() == 1 && letter.starts_with(own))
+                    }))
         })
         .map(|kind| (kind, property))
 }
@@ -268,6 +273,55 @@ mod tests {
                 .count(),
             0
         );
+    }
+
+    /// What the review of the circles found, held as PlantUML draws it.
+    #[test]
+    fn as_plantuml_reads_them() {
+        // Declared again without a stereotype, a box keeps its own circle;
+        // with one, it takes its kind's.
+        let found = spots("class A << (S,#FF7700) Singleton >>\nclass A {\n  +x\n}");
+        let spot = found[0].1.clone().unwrap();
+        assert_eq!((spot.letter, spot.color.as_deref()), ('S', Some("#FF7700")));
+        assert_eq!(letters("class A << (S) >>\nclass A <<Other>>"), "C");
+        // `actor :User:` makes a description diagram; a note's words do
+        // not, an arrow in them aside.
+        assert_eq!(letters("actor :User:\nUser --> Mail"), "--");
+        assert_eq!(letters("class C\nnote left : x -> (y)"), "C");
+        assert_eq!(letters("class C\nnote top of C : A --> [B]"), "C");
+        // `hide class circle` is the classes', not a struct's.
+        assert_eq!(
+            letters("class C\nstruct S\nprotocol P\nhide class circle"),
+            "-SP"
+        );
+        assert_eq!(letters("class C\nstruct S\nhide struct circle"), "C-");
+        assert_eq!(
+            letters("interface I\nprotocol P\nhide interface circle"),
+            "-P"
+        );
+        // A spot is written as PlantUML reads one; else it is words.
+        let found = spots("class A << (S,FF7700) >>");
+        assert_eq!(
+            found[0].1.clone().unwrap().color.as_deref(),
+            Some("#FF7700")
+        );
+        let found = spots("class B << (S,#F70) >>\nclass D << ( x , orchid ) >>");
+        assert!(
+            found
+                .iter()
+                .all(|(_, spot)| spot.as_ref().is_some_and(|s| s.letter == 'C'))
+        );
+        let svg = crate::render("@startuml\nclass B << (S,#F70) >>\nclass E <<x, y>>\n@enduml\n")
+            .unwrap();
+        assert!(
+            svg.contains(">«(S,#F70)»<") && svg.contains(">«x, y»<"),
+            "{svg}"
+        );
+        // The letter's face and style are the diagram's: taken, no change.
+        crate::render(
+            "@startuml\nskinparam circledCharacterFontName Courier\nskinparam circledCharacterFontStyle italic\nclass A\n@enduml\n",
+        )
+        .unwrap();
     }
 
     /// PlantUML's colors by kind, set by skinparam and by style; the

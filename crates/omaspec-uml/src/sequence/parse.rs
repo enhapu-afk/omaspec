@@ -2053,7 +2053,7 @@ mod tests {
     #[test]
     fn a_stereotype_may_carry_a_spot() {
         let d = diagram(
-            "@startuml\nparticipant A << (C,#ADD1B2) Testable >>\nparticipant B << (S) >>\nparticipant C << ( x , orchid ) >>\nparticipant D << (long) no spot >>\n@enduml",
+            "@startuml\nparticipant A << (C,#ADD1B2) Testable >>\nparticipant B << (S) >>\nparticipant C << (x , orchid ) >>\nparticipant D << (long) no spot >>\nparticipant E << ( x , orchid ) >>\nparticipant F << (S,#F70) >>\n@enduml",
         );
         let p = &d.participants;
         let spot = |letter, color: Option<&str>| {
@@ -2071,6 +2071,16 @@ mod tests {
         assert_eq!(p[2].spot, spot('x', Some("orchid")));
         assert_eq!(p[3].spot, None);
         assert_eq!(p[3].stereotype.as_deref(), Some("(long) no spot"));
+        // As PlantUML reads them: no space after the parenthesis, a color
+        // by its name or six digits; else words.
+        assert_eq!(
+            (p[4].spot.clone(), p[4].stereotype.as_deref()),
+            (None, Some("( x , orchid )"))
+        );
+        assert_eq!(
+            (p[5].spot.clone(), p[5].stereotype.as_deref()),
+            (None, Some("(S,#F70)"))
+        );
     }
 
     #[test]

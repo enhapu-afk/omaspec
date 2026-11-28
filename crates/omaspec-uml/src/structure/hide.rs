@@ -10,7 +10,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use super::{Element, Group, Member, Shape, Slot};
+use super::{Element, Group, Member, Shape, Slot, SpotKind};
 use crate::Declined;
 use crate::common::{keyword, snippet};
 
@@ -45,8 +45,8 @@ enum What {
 enum Target {
     /// No target, or `*`.
     All,
-    /// `class`, `interface`, …: every box of that kind.
-    Kind(&'static [Shape]),
+    /// `class`, `interface`, `struct`, …: every box of that kind.
+    Kind(Kind),
     /// `<<Entity>>`: every box with that stereotype.
     Stereotype(String),
     /// A box by its name; a kind's word when no box has that name.
@@ -221,17 +221,46 @@ fn target_of(token: &str) -> Option<Target> {
 }
 
 /// The boxes a kind's word names, as PlantUML's `hide` takes them.
-fn kind_of(word: &str) -> Option<&'static [Shape]> {
-    Some(match word.to_ascii_lowercase().as_str() {
-        "class" => &[Shape::Class],
-        "abstract" => &[Shape::Abstract],
-        "interface" => &[Shape::Interface, Shape::Lollipop],
-        "enum" => &[Shape::Enum],
-        "annotation" => &[Shape::Annotation],
-        "entity" => &[Shape::Entity],
-        "object" => &[Shape::Object],
-        _ => return None,
-    })
+/// A kind of box a word names: by the kind its circle shows, where it
+/// has one (a `struct` is no `class`, a `protocol` no `interface`), else
+/// by its shape.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct Kind {
+    spot: Option<SpotKind>,
+    shapes: &'static [Shape],
+}
+
+impl Kind {
+    fn holds(self, el: &Element) -> bool {
+        match (&el.spot, self.spot) {
+            (Some(spot), Some(kind)) => spot.kind == kind,
+            (Some(_), None) => false,
+            (None, _) => self.shapes.contains(&el.shape),
+        }
+    }
+}
+
+fn kind_of(word: &str) -> Option<Kind> {
+    let kind = |spot, shapes| Some(Kind { spot, shapes });
+    match word.to_ascii_lowercase().as_str() {
+        "class" => kind(Some(SpotKind::Class), &[Shape::Class]),
+        "abstract" => kind(Some(SpotKind::Abstract), &[Shape::Abstract]),
+        "interface" => kind(
+            Some(SpotKind::Interface),
+            &[Shape::Interface, Shape::Lollipop],
+        ),
+        "enum" => kind(Some(SpotKind::Enum), &[Shape::Enum]),
+        "annotation" => kind(Some(SpotKind::Annotation), &[Shape::Annotation]),
+        "entity" => kind(Some(SpotKind::Entity), &[Shape::Entity]),
+        "protocol" => kind(Some(SpotKind::Protocol), &[]),
+        "struct" => kind(Some(SpotKind::Struct), &[]),
+        "exception" => kind(Some(SpotKind::Exception), &[]),
+        "metaclass" => kind(Some(SpotKind::MetaClass), &[]),
+        "record" => kind(Some(SpotKind::Record), &[]),
+        "dataclass" => kind(Some(SpotKind::DataClass), &[]),
+        "object" => kind(None, &[Shape::Object]),
+        _ => None,
+    }
 }
 
 /// The `$tag`s on a declaration taken out of it: the line without them,
@@ -465,7 +494,7 @@ impl World<'_> {
     fn names(&self, target: &Target, path: &[usize], el: &Element) -> bool {
         match target {
             Target::All => true,
-            Target::Kind(shapes) => shapes.contains(&el.shape),
+            Target::Kind(kind) => kind.holds(el),
             Target::Stereotype(name) => el.stereotypes.iter().any(|s| s.value == *name),
             Target::Name(name) => called(
                 el,
