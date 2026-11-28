@@ -197,6 +197,10 @@ pub struct Frame {
     /// How `title`, `header`, `footer` and `caption` read with a colon
     /// after them, as the diagram type reads them.
     pub colons: Colons,
+    /// `!pragma useIntermediatePackages false`: a class named `a.b.C`
+    /// stands in one package `a.b`, not in `b` inside `a`; only the class
+    /// diagrams take notice of it, as PlantUML does.
+    pub flat_packages: bool,
 }
 
 /// How a frame's word reads with a colon after it (`title: x`, `title :
@@ -392,9 +396,21 @@ impl Frame {
         if let Some(rest) = keyword(text, "skinparam") {
             return self.skinparam(lines, at, rest).map(Some);
         }
-        // The one pragma the preprocessor hands on (`preprocess`).
+        // The pragmas the preprocessor hands on (`preprocess`).
         if let Some(rest) = text.strip_prefix('!').and_then(|t| keyword(t, "pragma")) {
             let words: Vec<&str> = rest.split_whitespace().collect();
+            if let [name, value] = words[..]
+                && name.eq_ignore_ascii_case("useintermediatepackages")
+            {
+                self.flat_packages = match value.to_ascii_lowercase().as_str() {
+                    "on" | "true" => false,
+                    "off" | "false" => true,
+                    _ => {
+                        return Err(Declined::at(no, "`useIntermediatePackages` is on or off"));
+                    }
+                };
+                return Ok(Some(at + 1));
+            }
             if let [name, value] = words[..]
                 && name.eq_ignore_ascii_case("useverticalif")
             {

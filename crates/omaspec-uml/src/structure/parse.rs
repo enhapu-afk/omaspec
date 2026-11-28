@@ -381,6 +381,9 @@ struct Parser {
     /// The notes on members, resolved once `hide` has taken members out:
     /// where each note is, and its member's name or quoted words.
     on_members: Vec<(Vec<usize>, usize, bool, String)>,
+    /// What parts a class's name into the packages it stands in (`a.b.C`):
+    /// `.`, or `set separator ::`; none after `set separator none`.
+    separator: Option<String>,
     notes_made: usize,
     /// The last `left to right direction` or `top to bottom direction`,
     /// which holds for the whole diagram, inside packages too, as in
@@ -415,6 +418,7 @@ impl Default for Parser {
             pending: Vec::new(),
             raw_notes: Vec::new(),
             on_members: Vec::new(),
+            separator: Some(".".to_owned()),
             notes_made: 0,
             direction: None,
             together: Vec::new(),
@@ -557,6 +561,23 @@ impl Parser {
         if squeezed_eq(text, "allowmixing") || squeezed_eq(text, "allow_mixing") {
             return Ok(at + 1);
         }
+        // `set separator ::`, `set namespaceSeparator none`.
+        if let Some(rest) = keyword(text, "set") {
+            let Some(value) =
+                keyword(rest, "separator").or_else(|| keyword(rest, "namespaceSeparator"))
+            else {
+                return Err(Declined::at(
+                    no,
+                    format!("`{}` is not supported yet", snippet(text)),
+                ));
+            };
+            self.separator = match value.trim() {
+                "" => return Err(Declined::at(no, "a separator is missing")),
+                none if none.eq_ignore_ascii_case("none") => None,
+                sep => Some(sep.to_owned()),
+            };
+            return Ok(at + 1);
+        }
         // The boxes of `together` stand in one rank, side by side in the
         // order written: each held after the one before it, as a hidden
         // line across the flow holds it (docs/adr/0021).
@@ -689,12 +710,30 @@ impl Parser {
     }
 
     fn declare(&mut self, decl: Decl) -> Result<(), Declined> {
-        let path = if let Some(path) = self.find(&decl.key) {
-            self.merge(&path, &decl)?;
-            path
-        } else {
-            self.insert(&decl)?
-        };
+        let here = self.here();
+        let path =
+            if let Some((home, label)) = self.qualified(&decl.key, decl.shape, &here, decl.line)? {
+                // `class a.b.C`: in the packages its name gives.
+                match self.child(&home, &decl.key, &label) {
+                    Some(path) => {
+                        self.merge(&path, &decl)?;
+                        path
+                    }
+                    None => {
+                        let label = if decl.label == decl.key {
+                            label
+                        } else {
+                            decl.label.clone()
+                        };
+                        self.insert_at(&decl, &home, &label)?
+                    }
+                }
+            } else if let Some(path) = self.find(&decl.key) {
+                self.merge(&path, &decl)?;
+                path
+            } else {
+                self.insert(&decl)?
+            };
         match decl.open {
             Open::Members => {
                 if self.open.len() + 1 > MAX_DEPTH {
@@ -801,6 +840,108 @@ impl Parser {
 
     fn insert(&mut self, decl: &Decl) -> Result<Vec<usize>, Declined> {
         let here = self.here();
+        self.insert_at(decl, &here, &decl.label)
+    }
+
+    /// The packages a name written with the separator (`a.b.C`) stands
+    /// in, from `home`, made where they are missing, and the name's last
+    /// part; `None` where the name has no separator, or is no class's,
+    /// object's or package's, which are the ones PlantUML parts.
+    fn qualified(
+        &mut self,
+        key: &str,
+        shape: Shape,
+        home: &[usize],
+        line: usize,
+    ) -> Result<Option<(Vec<usize>, String)>, Declined> {
+        let Some(sep) = self.separator.clone() else {
+            return Ok(None);
+        };
+        let parted = matches!(
+            shape,
+            Shape::Class
+                | Shape::Abstract
+                | Shape::Interface
+                | Shape::Enum
+                | Shape::Entity
+                | Shape::Annotation
+                | Shape::Object
+                | Shape::Package
+        );
+        let parts: Vec<&str> = key.split(sep.as_str()).collect();
+        if !parted || parts.len() < 2 || parts.iter().any(|part| part.trim().is_empty()) {
+            return Ok(None);
+        }
+        let (packages, last) = parts.split_at(parts.len() - 1);
+        let packages: Vec<String> = if self.frame.flat_packages {
+            vec![packages.join(&sep)]
+        } else {
+            packages.iter().map(|p| (*p).to_owned()).collect()
+        };
+        let mut path = home.to_vec();
+        let mut prefix = String::new();
+        for part in packages {
+            prefix = if prefix.is_empty() {
+                part.clone()
+            } else {
+                format!("{prefix}{sep}{part}")
+            };
+            let found = self.container(&path).nodes.iter().position(|node| {
+                node.composite && (node.key == prefix || node.label.value == part)
+            });
+            let index = match found {
+                Some(index) => index,
+                None => {
+                    if path.len() >= MAX_DEPTH {
+                        return Err(Declined::at(line, "packages nest too deep"));
+                    }
+                    let index = self.container(&path).nodes.len();
+                    self.container_mut(&path).nodes.push(Element {
+                        key: prefix.clone(),
+                        label: text_at(&part, line),
+                        stereotypes: Vec::new(),
+                        members: Vec::new(),
+                        shape: Shape::Package,
+                        fill: None,
+                        line_color: None,
+                        thickness: None,
+                        text_color: None,
+                        border_dash: None,
+                        explicit: false,
+                        composite: true,
+                        children: Group::default(),
+                        link: None,
+                        hidden: false,
+                        line,
+                    });
+                    index
+                }
+            };
+            path.push(index);
+        }
+        Ok(Some((path, last[0].to_owned())))
+    }
+
+    /// The element of the package at `home` a qualified name names: by
+    /// that name, or by its last part.
+    fn child(&self, home: &[usize], key: &str, label: &str) -> Option<Vec<usize>> {
+        let index = self
+            .container(home)
+            .nodes
+            .iter()
+            .position(|node| node.key == key || node.key == label)?;
+        let mut path = home.to_vec();
+        path.push(index);
+        Some(path)
+    }
+
+    fn insert_at(
+        &mut self,
+        decl: &Decl,
+        here: &[usize],
+        label: &str,
+    ) -> Result<Vec<usize>, Declined> {
+        let here = here.to_vec();
         let mut stereotypes: Vec<Text> = decl
             .stereotypes
             .iter()
@@ -814,7 +955,7 @@ impl Parser {
         let index = self.container(&here).nodes.len();
         self.container_mut(&here).nodes.push(Element {
             key: decl.key.clone(),
-            label: text_at(&decl.label, decl.line),
+            label: text_at(label, decl.line),
             stereotypes,
             members: Vec::new(),
             shape: decl.shape,
@@ -884,6 +1025,23 @@ impl Parser {
             return Ok(path);
         }
         let shape = raw.shape.unwrap_or(Shape::Class);
+        // `a.b.C` named by a line: in the packages its name gives.
+        let (home, label) = match self.qualified(&raw.key, shape, home, line)? {
+            Some((packages, last)) => {
+                if let Some(path) = self.child(&packages, &raw.key, &last) {
+                    self.upgrade(&path, raw, line)?;
+                    return Ok(path);
+                }
+                let label = if raw.label == raw.key {
+                    last
+                } else {
+                    raw.label.clone()
+                };
+                (packages, label)
+            }
+            None => (home.to_vec(), raw.label.clone()),
+        };
+        let home = home.as_slice();
         let mut stereotypes = Vec::new();
         if let Some(word) = default_stereo(shape) {
             stereotypes.push(text_at(word, line));
@@ -891,7 +1049,7 @@ impl Parser {
         let index = self.container(home).nodes.len();
         self.container_mut(home).nodes.push(Element {
             key: raw.key.clone(),
-            label: text_at(&raw.label, line),
+            label: text_at(&label, line),
             stereotypes,
             members: Vec::new(),
             shape,
@@ -3019,10 +3177,12 @@ mod tests {
         let d = diagram(
             "@startuml\nA . B\nnet.Socket --> A\nA : x . y\nA : x : y . z\n:User: . B\n@enduml\n",
         );
+        // `net.Socket` stands in a package `net`, as PlantUML parts it.
         let keys: Vec<&str> = d.root.nodes.iter().map(|n| n.key.as_str()).collect();
-        assert_eq!(keys, ["A", "B", "net.Socket", "User"]);
+        assert_eq!(keys, ["A", "B", "net", "User"]);
+        assert_eq!(d.root.nodes[2].children.nodes[0].key, "net.Socket");
         assert_eq!(d.root.edges[0].dash, Dash::Dashed);
-        assert_eq!(d.root.edges.len(), 3);
+        assert_eq!(d.root.edges.len() + d.root.crossings.len(), 3);
         // After a member's colon the dot is the member's.
         assert_eq!(d.root.nodes[0].members.len(), 2);
     }
@@ -3444,6 +3604,55 @@ mod tests {
         );
         let members: Vec<Option<usize>> = d.root.notes.iter().map(|n| n.member).collect();
         assert_eq!(members, [Some(0), Some(1)]);
+    }
+
+    /// A class's name parts into the packages it stands in, as PlantUML
+    /// reads it: at `.`, or at the separator set (`set separator ::`),
+    /// not at all after `set separator none`; one package of the whole
+    /// prefix under `!pragma useIntermediatePackages false`. A line's end
+    /// names the same class by its whole name, an alias stays whole, and
+    /// a component is not parted.
+    #[test]
+    fn a_class_name_parts_into_packages() {
+        // The packages from the root down, by label, and their classes.
+        fn tree(group: &Group, out: &mut Vec<String>, depth: usize) {
+            for node in &group.nodes {
+                out.push(format!("{}{}", "  ".repeat(depth), node.label.value));
+                tree(&node.children, out, depth + 1);
+            }
+        }
+        // Every line, at whatever depth it is kept.
+        fn lines(group: &Group) -> usize {
+            group.edges.len()
+                + group.crossings.len()
+                + group
+                    .nodes
+                    .iter()
+                    .map(|n| lines(&n.children))
+                    .sum::<usize>()
+        }
+        let read = |source: &str| {
+            let d = diagram(source);
+            let mut out = Vec::new();
+            tree(&d.root, &mut out, 0);
+            (out, lines(&d.root))
+        };
+        let (tree_a, _) = read(
+            "@startuml\nclass a.b.C\npackage a.b {\n  class D\n}\nclass \"x.y\" as XY\ncomponent c.d\n@enduml\n",
+        );
+        assert_eq!(tree_a, ["a", "  b", "    C", "    D", "x.y", "c.d"]);
+        let (tree_b, lines) =
+            read("@startuml\npackage a.b {\n  class c\n}\nclass a.b.d\na.b.c --> a.b.d\n@enduml\n");
+        assert_eq!(tree_b, ["a", "  b", "    c", "    d"]);
+        assert_eq!(lines, 1);
+        let (tree_c, _) =
+            read("@startuml\nset separator ::\nclass X1::X2::foo\nclass p.q\n@enduml\n");
+        assert_eq!(tree_c, ["X1", "  X2", "    foo", "p.q"]);
+        let (tree_d, _) = read("@startuml\nset separator none\nclass a.b.C\n@enduml\n");
+        assert_eq!(tree_d, ["a.b.C"]);
+        let (tree_e, _) =
+            read("@startuml\n!pragma useIntermediatePackages false\nclass A.B.C.D.Z\n@enduml\n");
+        assert_eq!(tree_e, ["A.B.C.D", "  Z"]);
     }
 
     /// A note without `of` is on what was made last, as PlantUML counts

@@ -336,13 +336,21 @@ impl Machine<'_> {
                                 .iter()
                                 .any(|v| value.eq_ignore_ascii_case(v))
                     ) => {}
-                // How an activity diagram stacks its `elseif`s: handed on
-                // to the diagram's frame (`common::Frame::line`).
+                // The layout engine PlantUML takes (Graphviz, Smetana, ELK):
+                // Omaspec lays every diagram out itself.
                 "pragma"
-                    if rest
-                        .split_whitespace()
-                        .next()
-                        .is_some_and(|name| name.eq_ignore_ascii_case("useverticalif")) =>
+                    if matches!(
+                        rest.split_whitespace().collect::<Vec<_>>()[..],
+                        [name, _] if name.eq_ignore_ascii_case("layout")
+                    ) => {}
+                // How an activity diagram stacks its `elseif`s, and whether
+                // a class diagram makes the packages between: handed on to
+                // the diagram's frame (`common::Frame::line`).
+                "pragma"
+                    if rest.split_whitespace().next().is_some_and(|name| {
+                        name.eq_ignore_ascii_case("useverticalif")
+                            || name.eq_ignore_ascii_case("useintermediatepackages")
+                    }) =>
                 {
                     let words: Vec<&str> = rest.split_whitespace().collect();
                     match words[..] {
@@ -359,7 +367,10 @@ impl Machine<'_> {
                             };
                             out.write(line, frame.call, line.text)?;
                         }
-                        _ => return Err(fail(line.no, "`!pragma useVerticalIf` is on or off")),
+                        _ => {
+                            let name = rest.split_whitespace().next().unwrap_or_default();
+                            return Err(fail(line.no, format!("`!pragma {name}` is on or off")));
+                        }
                     }
                 }
                 // Debug output, and the markers `!includesub` looks for.
@@ -1712,6 +1723,16 @@ mod tests {
         }
     }
 
+    /// `!pragma layout …` names PlantUML's layout engine, which Omaspec
+    /// does without: it changes nothing here.
+    #[test]
+    fn the_layout_pragma_is_taken() {
+        for engine in ["smetana", "elk"] {
+            let source = format!("@startuml\n!pragma layout {engine}\nclass A\n@enduml");
+            assert!(crate::render(&source).is_ok(), "{engine}");
+        }
+    }
+
     /// `!pragma useVerticalIf` is handed on to the diagram, which every
     /// type takes; without a value it is off, as in PlantUML.
     #[test]
@@ -1731,8 +1752,9 @@ mod tests {
             ("!includeurl https://example.com/x.puml", 0, "!includeurl"),
             ("!import lib.zip", 0, "!import"),
             ("!theme cerulean", 0, "!theme"),
-            ("!pragma layout smetana", 0, "!pragma"),
+            ("!pragma svgLinkTarget _top", 0, "!pragma"),
             ("!pragma teoz perhaps", 0, "!pragma"),
+            ("!pragma useIntermediatePackages maybe", 0, "on or off"),
             ("!pragma useVerticalIf on please", 0, "on or off"),
             ("!foreach $x in [1]", 0, "!foreach"),
             ("title %date()", 0, "%date"),

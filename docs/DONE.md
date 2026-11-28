@@ -912,6 +912,20 @@ is open and the reasoning around it.
       Lines into one box share a head only where the heads look alike,
       their own colors too. The dashed line to a member stays where
       PlantUML points with the note's wedge.
+- [x] A class's name parts into packages (2026-11-28), as PlantUML reads
+      it: `class a.b.C`, `object o.p`, `package a.b { … }` and a line's
+      end `a.b.C --> a.b.D` stand in the packages `a` and `b` inside it,
+      made where they are missing, and name one class by its whole name
+      or by its last part in its package; a name in quotes parts too, an
+      alias (`class "x.y" as XY`) and a component, a node or a use case do
+      not. Where it had been one class named `a.b.C`. `set separator ::`
+      (or `namespaceSeparator`) parts at another separator, `set separator
+      none` not at all, and `!pragma useIntermediatePackages false` makes
+      one package of the whole prefix (`A.B.C.D`). `!pragma layout
+      smetana` (or `elk`) names PlantUML's layout engine, which Omaspec
+      does without: it lays the diagram out itself, unconnected boxes in a
+      row where Smetana packs them. The guide: the class diagram 61 of 84,
+      573 of 897 in all.
 
 ### Step 5: what every diagram shares
 
