@@ -52,6 +52,8 @@ const SHOULDER: f32 = 16.0;
 const HEAD_LENGTH: f32 = 10.0;
 const HEAD_HALF: f32 = 4.0;
 const MARK_LENGTH: f32 = 14.0;
+/// Where an arrowhead's notch is, along it from its tip.
+const NOTCH: f32 = 0.55;
 const DEPTH: f32 = 10.0;
 const STACK: f32 = 5.0;
 /// Cylinder caps and the stick figure, shared by measuring and painting.
@@ -100,11 +102,12 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     link_crossings(&diagram.root, &mut scene, &skin, family)?;
     member_line::link(&diagram.root, &mut scene);
     let hands = &diagram.frame.by_hand;
-    let arrows = if mapped || !hands.is_empty() {
+    let mut arrows = if mapped || !hands.is_empty() {
         arrows(&diagram.root)
     } else {
         Vec::new()
     };
+    member_line::lead(&diagram.root, &scene, &mut arrows);
     let misses = if hands.is_empty() {
         Vec::new()
     } else {
@@ -194,7 +197,7 @@ fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
                 to: within(&[edge.to]),
                 order: edge.line,
                 line: Some(edge.line),
-                lead: member_line::leads(group, &[edge.from], &[edge.to], edge),
+                lead: [None; 2],
             });
         }
         for (index, crossing) in group.crossings.iter().enumerate() {
@@ -208,7 +211,7 @@ fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
                 to: within(&crossing.to),
                 order: crossing.arrow.line,
                 line: Some(crossing.arrow.line),
-                lead: member_line::leads(group, &crossing.from, &crossing.to, &crossing.arrow),
+                lead: [None; 2],
             });
         }
         for (index, node) in group.nodes.iter().enumerate() {
@@ -359,6 +362,9 @@ struct Look {
     /// `note on link`: the note and the line's words in the room the
     /// layout keeps for the words.
     note: Option<link_note::Drawn>,
+    /// Which ends leave their box on a stem at a member's row
+    /// ([`member_line`]): a multiplicity there may stand past its bend.
+    stems: [bool; 2],
 }
 
 impl Look {
@@ -375,6 +381,7 @@ impl Look {
             own_color: arrow.color.is_some(),
             hidden: arrow.hidden,
             note: None,
+            stems: [false; 2],
         }
     }
 }
@@ -935,8 +942,10 @@ fn legible_on(font: &mut Font, grounds: &[Color]) {
 /// writes: tied to it, so a `"1"` of one line is not taken for another's.
 fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Declined> {
     // A hidden line says nothing: no label keeps room beside it. Its
-    // words take a color of its own (`text:red`).
-    let mut font = skin.arrow_font;
+    // label takes a color of its own (`text:red`), its multiplicities
+    // not, as PlantUML draws them.
+    let plain = skin.arrow_font;
+    let mut font = plain;
     if let Some(value) = &link.style.text {
         font.color = match color::parse(value).map_err(|err| Declined::at(link.line, err))? {
             Some(color) => color,
@@ -948,11 +957,11 @@ fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Decl
             }
         };
     }
-    let block = |text: &Option<crate::common::Text>| match text {
+    let block = |text: &Option<crate::common::Text>, font| match text {
         Some(text) if !link.hidden => text.measure_written(font, family),
         _ => Ok(Block::empty()),
     };
-    let words = block(&link.label)?;
+    let words = block(&link.label, font)?;
     let (label, note) = match &link.note {
         Some(note) if !link.hidden => {
             let (room, drawn) = link_note::measure(note, words, skin, family)?;
@@ -962,8 +971,8 @@ fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Decl
     };
     Ok(Labeled {
         label,
-        from_card: block(&link.from_card)?,
-        to_card: block(&link.to_card)?,
+        from_card: block(&link.from_card, plain)?,
+        to_card: block(&link.to_card, plain)?,
         note,
     })
 }
@@ -981,10 +990,11 @@ fn arrow_stroke(skin: &Skin, edge: &Link) -> Result<Stroke, Declined> {
         },
         None => skin.arrow.color,
     };
-    // `[thickness=4]` that wide; bold twice the skin's.
+    // Bold twice the skin's, before a width of its own; `[thickness=4]`
+    // that wide, as PlantUML draws them.
     let width = match edge.style.thickness {
+        _ if edge.bold => skin.arrow.width * 2.0,
         Some(width) => width,
-        None if edge.bold => skin.arrow.width * 2.0,
         None => skin.arrow.width,
     };
     let mut stroke = Stroke::new(color, width);
@@ -2208,11 +2218,7 @@ fn paint_edges(
         canvas.part(&names.edge(path, slot), |canvas| {
             canvas.curve(
                 Layer::Lines,
-                &shortened(
-                    &edge.points,
-                    (edge.look.from_head, edge.look.to_head),
-                    edge.look.stroke.width,
-                ),
+                &shortened(&edge.points, (edge.look.from_head, edge.look.to_head)),
                 curve,
                 edge.look.stroke,
             );
@@ -2372,11 +2378,21 @@ fn paint_heads(
     }
 }
 
-fn shortened(points: &[(f32, f32)], (from, to): (Head, Head), width: f32) -> Vec<(f32, f32)> {
+fn shortened(points: &[(f32, f32)], (from, to): (Head, Head)) -> Vec<(f32, f32)> {
     let mut line = points.to_vec();
-    pull(&mut line, true, head_span(from, width));
-    pull(&mut line, false, head_span(to, width));
+    pull(&mut line, true, reach(from));
+    pull(&mut line, false, reach(to));
     line
+}
+
+/// How far back from its end a line stops for `head`: into an
+/// arrowhead's notch, as PlantUML draws it, so a wide line meets it; at
+/// another mark's back.
+fn reach(head: Head) -> f32 {
+    match head {
+        Head::Arrow => HEAD_LENGTH * NOTCH,
+        _ => head_span(head),
+    }
 }
 
 fn pull(points: &mut [(f32, f32)], at_start: bool, amount: f32) {
@@ -2399,29 +2415,14 @@ fn pull(points: &mut [(f32, f32)], at_start: bool, amount: f32) {
     points[tip_i] = (tip.0 - vx * scale, tip.1 - vy * scale);
 }
 
-/// How far a head reaches along a line `width` wide: a wide line's head
-/// grows with it (`[thickness=8]`), as PlantUML draws it.
-fn head_span(head: Head, width: f32) -> f32 {
-    let base = match head {
+/// How far a head reaches along its line. A wide line's head keeps its
+/// size, drawn in the line's width, as PlantUML draws it.
+fn head_span(head: Head) -> f32 {
+    match head {
         Head::None => 0.0,
         Head::Arrow => HEAD_LENGTH,
         Head::Triangle | Head::Diamond | Head::DiamondFilled => MARK_LENGTH,
-    };
-    base * head_scale(width)
-}
-
-/// How much bigger a head is on a line `width` wide than on a thin one.
-fn head_scale(width: f32) -> f32 {
-    1.0 + (width - 1.0).max(0.0) / 4.0
-}
-
-/// Whether a head grows with its line: about three times on a line 8
-/// wide, five times on one 16 wide, as PlantUML draws them.
-#[cfg(test)]
-pub(super) fn head_spans_grow() -> bool {
-    let thin = head_span(Head::Arrow, 1.0);
-    (head_span(Head::Arrow, 8.0) / thin - 2.75).abs() < 0.01
-        && (head_span(Head::Arrow, 16.0) / thin - 4.75).abs() < 0.01
+    }
 }
 
 fn draw_head(
@@ -2431,7 +2432,7 @@ fn draw_head(
     head: Head,
     (stroke, own_color): (Stroke, bool),
 ) {
-    let Some(shape) = head_shape(tip, from, head, skin.strict, stroke.width) else {
+    let Some(shape) = head_shape(tip, from, head, skin.strict) else {
         return;
     };
     // A line in the diagram's arrow color takes the heads' own, where one
@@ -2442,7 +2443,6 @@ fn draw_head(
     };
     let solid = Stroke {
         dash: None,
-        width: stroke.width.min(1.5),
         ..stroke
     };
     if !shape.closed {
@@ -2467,13 +2467,7 @@ fn draw_head(
 
 /// The mark `head` at `tip`, on a line coming from `from`; `strict` draws
 /// an arrowhead as two strokes.
-fn head_shape(
-    tip: (f32, f32),
-    from: (f32, f32),
-    head: Head,
-    strict: bool,
-    width: f32,
-) -> Option<map::Head> {
+fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Option<map::Head> {
     if head == Head::None {
         return None;
     }
@@ -2483,12 +2477,12 @@ fn head_shape(
         return None;
     }
     let (ux, uy) = (vx / len, vy / len);
-    let length = head_span(head, width);
+    let length = head_span(head);
     let half = match head {
         Head::Triangle => 7.0,
         Head::Diamond | Head::DiamondFilled => 6.0,
         _ => HEAD_HALF,
-    } * head_scale(width);
+    };
     let side = (-uy * half, ux * half);
     let base = (tip.0 - ux * length, tip.1 - uy * length);
     let mid = (tip.0 - ux * length / 2.0, tip.1 - uy * length / 2.0);
@@ -2507,7 +2501,7 @@ fn head_shape(
         Head::None => return None,
         Head::Arrow if strict => (vec![left, tip, right], false, HeadFill::None),
         Head::Arrow => {
-            let inset = (tip.0 - ux * length * 0.55, tip.1 - uy * length * 0.55);
+            let inset = (tip.0 - ux * length * NOTCH, tip.1 - uy * length * NOTCH);
             (vec![left, tip, right, inset], true, HeadFill::Ink)
         }
         Head::Triangle => (vec![left, tip, right], true, HeadFill::None),
@@ -2556,20 +2550,8 @@ fn dress(
     let last = drawn.len() - 1;
     let color = head_color(skin, edge.look.own_color);
     let heads = [
-        head_shape(
-            drawn[0],
-            drawn[1],
-            edge.look.from_head,
-            skin.strict,
-            edge.look.stroke.width,
-        ),
-        head_shape(
-            drawn[last],
-            drawn[last - 1],
-            edge.look.to_head,
-            skin.strict,
-            edge.look.stroke.width,
-        ),
+        head_shape(drawn[0], drawn[1], edge.look.from_head, skin.strict),
+        head_shape(drawn[last], drawn[last - 1], edge.look.to_head, skin.strict),
     ]
     .map(|head| head.map(|head| map::Head { color, ..head }));
     let words = names.edge(path, slot);
@@ -2614,10 +2596,11 @@ fn ends_cards<'a>(
     .into_iter()
     .filter(|(card, ..)| !card.is_empty() && edge.points.len() >= 2)
     .map(move |(card, at_start, head)| {
-        let along = head_span(head, edge.look.stroke.width);
+        let along = head_span(head);
+        let stem = edge.look.stems[usize::from(!at_start)];
         (
             card,
-            card_at(&edge.points, at_start, card, along, containers),
+            card_at(&edge.points, (at_start, stem), card, along, containers),
             at_start,
         )
     })
@@ -2641,7 +2624,7 @@ fn card_rects<'a>(edge: &'a PlacedEdge, containers: &'a [Rect]) -> impl Iterator
 /// where it would stop anyway.
 fn card_at(
     points: &[(f32, f32)],
-    at_start: bool,
+    (at_start, stem): (bool, bool),
     block: &Block,
     along: f32,
     containers: &[Rect],
@@ -2700,13 +2683,13 @@ fn card_at(
     };
     let (ox, oy) = (other.0 - tip.0, other.1 - tip.1);
     let (ahead, beside) = (ox * ux + oy * uy, ox * px + oy * py);
-    // A run too short for its words that turns (a line at a member
+    // A stem too short for its words that turns (a line at a member
     // leaves its row so): they stand on the side it turns away from, as
     // far along as they need, past the bend.
     let turn = next.map_or(0.0, |(nx, ny)| (nx - far.0) * px + (ny - far.1) * py);
     let side = if ahead.abs() < 1.0 && beside.abs() > 1.0 {
         -beside.signum()
-    } else if needed > first && turn.abs() > 1.0 {
+    } else if stem && needed > first && turn.abs() > 1.0 {
         first = needed;
         -turn.signum()
     } else {

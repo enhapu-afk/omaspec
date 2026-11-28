@@ -459,9 +459,11 @@ struct ArrowBits {
     /// (`-[hidden]right-`).
     toward: Option<&'static str>,
     color: Option<String>,
-    /// Its width and its words' color, written in its bracket or after
-    /// its far end.
+    /// Its width and its words' color, written in its bracket.
     style: super::LineStyle,
+    /// Its own style after its far end (`#line:red;line.bold`), laid over
+    /// the rest once its ends are found ([`own_style`]).
+    own: Option<String>,
 }
 
 struct RawRel {
@@ -481,6 +483,8 @@ struct Pending {
     members: MemberEnds,
     /// Its own width and words' color.
     style: super::LineStyle,
+    /// Its own style after its far end ([`ArrowBits::own`]).
+    own: Option<String>,
     /// `note on link` after it.
     note: Option<super::LinkNote>,
     from_card: Option<Text>,
@@ -882,6 +886,7 @@ impl Parser {
                 let home = self.here();
                 for pair in members.windows(2) {
                     self.pending.push(Pending {
+                        own: None,
                         members: [None, None],
                         style: Default::default(),
                         from: pair[0].clone_name(),
@@ -1076,6 +1081,7 @@ impl Parser {
                 [None, None]
             };
             self.pending.push(Pending {
+                own: None,
                 members: [None, None],
                 style: Default::default(),
                 from: parent.raw.clone_name(),
@@ -1366,19 +1372,23 @@ impl Parser {
                 if raw.quoted || self.find_by(&raw.key, Lookup::Key).is_some() {
                     continue;
                 }
+                // A member by its quoted words is a note's, not a line's:
+                // PlantUML refuses the line.
+                if raw.key.contains("::\"") {
+                    return Err(Declined::refused(
+                        line,
+                        format!(
+                            "PlantUML draws no line to a member by its quoted words (`{}`)",
+                            snippet(&raw.key)
+                        ),
+                    ));
+                }
                 // At the last `::`, as PlantUML parts it (`Foo::a::b` is
                 // `b` of `Foo::a`).
-                let split = match raw.key.find("::\"") {
-                    Some(at) => Some((raw.key[..at].to_owned(), &raw.key[at + 2..])),
-                    None => raw.key.rsplit_once("::").map(|(a, b)| (a.to_owned(), b)),
-                };
-                let Some((element, member)) = split else {
+                let Some((element, member)) = raw.key.rsplit_once("::") else {
                     continue;
                 };
-                let (quoted, wanted) = match member.strip_prefix('"') {
-                    Some(inner) => (true, inner.strip_suffix('"').unwrap_or(inner).to_owned()),
-                    None => (false, member.to_owned()),
-                };
+                let (element, quoted, wanted) = (element.to_owned(), false, member.to_owned());
                 if element.trim().is_empty() || wanted.trim().is_empty() {
                     return Err(Declined::at(
                         line,
@@ -1435,6 +1445,7 @@ impl Parser {
             to: rel.to,
             members: ends,
             style: rel.arrow.style.clone(),
+            own: rel.arrow.own.clone(),
             from_card: rel.from_card,
             to_card: rel.to_card,
             from_head: rel.arrow.from_head,
@@ -1758,6 +1769,16 @@ impl Parser {
                 .position(|m| member_is(m, *quoted, name))
         };
         let members = [place(&from, &item.members[0]), place(&to, &item.members[1])];
+        // A line's own style after its far end, but on a line to a note,
+        // as PlantUML takes it.
+        let (mut color, mut dash, mut bold, mut style) =
+            (item.color.clone(), item.dash, item.bold, item.style.clone());
+        let noted = [&from, &to]
+            .iter()
+            .any(|path| self.node(path).shape == Shape::Note);
+        if let Some(own) = item.own.as_deref().filter(|_| !noted) {
+            own_style(own, (&mut color, &mut dash, &mut bold), &mut style);
+        }
         let link = |from: usize, to: usize| Link {
             from,
             to,
@@ -1766,16 +1787,16 @@ impl Parser {
             to_card: item.to_card.clone(),
             from_head: item.from_head,
             to_head: item.to_head,
-            color: item.color.clone(),
-            dash: item.dash,
-            bold: item.bold,
+            color: color.clone(),
+            dash,
+            bold,
             hidden: item.hidden,
             level: None,
             line: item.line,
             label_before: None,
             note: item.note.clone(),
             members,
-            style: item.style.clone(),
+            style: style.clone(),
         };
         if from == to {
             let index = *from.last().expect("a path");
@@ -2108,7 +2129,7 @@ impl Parser {
         }
         if rest.starts_with('"') {
             let (body, after) = take_quoted(rest, no)?;
-            let key = note_alias(after, no, &mut self.notes_made)?;
+            let (key, colors) = note_alias(after, no, &mut self.notes_made)?;
             // Its words stand in the quotes, before its alias.
             let label = Text {
                 value: body,
@@ -2116,16 +2137,14 @@ impl Parser {
                 col: Some(start + offset_in(text, rest) + 1),
             };
             self.insert_note(&key, label, no)?;
+            self.color_note(colors, no)?;
             return Ok(at + 1);
         }
-        if let Some(alias) = keyword(rest, "as") {
-            let key = alias.trim();
-            if key.is_empty() {
-                return Err(Declined::at(no, "`as` needs a name"));
-            }
-            let key = key.to_owned();
+        if keyword(rest, "as").is_some() {
+            let (key, colors) = note_alias(rest, no, &mut self.notes_made)?;
             let (label, next) = block_text(lines, at, "note", end_note)?;
             self.insert_note(&key, label, no)?;
+            self.color_note(colors, no)?;
             return Ok(next);
         }
         if let Some((side, after)) = side_of(rest) {
@@ -2211,6 +2230,30 @@ impl Parser {
             no,
             format!("`{}` is not supported yet", snippet(text)),
         ))
+    }
+
+    /// The colors written after a floating note's alias (`as N #pink`), on
+    /// the note just made.
+    fn color_note(&mut self, colors: &str, line: usize) -> Result<(), Declined> {
+        if colors.is_empty() {
+            return Ok(());
+        }
+        let (left, fill, line_color, more) = take_colors(colors, line)?;
+        if !left.trim().is_empty() || more != More::default() {
+            return Err(Declined::at(
+                line,
+                format!(
+                    "`{}` after a note's name is not supported yet",
+                    snippet(colors)
+                ),
+            ));
+        }
+        let here = self.here();
+        if let Some(note) = self.container_mut(&here).nodes.last_mut() {
+            note.fill = fill;
+            note.line_color = line_color;
+        }
+        Ok(())
     }
 
     fn insert_note(&mut self, key: &str, label: Text, line: usize) -> Result<(), Declined> {
@@ -2307,11 +2350,17 @@ fn end_note(text: &str) -> bool {
     squeezed_eq(text, "endnote") || squeezed_eq(text, "endrnote")
 }
 
-fn note_alias(after: &str, line: usize, made: &mut usize) -> Result<String, Declined> {
+/// A floating note's alias (`as N`), one made where it has none, and the
+/// colors after it (`as N #pink`).
+fn note_alias<'a>(
+    after: &'a str,
+    line: usize,
+    made: &mut usize,
+) -> Result<(String, &'a str), Declined> {
     let after = after.trim();
     if after.is_empty() {
         *made += 1;
-        return Ok(format!("\u{1}note{made}"));
+        return Ok((format!("\u{1}note{made}"), ""));
     }
     let Some(alias) = keyword(after, "as") else {
         return Err(Declined::at(
@@ -2319,10 +2368,14 @@ fn note_alias(after: &str, line: usize, made: &mut usize) -> Result<String, Decl
             format!("`{}` is not supported yet", snippet(after)),
         ));
     };
-    if alias.is_empty() {
+    let (alias, colors) = match alias.find(char::is_whitespace) {
+        Some(at) => (&alias[..at], alias[at..].trim()),
+        None => (alias, ""),
+    };
+    if alias.is_empty() || alias.starts_with('#') {
         return Err(Declined::at(line, "`as` needs a name"));
     }
-    Ok(alias.to_owned())
+    Ok((alias.to_owned(), colors))
 }
 
 fn side_of(text: &str) -> Option<(Side, &str)> {
@@ -3339,9 +3392,19 @@ fn relation(text: &str, line: usize, at: usize) -> Result<RawRel, Declined> {
         ));
     }
     let mut arrow = parse_arrow(arrow, line)?;
-    // `A --> B #line:red;line.bold;text:red`: the line's own style.
+    // `A --> B #line:red;line.bold;text:red`: the line's own style, but
+    // beside an association's pair, as PlantUML takes it.
     if let Some(style) = style {
-        own_style(&mut arrow, &style, line)?;
+        if style.starts_with("##") {
+            return Err(Declined::refused(
+                line,
+                format!("`{}` is no line's style", snippet(&style)),
+            ));
+        }
+        Inline::read(&style).map_err(|err| Declined::at(line, err))?;
+        if from.pair().is_none() && to.pair().is_none() {
+            arrow.own = Some(style);
+        }
     }
     // Where each multiplicity stands: the one before the arrow ends its
     // side, the one after it begins its side. A line turned keeps them
@@ -3372,23 +3435,41 @@ fn relation(text: &str, line: usize, at: usize) -> Result<RawRel, Declined> {
 /// A line's own style after its far end, as PlantUML reads it: its color
 /// (`#red`, `#line:red`, the first of `#green;line.dashed`), dashed,
 /// dotted or bold, and its words' color (`text:red`).
-fn own_style(arrow: &mut ArrowBits, style: &str, line: usize) -> Result<(), Declined> {
-    let read = Inline::read(style).map_err(|err| Declined::at(line, err))?;
-    if let Some(color) = read.line.or(read.fill) {
-        arrow.color = Some(color);
+fn own_style(
+    style: &str,
+    (color, dash, bold): (&mut Option<String>, &mut Dash, &mut bool),
+    look: &mut super::LineStyle,
+) {
+    let Ok(read) = Inline::read(style) else {
+        return;
+    };
+    // The arrow's color first; a fill is the line's only where no `back`
+    // names it (`#red`).
+    let written = style.to_ascii_lowercase();
+    if color.is_none() {
+        *color = read
+            .line
+            .or(read.fill.filter(|_| !written.contains("back")));
     }
-    match read.dash {
-        Some(InlineDash::Dashed) => arrow.dash = Dash::Dashed,
-        Some(InlineDash::Dotted) => arrow.dash = Dash::Dotted,
-        None => {}
-    }
-    if read.bold {
-        arrow.bold = true;
+    // The first `line.…` alone, its dash and boldness at once, in place
+    // of the arrow's and of its width.
+    let first = written
+        .trim_start_matches('#')
+        .split([';', ','])
+        .find_map(|part| part.trim().strip_prefix("line."))
+        .map(|kind| kind.split(':').next().unwrap_or_default().trim().to_owned());
+    if let Some(kind) = first {
+        *dash = match kind.as_str() {
+            "dashed" => Dash::Dashed,
+            "dotted" => Dash::Dotted,
+            _ => Dash::Solid,
+        };
+        *bold = kind == "bold";
+        look.thickness = None;
     }
     if read.text.is_some() {
-        arrow.style.text = read.text;
+        look.text = read.text;
     }
-    Ok(())
 }
 
 /// One end of a line: its name, its multiplicity, and the line's own
@@ -3754,6 +3835,7 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
             thickness,
             text: None,
         },
+        own: None,
     })
 }
 
@@ -3895,14 +3977,15 @@ fn apply_bracket(
         }
         let lower = part.to_ascii_lowercase();
         // `thickness=4`: the line that wide, as PlantUML draws it.
+        // A whole number only, as PlantUML reads it.
         if let Some(value) = lower.strip_prefix("thickness=") {
-            let width: f32 = value
+            let width: u8 = value
                 .trim()
                 .parse()
                 .ok()
-                .filter(|width: &f32| (0.0..=100.0).contains(width))
-                .ok_or_else(|| Declined::at(line, format!("`[{part}]` names no width")))?;
-            *thickness = Some(width);
+                .filter(|width: &u8| *width <= 100)
+                .ok_or_else(|| Declined::refused(line, format!("`[{part}]` names no width")))?;
+            *thickness = Some(f32::from(width));
             continue;
         }
         match lower.as_str() {
@@ -5196,6 +5279,67 @@ mod tests {
     /// (`[#red,dashed,thickness=4]`), its color, dash, boldness and words'
     /// color after its far end; a box's border `##[dashed]green` and
     /// `#line.dashed:blue`, six digits without their `#` a color too.
+    /// A line's own style after its far end is one, as PlantUML takes
+    /// it: the arrow's color first, its first `line.…` in place of the
+    /// arrow's dash, boldness and width; bold before a width.
+    #[test]
+    fn a_lines_own_style_follows_plantumls_precedence() {
+        let d = diagram(
+            "@startuml\nclass A\nA -[#blue]-> B1 #line:red\nA -[bold,thickness=6]-> B2\nA -[thickness=4]-> B3 #line.dashed\nA ..> B4 #line.bold\nA --> B5 #red;line.dashed;line.bold\nA --> B6 #line.dashed;line.dotted\nA --> B7 #back:red\n@enduml\n",
+        );
+        let to = |key: &str| {
+            let at = d.root.nodes.iter().position(|n| n.key == key).unwrap();
+            d.root.edges.iter().find(|e| e.to == at).unwrap()
+        };
+        let look = |key: &str| {
+            let e = to(key);
+            (e.color.clone(), e.dash, e.bold, e.style.thickness)
+        };
+        assert_eq!(look("B1"), (Some("#blue".into()), Dash::Solid, false, None));
+        assert_eq!(look("B2"), (None, Dash::Solid, true, Some(6.0)));
+        assert_eq!(look("B3"), (None, Dash::Dashed, false, None));
+        assert_eq!(look("B4"), (None, Dash::Solid, true, None));
+        assert_eq!(look("B5").1, Dash::Dashed);
+        assert!(!look("B5").2);
+        assert_eq!(look("B6").1, Dash::Dashed);
+        assert_eq!(look("B7").0, None);
+        // Bold before a width, as drawn.
+        let svg =
+            crate::render("@startuml\nclass A\nA -[bold,thickness=6]-> B\n@enduml\n").unwrap();
+        assert!(!svg.contains("stroke-width=\"6\""), "{svg}");
+        // Not on a line to a note, nor beside an association's pair.
+        let d = diagram(
+            "@startuml\nclass C\nclass D\n(C, D) .. K #line:green\nnote \"n\" as N\nN .. C #blue\n@enduml\n",
+        );
+        let all = |group: &Group| group.edges.iter().all(|e| e.color.is_none());
+        assert!(all(&d.root));
+        // What PlantUML refuses.
+        for line in ["A --> B ##red", "A -[thickness=2.5]-> B"] {
+            let err = declined(&format!("@startuml\nclass A\n{line}\n@enduml\n"));
+            assert!(err.refused, "{line}: {err:?}");
+        }
+        // Its words' color is the label's alone.
+        let svg =
+            crate::render("@startuml\nclass A\nA \"1\" --> \"2\" B #text:red : lbl\n@enduml\n")
+                .unwrap();
+        assert_eq!(svg.matches("fill=\"#FF0000\"").count(), 1, "{svg}");
+    }
+
+    /// A floating note's colors after its alias are its own, and a line
+    /// to a member by its quoted words is refused, as PlantUML does.
+    #[test]
+    fn a_notes_alias_leaves_its_colors() {
+        let d = diagram(
+            "@startuml\nclass A\nnote \"n\" as N #pink\nA .. N\nnote as M #lightblue\n  m\nend note\n@enduml\n",
+        );
+        let note = |key: &str| d.root.nodes.iter().find(|n| n.key == key).unwrap();
+        assert_eq!(note("N").fill.as_deref(), Some("pink"));
+        assert_eq!(note("M").fill.as_deref(), Some("lightblue"));
+        assert_eq!(d.root.nodes.len(), 3);
+        let err = declined("@startuml\nclass Foo {\n  ab\n}\nFoo::\"ab\" --> Bar\n@enduml\n");
+        assert!(err.refused, "{err:?}");
+    }
+
     #[test]
     fn lines_and_borders_take_styles_of_their_own() {
         let d = diagram(
@@ -5224,8 +5368,8 @@ mod tests {
             (Some("blue"), true)
         );
         assert_eq!(f.line_color.as_deref(), Some("00FFFF"));
-        // Drawn: the line that wide, its head grown with it, its words in
-        // their color.
+        // Drawn: the line that wide, its head drawn in that width, its
+        // words in their color.
         let svg = crate::render("@startuml\nclass A\nA -[thickness=8]-> B : wide\nA --> C #line:red;text:red : red\n@enduml\n").unwrap();
         assert!(svg.contains("stroke-width=\"8\""), "{svg}");
         let red = &svg[..svg.find(">red<").unwrap()];
@@ -5234,8 +5378,8 @@ mod tests {
             "{svg}"
         );
         assert!(
-            super::super::draw::head_spans_grow(),
-            "a wide line's head grows"
+            svg.matches("stroke-width=\"8\"").count() >= 2,
+            "a wide line's head is drawn in its width: {svg}"
         );
     }
 

@@ -12,10 +12,10 @@
 </g>
 <g id="lines">
 <g class="link-order-payment-pays" id="link-order-payment-pays">
-<polyline points="49.04,83.69 49.04,119.66" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="49.04,83.69 49.04,124.16" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-order-order-again" id="link-order-order-again">
-<path d="M98.07,34.85 L107.07,34.85 C110.94,34.85 114.07,37.98 114.07,41.85 L114.07,42.85 C114.07,46.16 111.39,48.85 108.07,48.85 L108.07,48.85" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M98.07,34.85 L107.07,34.85 C110.94,34.85 114.07,37.98 114.07,41.85 L114.07,41.85 C114.07,45.71 110.94,48.85 107.07,48.85 L103.57,48.85" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-order-payment-pays">
 <polygon points="45.04,119.66 49.04,129.66 53.04,119.66 49.04,124.16" fill="#181818" stroke="#181818" stroke-width="1"/>

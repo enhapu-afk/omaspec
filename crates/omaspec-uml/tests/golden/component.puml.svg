@@ -39,13 +39,13 @@
 </g>
 <g id="lines">
 <g class="link-Light_20_switch-Lamp" id="link-Light_20_switch-Lamp">
-<polyline points="464.21,60.59 464.21,105.56" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="464.21,60.59 464.21,110.06" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Api-Billing-charge" id="link-Api-Billing-charge">
-<path d="M200.57,60.59 L200.57,60.59 C200.57,67.22 205.94,72.59 212.57,72.59 L296.25,72.59 C310.6,72.59 322.24,84.23 322.24,98.58 L322.24,98.58" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M200.57,60.59 L200.57,60.59 C200.57,67.22 205.94,72.59 212.57,72.59 L291.75,72.59 C308.59,72.59 322.24,86.24 322.24,103.08 L322.24,103.08" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Front-Sessions" id="link-Front-Sessions">
-<polyline points="53.69,60.59 53.69,96.56" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="53.69,60.59 53.69,101.06" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Light_20_switch-Lamp">
 <polygon points="460.21,105.56 464.21,115.56 468.21,105.56 464.21,110.06" fill="#181818" stroke="#181818" stroke-width="1"/>

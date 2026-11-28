@@ -59,13 +59,13 @@
 </g>
 <g id="lines">
 <g class="link-Server-CDN-ships" id="link-Server-CDN-ships">
-<polyline points="58.69,191.18 58.69,227.15" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="58.69,191.18 58.69,231.65" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-CDN-Docs" id="link-CDN-Docs">
-<polyline points="58.69,281.15 58.69,303.15" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="58.69,281.15 58.69,307.65" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-jar-Sessions" id="link-jar-Sessions">
-<polyline points="53.69,100.89 53.69,122.89" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="53.69,100.89 53.69,127.39" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Server-CDN-ships">
 <polygon points="54.69,227.15 58.69,237.15 62.69,227.15 58.69,231.65" fill="#181818" stroke="#181818" stroke-width="1"/>

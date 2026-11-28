@@ -1132,8 +1132,10 @@ red, and its background or text for the letter, whichever reads. A note on a lin
 the line written last and stands by its words, under them or on the side written, as
 PlantUML draws it. A line to a member (`Foo::field1 --> Bar::field3`, `User::id *--
 Email::user_id`) meets its box at the side, at that member's row. A line takes a style of
-its own in its bracket (`-[#red,dashed,thickness=4]->`, its head growing with its width)
-and after its far end (`A --> B #line:red;line.bold;text:red`); a box's border in
+its own in its bracket (`-[#red,dashed,thickness=4]->`, its head drawn in that width)
+and after its far end (`A --> B #line:red;line.bold;text:red`), the bracket's color first
+and the first `line.…` in place of its dash, boldness and width, as PlantUML takes it;
+a box's border in
 `##[dashed]green` and `#line.dotted:blue`. A file of lines alone
 (`Usuario <|-- Cliente`) is a class diagram, as in
 PlantUML. `skinparam groupInheritance 2` joins the lines from two or more subclasses into

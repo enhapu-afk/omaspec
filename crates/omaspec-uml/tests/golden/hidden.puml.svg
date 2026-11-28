@@ -36,7 +36,7 @@
 <path d="M215.27,25.28 L246.27,25.28 C251.24,25.28 255.27,29.31 255.27,34.28 L255.27,34.28 C255.27,39.25 251.24,43.28 246.27,43.28 L215.27,43.28" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Cliente-Account" id="link-Cliente-Account">
-<polyline points="53.62,172.86 53.62,194.86" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="53.62,172.86 53.62,199.36" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Usuario-Cliente">
 <polygon points="165.65,82.56 158.65,68.56 151.65,82.56" fill="none" stroke="#181818" stroke-width="1"/>

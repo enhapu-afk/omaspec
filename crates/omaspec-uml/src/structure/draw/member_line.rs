@@ -2,19 +2,28 @@
 //! PlantUML draws one: it meets its box at the side, at that member's
 //! row. Laid out as a line between the boxes, it is routed anew once they
 //! stand, from the side that faces the other end, with a stem straight
-//! out of the side that holds its head and its multiplicity; of two
-//! boxes one over the other at the right, both ends. The box an end is
-//! at is closed to its line, and so is its stem, so the line leaves it
-//! outward.
+//! out of the side that holds its head and its multiplicity. Of two boxes
+//! one over the other it meets both at the right, as PlantUML draws it; a
+//! second line at members of both takes the left, so the two do not
+//! cross. The stems on one side fan out, the one whose line passes the
+//! others longest; between two boxes side by side each takes half the
+//! way. The box an end is at is closed to its line, and so is its stem,
+//! so the line leaves it outward.
+
+use std::collections::HashMap;
 
 use super::{Placed, Scene, drawn_in, member_end, placements};
 use crate::graph::Rect;
 use crate::graph::across::{self, Drawn};
+use crate::graph::by_hand::{Arrow, Lead};
+use crate::hand::Key;
 use crate::structure::{Group, Link, Member, Side};
 
 /// How far a line runs straight out of the side before it turns: past a
 /// head and a multiplicity.
 const STEM: f32 = 24.0;
+/// How much further a stem runs for each stem its line passes.
+const FAN: f32 = 10.0;
 
 /// A line with an end at a member: the group it is in, its place among
 /// that group's lines, the paths to its ends and the members.
@@ -25,6 +34,53 @@ struct Found {
     to: Vec<usize>,
     /// The members, each one its box has: none on a box a fold closed.
     members: [Option<usize>; 2],
+}
+
+/// Where a line meets its box at a member: the side, at the member's
+/// row, and its stem out of it.
+#[derive(Debug, Clone, Copy)]
+struct Port {
+    /// The side's x, and whether it is the right one.
+    side: f32,
+    right: bool,
+    y: f32,
+    stem: f32,
+    /// How far the line heads up (below zero) or down from the row.
+    heading: f32,
+}
+
+impl Port {
+    /// The point the line stands on at the stem's end, as a little box
+    /// the router ends at.
+    fn stand(&self) -> Rect {
+        Rect {
+            x: self.tip() - 1.0,
+            y: self.y - 1.0,
+            w: 2.0,
+            h: 2.0,
+        }
+    }
+
+    /// The stem's end.
+    fn tip(&self) -> f32 {
+        if self.right {
+            self.side + self.stem
+        } else {
+            self.side - self.stem
+        }
+    }
+
+    /// The stem, which no line runs through.
+    fn held(&self) -> Rect {
+        Rect {
+            x: self
+                .side
+                .min(self.tip() + if self.right { -1.0 } else { 1.0 }),
+            y: self.y - 1.0,
+            w: (self.stem - 1.0).max(0.0),
+            h: 2.0,
+        }
+    }
 }
 
 /// Routes the lines of `root` with an end at a member, laid out in
@@ -46,42 +102,38 @@ pub(super) fn link(root: &Group, scene: &mut Scene) {
             .unwrap_or_default();
         before.push(points);
     }
+    let ports = ports(scene, &found);
     let top = placements(&scene.nodes);
     let mut drawn = Drawn::default();
     drawn_in(scene, &mut drawn);
+    for port in ports.iter().flatten().flatten() {
+        drawn.notes.push(port.held());
+    }
     let mut links = Vec::with_capacity(found.len());
-    let mut borders = Vec::with_capacity(found.len());
-    for line in &found {
-        let (Some(from), Some(to)) = (placed(scene, &line.from), placed(scene, &line.to)) else {
+    for (line, [from, to]) in found.iter().zip(&ports) {
+        // Two stems that meet halfway between boxes side by side: the
+        // line runs straight on, or steps across there.
+        let met = matches!((from, to), (Some(a), Some(b)) if (a.tip() - b.tip()).abs() < 1.0);
+        if met || (placed(scene, &line.from).is_none() || placed(scene, &line.to).is_none()) {
             links.push(None);
-            borders.push([None, None]);
             continue;
-        };
+        }
         let label = group_at(scene, &line.host)
             .and_then(|host| host.edges.get(line.slot))
             .map_or((0.0, 0.0), |edge| (edge.label.width, edge.label.height));
-        let [a, b] = line.members;
-        let from_port = a.and_then(|member| port(from, member, to));
-        let to_port = b.and_then(|member| port(to, member, from));
-        for port in [from_port, to_port].into_iter().flatten() {
-            drawn.notes.push(port.2);
-        }
         links.push(Some(across::Link {
             from: line.from.clone(),
             to: line.to.clone(),
             label,
             shape: None,
-            stand: [from_port.map(|p| p.0), to_port.map(|p| p.0)],
-            sealed: [from_port.is_some(), to_port.is_some()],
+            stand: [from.map(|p| p.stand()), to.map(|p| p.stand())],
+            sealed: [from.is_some(), to.is_some()],
         }));
-        borders.push([from_port.map(|p| p.1), to_port.map(|p| p.1)]);
     }
     let routable: Vec<across::Link> = links.iter().flatten().cloned().collect();
     let mut routed = across::link(&top, &routable, &drawn).into_iter();
-    for ((line, link), (points, [from, to])) in found
-        .iter()
-        .zip(&links)
-        .zip(before.into_iter().zip(borders))
+    for ((line, link), (points, [from, to])) in
+        found.iter().zip(&links).zip(before.into_iter().zip(ports))
     {
         let laid = match link {
             Some(_) => routed.next().flatten(),
@@ -93,64 +145,170 @@ pub(super) fn link(root: &Group, scene: &mut Scene) {
         else {
             continue;
         };
-        match laid {
-            Some(laid) => {
+        let border = |port: Option<Port>| port.map(|p| (p.side, p.y));
+        edge.look.stems = [from.is_some(), to.is_some()];
+        match (laid, from, to) {
+            (Some(laid), ..) => {
                 // The stems run level with their rows: the route meets the
                 // little box it ends at a pixel off.
                 let mut points = laid.points;
-                if let (Some(border), Some(first)) = (from, points.first_mut()) {
-                    first.1 = border.1;
+                if let (Some(port), Some(first)) = (from, points.first_mut()) {
+                    first.1 = port.y;
                 }
-                if let (Some(border), Some(last)) = (to, points.last_mut()) {
-                    last.1 = border.1;
+                if let (Some(port), Some(last)) = (to, points.last_mut()) {
+                    last.1 = port.y;
                 }
-                edge.points = from.into_iter().chain(points).chain(to).collect();
+                edge.points = border(from)
+                    .into_iter()
+                    .chain(points)
+                    .chain(border(to))
+                    .collect();
                 edge.label_at = laid.label_at;
             }
+            (None, Some(a), Some(b)) if (a.tip() - b.tip()).abs() < 1.0 => {
+                let mut points = vec![(a.side, a.y)];
+                if (a.y - b.y).abs() >= 0.5 {
+                    points.extend([(a.tip(), a.y), (b.tip(), b.y)]);
+                }
+                points.push((b.side, b.y));
+                edge.points = points;
+            }
             // No way found: the line runs where it lay.
-            None => edge.points = points,
+            _ => {
+                edge.points = points;
+                edge.look.stems = [false; 2];
+            }
         }
     }
 }
 
-/// Where a line meets `node` at its `member`, toward `other`: the point
-/// it stands on a stem's length out of the side, as a little box the
-/// router ends at, the point on the side, and the stem, which no line
-/// runs through.
-fn port(node: &Placed, member: usize, other: &Placed) -> Option<(Rect, (f32, f32), Rect)> {
-    let (_, y) = member_end(node, member, Side::Left)?;
-    let (rect, there) = (node.rect, other.rect);
-    let (own, theirs) = (rect.x + rect.w / 2.0, there.x + there.w / 2.0);
-    // The side that faces the other box, where one stands beside it; of
-    // two one over the other the right, as PlantUML draws them.
-    let right = (theirs - own).abs() <= rect.w.min(there.w) / 2.0 || theirs > own;
-    let side = if right { rect.x + rect.w } else { rect.x };
-    // Where the other box stands close ahead, half the way to it: its
-    // own stem may come the other half.
-    let room = if right {
-        there.x - side
-    } else {
-        side - (there.x + there.w)
-    };
-    let stem = if room > 0.0 && room < 2.0 * STEM {
-        room / 2.0
-    } else {
-        STEM
-    };
-    let out = if right { stem } else { -stem };
-    let stand = Rect {
-        x: side + out - 1.0,
-        y: y - 1.0,
-        w: 2.0,
-        h: 2.0,
-    };
-    let held = Rect {
-        x: side.min(side + out - out.signum()),
-        y: y - 1.0,
-        w: (stem - 1.0).max(0.0),
-        h: 2.0,
-    };
-    Some((stand, (side, y), held))
+/// Where each line of `found` meets its boxes at their members.
+fn ports(scene: &Scene, found: &[Found]) -> Vec<[Option<Port>; 2]> {
+    let mut out = Vec::with_capacity(found.len());
+    // How many lines at members of both of two boxes one over the other
+    // took a side, by the two.
+    let mut turns: HashMap<[Vec<usize>; 2], usize> = HashMap::new();
+    for line in found {
+        let (Some(from), Some(to)) = (placed(scene, &line.from), placed(scene, &line.to)) else {
+            out.push([None, None]);
+            continue;
+        };
+        let (a, b) = (from.rect, to.rect);
+        let stacked = a.x < b.x + b.w && b.x < a.x + a.w;
+        let [m, n] = line.members;
+        let turn = if stacked && m.is_some() && n.is_some() {
+            let mut pair = [line.from.clone(), line.to.clone()];
+            pair.sort();
+            let taken = turns.entry(pair).or_default();
+            *taken += 1;
+            *taken % 2 == 1
+        } else {
+            true
+        };
+        let middle = |r: Rect| (r.x + r.w / 2.0, r.y + r.h / 2.0);
+        let port = |node: &Placed, member: Option<usize>, other: Rect| {
+            let (_, y) = member_end(node, member?, Side::Left)?;
+            let right = if stacked {
+                turn
+            } else {
+                middle(other).0 > middle(node.rect).0
+            };
+            let rect = node.rect;
+            let side = if right { rect.x + rect.w } else { rect.x };
+            // Beside the other box, half the way to it where it stands
+            // close: its own stem may come the other half.
+            let room = if right {
+                other.x - side
+            } else {
+                side - (other.x + other.w)
+            };
+            let beside = rect.y < other.y + other.h && other.y < rect.y + rect.h;
+            let stem = if !stacked && beside && room > 0.0 && room < 2.0 * STEM {
+                room / 2.0
+            } else {
+                STEM
+            };
+            Some(Port {
+                side,
+                right,
+                y,
+                stem,
+                heading: middle(other).1 - y,
+            })
+        };
+        out.push([port(from, m, b), port(to, n, a)]);
+    }
+    fan(found, &mut out);
+    out
+}
+
+/// Fans out the full stems on each side of a box: one whose line heads
+/// past the rows of the others on that side runs further, by [`FAN`] for
+/// each, so the lines do not run down one another's ends.
+fn fan(found: &[Found], ports: &mut [[Option<Port>; 2]]) {
+    let all: Vec<(&[usize], Port)> = found
+        .iter()
+        .zip(ports.iter())
+        .flat_map(|(line, ends)| {
+            [
+                ends[0].map(|p| (line.from.as_slice(), p)),
+                ends[1].map(|p| (line.to.as_slice(), p)),
+            ]
+        })
+        .flatten()
+        .collect();
+    for (line, ends) in found.iter().zip(ports.iter_mut()) {
+        let [first, second] = ends;
+        for (path, port) in [(line.from.as_slice(), first), (line.to.as_slice(), second)] {
+            let Some(port) = port.as_mut().filter(|p| p.stem == STEM) else {
+                continue;
+            };
+            let passed = all
+                .iter()
+                .filter(|(at, other)| {
+                    *at == path
+                        && other.right == port.right
+                        && other.stem == STEM
+                        && (other.y - port.y) * port.heading > 0.5
+                })
+                .count();
+            port.stem = STEM + FAN * passed as f32;
+        }
+    }
+}
+
+/// Gives each of `arrows`, the lines as the block of lines by hand names
+/// them, the rows its ends meet their boxes at, as `scene` lays them out
+/// ([`Arrow::lead`]): a line shaped by hand meets them too.
+pub(super) fn lead(root: &Group, scene: &Scene, arrows: &mut [(Arrow, Key)]) {
+    for (arrow, _) in arrows {
+        let Some(group) = group_of(root, &arrow.path) else {
+            continue;
+        };
+        let local = |end: &[usize]| end[arrow.path.len()..].to_vec();
+        let link = match arrow.slot.checked_sub(group.edges.len()) {
+            None => group.edges.get(arrow.slot),
+            Some(index) => group.crossings.get(index).map(|c| &c.arrow),
+        };
+        let Some(link) = link else {
+            continue;
+        };
+        let members = kept(group, &local(&arrow.from), &local(&arrow.to), link);
+        let row = |end: &[usize], member: Option<usize>| {
+            let (_, y) = member_end(placed(scene, end)?, member?, Side::Left)?;
+            Some(Lead { y, stem: STEM })
+        };
+        arrow.lead = [row(&arrow.from, members[0]), row(&arrow.to, members[1])];
+    }
+}
+
+/// The group at `path` in `root`.
+fn group_of<'a>(root: &'a Group, path: &[usize]) -> Option<&'a Group> {
+    let mut here = root;
+    for &index in path {
+        here = &here.nodes.get(index)?.children;
+    }
+    Some(here)
 }
 
 /// The group at `path` in `scene`.
@@ -170,14 +328,6 @@ fn placed<'a>(scene: &'a Scene, path: &[usize]) -> Option<&'a Placed> {
         node = node.children.nodes.get(index)?;
     }
     Some(node)
-}
-
-/// Which ends of `link`, from `from` to `to` in `group`, meet their box
-/// at a member's row: where the line is no loop and the box has that
-/// member.
-pub(super) fn leads(group: &Group, from: &[usize], to: &[usize], link: &Link) -> [bool; 2] {
-    let members = kept(group, from, to, link);
-    [members[0].is_some(), members[1].is_some()]
 }
 
 /// The members `link`'s ends are at, each one its box has (none on a box
@@ -459,5 +609,66 @@ mod tests {
         assert_eq!(a[0], b[0]);
         assert_eq!(a[a.len() - 1], b[b.len() - 1]);
         assert_ne!(a, b);
+    }
+
+    /// Between two boxes side by side, close, a line runs straight from
+    /// row to row; of two lines between boxes one over the other, one
+    /// takes the right and one the left; stems on one side fan out.
+    #[test]
+    fn lines_keep_clear_of_one_another() {
+        let svg = crate::render(&format!(
+            "@startuml\nleft to right direction\n{CLASSES}Foo::field1 --> Bar::field3\n@enduml\n"
+        ))
+        .unwrap();
+        let points = path(&svg, "link-Foo-Bar");
+        assert!(
+            points.windows(2).all(|w| w[1].0 >= w[0].0 - 0.01),
+            "{points:?}"
+        );
+        let classes = "class Foo {\n  + a\n  + b\n}\nclass Bar {\n  + x\n  + y\n}\n";
+        let svg = crate::render(&format!(
+            "@startuml\n{classes}Foo::a --> Bar::x\nFoo::b --> Bar::y\n@enduml\n"
+        ))
+        .unwrap();
+        let starts: Vec<f32> = ["link-Foo-Bar", "link-Foo-Bar-2"]
+            .iter()
+            .map(|id| path(&svg, id)[0].0)
+            .collect();
+        assert!((starts[0] - starts[1]).abs() > 20.0, "{starts:?}");
+        // The upper row's stem runs further than the lower one's, which its
+        // line passes.
+        let svg = crate::render(&format!(
+            "@startuml\n{classes}Foo::a --> Bar::x\nFoo::b --> Bar\n@enduml\n"
+        ))
+        .unwrap();
+        let mut lines: Vec<Vec<(f32, f32)>> = ["link-Foo-Bar", "link-Foo-Bar-2"]
+            .iter()
+            .map(|id| path(&svg, id))
+            .collect();
+        lines.sort_by(|a, b| a[0].1.total_cmp(&b[0].1));
+        let far = |line: &[(f32, f32)]| line.iter().map(|p| p.0).fold(f32::MIN, f32::max);
+        assert!(far(&lines[0]) > far(&lines[1]) + 5.0, "{lines:?}");
+    }
+
+    /// A line shaped by hand leaves its row toward the corner it goes to,
+    /// not through its box.
+    #[test]
+    fn a_line_by_hand_leaves_toward_its_corner() {
+        let source = format!(
+            "@startuml\n{CLASSES}Foo::field2 --> Bar::field3\n' lines by hand (Omaspec)\n' Foo -> Bar at -0.5 0.5\n@enduml\n"
+        );
+        let svg = crate::render(&source).unwrap();
+        let points = path(&svg, "link-Foo-Bar");
+        let foo = &svg[svg.find("id=\"class-Foo\"").unwrap()..];
+        let x: f32 = foo[foo.find(" x=\"").unwrap() + 4..]
+            .split('"')
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap();
+        assert!(
+            (points[0].0 - x).abs() < 1.0 && points[1].0 < points[0].0,
+            "{points:?}"
+        );
     }
 }

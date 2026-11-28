@@ -20,7 +20,7 @@
 <polyline points="161.58,101.18 161.58,135.48" fill="none" stroke="#64748B" stroke-width="1"/>
 </g>
 <g class="link-Member-Book-borrows" id="link-Member-Book-borrows">
-<polyline points="229.58,79.04 229.58,125.48" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="229.58,79.04 229.58,129.98" fill="none" stroke="#64748B" stroke-width="1"/>
 </g>
 <g class="link-Library-Book-holds">
 <polygon points="161.58,87.18 167.58,94.18 161.58,101.18 155.58,94.18" fill="#FFFFFF" stroke="#64748B" stroke-width="1"/>

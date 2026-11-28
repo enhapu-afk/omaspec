@@ -16,13 +16,13 @@
 </g>
 <g id="lines">
 <g class="link-Customer-Order-places" id="link-Customer-Order-places">
-<path d="M102.55,38 L102.55,38 C102.55,44.63 107.93,50 114.55,50 L159.71,50 C172.94,50 183.67,60.73 183.67,73.97 L183.67,73.97" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M102.55,38 L102.55,38 C102.55,44.63 107.93,50 114.55,50 L155.21,50 C170.93,50 183.67,62.75 183.67,78.47 L183.67,78.47" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Invoice-Order-bills" id="link-Invoice-Order-bills">
-<polyline points="198.67,38 198.67,73.97" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="198.67,38 198.67,78.47" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Shipment-Order-delivers" id="link-Shipment-Order-delivers">
-<path d="M312.41,38 L312.41,38 C312.41,44.63 307.03,50 300.41,50 L263.03,50 C249.8,50 239.07,60.73 239.07,73.97 L239.07,73.97" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M312.41,38 L312.41,38 C312.41,44.63 307.03,50 300.41,50 L267.53,50 C251.81,50 239.07,62.75 239.07,78.47 L239.07,78.47" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g class="link-Customer-Order-places">
 <polygon points="179.67,73.97 183.67,83.97 187.67,73.97 183.67,78.47" fill="#181818" stroke="#181818" stroke-width="1"/>

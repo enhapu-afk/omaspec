@@ -1095,17 +1095,15 @@ is open and the reasoning around it.
       passes by. A note without `of` is on the box the line before it
       made. A note named as a box a line made is refused, as in PlantUML.
 - [x] A line to a member (2026-11-28): `Foo::field1 --> Bar::field3`,
-      `User::id *-- Email::user_id`, a member by its quoted words too
-      (`A::"start(int)"`), where it had been declined. Laid out as a line
-      between the boxes, it is routed anew once they stand, to meet its
-      box at the side, at that member's row, with a short stem straight
-      out of it: the side that faces the other end, and of two boxes one
-      over the other the right, as PlantUML draws them. A member `hide`
-      took, or a name no member has, leaves the line on its box as any
-      line. Still
-      different: boxes one over the other stand closer than in PlantUML,
-      whose lines curve wide around them. The guide: the class diagram 67
-      of 84, 580 of 897.
+      `User::id *-- Email::user_id`, where it had been declined. Laid out
+      as a line between the boxes, it is routed anew once they stand, to
+      meet its box at the side, at that member's row, with a short stem
+      straight out of it: the side that faces the other end, and of two
+      boxes one over the other the right, as PlantUML draws them. A member
+      `hide` took, or a name no member has, leaves the line on its box as
+      any line. Still different: boxes one over the other stand closer
+      than in PlantUML, whose lines curve wide around them. The guide: the
+      class diagram 67 of 84, 580 of 897.
 - [x] What the review of the notes on lines and of the whole names found
       (2026-11-28). A note's name beside a class of that name in another
       package, or a box a line made there, is another box, as PlantUML
@@ -1121,7 +1119,7 @@ is open and the reasoning around it.
 - [x] Lines and borders with styles of their own (2026-11-28), as
       PlantUML draws them: `[thickness=4]` in a line's bracket, beside its
       color and dash (`-[#red,dashed,thickness=4]->`), the line that wide
-      and its heads grown with it; a style after a line's far end (`A -->
+      and its heads drawn in that width; a style after a line's far end (`A -->
       B #line:red;line.bold;text:red`, `#green;line.dashed`), its color,
       dash, boldness and its words' color; a box's border `##[bold]red`,
       `##[dashed]green`, `##[dotted]blue`, and `#line.dashed:blue`,
@@ -1151,6 +1149,24 @@ is open and the reasoning around it.
       PlantUML makes it there (`[A] --> B`, `foo --> bar` beside a node);
       under `allowmixing` it stays a class, and a block written later
       (`node B {`) is what it says.
+- [x] What the review of the line styles and of the lines to members
+      found (2026-11-28). A line's own style after its far end is one, as
+      PlantUML takes it: the bracket's color first, its first `line.…` in
+      place of the arrow's dash, boldness and width; bold before a width;
+      `text:` colors the label, not the multiplicities; `back:` is no
+      line's color; no style on a line to a note nor beside an
+      association's pair; `##red` after a line and a width that is no
+      whole number are refused. A head keeps its size on a wide line,
+      drawn in its width, and the line runs into an arrowhead's notch. Two
+      boxes side by side, close: a line at members runs straight from row
+      to row. Two lines at members of boxes one over the other take the
+      right and the left, and an offset box is met at the right too; the
+      stems on one side fan out, the one whose line passes the others
+      longest. A line shaped by hand leaves its row toward the corner it
+      goes to. A multiplicity stands past a bend on a member's stem only.
+      A floating note's colors after its alias are its own (`note "n" as N
+      #pink`); a line to a member by its quoted words is refused, as
+      PlantUML refuses it.
 
 ### Step 5: what every diagram shares
 
