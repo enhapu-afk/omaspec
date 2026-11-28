@@ -476,6 +476,9 @@ struct RawRel {
 struct Pending {
     from: RawName,
     to: RawName,
+    /// The members its ends are at (`Foo::field1 --> Bar::field3`), found
+    /// on their boxes as the line is placed.
+    members: MemberEnds,
     /// Its own width and words' color.
     style: super::LineStyle,
     /// `note on link` after it.
@@ -502,9 +505,9 @@ struct Pending {
     found: [Option<Vec<usize>>; 2],
 }
 
-/// A line's ends at members: for each, its element's name, whether the
-/// member is named by its quoted words, and the name or the words.
-type MemberEnds = [Option<(String, bool, String)>; 2];
+/// A line's ends at members: for each, whether the member is named by its
+/// quoted words, and the name or the words.
+type MemberEnds = [Option<(bool, String)>; 2];
 
 struct RawNote {
     target: String,
@@ -636,10 +639,6 @@ struct Parser {
     /// boxes out: by the line of each note, its member's name or quoted
     /// words.
     on_members: Vec<(usize, bool, String)>,
-    /// The members a line's ends are at (`Foo::field1 --> Bar::field3`),
-    /// by the line: each end's element and member, found once `hide` has
-    /// left the members that stay.
-    member_links: Vec<(usize, MemberEnds)>,
     /// What parts a class's name into the packages it stands in (`a.b.C`):
     /// `.`, or `set separator ::`; none after `set separator none`.
     separator: Option<String>,
@@ -681,7 +680,6 @@ impl Default for Parser {
             pending: Vec::new(),
             raw_notes: Vec::new(),
             on_members: Vec::new(),
-            member_links: Vec::new(),
             separator: Some(".".to_owned()),
             classes: true,
             notes_made: 0,
@@ -881,6 +879,7 @@ impl Parser {
                 let home = self.here();
                 for pair in members.windows(2) {
                     self.pending.push(Pending {
+                        members: [None, None],
                         style: Default::default(),
                         from: pair[0].clone_name(),
                         to: pair[1].clone_name(),
@@ -1074,6 +1073,7 @@ impl Parser {
                 [None, None]
             };
             self.pending.push(Pending {
+                members: [None, None],
                 style: Default::default(),
                 from: parent.raw.clone_name(),
                 to: RawName {
@@ -1354,15 +1354,20 @@ impl Parser {
         let mut rel = rel;
         // `Foo::field1`: a line to a member of `Foo`, which meets `Foo` at
         // that member's row, unless `::` parts names into packages.
-        if self.separator.as_deref() != Some("::") {
-            let mut ends: MemberEnds = [None, None];
+        let mut ends: MemberEnds = [None, None];
+        // Not where a box has the whole name (`class std::vector`), nor
+        // beside an association's pair.
+        let paired = rel.from.pair().is_some() || rel.to.pair().is_some();
+        if self.separator.as_deref() != Some("::") && !paired {
             for (at, raw) in [&mut rel.from, &mut rel.to].into_iter().enumerate() {
-                if raw.quoted || raw.pair().is_some() {
+                if raw.quoted || self.find_by(&raw.key, Lookup::Key).is_some() {
                     continue;
                 }
+                // At the last `::`, as PlantUML parts it (`Foo::a::b` is
+                // `b` of `Foo::a`).
                 let split = match raw.key.find("::\"") {
                     Some(at) => Some((raw.key[..at].to_owned(), &raw.key[at + 2..])),
-                    None => raw.key.split_once("::").map(|(a, b)| (a.to_owned(), b)),
+                    None => raw.key.rsplit_once("::").map(|(a, b)| (a.to_owned(), b)),
                 };
                 let Some((element, member)) = split else {
                     continue;
@@ -1377,12 +1382,9 @@ impl Parser {
                         format!("`{}` names no member", snippet(&raw.key)),
                     ));
                 }
-                ends[at] = Some((element.clone(), quoted, wanted));
+                ends[at] = Some((quoted, wanted));
                 raw.key.clone_from(&element);
                 raw.label = element;
-            }
-            if ends.iter().any(Option::is_some) {
-                self.member_links.push((line, ends));
             }
         }
         // A short name finds its class where the line stands, as PlantUML
@@ -1428,6 +1430,7 @@ impl Parser {
         self.pending.push(Pending {
             from: rel.from,
             to: rel.to,
+            members: ends,
             style: rel.arrow.style.clone(),
             from_card: rel.from_card,
             to_card: rel.to_card,
@@ -1637,7 +1640,7 @@ impl Parser {
                 .root
                 .nodes
                 .iter()
-                .any(|node| node.composite && (node.key == first || node.label.value == first));
+                .any(|node| node.composite && node.key == first);
             return if at_top {
                 self.through_from(&[], name)
             } else {
@@ -1742,6 +1745,16 @@ impl Parser {
         if from.is_empty() || to.is_empty() {
             return Err(Declined::at(item.line, "a line needs two elements"));
         }
+        // Each end's member on its box, by its place there; `hide` keeps
+        // the place to the members it leaves.
+        let place = |path: &[usize], end: &Option<(bool, String)>| {
+            let (quoted, name) = end.as_ref()?;
+            self.node(path)
+                .members
+                .iter()
+                .position(|m| member_is(m, *quoted, name))
+        };
+        let members = [place(&from, &item.members[0]), place(&to, &item.members[1])];
         let link = |from: usize, to: usize| Link {
             from,
             to,
@@ -1758,7 +1771,7 @@ impl Parser {
             line: item.line,
             label_before: None,
             note: item.note.clone(),
-            members: [None, None],
+            members,
             style: item.style.clone(),
         };
         if from == to {
@@ -1788,6 +1801,7 @@ impl Parser {
             to_head: item.from_head,
             from_card: item.to_card.clone(),
             to_card: item.from_card.clone(),
+            members: [members[1], members[0]],
             ..link(to, from)
         };
         let home = &from[..from.len() - 1];
@@ -1898,10 +1912,6 @@ impl Parser {
         let wanted = std::mem::take(&mut self.on_members);
         if !wanted.is_empty() {
             walk(&mut self.root, &wanted);
-        }
-        let links = std::mem::take(&mut self.member_links);
-        if !links.is_empty() {
-            at_members(&mut self.root, &links);
         }
     }
 
@@ -2043,7 +2053,7 @@ impl Parser {
             .iter()
             .map(|item| {
                 [&item.from, &item.to].iter().any(|end| {
-                    self.find_by(&end.key, Lookup::Key)
+                    self.find_from(&end.key, Lookup::Line, &item.home, end.shape)
                         .is_some_and(|path| self.node(&path).shape == Shape::Note)
                 })
             })
@@ -2201,18 +2211,15 @@ impl Parser {
     }
 
     fn insert_note(&mut self, key: &str, label: Text, line: usize) -> Result<(), Declined> {
-        // A box of that name stands already where the note is written, or
-        // is the whole diagram's: PlantUML refuses it. A class of that name
-        // in another package is another.
+        // A box of that name stands already where the note is written:
+        // PlantUML refuses it. One of another package is another, where
+        // names belong to their packages; else names are the diagram's.
         let here = self.here();
         let taken = if self.namespaced() {
             self.container(&here)
                 .nodes
                 .iter()
                 .any(|node| node.key == key)
-                || self
-                    .find_by(key, Lookup::Key)
-                    .is_some_and(|path| !self.near(Some(self.node(&path).shape)))
         } else {
             self.find_by(key, Lookup::Key).is_some()
         };
@@ -2259,70 +2266,6 @@ impl RawName {
             shape: self.shape,
             quoted: self.quoted,
         }
-    }
-}
-
-/// Each line of `group` and of every group inside whose ends are at
-/// members (`links`, by their lines): those members, by their places
-/// among their elements' members; an end whose member `hide` took, or
-/// that names none, meets its box as any line does. A line drawn the
-/// other way round has its ends turned.
-fn at_members(group: &mut Group, links: &[(usize, MemberEnds)]) {
-    let place = |node: &Element, end: &Option<(String, bool, String)>| {
-        let (_, quoted, name) = end.as_ref()?;
-        node.members
-            .iter()
-            .position(|m| member_is(m, *quoted, name))
-    };
-    let is = |node: &Element, end: &Option<(String, bool, String)>| {
-        end.as_ref()
-            .is_some_and(|(element, ..)| node.key == *element || node.label.value == *element)
-    };
-    let ends_of = |group: &Group, from: &[usize], to: &[usize]| {
-        let at = |path: &[usize]| {
-            let mut group = group;
-            let mut node = None;
-            for &index in path {
-                let here = group.nodes.get(index)?;
-                group = &here.children;
-                node = Some(here);
-            }
-            node
-        };
-        Some((at(from)?.clone(), at(to)?.clone()))
-    };
-    let resolve = |from: &Element, to: &Element, ends: &MemberEnds| {
-        let [a, b] = ends;
-        if is(from, b) && is(to, a) && !(is(from, a) && is(to, b)) {
-            [place(from, b), place(to, a)]
-        } else {
-            [place(from, a), place(to, b)]
-        }
-    };
-    let mut found = Vec::new();
-    for (index, edge) in group.edges.iter().enumerate() {
-        if let Some((_, ends)) = links.iter().find(|(line, _)| *line == edge.line)
-            && let Some((from, to)) = ends_of(group, &[edge.from], &[edge.to])
-        {
-            found.push((index, resolve(&from, &to, ends)));
-        }
-    }
-    for (index, members) in found {
-        group.edges[index].members = members;
-    }
-    let mut found = Vec::new();
-    for (index, crossing) in group.crossings.iter().enumerate() {
-        if let Some((_, ends)) = links.iter().find(|(line, _)| *line == crossing.arrow.line)
-            && let Some((from, to)) = ends_of(group, &crossing.from, &crossing.to)
-        {
-            found.push((index, resolve(&from, &to, ends)));
-        }
-    }
-    for (index, members) in found {
-        group.crossings[index].arrow.members = members;
-    }
-    for node in &mut group.nodes {
-        at_members(&mut node.children, links);
     }
 }
 
@@ -4976,6 +4919,33 @@ mod tests {
         let source = "@startuml\nclass A\nA --> N\nnote \"x\" as N\n@enduml\n";
         let (_, lines) = crate::source::body(source).unwrap();
         assert!(parse(&lines).unwrap_err().refused);
+        // A note named as a box of another package, of any kind, is
+        // another box, as PlantUML reads it.
+        for source in [
+            "package p {\n  note \"a\" as N\n}\nnote \"b\" as N",
+            "package p {\n  note \"a\" as N\n}\npackage q {\n  note \"b\" as N\n}",
+            "allowmixing\nactor N\npackage p {\n  note \"x\" as N\n}",
+            "package p {\n  package N {\n    class A\n  }\n}\nnote \"x\" as N",
+        ] {
+            diagram(&format!("@startuml\n{source}\n@enduml\n"));
+        }
+        // A package's label is no first package of a whole name.
+        assert_eq!(
+            read("package \"a\" as P {\n  class X\n}\npackage x {\n  package a {\n    class C\n  }\n  a.C --> D\n}").1,
+            "x/a/C>x/D"
+        );
+        // A note on a line knows the lines to notes as they are placed.
+        let d = diagram(
+            "@startuml\nclass A\nclass B\nA --> B : first\nnote \"x\" as N\npackage p {\n  class N\n  class C\n  C --> N : inner\n}\nnote on link : which\n@enduml\n",
+        );
+        let p = d.root.nodes.iter().find(|n| n.key == "p").unwrap();
+        assert!(d.root.edges[0].note.is_none());
+        assert!(p.children.edges[0].note.is_some());
+        let d = diagram(
+            "@startuml\nclass A\nA --> B : first\npackage p {\n  note \"x\" as N\n}\np.N .. A\nnote on link : which\n@enduml\n",
+        );
+        let first = d.root.edges.iter().find(|e| e.label.is_some()).unwrap();
+        assert!(first.note.is_some());
         // An association class's pair is found from where it is written.
         let d = diagram(
             "@startuml\npackage a {\n  class A\n  class B\n}\npackage b {\n  class A\n  class B\n  (A, B) .. K\n}\n@enduml\n",

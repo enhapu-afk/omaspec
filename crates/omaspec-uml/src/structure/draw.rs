@@ -194,6 +194,7 @@ fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
                 to: within(&[edge.to]),
                 order: edge.line,
                 line: Some(edge.line),
+                lead: member_line::leads(group, &[edge.from], &[edge.to], edge),
             });
         }
         for (index, crossing) in group.crossings.iter().enumerate() {
@@ -207,6 +208,7 @@ fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
                 to: within(&crossing.to),
                 order: crossing.arrow.line,
                 line: Some(crossing.arrow.line),
+                lead: member_line::leads(group, &crossing.from, &crossing.to, &crossing.arrow),
             });
         }
         for (index, node) in group.nodes.iter().enumerate() {
@@ -2644,21 +2646,35 @@ fn card_at(
     along: f32,
     containers: &[Rect],
 ) -> (f32, f32) {
-    let (tip, inner) = if at_start {
-        (points[0], points[1])
-    } else {
-        let last = points.len() - 1;
-        (points[last], points[last - 1])
+    // From the end inward; the run there goes on through the points on
+    // its straight, up to the first that turns.
+    let inward: Vec<(f32, f32)> = match at_start {
+        true => points.to_vec(),
+        false => points.iter().rev().copied().collect(),
     };
+    let (tip, inner) = (inward[0], inward[1]);
     let (vx, vy) = (inner.0 - tip.0, inner.1 - tip.1);
-    let len = (vx * vx + vy * vy).sqrt().max(0.01);
-    let (ux, uy) = (vx / len, vy / len);
+    let first_len = (vx * vx + vy * vy).sqrt().max(0.01);
+    let (ux, uy) = (vx / first_len, vy / first_len);
     let (px, py) = (-uy, ux);
+    let mut far = inner;
+    let mut next = None;
+    for &(x, y) in &inward[2..] {
+        let (dx, dy) = (x - far.0, y - far.1);
+        if (dx * px + dy * py).abs() < 0.5 && dx * ux + dy * uy > 0.0 {
+            far = (x, y);
+        } else {
+            next = Some((x, y));
+            break;
+        }
+    }
+    let len = ((far.0 - tip.0).powi(2) + (far.1 - tip.1).powi(2))
+        .sqrt()
+        .max(0.01);
     // Beside a level run it lies along the line: past the head by half
     // its own width too, or the head would stand in its words.
-    let first = (along + 8.0 + py.abs() * block.width / 2.0)
-        .min(len * 0.65)
-        .max(6.0);
+    let needed = along + 8.0 + py.abs() * block.width / 2.0;
+    let mut first = needed.min(len * 0.65).max(6.0);
     let off = py.abs() * (block.height * 0.15 + 3.0) + px.abs() * (block.width / 2.0 + 3.0);
     let at = |travel: f32, side: f32| {
         let cx = tip.0 + ux * travel + side * px * off;
@@ -2684,8 +2700,15 @@ fn card_at(
     };
     let (ox, oy) = (other.0 - tip.0, other.1 - tip.1);
     let (ahead, beside) = (ox * ux + oy * uy, ox * px + oy * py);
+    // A run too short for its words that turns (a line at a member
+    // leaves its row so): they stand on the side it turns away from, as
+    // far along as they need, past the bend.
+    let turn = next.map_or(0.0, |(nx, ny)| (nx - far.0) * px + (ny - far.1) * py);
     let side = if ahead.abs() < 1.0 && beside.abs() > 1.0 {
         -beside.signum()
+    } else if needed > first && turn.abs() > 1.0 {
+        first = needed;
+        -turn.signum()
     } else {
         1.0
     };

@@ -1100,9 +1100,9 @@ is open and the reasoning around it.
       between the boxes, it is routed anew once they stand, to meet its
       box at the side, at that member's row, with a short stem straight
       out of it: the side that faces the other end, and of two boxes one
-      over the other the left for the first member, the right for the
-      second, as PlantUML draws them. A member `hide` took, or a name no
-      member has, leaves the line on its box as any line. Still
+      over the other the right, as PlantUML draws them. A member `hide`
+      took, or a name no member has, leaves the line on its box as any
+      line. Still
       different: boxes one over the other stand closer than in PlantUML,
       whose lines curve wide around them. The guide: the class diagram 67
       of 84, 580 of 897.
@@ -1128,6 +1128,24 @@ is open and the reasoning around it.
       `#line.dotted:blue` in a box's style. A style's colon is no label's
       (`#line:red : label`). Still declined: `header:` in a box's style.
       The guide: the class diagram 71 of 84, 587 of 897 in all.
+- [x] What the review of the lines to members found (2026-11-28). A
+      line's members are found on its boxes as it is placed, its ends
+      turned with it, and `hide` keeps them to the members it leaves: two
+      lines of one procedure keep their own, and a line by a whole name
+      turned up (`p.Foo::b -up-> Bar::x`) its members. `::` names no
+      member where a box has the whole name (`class std::vector`), nor
+      beside an association's pair, and parts a name at its last `::`
+      (`Foo::a::b`). Of two boxes one over the other both ends meet their
+      rows at the right; beside a wide box each end faces its box. The
+      stem is long enough for a head and a multiplicity, half the way
+      where the boxes stand close, level with its row, and closed to
+      other lines and to its own, which leaves it outward; a multiplicity
+      on a run too short for it stands past the bend, on the side the
+      line turns away from. A folded package has no rows to meet, and a
+      line shaped by hand keeps meeting its members' rows. A note named
+      as a box of another package, of any kind, is another box, as
+      PlantUML reads it; a package's label is no first package of a whole
+      name; `note on link` knows the lines to notes as they are placed.
 
 ### Step 5: what every diagram shares
 

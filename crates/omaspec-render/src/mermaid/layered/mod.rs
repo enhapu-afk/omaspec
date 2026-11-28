@@ -413,6 +413,7 @@ fn arrows(tree: &Tree) -> Vec<(Arrow, Key)> {
             to: to.clone(),
             order: index,
             line: None,
+            lead: [false; 2],
         });
     }
     by_hand::keyed(found, |path| {

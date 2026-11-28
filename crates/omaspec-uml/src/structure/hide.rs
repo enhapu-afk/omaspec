@@ -408,8 +408,16 @@ pub(super) fn apply(
             }
         }
     }
+    let mut moved = HashMap::new();
     for (path, plan) in boxes.iter().zip(plans) {
-        plan.lay(node_mut(root, path));
+        if let Some(places) = plan.lay(node_mut(root, path)) {
+            moved.insert(path.clone(), places);
+        }
+    }
+    // A line at a member keeps to it where the members it leaves moved,
+    // and meets its box as any line where it was hidden.
+    if !moved.is_empty() {
+        remember(root, &mut Vec::new(), &moved);
     }
     if !unseen.is_empty() {
         unsee(root, &mut Vec::new(), &unseen, false);
@@ -721,11 +729,34 @@ struct Plan {
 }
 
 impl Plan {
-    fn lay(self, el: &mut Element) {
+    /// Lays the plan on `el`; where members are hidden, each one's new
+    /// place among those left, none for one hidden or a rule.
+    fn lay(self, el: &mut Element) -> Option<Vec<Option<usize>>> {
+        let mut places = None;
         if self.members.iter().any(|shown| !shown) {
-            let mut shown = self.members.into_iter();
-            el.members.retain(|_| shown.next().unwrap_or(true));
+            let before = el.members.clone();
+            let mut shown = self.members.iter();
+            el.members.retain(|_| *shown.next().unwrap_or(&true));
             tidy(&mut el.members);
+            // The members' words left keep their order: each one's place
+            // among what is left, counted by its words.
+            let mut at = 0;
+            let mut map = Vec::with_capacity(before.len());
+            for (member, shown) in before
+                .iter()
+                .zip(self.members.iter().chain(std::iter::repeat(&true)))
+            {
+                if !shown || !matches!(member, Member::Text { .. }) {
+                    map.push(None);
+                    continue;
+                }
+                let found = el.members[at..].iter().position(|left| left == member);
+                map.push(found.map(|found| at + found));
+                if let Some(found) = found {
+                    at += found + 1;
+                }
+            }
+            places = Some(map);
         }
         if !self.stereotype {
             el.stereotypes.clear();
@@ -733,6 +764,41 @@ impl Plan {
         if !self.circle {
             el.spot = None;
         }
+        places
+    }
+}
+
+/// The members the lines of `group` and of every group inside are at, at
+/// their new places in the boxes whose members `hide` took (`moved`).
+fn remember(
+    group: &mut Group,
+    path: &mut Vec<usize>,
+    moved: &HashMap<Vec<usize>, Vec<Option<usize>>>,
+) {
+    let place = |end: &[usize], member: Option<usize>| {
+        let member = member?;
+        match moved.get(end) {
+            Some(places) => places.get(member).copied().flatten(),
+            None => Some(member),
+        }
+    };
+    let at = |path: &[usize], end: &[usize]| [path, end].concat();
+    for edge in &mut group.edges {
+        edge.members = [
+            place(&at(path, &[edge.from]), edge.members[0]),
+            place(&at(path, &[edge.to]), edge.members[1]),
+        ];
+    }
+    for crossing in &mut group.crossings {
+        crossing.arrow.members = [
+            place(&at(path, &crossing.from), crossing.arrow.members[0]),
+            place(&at(path, &crossing.to), crossing.arrow.members[1]),
+        ];
+    }
+    for (index, node) in group.nodes.iter_mut().enumerate() {
+        path.push(index);
+        remember(&mut node.children, path, moved);
+        path.pop();
     }
 }
 

@@ -391,6 +391,7 @@ fn collect(container: &Container, path: &mut Vec<usize>, out: &mut Vec<Arrow>) {
             to: within(&[edge.to]),
             order: edge.line,
             line: Some(edge.line),
+            lead: [false; 2],
         });
     }
     for (index, crossing) in container.crossings.iter().enumerate() {
@@ -404,6 +405,7 @@ fn collect(container: &Container, path: &mut Vec<usize>, out: &mut Vec<Arrow>) {
             to: within(&crossing.to),
             order: crossing.arrow.line,
             line: Some(crossing.arrow.line),
+            lead: [false; 2],
         });
     }
     for (index, node) in container.nodes.iter().enumerate() {

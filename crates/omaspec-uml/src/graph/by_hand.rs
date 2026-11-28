@@ -26,6 +26,10 @@ pub struct Arrow {
     pub to: Vec<usize>,
     pub order: usize,
     pub line: Option<usize>,
+    /// The ends it meets at a point of their own, not anywhere on the box
+    /// (a class's member's row): the first run of the laid line leads
+    /// there, and the line shaped by hand keeps that run.
+    pub lead: [bool; 2],
 }
 
 /// One laid line, to change.
@@ -130,7 +134,31 @@ pub fn lay(
         if corners.is_empty() {
             continue;
         }
-        let shape = hand::shape(end(from), end(to), &corners);
+        // Where an end leads to a point of its own, the shape runs to the
+        // laid line's first run there, and on along it.
+        let n = laid.points.len();
+        let dot = |at: Point| hand::End {
+            rect: Rect {
+                x: at.0,
+                y: at.1,
+                w: 0.0,
+                h: 0.0,
+            },
+            flat: false,
+        };
+        let (start, leave) = match arrow.lead[0] {
+            true => (dot(laid.points[1]), Some(laid.points[0])),
+            false => (end(from), None),
+        };
+        let (finish, enter) = match arrow.lead[1] {
+            true => (dot(laid.points[n - 2]), Some(laid.points[n - 1])),
+            false => (end(to), None),
+        };
+        let mut shape = hand::shape(start, finish, &corners);
+        if let Some(at) = leave {
+            shape.insert(0, at);
+        }
+        shape.extend(enter);
         links.push(Link {
             from: arrow.from.clone(),
             to: arrow.to.clone(),

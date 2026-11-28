@@ -178,6 +178,7 @@ impl Parser {
                     to: point,
                     to_head: Head::None,
                     to_card: None,
+                    members: [edge.members[0], None],
                     ..edge.clone()
                 };
                 // The words and a note on the line stay on its first half.
@@ -187,6 +188,7 @@ impl Parser {
                     from_card: None,
                     label: None,
                     note: None,
+                    members: [None, edge.members[1]],
                     ..edge.clone()
                 };
                 let at = at.unwrap_or(group.edges.len());
